@@ -1,0 +1,27 @@
+use serde::Serialize;
+
+#[derive(Serialize, Clone, Debug)]
+pub struct Article {
+    pub id: i64,
+    pub feed_id: i64,
+    pub title: String,
+    pub summary: String,
+    pub author: String,
+    pub url: String,
+    pub timestamp: i64,
+}
+
+#[derive(Serialize, Clone, Debug)]
+pub struct Feed {
+    pub id: i64,
+    pub name: String,
+    pub url: String,
+    pub folder_id: i64,
+}
+
+#[derive(Serialize, Clone, Debug)]
+pub struct Folder {
+    pub id: i64,
+    pub name: String,
+    pub feeds: Vec<Feed>,
+}
