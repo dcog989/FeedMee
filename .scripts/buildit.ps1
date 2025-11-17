@@ -24,14 +24,26 @@ function Show-Menu {
 
 function Test-BlockingProcesses {
     while ($true) {
-        $blockingProcesses = Get-Process -Name "Code", "devenv" -ErrorAction SilentlyContinue
-        if ($null -eq $blockingProcesses) {
+        $processNamesToMonitor = @("Code", "devenv")
+        $runningApps = [System.Collections.Generic.HashSet[string]]::new()
+
+        foreach ($procName in $processNamesToMonitor) {
+            # Get the first process object that matches the name
+            $process = Get-Process -Name $procName -ErrorAction SilentlyContinue | Select-Object -First 1
+
+            if ($null -ne $process -and -not [string]::IsNullOrEmpty($process.Description)) {
+                # If a process is found, add its full description to our set
+                [void]$runningApps.Add($process.Description)
+            }
+        }
+
+        if ($runningApps.Count -eq 0) {
             return $true # No blocking processes found
         }
 
         Write-Host "`n[WARN] The following applications are running which can lock files:" -ForegroundColor Yellow
-        foreach ($proc in $blockingProcesses) {
-            Write-Host "- $($proc.ProcessName)" -ForegroundColor Yellow
+        foreach ($appName in $runningApps) {
+            Write-Host "- $appName" -ForegroundColor Yellow
         }
         $userInput = Read-Host "Please close them and press Enter to continue, or type 'S' to skip this check"
         if ($userInput -eq 's') {
@@ -64,7 +76,7 @@ function Clear-ProjectBuildCache {
         }
     }
     else {
-         Write-Host "[WARN] 'src-tauri' directory not found. Skipping 'cargo clean'." -ForegroundColor Yellow
+        Write-Host "[WARN] 'src-tauri' directory not found. Skipping 'cargo clean'." -ForegroundColor Yellow
     }
 
     # Clean npm artifacts
