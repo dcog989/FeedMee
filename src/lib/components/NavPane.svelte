@@ -4,13 +4,15 @@
     let expandedFolders = $state<Set<number>>(new Set());
     let initialized = false;
 
+    // Drag State
+    let dragTargetFolderId = $state<number | null>(null);
+
     // Context Menu State
     let cmVisible = $state(false);
     let cmX = $state(0);
     let cmY = $state(0);
     let cmTarget = $state<{ type: "folder" | "feed"; id: number; name?: string } | null>(null);
 
-    // Run once to expand initial folders
     $effect(() => {
         if (!initialized && appState.folders.length > 0) {
             const newSet = new Set(expandedFolders);
@@ -34,24 +36,42 @@
     // --- Drag & Drop ---
     function onDragStart(event: DragEvent, feedId: number) {
         if (event.dataTransfer) {
-            event.dataTransfer.setData("text/plain", feedId.toString());
             event.dataTransfer.effectAllowed = "move";
+            event.dataTransfer.setData("text/plain", feedId.toString());
         }
     }
 
-    function onDragOver(event: DragEvent) {
-        event.preventDefault();
+    function onDragEnter(event: DragEvent, folderId: number) {
+        event.preventDefault(); // Essential for visual feedback
+        dragTargetFolderId = folderId;
+    }
+
+    function onDragOver(event: DragEvent, folderId: number) {
+        event.preventDefault(); // CRITICAL: Allows drop
         if (event.dataTransfer) {
             event.dataTransfer.dropEffect = "move";
         }
+        // Redundant check ensures UI stays active if mouse moves within target
+        if (dragTargetFolderId !== folderId) {
+            dragTargetFolderId = folderId;
+        }
+    }
+
+    function onDragLeave(event: DragEvent) {
+        // Optional: Logic to clear highlight, but usually handled by Drop or Enter on another node
     }
 
     function onDrop(event: DragEvent, folderId: number) {
         event.preventDefault();
         event.stopPropagation();
-        const feedId = event.dataTransfer?.getData("text/plain");
-        if (feedId) {
-            appState.moveFeed(parseInt(feedId), folderId);
+        dragTargetFolderId = null;
+
+        const data = event.dataTransfer?.getData("text/plain");
+        if (data) {
+            const feedId = parseInt(data);
+            if (!isNaN(feedId)) {
+                appState.moveFeed(feedId, folderId);
+            }
         }
     }
 
@@ -96,12 +116,13 @@
     <div class="folder-list" role="tree">
         {#each appState.folders as folder (folder.id)}
             <!--
-				The Folder Container acts as the Drop Target.
-				We use ondragover to allow the drop, and ondrop to handle it.
+				FIX: The entire folder div is now the Drop Target.
+				This ensures dragging over feeds *inside* the folder still counts as a drop for that folder.
+				FIX: Added aria-selected="false" to satisfy accessibility requirements.
 			-->
-            <div class="folder" ondragover={onDragOver} ondrop={(e) => onDrop(e, folder.id)} role="treeitem" aria-selected="false" aria-expanded={expandedFolders.has(folder.id)} tabindex="0">
-                <!-- svelte-ignore a11y_no_static_element_interactions -->
+            <div class="folder" class:drag-active={dragTargetFolderId === folder.id} ondragenter={(e) => onDragEnter(e, folder.id)} ondragover={(e) => onDragOver(e, folder.id)} ondrop={(e) => onDrop(e, folder.id)} role="treeitem" aria-expanded={expandedFolders.has(folder.id)} aria-selected="false" tabindex="-1">
                 <!-- svelte-ignore a11y_click_events_have_key_events -->
+                <!-- svelte-ignore a11y_no_static_element_interactions -->
                 <div class="folder-header" onclick={(e) => toggleFolder(folder.id, e)} oncontextmenu={(e) => handleContextMenu(e, "folder", folder.id, folder.name)}>
                     <span class="toggle-icon">
                         <svg width="10" height="10" viewBox="0 0 10 10" style="transform: rotate({expandedFolders.has(folder.id) ? 90 : 0}deg); transition: transform 0.2s;">
@@ -115,7 +136,23 @@
                     <ul class="feed-list" role="group">
                         {#each folder.feeds as feed (feed.id)}
                             <li role="none">
-                                <button class="feed-item" class:selected={appState.selectedFeedId === feed.id} onclick={() => appState.selectFeed(feed.id)} oncontextmenu={(e) => handleContextMenu(e, "feed", feed.id)} draggable="true" ondragstart={(e) => onDragStart(e, feed.id)} role="treeitem" aria-selected={appState.selectedFeedId === feed.id}>
+                                <!--
+									FIX: Draggable is on the button for direct interaction.
+									We stop propagation on click to prevent toggling the folder.
+								-->
+                                <button
+                                    class="feed-item"
+                                    class:selected={appState.selectedFeedId === feed.id}
+                                    draggable="true"
+                                    ondragstart={(e) => onDragStart(e, feed.id)}
+                                    onclick={(e) => {
+                                        e.stopPropagation();
+                                        appState.selectFeed(feed.id);
+                                    }}
+                                    oncontextmenu={(e) => handleContextMenu(e, "feed", feed.id)}
+                                    role="treeitem"
+                                    aria-selected={appState.selectedFeedId === feed.id}
+                                >
                                     <span class="feed-name-wrap">
                                         <span class="feed-icon">#</span>
                                         {feed.name}
@@ -163,6 +200,15 @@
 
     .folder {
         outline: none;
+        margin-bottom: 2px;
+        border-radius: 4px;
+        transition: background-color 0.1s;
+    }
+
+    /* New visual cue: Highlight the whole folder when dragging over it */
+    .folder.drag-active {
+        background-color: var(--bg-selected-muted);
+        box-shadow: inset 0 0 0 1px var(--bg-selected);
     }
 
     .folder-header {
@@ -172,11 +218,21 @@
         cursor: pointer;
         color: var(--text-secondary);
         border-radius: 4px;
+        transition: background-color 0.2s;
     }
+
+    /* Removed .folder-header.drag-active rule as it moved to parent */
 
     .folder-header:hover {
         color: var(--text-primary);
         background-color: rgba(0, 0, 0, 0.03);
+    }
+
+    .folder-header.drag-active {
+        background-color: var(--bg-selected-muted);
+        color: var(--text-primary);
+        font-weight: bold;
+        box-shadow: inset 0 0 0 2px var(--bg-selected);
     }
 
     .toggle-icon {
@@ -207,7 +263,7 @@
         background: transparent;
         border: none;
         text-align: left;
-        cursor: pointer;
+        cursor: grab; /* Explicit grab cursor */
         border-radius: 6px;
         font-size: 0.9rem;
         color: var(--text-primary);
@@ -215,6 +271,16 @@
         align-items: center;
         justify-content: space-between;
         gap: 8px;
+        border-left: 3px solid transparent;
+    }
+
+    .feed-item:active {
+        cursor: grabbing;
+    }
+
+    /* CRITICAL: Ensures children don't block drag start events */
+    .feed-item > * {
+        pointer-events: none;
     }
 
     .feed-name-wrap {
@@ -248,20 +314,21 @@
     }
 
     .feed-item.selected {
-        background-color: var(--bg-selected);
-        color: var(--text-inverse);
+        background-color: var(--bg-selected-muted);
+        color: var(--text-primary);
+        border-left-color: var(--bg-selected);
+        font-weight: 500;
     }
 
     .feed-item.selected .feed-icon {
-        color: rgba(255, 255, 255, 0.7);
+        color: var(--bg-selected);
     }
 
     .feed-item.selected .badge {
-        background-color: rgba(255, 255, 255, 0.3);
-        color: #fff;
+        background-color: var(--bg-selected);
+        color: white;
     }
 
-    /* Context Menu */
     .context-menu {
         position: fixed;
         background: var(--bg-app);

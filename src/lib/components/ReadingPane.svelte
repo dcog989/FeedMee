@@ -2,7 +2,18 @@
     import { appState } from "$lib/store.svelte";
     import DOMPurify from "dompurify";
 
-    // Sanitize content to prevent XSS from RSS feeds
+    // Configure DOMPurify to add 'title' attribute showing the URL
+    // We explicitly type 'node' as Element to satisfy TypeScript
+    DOMPurify.addHook("afterSanitizeAttributes", (node: Element) => {
+        if (node.tagName === "A" && node.hasAttribute("href")) {
+            const href = node.getAttribute("href") || "";
+            node.setAttribute("title", href);
+            // Security: Open external links safely
+            node.setAttribute("target", "_blank");
+            node.setAttribute("rel", "noopener noreferrer");
+        }
+    });
+
     let sanitizedContent = $derived(appState.selectedArticle?.summary ? DOMPurify.sanitize(appState.selectedArticle.summary) : "");
 </script>
 
@@ -65,13 +76,17 @@
         color: var(--text-primary);
     }
 
-    /* Target content inside the HTML summary */
     .summary :global(p) {
         margin-bottom: 1.5rem;
     }
 
     .summary :global(a) {
-        color: var(--bg-selected);
+        color: #4899ec;
+        text-decoration: none;
+    }
+
+    .summary :global(a:hover) {
+        text-decoration: underline;
     }
 
     .summary :global(img) {

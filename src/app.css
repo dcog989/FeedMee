@@ -1,6 +1,5 @@
 /* Base Theme (Light) */
 :root {
-    /* Browser Native UI (Scrollbars, Inputs) */
     color-scheme: light;
 
     /* Backgrounds */
@@ -8,12 +7,14 @@
     --bg-pane: #f3f3f3;
     --bg-content: #ffffff;
     --bg-hover: #e9e9e9;
-    --bg-selected: #ec4899; /* Tailwind Pink 500 */
+    --bg-selected: #ec4899; /* Pink 500 */
+    /* 30% opacity pink (70% transparent) */
+    --bg-selected-muted: rgba(236, 72, 153, 0.3);
 
     /* Text */
     --text-primary: #111111;
     --text-secondary: #666666;
-    --text-inverse: #ffffff; /* Text on selected items */
+    --text-inverse: #ffffff;
 
     /* Borders & UI */
     --border-color: #e0e0e0;
@@ -30,30 +31,14 @@
     --bg-pane: #252526;
     --bg-content: #1e1e1e;
     --bg-hover: #2a2d2e;
-    --bg-selected: #ec4899; /* Tailwind Pink 500 */
+    --bg-selected: #ec4899;
+    --bg-selected-muted: rgba(236, 72, 153, 0.2);
 
     --text-primary: #cccccc;
     --text-secondary: #858585;
     --text-inverse: #ffffff;
 
     --border-color: #333333;
-}
-
-/* Example: Sepia Theme */
-[data-theme="sepia"] {
-    color-scheme: light;
-
-    --bg-app: #f4ecd8;
-    --bg-pane: #eaddcf;
-    --bg-content: #fdf6e3;
-    --bg-hover: #d3c4b1;
-    --bg-selected: #ec4899;
-
-    --text-primary: #5b4636;
-    --text-secondary: #7f6a58;
-    --text-inverse: #fdf6e3;
-
-    --border-color: #d3c4b1;
 }
 
 /* Global Reset */
@@ -82,7 +67,7 @@ body {
 ::-webkit-scrollbar-thumb {
     background: #b0b0b0;
     border-radius: 5px;
-    border: 2px solid transparent; /* Creates padding effect */
+    border: 2px solid transparent;
     background-clip: content-box;
 }
 
@@ -90,7 +75,6 @@ body {
     background-color: #909090;
 }
 
-/* Dark Mode Scrollbars */
 [data-theme="dark"] ::-webkit-scrollbar-thumb {
     background-color: #555555;
 }

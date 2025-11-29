@@ -7,15 +7,22 @@
     function minimize() {
         appWindow.minimize();
     }
-    function maximize() {
-        appWindow.toggleMaximize();
+
+    async function maximize() {
+        // Explicitly check state for reliable toggling
+        const isMaximized = await appWindow.isMaximized();
+        if (isMaximized) {
+            await appWindow.unmaximize();
+        } else {
+            await appWindow.maximize();
+        }
     }
+
     function close() {
         appWindow.close();
     }
 
     function handleAddFeed() {
-        // Minimal UI for PoC - can be replaced with a modal later
         const url = prompt("Enter RSS Feed URL:");
         if (url && url.trim().length > 0) {
             appState.addFeed(url.trim());
@@ -24,14 +31,11 @@
 </script>
 
 <header class="titlebar" data-tauri-drag-region>
-    <!-- Left: Branding & Window Controls (Mac style spacer) -->
     <div class="left-section">
         <div class="mac-spacer"></div>
-        <!-- Spacer for Mac Traffic Lights -->
         <span class="app-title">FeedMee</span>
     </div>
 
-    <!-- Center: Toolbar -->
     <div class="toolbar">
         <button class="tool-btn" onclick={handleAddFeed} title="Add Feed" aria-label="Add Feed">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -57,7 +61,6 @@
         </div>
     </div>
 
-    <!-- Right: Settings & Window Controls (Windows/Linux) -->
     <div class="right-section">
         <button class="tool-btn" title="Settings" aria-label="Settings">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -67,7 +70,6 @@
             </svg>
         </button>
 
-        <!-- Windows/Linux Controls -->
         <div class="window-controls">
             <button class="win-btn" onclick={minimize} aria-label="Minimize">
                 <svg width="10" height="10" viewBox="0 0 10 10"><path d="M1,5 L9,5" stroke="currentColor" stroke-width="1" /></svg>
@@ -92,14 +94,17 @@
         padding: 0;
         user-select: none;
         border-bottom: 1px solid var(--border-color);
-        /* This property allows dragging the window */
         -webkit-app-region: drag;
     }
 
-    /* Interactive elements must be no-drag */
-    button,
-    input {
+    /* Explicitly disable drag on all interactive elements to ensure clicks work */
+    .titlebar button,
+    .titlebar input,
+    .window-controls,
+    .toolbar {
         -webkit-app-region: no-drag;
+        z-index: 20; /* Ensure they sit above the drag region */
+        position: relative;
     }
 
     .left-section,
@@ -204,7 +209,4 @@
         background-color: #e81123;
         color: white;
     }
-
-    /* Hide Windows controls on Mac (Assuming data-platform attribute or simple css check logic later) */
-    /* For PoC, we keep them visible or rely on simple media queries if possible, but Tauri CSS doesn't expose OS easily without logic. */
 </style>
