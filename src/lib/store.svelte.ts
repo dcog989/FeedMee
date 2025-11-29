@@ -141,6 +141,48 @@ class AppState {
     setTheme(newTheme: Theme) {
         this.theme = newTheme;
     }
+
+    async renameFolder(id: number, newName: string) {
+        try {
+            await invoke('rename_folder', { id, newName });
+            await this.refreshFolders();
+        } catch (e) {
+            console.error('Rename failed:', e);
+        }
+    }
+
+    async deleteFeed(id: number) {
+        if (!confirm('Are you sure you want to delete this feed?')) return;
+        try {
+            await invoke('delete_feed', { id });
+            if (this.selectedFeedId === id) {
+                this.selectedFeedId = null;
+                this.articles = [];
+            }
+            await this.refreshFolders();
+        } catch (e) {
+            console.error('Delete feed failed:', e);
+        }
+    }
+
+    async deleteFolder(id: number) {
+        if (!confirm('Delete folder and all its feeds?')) return;
+        try {
+            await invoke('delete_folder', { id });
+            await this.refreshFolders();
+        } catch (e) {
+            console.error('Delete folder failed:', e);
+        }
+    }
+
+    async moveFeed(feedId: number, folderId: number) {
+        try {
+            await invoke('move_feed', { feedId, folderId });
+            await this.refreshFolders();
+        } catch (e) {
+            console.error('Move feed failed:', e);
+        }
+    }
 }
 
 export const appState = new AppState();

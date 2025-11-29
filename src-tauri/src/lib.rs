@@ -3,7 +3,6 @@ pub mod db;
 pub mod models;
 
 use std::sync::Mutex;
-use tauri::Manager;
 
 pub struct AppState {
     db: Mutex<rusqlite::Connection>,
@@ -61,7 +60,11 @@ pub fn run() {
             commands::get_articles_for_feed,
             commands::import_opml,
             commands::refresh_feed,
-            commands::add_feed
+            commands::add_feed,
+            commands::rename_folder,
+            commands::delete_feed,
+            commands::delete_folder,
+            commands::move_feed
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

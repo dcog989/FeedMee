@@ -35,6 +35,8 @@ pub fn init_db(conn: &mut Connection) -> std::result::Result<(), Box<dyn std::er
     Ok(())
 }
 
+// --- Read Operations ---
+
 pub fn get_folders_with_feeds(conn: &Connection) -> Result<Vec<Folder>> {
     let mut folder_stmt = conn.prepare("SELECT id, name FROM folders ORDER BY name")?;
     let mut feed_stmt = conn
@@ -97,6 +99,14 @@ pub fn get_articles_for_feed(
     Ok(articles)
 }
 
+pub fn get_feed_url(conn: &Connection, feed_id: i64) -> Result<String> {
+    conn.query_row(
+        "SELECT url FROM feeds WHERE id = ?1",
+        params![feed_id],
+        |row| row.get(0),
+    )
+}
+
 // --- Write Operations ---
 
 pub fn create_folder(conn: &Connection, name: &str) -> Result<i64> {
@@ -120,14 +130,6 @@ pub fn create_feed(conn: &Connection, name: &str, url: &str, folder_id: i64) -> 
     Ok(())
 }
 
-pub fn get_feed_url(conn: &Connection, feed_id: i64) -> Result<String> {
-    conn.query_row(
-        "SELECT url FROM feeds WHERE id = ?1",
-        params![feed_id],
-        |row| row.get(0),
-    )
-}
-
 pub fn insert_article(conn: &Connection, article: &Article) -> Result<()> {
     conn.execute(
         "INSERT OR IGNORE INTO articles (feed_id, title, author, summary, url, timestamp)
@@ -140,6 +142,46 @@ pub fn insert_article(conn: &Connection, article: &Article) -> Result<()> {
             article.url,
             article.timestamp
         ],
+    )?;
+    Ok(())
+}
+
+// --- Management Operations ---
+
+pub fn rename_folder(conn: &Connection, id: i64, new_name: &str) -> Result<()> {
+    conn.execute(
+        "UPDATE folders SET name = ?1 WHERE id = ?2",
+        params![new_name, id],
+    )?;
+    Ok(())
+}
+
+pub fn delete_feed(conn: &Connection, id: i64) -> Result<()> {
+    // Cascade delete articles first
+    conn.execute("DELETE FROM articles WHERE feed_id = ?1", params![id])?;
+    conn.execute("DELETE FROM feeds WHERE id = ?1", params![id])?;
+    Ok(())
+}
+
+pub fn delete_folder(conn: &Connection, id: i64) -> Result<()> {
+    // Recursive delete: get all feeds in folder, delete them, then delete folder
+    let mut stmt = conn.prepare("SELECT id FROM feeds WHERE folder_id = ?1")?;
+    let feed_ids: Vec<i64> = stmt
+        .query_map(params![id], |row| row.get(0))?
+        .collect::<Result<Vec<i64>>>()?;
+
+    for feed_id in feed_ids {
+        delete_feed(conn, feed_id)?;
+    }
+
+    conn.execute("DELETE FROM folders WHERE id = ?1", params![id])?;
+    Ok(())
+}
+
+pub fn move_feed(conn: &Connection, feed_id: i64, target_folder_id: i64) -> Result<()> {
+    conn.execute(
+        "UPDATE feeds SET folder_id = ?1 WHERE id = ?2",
+        params![target_folder_id, feed_id],
     )?;
     Ok(())
 }
