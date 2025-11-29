@@ -1,5 +1,5 @@
 use crate::models::{Article, Feed, Folder};
-use rusqlite::{Connection, Result};
+use rusqlite::{Connection, Result, params};
 use rusqlite_migration::{M, Migrations};
 
 // Changed return type to Box<dyn std::error::Error> to handle mixed error types
@@ -8,7 +8,7 @@ pub fn init_db(conn: &mut Connection) -> std::result::Result<(), Box<dyn std::er
     let migrations = Migrations::new(vec![M::up(
         "CREATE TABLE folders (
                 id INTEGER PRIMARY KEY,
-                name TEXT NOT NULL
+                name TEXT NOT NULL UNIQUE
             );
             CREATE TABLE feeds (
                 id INTEGER PRIMARY KEY,
@@ -30,47 +30,8 @@ pub fn init_db(conn: &mut Connection) -> std::result::Result<(), Box<dyn std::er
     )]);
 
     // 2. Apply migrations
-    // The '?' operator now works because both error types implement std::error::Error
     migrations.to_latest(conn)?;
 
-    // 3. Seed dummy data
-    seed_demo_data(conn)?;
-
-    Ok(())
-}
-
-fn seed_demo_data(conn: &Connection) -> Result<()> {
-    let count: i64 = conn.query_row("SELECT COUNT(*) FROM folders", [], |row| row.get(0))?;
-    if count == 0 {
-        conn.execute("INSERT INTO folders (id, name) VALUES (1, 'Tech News')", ())?;
-        conn.execute("INSERT INTO folders (id, name) VALUES (2, 'Design')", ())?;
-
-        conn.execute(
-            "INSERT INTO feeds (id, name, url, folder_id) VALUES (1, 'Ars Technica', 'https://arstechnica.com/rss', 1)",
-            (),
-        )?;
-        conn.execute(
-            "INSERT INTO feeds (id, name, url, folder_id) VALUES (2, 'Hacker News', 'https://news.ycombinator.com/rss', 1)",
-            (),
-        )?;
-        conn.execute(
-            "INSERT INTO feeds (id, name, url, folder_id) VALUES (3, 'A List Apart', 'https://alistapart.com/main/feed/', 2)",
-            (),
-        )?;
-
-        conn.execute(
-            "INSERT INTO articles (feed_id, title, author, summary, url, timestamp) VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
-            (1, "First Article from Ars", "John Doe", "This is a summary of the first article.", "https://example.com/1", 1700000000),
-        )?;
-        conn.execute(
-            "INSERT INTO articles (feed_id, title, author, summary, url, timestamp) VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
-            (1, "Second Article from Ars", "Jane Smith", "Summary of the second post.", "https://example.com/2", 1700000100),
-        )?;
-        conn.execute(
-            "INSERT INTO articles (feed_id, title, author, summary, url, timestamp) VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
-            (3, "A Post about Design", "Designer Dave", "<p>Exploring modern design principles.</p>", "https://example.com/3", 1700000200),
-        )?;
-    }
     Ok(())
 }
 
@@ -122,4 +83,51 @@ pub fn get_articles_for_feed(conn: &Connection, feed_id: i64) -> Result<Vec<Arti
         })?
         .collect::<Result<Vec<Article>>>()?;
     Ok(articles)
+}
+
+// --- Write Operations ---
+
+pub fn create_folder(conn: &Connection, name: &str) -> Result<i64> {
+    // Try to insert, ignore if exists, then fetch ID
+    conn.execute(
+        "INSERT OR IGNORE INTO folders (name) VALUES (?1)",
+        params![name],
+    )?;
+    conn.query_row(
+        "SELECT id FROM folders WHERE name = ?1",
+        params![name],
+        |row| row.get(0),
+    )
+}
+
+pub fn create_feed(conn: &Connection, name: &str, url: &str, folder_id: i64) -> Result<()> {
+    conn.execute(
+        "INSERT OR IGNORE INTO feeds (name, url, folder_id) VALUES (?1, ?2, ?3)",
+        params![name, url, folder_id],
+    )?;
+    Ok(())
+}
+
+pub fn get_feed_url(conn: &Connection, feed_id: i64) -> Result<String> {
+    conn.query_row(
+        "SELECT url FROM feeds WHERE id = ?1",
+        params![feed_id],
+        |row| row.get(0),
+    )
+}
+
+pub fn insert_article(conn: &Connection, article: &Article) -> Result<()> {
+    conn.execute(
+        "INSERT OR IGNORE INTO articles (feed_id, title, author, summary, url, timestamp)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+        params![
+            article.feed_id,
+            article.title,
+            article.author,
+            article.summary,
+            article.url,
+            article.timestamp
+        ],
+    )?;
+    Ok(())
 }

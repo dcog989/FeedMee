@@ -1,10 +1,11 @@
 <script lang="ts">
-    import { appState } from "$lib/store";
+    import { appState } from "$lib/store.svelte";
 </script>
 
 <nav class="pane">
     <div class="header">
         <h2>Feeds</h2>
+        <button class="action-btn" onclick={() => appState.importOpml()} title="Import OPML"> Import </button>
     </div>
 
     <div class="folder-list">
@@ -37,11 +38,28 @@
 
     .header {
         padding: 1rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
     }
 
     h2 {
         margin: 0;
         font-size: 1.2rem;
+        color: var(--text-primary);
+    }
+
+    .action-btn {
+        width: auto;
+        padding: 0.25rem 0.75rem;
+        font-size: 0.8rem;
+        background-color: var(--bg-hover);
+        border: 1px solid var(--border-color);
+        color: var(--text-secondary);
+    }
+
+    .action-btn:hover {
+        background-color: var(--border-color);
         color: var(--text-primary);
     }
 

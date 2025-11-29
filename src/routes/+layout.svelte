@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { appState } from "$lib/store";
+    import { appState } from "$lib/store.svelte";
     import "../app.css";
 
     let { children } = $props();

@@ -45,9 +45,13 @@ pub fn run() {
             Ok(())
         })
         .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_fs::init())
         .invoke_handler(tauri::generate_handler![
             commands::get_folders_with_feeds,
-            commands::get_articles_for_feed
+            commands::get_articles_for_feed,
+            commands::import_opml,
+            commands::refresh_feed
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

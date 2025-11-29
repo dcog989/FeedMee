@@ -29,11 +29,12 @@ npm run check
 npm run check:watch
 ```
 
-### Cleaning (Troubleshooting)
+## Cleaning (Troubleshooting)
 
 If the app misbehaves, use these commands to wipe caches:
 
 **Option A: The Manual Way**
+
 ```powershell
 # 1. Clean Rust artifacts (Backend)
 cd src-tauri
@@ -49,13 +50,14 @@ npm install
 ```
 
 **Option B: Your Custom Script**
-You have a helper script located at `.scripts/buildit.ps1` that handles this for you with a menu interface.
+
+Use script `.scripts/buildit.ps1` that handles this for you with a menu interface.
 ```powershell
 .\.scripts\buildit.ps1
 ```
 *(Select option **3** to "Clean & Install")*
 
-### 🧪 Testing
+## Testing
 *Currently, you do not have a dedicated test runner (like Vitest) configured in `package.json`, so standard testing commands won't work yet.* 
 
 For now, use `npm run check` to validate code integrity.

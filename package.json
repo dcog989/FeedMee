@@ -14,8 +14,10 @@
   "license": "MIT",
   "dependencies": {
     "@tauri-apps/api": "^2",
+    "@tauri-apps/plugin-dialog": "^2",
+    "@tauri-apps/plugin-fs": "^2",
     "@tauri-apps/plugin-opener": "^2",
-    "dompurify": "^3.3.0"
+    "dompurify": "^3.3"
   },
   "devDependencies": {
     "@sveltejs/adapter-static": "^3.0.10",
