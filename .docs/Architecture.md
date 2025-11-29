@@ -2,7 +2,7 @@
 
 ## Overview
 
-**FeedMee** is a modern, performant RSS/Atom news reader. It prioritizes readability, user customization, and a clean, responsive UI built with web technologies.
+**FeedMee** will be a cross-platform RSS/Atom news reader. It will prioritize performance, readability, a clean, responsive and uncluttered UI.
 
 ---
 
@@ -17,7 +17,7 @@
 
 ## Technology Stack
 
-- Vite / Rust / Tauri / Svelte /  SQLite
+- Vite / Rust / Tauri / Svelte / SQLite
 
 ---
 
@@ -25,7 +25,7 @@
 
 ### Feed Management
 
-- Add feeds by URL (with auto-discovery from websites).
+- Add feeds by URL (with auto-discovery from websites) or local import (XML / OPML)
 - Organize into nested folders.
 - Rename/delete feeds & folders.
 - Import/export via OPML.
@@ -33,23 +33,22 @@
 ### Article Handling
 
 - Fetch & parse RSS/Atom feeds.
-- Display articles with title, summary, author, timestamp.
+- Display articles with title, summary, author, image, timestamp.
 - Mark as read/unread; archive entries.
 - “Inbox” view: unread-only filter.
+- tag for reading / ignore
 
 ### Reading Experience
 
 - Clean, distraction-free article view.
 - Customizable:
-  - Font (sans-serif/serif options)
-  - Font size (S/M/L/XL)
-  - Line spacing (normal/increased)
-  - Theme (light/dark/sepia)
+  - Font ('Open Sans' default, user configurable)
+  - Line spacing (user config)
+  - Theme (light/dark/custom themes)
 
 ### Settings & UI Preferences
 
 - App theme (light/dark/system)
-- Transparent window background effect (via Tauri configuration, platform-dependent)
 
 ---
 
@@ -59,11 +58,11 @@
 
 The layout adapts fluidly to the window size using modern CSS techniques.
 
-| Window Width | Behavior |
-|--------------|--------|
-| **>1200px** | Full three-pane: Navigation → Article List → Reading |
+| Window Width   | Behavior                                                                             |
+| -------------- | ------------------------------------------------------------------------------------ |
+| **>1200px**    | Full three-pane: Navigation → Article List → Reading                                 |
 | **768–1200px** | Nav pane collapses to an icon-based rail or hamburger flyout; List + Reading visible |
-| **<768px** | Single-pane navigation: Nav → List → Article (with back button) |
+| **<768px**     | Single-pane navigation: Nav → List → Article (with back button)                      |
 
 #### Pane Details
 
@@ -132,7 +131,6 @@ The layout adapts fluidly to the window size using modern CSS techniques.
 - 2-pane layout option
 - Cloud sync (Feedly, Inoreader)
 - “Read Later” (Pocket, Instapaper)
-- Browser extension
 - Full-text reader mode
 - Podcast/video support
 - Priority inbox, duplicate detection
