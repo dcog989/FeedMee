@@ -17,3 +17,12 @@
 - 
 
 ---
+
+## List for Claude
+
+"D:\Code\FeedMee\src"
+"D:\Code\FeedMee\src-tauri"
+"D:\Code\FeedMee\svelte.config.js"
+"D:\Code\FeedMee\vite.config.js"
+"D:\Code\FeedMee\package.json"
+"D:\Code\FeedMee\tsconfig.json"
