@@ -14,10 +14,12 @@ pub fn get_folders_with_feeds(state: State<'_, AppState>) -> Result<Vec<Folder>,
 #[tauri::command]
 pub fn get_articles_for_feed(
     feed_id: i64,
+    limit: usize,
+    offset: usize,
     state: State<'_, AppState>,
 ) -> Result<Vec<Article>, String> {
     let conn = state.db.lock().unwrap();
-    db::get_articles_for_feed(&conn, feed_id).map_err(|e| e.to_string())
+    db::get_articles_for_feed(&conn, feed_id, limit, offset).map_err(|e| e.to_string())
 }
 
 #[tauri::command]

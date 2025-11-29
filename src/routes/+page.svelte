@@ -77,8 +77,12 @@
         width: 100vw;
         background-color: var(--bg-app);
 
-        /* Desktop: Use the dynamic variables for width */
-        grid-template-columns: var(--nav-w) 4px var(--list-w) 4px 1fr;
+        /*
+		   Desktop: Use dynamic variables with Fallbacks.
+		   The fallbacks (280px, 320px) ensure the layout works immediately on load,
+		   fixing the issue where panes were not resizable until window resize.
+		*/
+        grid-template-columns: var(--nav-w, 280px) 4px var(--list-w, 320px) 4px 1fr;
         grid-template-areas: "nav resizer1 list resizer2 reading";
     }
 

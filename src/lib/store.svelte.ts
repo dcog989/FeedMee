@@ -12,9 +12,14 @@ class AppState {
     isLoading = $state(false);
     theme = $state<Theme>('system');
 
-    // Layout State (Default Widths)
+    // Layout State
     navWidth = $state(280);
     listWidth = $state(320);
+
+    // Pagination State
+    page = 0;
+    readonly pageSize = 50;
+    hasMore = $state(true);
 
     constructor() {
         this.refreshFolders();
@@ -55,20 +60,24 @@ class AppState {
         this.selectedFeedId = feedId;
         this.selectedArticle = null;
         this.articles = [];
+        this.page = 0;
+        this.hasMore = true;
         this.isLoading = true;
 
         try {
-            // 1. Try to load existing articles
-            let result = await invoke<Article[]>('get_articles_for_feed', { feedId });
+            // 1. Try to load existing articles (Page 0)
+            let result = await this.fetchPage(feedId, 0);
 
             // 2. If empty, auto-refresh from network
             if (!result || result.length === 0) {
                 await invoke('refresh_feed', { feedId });
-                result = await invoke<Article[]>('get_articles_for_feed', { feedId });
+                // Re-fetch page 0 after network refresh
+                result = await this.fetchPage(feedId, 0);
             }
 
             if (this.selectedFeedId === feedId) {
                 this.articles = result || [];
+                this.hasMore = (result?.length || 0) === this.pageSize;
             }
         } catch (e) {
             console.error(`Failed to load articles for feed ${feedId}:`, e);
@@ -78,6 +87,37 @@ class AppState {
                 this.isLoading = false;
             }
         }
+    }
+
+    async loadMore() {
+        if (!this.selectedFeedId || !this.hasMore || this.isLoading) return;
+
+        this.isLoading = true;
+        const nextPage = this.page + 1;
+
+        try {
+            const result = await this.fetchPage(this.selectedFeedId, nextPage);
+
+            if (result && result.length > 0) {
+                this.articles = [...this.articles, ...result];
+                this.page = nextPage;
+                this.hasMore = result.length === this.pageSize;
+            } else {
+                this.hasMore = false;
+            }
+        } catch (e) {
+            console.error('Failed to load more articles:', e);
+        } finally {
+            this.isLoading = false;
+        }
+    }
+
+    private async fetchPage(feedId: number, page: number): Promise<Article[]> {
+        return await invoke<Article[]>('get_articles_for_feed', {
+            feedId,
+            limit: this.pageSize,
+            offset: page * this.pageSize
+        });
     }
 
     selectArticle(article: Article) {

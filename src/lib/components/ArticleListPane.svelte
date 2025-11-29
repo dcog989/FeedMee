@@ -1,11 +1,21 @@
 <script lang="ts">
     import { appState } from "$lib/store.svelte";
+
+    let listContainer: HTMLElement;
+
+    function onScroll() {
+        if (!listContainer) return;
+
+        const { scrollTop, scrollHeight, clientHeight } = listContainer;
+        // Trigger load when within 100px of bottom
+        if (scrollHeight - scrollTop <= clientHeight + 100) {
+            appState.loadMore();
+        }
+    }
 </script>
 
-<section class="pane">
-    {#if appState.isLoading}
-        <div class="loading">Loading articles...</div>
-    {:else if appState.articles.length > 0}
+<section class="pane" bind:this={listContainer} onscroll={onScroll}>
+    {#if appState.articles.length > 0}
         <ul class="article-list">
             {#each appState.articles as article (article.id)}
                 <li>
@@ -19,6 +29,11 @@
                 </li>
             {/each}
         </ul>
+        {#if appState.isLoading}
+            <div class="loading-more">Loading more...</div>
+        {/if}
+    {:else if appState.isLoading}
+        <div class="loading">Loading articles...</div>
     {:else if appState.selectedFeedId}
         <div class="empty-state">
             <p>No articles in this feed.</p>
@@ -46,10 +61,12 @@
     }
 
     .loading,
-    .empty-state {
-        padding: 3rem 1rem;
+    .empty-state,
+    .loading-more {
+        padding: 2rem 1rem;
         text-align: center;
         color: var(--text-secondary);
+        font-size: 0.9rem;
     }
 
     button {
@@ -69,7 +86,7 @@
     }
 
     button.selected {
-        background-color: var(--bg-hover); /* List typically doesn't go blue, just darker grey */
+        background-color: var(--bg-hover);
         border-left: 4px solid var(--bg-selected);
         padding-left: calc(1rem - 4px);
     }

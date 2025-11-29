@@ -1,6 +1,6 @@
 [package]
 name = "feedmee"
-version = "0.1.6"
+version = "0.1.8"
 description = "The seriously fast cross-platform news / feed reader."
 authors = ["you"]
 edition = "2024"
@@ -17,9 +17,10 @@ tauri = { version = "2", features = [] }
 tauri-plugin-opener = "2"
 tauri-plugin-dialog = "2"
 tauri-plugin-fs = "2"
+tauri-plugin-window-state = "2"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
-rusqlite = { version = "0.37", features = ["bundled"] }
+rusqlite = { version = "0.37.0", features = ["bundled"] }
 rusqlite_migration = "2.3"
 reqwest = { version = "0.12", features = ["json", "rustls-tls", "blocking"] }
 feed-rs = "2.3"

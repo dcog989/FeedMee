@@ -24,7 +24,6 @@ pub fn run() {
 
             let db_path = app_data_dir.join("feedmee.sqlite");
 
-            // Open connection
             let mut conn = match rusqlite::Connection::open(&db_path) {
                 Ok(conn) => conn,
                 Err(e) => {
@@ -33,7 +32,6 @@ pub fn run() {
                 }
             };
 
-            // Initialize DB (pass as mutable reference for migrations)
             if let Err(e) = db::init_db(&mut conn) {
                 eprintln!("Failed to initialize database: {}", e);
                 panic!("Database setup failed: Cannot initialize schema.");
@@ -47,6 +45,7 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_fs::init())
+        .plugin(tauri_plugin_window_state::Builder::default().build())
         .invoke_handler(tauri::generate_handler![
             commands::get_folders_with_feeds,
             commands::get_articles_for_feed,

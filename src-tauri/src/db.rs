@@ -67,10 +67,22 @@ pub fn get_folders_with_feeds(conn: &Connection) -> Result<Vec<Folder>> {
     Ok(folders)
 }
 
-pub fn get_articles_for_feed(conn: &Connection, feed_id: i64) -> Result<Vec<Article>> {
-    let mut stmt = conn.prepare("SELECT id, feed_id, title, author, summary, url, timestamp FROM articles WHERE feed_id = ?1 ORDER BY timestamp DESC")?;
+pub fn get_articles_for_feed(
+    conn: &Connection,
+    feed_id: i64,
+    limit: usize,
+    offset: usize,
+) -> Result<Vec<Article>> {
+    let mut stmt = conn.prepare(
+        "SELECT id, feed_id, title, author, summary, url, timestamp
+         FROM articles
+         WHERE feed_id = ?1
+         ORDER BY timestamp DESC
+         LIMIT ?2 OFFSET ?3",
+    )?;
+
     let articles = stmt
-        .query_map([feed_id], |row| {
+        .query_map(params![feed_id, limit, offset], |row| {
             Ok(Article {
                 id: row.get(0)?,
                 feed_id: row.get(1)?,
