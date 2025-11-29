@@ -2,6 +2,7 @@
     import { appState } from "$lib/store.svelte";
 
     let expandedFolders = $state<Set<number>>(new Set());
+    let initialized = false;
 
     // Context Menu State
     let cmVisible = $state(false);
@@ -9,21 +10,25 @@
     let cmY = $state(0);
     let cmTarget = $state<{ type: "folder" | "feed"; id: number; name?: string } | null>(null);
 
+    // Run once to expand initial folders
     $effect(() => {
-        // Auto-expand all folders on initial load if empty
-        if (appState.folders.length > 0 && expandedFolders.size === 0) {
-            appState.folders.forEach((f) => expandedFolders.add(f.id));
+        if (!initialized && appState.folders.length > 0) {
+            const newSet = new Set(expandedFolders);
+            appState.folders.forEach((f) => newSet.add(f.id));
+            expandedFolders = newSet;
+            initialized = true;
         }
     });
 
-    function toggleFolder(id: number) {
-        if (expandedFolders.has(id)) {
-            expandedFolders.delete(id);
+    function toggleFolder(id: number, e: MouseEvent) {
+        e.stopPropagation();
+        const newSet = new Set(expandedFolders);
+        if (newSet.has(id)) {
+            newSet.delete(id);
         } else {
-            expandedFolders.add(id);
+            newSet.add(id);
         }
-        // Force reactivity update
-        expandedFolders = new Set(expandedFolders);
+        expandedFolders = newSet;
     }
 
     // --- Drag & Drop ---
@@ -35,12 +40,15 @@
     }
 
     function onDragOver(event: DragEvent) {
-        event.preventDefault(); // Necessary to allow dropping
-        if (event.dataTransfer) event.dataTransfer.dropEffect = "move";
+        event.preventDefault();
+        if (event.dataTransfer) {
+            event.dataTransfer.dropEffect = "move";
+        }
     }
 
     function onDrop(event: DragEvent, folderId: number) {
         event.preventDefault();
+        event.stopPropagation();
         const feedId = event.dataTransfer?.getData("text/plain");
         if (feedId) {
             appState.moveFeed(parseInt(feedId), folderId);
@@ -50,6 +58,7 @@
     // --- Context Menu ---
     function handleContextMenu(event: MouseEvent, type: "folder" | "feed", id: number, name?: string) {
         event.preventDefault();
+        event.stopPropagation();
         cmVisible = true;
         cmX = event.clientX;
         cmY = event.clientY;
@@ -86,14 +95,19 @@
 <nav class="pane">
     <div class="folder-list" role="tree">
         {#each appState.folders as folder (folder.id)}
+            <!--
+				The Folder Container acts as the Drop Target.
+				We use ondragover to allow the drop, and ondrop to handle it.
+			-->
             <div class="folder" ondragover={onDragOver} ondrop={(e) => onDrop(e, folder.id)} role="treeitem" aria-selected="false" aria-expanded={expandedFolders.has(folder.id)} tabindex="0">
                 <!-- svelte-ignore a11y_no_static_element_interactions -->
-                <div class="folder-header" oncontextmenu={(e) => handleContextMenu(e, "folder", folder.id, folder.name)}>
-                    <button class="toggle-btn" onclick={() => toggleFolder(folder.id)} aria-label="Toggle {folder.name}">
+                <!-- svelte-ignore a11y_click_events_have_key_events -->
+                <div class="folder-header" onclick={(e) => toggleFolder(folder.id, e)} oncontextmenu={(e) => handleContextMenu(e, "folder", folder.id, folder.name)}>
+                    <span class="toggle-icon">
                         <svg width="10" height="10" viewBox="0 0 10 10" style="transform: rotate({expandedFolders.has(folder.id) ? 90 : 0}deg); transition: transform 0.2s;">
                             <path d="M2,2 L8,5 L2,8" fill="currentColor" />
                         </svg>
-                    </button>
+                    </span>
                     <span class="folder-name">{folder.name}</span>
                 </div>
 
@@ -102,8 +116,14 @@
                         {#each folder.feeds as feed (feed.id)}
                             <li role="none">
                                 <button class="feed-item" class:selected={appState.selectedFeedId === feed.id} onclick={() => appState.selectFeed(feed.id)} oncontextmenu={(e) => handleContextMenu(e, "feed", feed.id)} draggable="true" ondragstart={(e) => onDragStart(e, feed.id)} role="treeitem" aria-selected={appState.selectedFeedId === feed.id}>
-                                    <span class="feed-icon">#</span>
-                                    {feed.name}
+                                    <span class="feed-name-wrap">
+                                        <span class="feed-icon">#</span>
+                                        {feed.name}
+                                    </span>
+
+                                    {#if feed.unread_count > 0}
+                                        <span class="badge">{feed.unread_count}</span>
+                                    {/if}
                                 </button>
                             </li>
                         {/each}
@@ -142,31 +162,29 @@
     }
 
     .folder {
-        outline: none; /* Focus handled by children or custom styles if needed */
+        outline: none;
     }
 
     .folder-header {
         display: flex;
         align-items: center;
-        padding: 4px 0;
+        padding: 6px 4px;
         cursor: pointer;
         color: var(--text-secondary);
+        border-radius: 4px;
     }
 
     .folder-header:hover {
         color: var(--text-primary);
+        background-color: rgba(0, 0, 0, 0.03);
     }
 
-    .toggle-btn {
-        background: none;
-        border: none;
-        padding: 4px;
-        cursor: pointer;
-        color: inherit;
+    .toggle-icon {
         display: flex;
         align-items: center;
         justify-content: center;
         width: 16px;
+        height: 16px;
     }
 
     .folder-name {
@@ -193,18 +211,36 @@
         border-radius: 6px;
         font-size: 0.9rem;
         color: var(--text-primary);
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+    }
+
+    .feed-name-wrap {
         display: flex;
         align-items: center;
         gap: 8px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
     }
 
     .feed-icon {
         color: var(--text-secondary);
         font-size: 0.8rem;
         opacity: 0.7;
+    }
+
+    .badge {
+        background-color: var(--text-secondary);
+        color: var(--bg-pane);
+        font-size: 0.75rem;
+        padding: 1px 6px;
+        border-radius: 10px;
+        font-weight: 600;
+        min-width: 16px;
+        text-align: center;
     }
 
     .feed-item:hover {
@@ -218,6 +254,11 @@
 
     .feed-item.selected .feed-icon {
         color: rgba(255, 255, 255, 0.7);
+    }
+
+    .feed-item.selected .badge {
+        background-color: rgba(255, 255, 255, 0.3);
+        color: #fff;
     }
 
     /* Context Menu */

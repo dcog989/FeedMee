@@ -31,23 +31,22 @@ pub fn run() {
                 db: Mutex::new(conn),
             });
 
-            // --- Intelligent Window Sizing ---
+            // --- Intelligent Window Sizing & Show ---
             use tauri::Manager;
             let window = app.get_webview_window("main").unwrap();
 
-            // We defer this slightly to ensure the monitor is ready,
-            // but in setup() it's usually fine.
             if let Ok(Some(monitor)) = window.current_monitor() {
                 let screen_size = monitor.size();
                 let width = (screen_size.width as f64 * 0.6).round() as u32;
                 let height = (screen_size.height as f64 * 0.6).round() as u32;
 
-                // Only set if we haven't restored a state (simplified check)
-                // ideally the window-state plugin handles this, but for "First Run 60%" specific logic:
                 let _ =
                     window.set_size(tauri::Size::Physical(tauri::PhysicalSize { width, height }));
                 let _ = window.center();
             }
+
+            // Now that it is resized and centered, show it
+            window.show().unwrap();
 
             Ok(())
         })

@@ -1,5 +1,5 @@
 import { invoke } from '@tauri-apps/api/core';
-import { open } from '@tauri-apps/plugin-dialog';
+import { ask, open } from '@tauri-apps/plugin-dialog';
 import type { Article, Folder } from './types';
 
 export type Theme = 'light' | 'dark' | 'sepia' | 'system';
@@ -12,11 +12,9 @@ class AppState {
     isLoading = $state(false);
     theme = $state<Theme>('system');
 
-    // Layout State
     navWidth = $state(280);
     listWidth = $state(320);
 
-    // Pagination State
     page = 0;
     readonly pageSize = 50;
     hasMore = $state(true);
@@ -37,7 +35,6 @@ class AppState {
     async addFeed(url: string) {
         this.isLoading = true;
         try {
-            // Pass null for folderId to let backend assign default
             await invoke('add_feed', { url, folderId: null });
             await this.refreshFolders();
         } catch (e) {
@@ -79,14 +76,13 @@ class AppState {
         this.isLoading = true;
 
         try {
-            // 1. Try to load existing articles (Page 0)
             let result = await this.fetchPage(feedId, 0);
 
-            // 2. If empty, auto-refresh from network
             if (!result || result.length === 0) {
                 await invoke('refresh_feed', { feedId });
-                // Re-fetch page 0 after network refresh
                 result = await this.fetchPage(feedId, 0);
+                // Refresh folders to update unread count if needed
+                this.refreshFolders();
             }
 
             if (this.selectedFeedId === feedId) {
@@ -136,10 +132,7 @@ class AppState {
 
     selectArticle(article: Article) {
         this.selectedArticle = article;
-    }
-
-    setTheme(newTheme: Theme) {
-        this.theme = newTheme;
+        // Mark as read logic would go here (update DB then UI)
     }
 
     async renameFolder(id: number, newName: string) {
@@ -152,7 +145,13 @@ class AppState {
     }
 
     async deleteFeed(id: number) {
-        if (!confirm('Are you sure you want to delete this feed?')) return;
+        const confirmed = await ask('Are you sure you want to delete this feed?', {
+            title: 'FeedMee',
+            kind: 'warning'
+        });
+
+        if (!confirmed) return;
+
         try {
             await invoke('delete_feed', { id });
             if (this.selectedFeedId === id) {
@@ -166,7 +165,13 @@ class AppState {
     }
 
     async deleteFolder(id: number) {
-        if (!confirm('Delete folder and all its feeds?')) return;
+        const confirmed = await ask('Delete folder and all its feeds?', {
+            title: 'FeedMee',
+            kind: 'warning'
+        });
+
+        if (!confirmed) return;
+
         try {
             await invoke('delete_folder', { id });
             await this.refreshFolders();
@@ -182,6 +187,10 @@ class AppState {
         } catch (e) {
             console.error('Move feed failed:', e);
         }
+    }
+
+    setTheme(newTheme: Theme) {
+        this.theme = newTheme;
     }
 }
 

@@ -95,6 +95,7 @@ pub async fn refresh_feed(feed_id: i64, state: State<'_, AppState>) -> Result<us
                 .or(entry.updated)
                 .map(|d| d.timestamp())
                 .unwrap_or(0),
+            is_read: false,
         };
 
         if !article.url.is_empty() {

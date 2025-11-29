@@ -8,7 +8,7 @@
     --bg-pane: #f3f3f3;
     --bg-content: #ffffff;
     --bg-hover: #e9e9e9;
-    --bg-selected: #007aff;
+    --bg-selected: #ec4899; /* Tailwind Pink 500 */
 
     /* Text */
     --text-primary: #111111;
@@ -27,10 +27,10 @@
     color-scheme: dark;
 
     --bg-app: #1e1e1e;
-    --bg-pane: #252526; /* Slightly darker to match VS Code style */
+    --bg-pane: #252526;
     --bg-content: #1e1e1e;
     --bg-hover: #2a2d2e;
-    --bg-selected: #0a84ff;
+    --bg-selected: #ec4899; /* Tailwind Pink 500 */
 
     --text-primary: #cccccc;
     --text-secondary: #858585;
@@ -39,7 +39,7 @@
     --border-color: #333333;
 }
 
-/* Example: Future Sepia Theme */
+/* Example: Sepia Theme */
 [data-theme="sepia"] {
     color-scheme: light;
 
@@ -47,7 +47,7 @@
     --bg-pane: #eaddcf;
     --bg-content: #fdf6e3;
     --bg-hover: #d3c4b1;
-    --bg-selected: #8b6b4b;
+    --bg-selected: #ec4899;
 
     --text-primary: #5b4636;
     --text-secondary: #7f6a58;

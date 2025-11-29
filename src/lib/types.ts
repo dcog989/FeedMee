@@ -9,6 +9,7 @@ export interface Feed {
 	name: string;
 	url: string;
 	folder_id: number;
+	unread_count: number;
 }
 
 export interface Article {
@@ -19,4 +20,5 @@ export interface Article {
 	author: string;
 	url: string;
 	timestamp: number;
+	is_read: boolean;
 }

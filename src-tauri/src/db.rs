@@ -2,11 +2,10 @@ use crate::models::{Article, Feed, Folder};
 use rusqlite::{Connection, Result, params};
 use rusqlite_migration::{M, Migrations};
 
-// Changed return type to Box<dyn std::error::Error> to handle mixed error types
 pub fn init_db(conn: &mut Connection) -> std::result::Result<(), Box<dyn std::error::Error>> {
-    // 1. Define the schema evolution
-    let migrations = Migrations::new(vec![M::up(
-        "CREATE TABLE folders (
+    let migrations = Migrations::new(vec![
+        M::up(
+            "CREATE TABLE folders (
                 id INTEGER PRIMARY KEY,
                 name TEXT NOT NULL UNIQUE
             );
@@ -27,11 +26,12 @@ pub fn init_db(conn: &mut Connection) -> std::result::Result<(), Box<dyn std::er
                 timestamp INTEGER,
                 FOREIGN KEY (feed_id) REFERENCES feeds (id)
             );",
-    )]);
+        ),
+        // Migration 2: Add Read Status
+        M::up("ALTER TABLE articles ADD COLUMN is_read BOOLEAN NOT NULL DEFAULT 0;"),
+    ]);
 
-    // 2. Apply migrations
     migrations.to_latest(conn)?;
-
     Ok(())
 }
 
@@ -39,8 +39,14 @@ pub fn init_db(conn: &mut Connection) -> std::result::Result<(), Box<dyn std::er
 
 pub fn get_folders_with_feeds(conn: &Connection) -> Result<Vec<Folder>> {
     let mut folder_stmt = conn.prepare("SELECT id, name FROM folders ORDER BY name")?;
-    let mut feed_stmt = conn
-        .prepare("SELECT id, name, url, folder_id FROM feeds WHERE folder_id = ?1 ORDER BY name")?;
+    // Subquery to count unread articles for each feed
+    let mut feed_stmt = conn.prepare(
+        "SELECT f.id, f.name, f.url, f.folder_id,
+        (SELECT COUNT(*) FROM articles a WHERE a.feed_id = f.id AND a.is_read = 0) as unread_count
+        FROM feeds f
+        WHERE f.folder_id = ?1
+        ORDER BY f.name",
+    )?;
 
     let folders = folder_stmt
         .query_map([], |row| {
@@ -54,6 +60,7 @@ pub fn get_folders_with_feeds(conn: &Connection) -> Result<Vec<Folder>> {
                         name: feed_row.get(1)?,
                         url: feed_row.get(2)?,
                         folder_id: feed_row.get(3)?,
+                        unread_count: feed_row.get(4)?,
                     })
                 })
                 .and_then(|mapped_rows| mapped_rows.collect());
@@ -76,7 +83,7 @@ pub fn get_articles_for_feed(
     offset: usize,
 ) -> Result<Vec<Article>> {
     let mut stmt = conn.prepare(
-        "SELECT id, feed_id, title, author, summary, url, timestamp
+        "SELECT id, feed_id, title, author, summary, url, timestamp, is_read
          FROM articles
          WHERE feed_id = ?1
          ORDER BY timestamp DESC
@@ -93,6 +100,7 @@ pub fn get_articles_for_feed(
                 summary: row.get(4).unwrap_or_default(),
                 url: row.get(5)?,
                 timestamp: row.get(6)?,
+                is_read: row.get(7)?,
             })
         })?
         .collect::<Result<Vec<Article>>>()?;
@@ -110,7 +118,6 @@ pub fn get_feed_url(conn: &Connection, feed_id: i64) -> Result<String> {
 // --- Write Operations ---
 
 pub fn create_folder(conn: &Connection, name: &str) -> Result<i64> {
-    // Try to insert, ignore if exists, then fetch ID
     conn.execute(
         "INSERT OR IGNORE INTO folders (name) VALUES (?1)",
         params![name],
@@ -132,8 +139,8 @@ pub fn create_feed(conn: &Connection, name: &str, url: &str, folder_id: i64) -> 
 
 pub fn insert_article(conn: &Connection, article: &Article) -> Result<()> {
     conn.execute(
-        "INSERT OR IGNORE INTO articles (feed_id, title, author, summary, url, timestamp)
-         VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+        "INSERT OR IGNORE INTO articles (feed_id, title, author, summary, url, timestamp, is_read)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, 0)",
         params![
             article.feed_id,
             article.title,
@@ -142,6 +149,14 @@ pub fn insert_article(conn: &Connection, article: &Article) -> Result<()> {
             article.url,
             article.timestamp
         ],
+    )?;
+    Ok(())
+}
+
+pub fn mark_article_read(conn: &Connection, article_id: i64) -> Result<()> {
+    conn.execute(
+        "UPDATE articles SET is_read = 1 WHERE id = ?1",
+        params![article_id],
     )?;
     Ok(())
 }
@@ -157,14 +172,12 @@ pub fn rename_folder(conn: &Connection, id: i64, new_name: &str) -> Result<()> {
 }
 
 pub fn delete_feed(conn: &Connection, id: i64) -> Result<()> {
-    // Cascade delete articles first
     conn.execute("DELETE FROM articles WHERE feed_id = ?1", params![id])?;
     conn.execute("DELETE FROM feeds WHERE id = ?1", params![id])?;
     Ok(())
 }
 
 pub fn delete_folder(conn: &Connection, id: i64) -> Result<()> {
-    // Recursive delete: get all feeds in folder, delete them, then delete folder
     let mut stmt = conn.prepare("SELECT id FROM feeds WHERE folder_id = ?1")?;
     let feed_ids: Vec<i64> = stmt
         .query_map(params![id], |row| row.get(0))?

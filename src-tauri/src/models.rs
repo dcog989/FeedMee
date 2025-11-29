@@ -9,6 +9,7 @@ pub struct Article {
     pub author: String,
     pub url: String,
     pub timestamp: i64,
+    pub is_read: bool,
 }
 
 #[derive(Serialize, Clone, Debug)]
@@ -17,6 +18,7 @@ pub struct Feed {
     pub name: String,
     pub url: String,
     pub folder_id: i64,
+    pub unread_count: i64,
 }
 
 #[derive(Serialize, Clone, Debug)]
