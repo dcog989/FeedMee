@@ -1,38 +1,74 @@
 <script lang="ts">
-	import ArticleListPane from '$lib/components/ArticleListPane.svelte';
-	import NavPane from '$lib/components/NavPane.svelte';
-	import ReadingPane from '$lib/components/ReadingPane.svelte';
+    import ArticleListPane from "$lib/components/ArticleListPane.svelte";
+    import NavPane from "$lib/components/NavPane.svelte";
+    import ReadingPane from "$lib/components/ReadingPane.svelte";
 </script>
 
+<!-- Note: Global styles and Resets are now in src/app.css -->
+
 <div class="app-container">
-	<NavPane />
-	<ArticleListPane />
-	<ReadingPane />
+    <div class="nav-area">
+        <NavPane />
+    </div>
+    <div class="list-area">
+        <ArticleListPane />
+    </div>
+    <div class="reading-area">
+        <ReadingPane />
+    </div>
 </div>
 
 <style>
-	:global(body, html) {
-		margin: 0;
-		padding: 0;
-		height: 100%;
-		font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial,
-			sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji';
-		overflow: hidden;
-		background-color: #fff;
-		color: #111;
-	}
+    .app-container {
+        display: grid;
+        height: 100vh;
+        width: 100vw;
+        background-color: var(--bg-app);
 
-	@media (prefers-color-scheme: dark) {
-		:global(body, html) {
-			background-color: #212121;
-			color: #f1f1f1;
-		}
-	}
+        /* Desktop: Full 3-pane layout */
+        grid-template-columns: 280px 320px 1fr;
+        grid-template-areas: "nav list reading";
+    }
 
-	.app-container {
-		display: grid;
-		grid-template-columns: 280px 320px 1fr;
-		height: 100vh;
-		width: 100vw;
-	}
+    .nav-area {
+        grid-area: nav;
+        overflow: hidden;
+    }
+
+    .list-area {
+        grid-area: list;
+        overflow: hidden;
+    }
+
+    .reading-area {
+        grid-area: reading;
+        overflow: hidden;
+    }
+
+    /* Tablet: Collapsed Navigation */
+    @media (max-width: 1200px) {
+        .app-container {
+            grid-template-columns: 200px 300px 1fr;
+        }
+    }
+
+    /* Mobile: Single Pane */
+    @media (max-width: 768px) {
+        .app-container {
+            grid-template-columns: 1fr;
+            grid-template-rows: auto 1fr;
+            grid-template-areas:
+                "nav"
+                "list";
+        }
+
+        .reading-area {
+            display: none;
+        }
+
+        .nav-area {
+            height: 60px;
+            border-bottom: 1px solid var(--border-color);
+        }
+    }
 </style>

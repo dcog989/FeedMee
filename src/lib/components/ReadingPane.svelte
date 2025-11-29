@@ -1,72 +1,91 @@
 <script lang="ts">
-	import { store } from '$lib/store';
+    import { appState } from "$lib/store";
+    import DOMPurify from "dompurify";
+
+    // Sanitize content to prevent XSS from RSS feeds
+    let sanitizedContent = $derived(appState.selectedArticle?.summary ? DOMPurify.sanitize(appState.selectedArticle.summary) : "");
 </script>
 
 <main class="pane">
-	{#if $store.selectedArticle}
-		<article class="article-content">
-			<h1>{$store.selectedArticle.title}</h1>
-			<div class="meta">
-				<span>By {$store.selectedArticle.author}</span>
-				<span>{new Date($store.selectedArticle.timestamp * 1000).toLocaleString()}</span>
-			</div>
-			<div class="summary">
-				{@html $store.selectedArticle.summary}
-			</div>
-		</article>
-	{:else}
-		<div class="empty-state">
-			<p>Select an article to start reading</p>
-		</div>
-	{/if}
+    {#if appState.selectedArticle}
+        <article class="article-content">
+            <header>
+                <h1>{appState.selectedArticle.title}</h1>
+                <div class="meta">
+                    <span class="author">By {appState.selectedArticle.author}</span>
+                    <span class="date">{new Date(appState.selectedArticle.timestamp * 1000).toLocaleString()}</span>
+                </div>
+            </header>
+            <!-- Safe to render sanitized HTML -->
+            <div class="summary">
+                {@html sanitizedContent}
+            </div>
+        </article>
+    {:else}
+        <div class="empty-state">
+            <p>Select an article to start reading</p>
+        </div>
+    {/if}
 </main>
 
 <style>
-	.pane {
-		overflow-y: auto;
-		padding: 2rem;
-	}
+    .pane {
+        background-color: var(--bg-content);
+        overflow-y: auto;
+        height: 100%;
+        padding: 2rem 3rem;
+        box-sizing: border-box;
+    }
 
-	.article-content {
-		max-width: 800px;
-		margin: 0 auto;
-	}
+    .article-content {
+        max-width: 700px;
+        margin: 0 auto;
+    }
 
-	h1 {
-		font-size: 2rem;
-		margin-bottom: 0.5rem;
-	}
+    h1 {
+        font-size: 2.2rem;
+        margin-bottom: 0.5rem;
+        line-height: 1.2;
+        color: var(--text-primary);
+    }
 
-	.meta {
-		color: #666;
-		margin-bottom: 2rem;
-		font-size: 0.9rem;
-		display: flex;
-		gap: 1rem;
-		border-bottom: 1px solid #eee;
-		padding-bottom: 1rem;
-	}
+    .meta {
+        color: var(--text-secondary);
+        margin-bottom: 2rem;
+        font-size: 0.9rem;
+        display: flex;
+        gap: 1rem;
+        border-bottom: 1px solid var(--border-color);
+        padding-bottom: 1.5rem;
+    }
 
-	.summary {
-		line-height: 1.7;
-		font-size: 1.1rem;
-	}
+    .summary {
+        line-height: 1.8;
+        font-size: 1.15rem;
+        color: var(--text-primary);
+    }
 
-	.empty-state {
-		display: flex;
-		justify-content: center;
-		align-items: center;
-		height: 100%;
-		color: #888;
-		font-size: 1.2rem;
-	}
-	@media (prefers-color-scheme: dark) {
-		.meta {
-			color: #aaa;
-			border-bottom-color: #3a3a3a;
-		}
-		.empty-state {
-			color: #888;
-		}
-	}
+    /* Target content inside the HTML summary */
+    .summary :global(p) {
+        margin-bottom: 1.5rem;
+    }
+
+    .summary :global(a) {
+        color: var(--bg-selected);
+    }
+
+    .summary :global(img) {
+        max-width: 100%;
+        height: auto;
+        border-radius: 4px;
+    }
+
+    .empty-state {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100%;
+        color: var(--text-secondary);
+        font-size: 1.2rem;
+    }
 </style>

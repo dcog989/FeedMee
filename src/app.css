@@ -1,0 +1,63 @@
+/* Base Theme (Light) */
+:root {
+    /* Backgrounds */
+    --bg-app: #ffffff;
+    --bg-pane: #f3f3f3;
+    --bg-content: #ffffff;
+    --bg-hover: #e9e9e9;
+    --bg-selected: #007aff;
+
+    /* Text */
+    --text-primary: #111111;
+    --text-secondary: #666666;
+    --text-inverse: #ffffff; /* Text on selected items */
+
+    /* Borders & UI */
+    --border-color: #e0e0e0;
+
+    /* Typography */
+    --font-ui: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+/* Dark Theme Override */
+[data-theme="dark"] {
+    --bg-app: #1e1e1e;
+    --bg-pane: #2a2a2a;
+    --bg-content: #212121;
+    --bg-hover: #383838;
+    --bg-selected: #0a84ff;
+
+    --text-primary: #f1f1f1;
+    --text-secondary: #aaaaaa;
+    --text-inverse: #ffffff;
+
+    --border-color: #3a3a3a;
+}
+
+/* Example: Future Sepia Theme (Easy to add now) */
+[data-theme="sepia"] {
+    --bg-app: #f4ecd8;
+    --bg-pane: #eaddcf;
+    --bg-content: #fdf6e3;
+    --bg-hover: #d3c4b1;
+    --bg-selected: #8b6b4b;
+
+    --text-primary: #5b4636;
+    --text-secondary: #7f6a58;
+    --text-inverse: #fdf6e3;
+
+    --border-color: #d3c4b1;
+}
+
+/* Global Reset */
+html,
+body {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    width: 100%;
+    font-family: var(--font-ui);
+    background-color: var(--bg-app);
+    color: var(--text-primary);
+    overflow: hidden;
+}

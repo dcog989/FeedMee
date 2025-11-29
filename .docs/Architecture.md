@@ -4,6 +4,8 @@
 
 **FeedMee** will be a cross-platform RSS/Atom news reader. It will prioritize performance, readability, a clean, responsive and uncluttered UI.
 
+Inspiration: [NetNewsWire](https://netnewswire.com/), [Reeder](https://reederapp.com/), [Feedly](https://feedly.com/news-reader).
+
 ---
 
 ## Goals

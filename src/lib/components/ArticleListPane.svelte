@@ -1,117 +1,91 @@
 <script lang="ts">
-	import { invoke } from '@tauri-apps/api/core';
-	import { store } from '$lib/store';
-	import type { Article } from '$lib/types';
-
-	$effect(() => {
-		async function loadArticles() {
-			if ($store.selectedFeedId !== null) {
-				try {
-					const result = await invoke<Article[]>('get_articles_for_feed', {
-						feedId: $store.selectedFeedId
-					});
-					$store.articles = result || []; // Ensure we always have an array
-				} catch (e) {
-					console.error(e);
-					$store.articles = [];
-				}
-			} else {
-				$store.articles = [];
-			}
-		}
-
-		loadArticles();
-	});
+    import { appState } from "$lib/store";
 </script>
 
 <section class="pane">
-	{#if $store.articles.length > 0}
-		<ul class="article-list">
-			{#each $store.articles as article (article.id)}
-				<li>
-					<button
-						class:selected={$store.selectedArticle?.id === article.id}
-						onclick={() => ($store.selectedArticle = article)}
-					>
-						<span class="title">{article.title}</span>
-						<span class="author">{article.author}</span>
-					</button>
-				</li>
-			{/each}
-		</ul>
-	{:else if $store.selectedFeedId}
-		<p class="empty-state">No articles in this feed.</p>
-	{:else}
-		<p class="empty-state">Select a feed to see articles.</p>
-	{/if}
+    {#if appState.isLoading}
+        <div class="loading">Loading articles...</div>
+    {:else if appState.articles.length > 0}
+        <ul class="article-list">
+            {#each appState.articles as article (article.id)}
+                <li>
+                    <button class:selected={appState.selectedArticle?.id === article.id} onclick={() => appState.selectArticle(article)}>
+                        <span class="title">{article.title}</span>
+                        <div class="meta">
+                            <span class="author">{article.author}</span>
+                            <span class="date">{new Date(article.timestamp * 1000).toLocaleDateString()}</span>
+                        </div>
+                    </button>
+                </li>
+            {/each}
+        </ul>
+    {:else if appState.selectedFeedId}
+        <div class="empty-state">
+            <p>No articles in this feed.</p>
+        </div>
+    {:else}
+        <div class="empty-state">
+            <p>Select a feed to see articles.</p>
+        </div>
+    {/if}
 </section>
 
 <style>
-	.pane {
-		overflow-y: auto;
-		border-right: 1px solid #e0e0e0;
-	}
-	.article-list {
-		list-style: none;
-		margin: 0;
-		padding: 0;
-	}
+    .pane {
+        background-color: var(--bg-content);
+        border-right: 1px solid var(--border-color);
+        overflow-y: auto;
+        height: 100%;
+        box-sizing: border-box;
+    }
 
-	button {
-		display: block;
-		width: 100%;
-		padding: 1rem;
-		text-align: left;
-		border: none;
-		border-bottom: 1px solid #e0e0e0;
-		background: transparent;
-		cursor: pointer;
-		font-size: 1rem;
-	}
+    .article-list {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+    }
 
-	button:hover {
-		background-color: #f5f5f5;
-	}
+    .loading,
+    .empty-state {
+        padding: 3rem 1rem;
+        text-align: center;
+        color: var(--text-secondary);
+    }
 
-	button.selected {
-		background-color: #eef5ff;
-	}
+    button {
+        display: block;
+        width: 100%;
+        padding: 1rem;
+        text-align: left;
+        border: none;
+        border-bottom: 1px solid var(--border-color);
+        background: transparent;
+        cursor: pointer;
+        color: var(--text-primary);
+    }
 
-	.title {
-		display: block;
-		font-weight: 600;
-		margin-bottom: 0.25rem;
-	}
+    button:hover {
+        background-color: var(--bg-hover);
+    }
 
-	.author {
-		font-size: 0.85rem;
-		color: #666;
-	}
+    button.selected {
+        background-color: var(--bg-hover); /* List typically doesn't go blue, just darker grey */
+        border-left: 4px solid var(--bg-selected);
+        padding-left: calc(1rem - 4px);
+    }
 
-	.empty-state {
-		padding: 2rem;
-		text-align: center;
-		color: #888;
-	}
+    .title {
+        display: block;
+        font-weight: 600;
+        margin-bottom: 0.4rem;
+        font-size: 1rem;
+        line-height: 1.3;
+    }
 
-	@media (prefers-color-scheme: dark) {
-		.pane {
-			border-right-color: #3a3a3a;
-		}
-		button {
-			border-bottom-color: #3a3a3a;
-		}
-		button:hover {
-			background-color: #333;
-		}
-		button.selected {
-			background-color: #2a3a50;
-		}
-		.author {
-			color: #aaa;
-		}
-		.empty-state {
-			color: #888;
-		}
-	}
+    .meta {
+        display: flex;
+        justify-content: space-between;
+        font-size: 0.8rem;
+        color: var(--text-secondary);
+    }
 </style>

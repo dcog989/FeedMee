@@ -24,7 +24,8 @@ pub fn run() {
 
             let db_path = app_data_dir.join("feedmee.sqlite");
 
-            let conn = match rusqlite::Connection::open(&db_path) {
+            // Open connection
+            let mut conn = match rusqlite::Connection::open(&db_path) {
                 Ok(conn) => conn,
                 Err(e) => {
                     eprintln!("Failed to open database connection at {:?}: {}", db_path, e);
@@ -32,7 +33,8 @@ pub fn run() {
                 }
             };
 
-            if let Err(e) = db::init_db(&conn) {
+            // Initialize DB (pass as mutable reference for migrations)
+            if let Err(e) = db::init_db(&mut conn) {
                 eprintln!("Failed to initialize database: {}", e);
                 panic!("Database setup failed: Cannot initialize schema.");
             }
