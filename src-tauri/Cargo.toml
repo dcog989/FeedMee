@@ -1,6 +1,6 @@
 [package]
 name = "feedmee"
-version = "0.1.8"
+version = "0.1.11"
 description = "The seriously fast cross-platform news / feed reader."
 authors = ["you"]
 edition = "2024"
@@ -26,3 +26,5 @@ reqwest = { version = "0.12", features = ["json", "rustls-tls", "blocking"] }
 feed-rs = "2.3"
 opml = "1.1"
 chrono = "0.4"
+scraper = "0.24"
+url = "2.5"

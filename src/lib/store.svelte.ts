@@ -34,6 +34,20 @@ class AppState {
         }
     }
 
+    async addFeed(url: string) {
+        this.isLoading = true;
+        try {
+            // Pass null for folderId to let backend assign default
+            await invoke('add_feed', { url, folderId: null });
+            await this.refreshFolders();
+        } catch (e) {
+            console.error('Failed to add feed:', e);
+            alert(`Error adding feed: ${e}`);
+        } finally {
+            this.isLoading = false;
+        }
+    }
+
     async importOpml() {
         try {
             const selected = await open({

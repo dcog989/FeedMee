@@ -120,3 +120,44 @@ pub async fn refresh_feed(feed_id: i64, state: State<'_, AppState>) -> Result<us
 
     Ok(count)
 }
+
+#[tauri::command]
+pub async fn add_feed(
+    url: String,
+    folder_id: Option<i64>,
+    state: State<'_, AppState>,
+) -> Result<i64, String> {
+    // 1. Fetch the feed to validate and get title
+    let content = reqwest::get(&url)
+        .await
+        .map_err(|e| format!("Network error: {}", e))?
+        .bytes()
+        .await
+        .map_err(|e| format!("Read error: {}", e))?;
+
+    let feed =
+        feed_rs::parser::parse(Cursor::new(content)).map_err(|e| format!("Parse error: {}", e))?;
+
+    let title = feed
+        .title
+        .map(|t| t.content)
+        .unwrap_or_else(|| "Untitled Feed".to_string());
+
+    // 2. Insert into DB
+    let conn = state.db.lock().unwrap();
+
+    // Use provided folder or default to ID 1 (Tech News) or create "Inbox"
+    let target_folder = folder_id.unwrap_or(1);
+
+    // We need to update db.rs to return the ID of the created feed
+    db::create_feed(&conn, &title, &url, target_folder).map_err(|e| e.to_string())?;
+
+    // Retrieve the ID (hacky since create_feed doesn't return it yet, but sufficient for now)
+    let id: i64 = conn
+        .query_row("SELECT id FROM feeds WHERE url = ?1", [&url], |row| {
+            row.get(0)
+        })
+        .map_err(|e| e.to_string())?;
+
+    Ok(id)
+}

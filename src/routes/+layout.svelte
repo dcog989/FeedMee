@@ -1,4 +1,5 @@
 <script lang="ts">
+    import TitleBar from "$lib/components/TitleBar.svelte";
     import { appState } from "$lib/store.svelte";
     import "../app.css";
 
@@ -16,5 +17,25 @@
     });
 </script>
 
-<!-- The app content renders here -->
-{@render children()}
+<div class="layout-wrapper">
+    <TitleBar />
+    <div class="content-wrapper">
+        {@render children()}
+    </div>
+</div>
+
+<style>
+    .layout-wrapper {
+        display: flex;
+        flex-direction: column;
+        height: 100vh;
+        width: 100vw;
+        overflow: hidden;
+    }
+
+    .content-wrapper {
+        flex: 1;
+        overflow: hidden;
+        position: relative;
+    }
+</style>
