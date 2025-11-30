@@ -61,6 +61,7 @@
 <header class="titlebar" data-tauri-drag-region>
     <div class="left-section">
         <div class="mac-spacer"></div>
+        <img src="/feedmee.png" alt="" class="app-icon" />
         <span class="app-title">FeedMee</span>
     </div>
 
@@ -69,6 +70,14 @@
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <line x1="12" y1="5" x2="12" y2="19"></line>
                 <line x1="5" y1="12" x2="19" y2="12"></line>
+            </svg>
+        </button>
+
+        <button class="tool-btn" onclick={() => appState.exportOpml()} title="Export OPML" aria-label="Export OPML">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                <polyline points="7 10 12 15 17 10"></polyline>
+                <line x1="12" y1="15" x2="12" y2="3"></line>
             </svg>
         </button>
 
@@ -125,6 +134,12 @@
 {/if}
 
 <style>
+    .app-icon {
+        width: 20px;
+        height: 20px;
+        margin-right: 8px;
+    }
+
     .titlebar {
         height: 40px;
         background: var(--bg-pane);
@@ -136,7 +151,6 @@
         border-bottom: 1px solid var(--border-color);
         -webkit-app-region: drag;
     }
-
     .titlebar button,
     .titlebar input,
     .window-controls,

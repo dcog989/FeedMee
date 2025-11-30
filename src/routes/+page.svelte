@@ -73,7 +73,7 @@
 <style>
     .app-container {
         display: grid;
-        height: 100vh;
+        height: 100%; /* Changed from 100vh */
         width: 100vw;
         background-color: var(--bg-app);
 

@@ -3,6 +3,7 @@ use crate::{
     models::{Article, Folder},
 };
 use scraper::{Html, Selector};
+use std::fmt::Write;
 use std::io::Cursor;
 use tauri::State;
 use url::Url;
@@ -85,6 +86,43 @@ pub async fn import_opml(path: String, state: State<'_, AppState>) -> Result<(),
 }
 
 #[tauri::command]
+pub async fn export_opml(state: State<'_, AppState>) -> Result<String, String> {
+    let folders = {
+        let conn = state.db.lock().unwrap();
+        db::get_folders_with_feeds(&conn).map_err(|e| e.to_string())?
+    };
+
+    let mut opml = String::new();
+    writeln!(&mut opml, "<?xml version=\"1.0\" encoding=\"UTF-8\"?>").unwrap();
+    writeln!(&mut opml, "<opml version=\"2.0\">").unwrap();
+    writeln!(&mut opml, "  <head><title>FeedMee Export</title></head>").unwrap();
+    writeln!(&mut opml, "  <body>").unwrap();
+
+    for folder in folders {
+        if folder.feeds.is_empty() {
+            continue;
+        }
+        let escaped_name = folder.name.replace("\"", "&quot;");
+        writeln!(&mut opml, "    <outline text=\"{}\">", escaped_name).unwrap();
+        for feed in folder.feeds {
+            let escaped_feed_name = feed.name.replace("\"", "&quot;");
+            let escaped_url = feed.url.replace("\"", "&quot;");
+            writeln!(
+                &mut opml,
+                "      <outline type=\"rss\" text=\"{}\" xmlUrl=\"{}\" />",
+                escaped_feed_name, escaped_url
+            )
+            .unwrap();
+        }
+        writeln!(&mut opml, "    </outline>").unwrap();
+    }
+    writeln!(&mut opml, "  </body>").unwrap();
+    writeln!(&mut opml, "</opml>").unwrap();
+
+    Ok(opml)
+}
+
+#[tauri::command]
 pub async fn refresh_feed(feed_id: i64, state: State<'_, AppState>) -> Result<usize, String> {
     let url = {
         let conn = state.db.lock().unwrap();
@@ -151,34 +189,26 @@ pub async fn add_feed(
     folder_id: Option<i64>,
     state: State<'_, AppState>,
 ) -> Result<i64, String> {
-    // 1. Fetch content
     let response = reqwest::get(&url)
         .await
         .map_err(|e| format!("Network error: {}", e))?;
-
     let original_url = response.url().clone();
     let content_bytes = response
         .bytes()
         .await
         .map_err(|e| format!("Read error: {}", e))?;
-
-    // 2. Try parsing as Feed
     let feed_parse_result = feed_rs::parser::parse(Cursor::new(content_bytes.clone()));
 
     let (final_url, feed) = match feed_parse_result {
         Ok(f) => (url, f),
         Err(_) => {
-            // 3. If failed, treat as HTML and look for <link> tags.
-            // We use a block here to ensure 'document' (which is !Sync) is dropped
-            // BEFORE we await the next network request.
             let discovered_url = {
                 let html_content = String::from_utf8_lossy(&content_bytes);
                 let document = Html::parse_document(&html_content);
                 let selector = Selector::parse(
                     "link[type='application/rss+xml'], link[type='application/atom+xml']",
                 )
-                .map_err(|_| "Internal error: Invalid CSS selector")?;
-
+                .map_err(|_| "Internal error")?;
                 if let Some(element) = document.select(&selector).next() {
                     if let Some(href) = element.value().attr("href") {
                         Url::parse(original_url.as_str())
@@ -194,20 +224,17 @@ pub async fn add_feed(
             };
 
             if let Some(feed_url) = discovered_url {
-                // Fetch the discovered feed
                 let discovered_content = reqwest::get(&feed_url)
                     .await
-                    .map_err(|e| format!("Failed to fetch discovered feed: {}", e))?
+                    .map_err(|e| format!("Fetch discovered error: {}", e))?
                     .bytes()
                     .await
-                    .map_err(|e| format!("Read discovered feed error: {}", e))?;
-
+                    .map_err(|e| format!("Read discovered error: {}", e))?;
                 let f = feed_rs::parser::parse(Cursor::new(discovered_content))
-                    .map_err(|e| format!("Discovered feed parse error: {}", e))?;
-
+                    .map_err(|e| format!("Discovered parse error: {}", e))?;
                 (feed_url, f)
             } else {
-                return Err("No RSS/Atom feed found on this page".into());
+                return Err("No RSS/Atom feed found".into());
             }
         }
     };
@@ -216,19 +243,14 @@ pub async fn add_feed(
         .title
         .map(|t| t.content)
         .unwrap_or_else(|| "Untitled Feed".to_string());
-
-    // 4. Insert into DB
     let conn = state.db.lock().unwrap();
     let target_folder = folder_id.unwrap_or(1);
-
     db::create_feed(&conn, &title, &final_url, target_folder).map_err(|e| e.to_string())?;
-
     let id: i64 = conn
         .query_row("SELECT id FROM feeds WHERE url = ?1", [&final_url], |row| {
             row.get(0)
         })
         .map_err(|e| e.to_string())?;
-
     Ok(id)
 }
 

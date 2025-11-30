@@ -130,6 +130,7 @@
     .summary {
         line-height: 1.8;
         font-size: 1.15rem;
+        font-family: var(--font-body);
         color: var(--text-primary);
     }
 

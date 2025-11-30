@@ -1,5 +1,6 @@
 import { invoke } from '@tauri-apps/api/core';
-import { ask, open } from '@tauri-apps/plugin-dialog';
+import { open, save } from '@tauri-apps/plugin-dialog';
+import { writeTextFile } from '@tauri-apps/plugin-fs';
 import type { Article, Folder } from './types';
 
 export type Theme = 'light' | 'dark' | 'sepia' | 'system';
@@ -26,6 +27,17 @@ class AppState {
 
     // Settings
     latestHours = $state(24); // Default 24 hours
+
+    // Confirmation State
+    confirmState = $state<{
+        isOpen: boolean;
+        message: string;
+        onConfirm: () => void;
+    }>({
+        isOpen: false,
+        message: '',
+        onConfirm: () => { }
+    });
 
     constructor() {
         this.initStore();
@@ -97,6 +109,26 @@ class AppState {
             alert('Failed to import OPML file.');
         } finally {
             this.isLoading = false;
+        }
+    }
+
+    async exportOpml() {
+        try {
+            const opmlContent = await invoke<string>('export_opml');
+            if (!opmlContent) return;
+
+            const filePath = await save({
+                filters: [{ name: 'OPML File', extensions: ['opml'] }],
+                defaultPath: 'feeds.opml'
+            });
+
+            if (filePath) {
+                await writeTextFile(filePath, opmlContent);
+                alert('Export successful!');
+            }
+        } catch (e) {
+            console.error('Export failed:', e);
+            alert('Failed to export OPML.');
         }
     }
 
@@ -203,40 +235,45 @@ class AppState {
         }
     }
 
-    async deleteFeed(id: number) {
-        const confirmed = await ask('Are you sure you want to delete this feed?', {
-            title: 'FeedMee',
-            kind: 'warning'
-        });
-
-        if (!confirmed) return;
-
-        try {
-            await invoke('delete_feed', { id });
-            if (this.selectedFeedId === id) {
-                this.selectedFeedId = null;
-                this.articles = [];
+    confirm(message: string, onConfirm: () => void) {
+        this.confirmState = {
+            isOpen: true,
+            message,
+            onConfirm: () => {
+                onConfirm();
+                this.confirmState.isOpen = false;
             }
-            await this.refreshFolders();
-        } catch (e) {
-            console.error('Delete feed failed:', e);
-        }
+        };
+    }
+
+    cancelConfirm() {
+        this.confirmState.isOpen = false;
+    }
+
+    async deleteFeed(id: number) {
+        this.confirm('Are you sure you want to delete this feed?', async () => {
+            try {
+                await invoke('delete_feed', { id });
+                if (this.selectedFeedId === id) {
+                    this.selectedFeedId = null;
+                    this.articles = [];
+                }
+                await this.refreshFolders();
+            } catch (e) {
+                console.error('Delete feed failed:', e);
+            }
+        });
     }
 
     async deleteFolder(id: number) {
-        const confirmed = await ask('Delete folder and all its feeds?', {
-            title: 'FeedMee',
-            kind: 'warning'
+        this.confirm('Delete folder and all its feeds?', async () => {
+            try {
+                await invoke('delete_folder', { id });
+                await this.refreshFolders();
+            } catch (e) {
+                console.error('Delete folder failed:', e);
+            }
         });
-
-        if (!confirmed) return;
-
-        try {
-            await invoke('delete_folder', { id });
-            await this.refreshFolders();
-        } catch (e) {
-            console.error('Delete folder failed:', e);
-        }
     }
 
     async moveFeed(feedId: number, folderId: number) {

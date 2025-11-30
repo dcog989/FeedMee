@@ -156,6 +156,7 @@
         <!-- svelte-ignore a11y_no_static_element_interactions -->
         <div class="feed-item special" class:selected={appState.selectedFeedId === FEED_ID_SAVED} onclick={() => appState.selectFeed(FEED_ID_SAVED)}>
             <span class="feed-name-wrap">
+                <!-- Bookmark Icon -->
                 <svg class="feed-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path>
                 </svg>
@@ -182,7 +183,22 @@
             <div class="folder" role="treeitem" aria-expanded={expandedFolders.has(folder.id)} aria-selected="false" tabindex="-1">
                 <!-- svelte-ignore a11y_click_events_have_key_events -->
                 <!-- svelte-ignore a11y_no_static_element_interactions -->
-                <div class="folder-header" onclick={(e) => toggleFolder(folder.id, e)} oncontextmenu={(e) => handleContextMenu(e, "folder", folder.id, folder.name)}>
+                <div
+                    class="folder-header"
+                    onclick={(e) => toggleFolder(folder.id, e)}
+                    oncontextmenu={(e) => handleContextMenu(e, "folder", folder.id, folder.name)}
+                    ondragover={(e) => {
+                        e.preventDefault();
+                        e.dataTransfer!.dropEffect = "move";
+                    }}
+                    ondrop={(e) => {
+                        e.preventDefault();
+                        const feedId = parseInt(e.dataTransfer?.getData("text/plain") || "0");
+                        if (feedId && feedId > 0) {
+                            appState.moveFeed(feedId, folder.id);
+                        }
+                    }}
+                >
                     <span class="toggle-icon">
                         <svg width="10" height="10" viewBox="0 0 10 10" style="transform: rotate({expandedFolders.has(folder.id) ? 90 : 0}deg); transition: transform 0.2s;">
                             <path d="M2,2 L8,5 L2,8" fill="currentColor" />
@@ -215,6 +231,13 @@
                                         if (e.key === "Enter" || e.key === " ") {
                                             e.preventDefault();
                                             appState.selectFeed(feed.id);
+                                        }
+                                    }}
+                                    draggable="true"
+                                    ondragstart={(e) => {
+                                        if (e.dataTransfer) {
+                                            e.dataTransfer.setData("text/plain", feed.id.toString());
+                                            e.dataTransfer.effectAllowed = "move";
                                         }
                                     }}
                                 >

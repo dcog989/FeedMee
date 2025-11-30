@@ -30,32 +30,30 @@
                         <span class="title" title={article.title}>{article.title}</span>
 
                         <div class="meta-line">
-                            <span class="author">{article.author}</span>
                             <span class="date">{new Date(article.timestamp * 1000).toLocaleDateString()}</span>
-                        </div>
 
-                        <div class="actions-line">
-                            <button
-                                class="icon-btn"
-                                class:active={article.is_saved}
-                                onclick={(e) => {
-                                    e.stopPropagation();
-                                    appState.toggleSaved(article);
-                                }}
-                                title="Read Later"
-                                aria-label="Read Later"
-                            >
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill={article.is_saved ? "currentColor" : "none"} stroke="currentColor" stroke-width="2">
-                                    <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path>
-                                </svg>
-                            </button>
-
-                            <button class="icon-btn" onclick={(e) => e.stopPropagation()} title="Tag" aria-label="Tag">
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path>
-                                    <line x1="7" y1="7" x2="7.01" y2="7"></line>
-                                </svg>
-                            </button>
+                            <div class="actions">
+                                <button
+                                    class="icon-btn"
+                                    class:active={article.is_saved}
+                                    onclick={(e) => {
+                                        e.stopPropagation();
+                                        appState.toggleSaved(article);
+                                    }}
+                                    title="Read Later"
+                                    aria-label="Read Later"
+                                >
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill={article.is_saved ? "currentColor" : "none"} stroke="currentColor" stroke-width="2">
+                                        <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path>
+                                    </svg>
+                                </button>
+                                <button class="icon-btn" onclick={(e) => e.stopPropagation()} title="Tag" aria-label="Tag">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path>
+                                        <line x1="7" y1="7" x2="7.01" y2="7"></line>
+                                    </svg>
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </li>
@@ -144,29 +142,23 @@
 
     .meta-line {
         display: flex;
+        align-items: center;
         justify-content: space-between;
         font-size: 0.75rem;
         color: var(--text-secondary);
-        margin-bottom: 0.4rem;
+        margin-top: 0.4rem;
     }
 
-    .author {
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-        max-width: 60%;
-    }
-
-    .actions-line {
+    .actions {
         display: flex;
-        gap: 0.8rem;
+        gap: 8px;
     }
 
     .icon-btn {
         display: flex;
         align-items: center;
         color: var(--text-secondary);
-        opacity: 0.6;
+        opacity: 0.4;
         transition: all 0.2s;
         cursor: pointer;
         background: transparent;
