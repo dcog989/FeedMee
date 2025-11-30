@@ -128,7 +128,7 @@ pub fn get_saved_articles(conn: &Connection, limit: usize, offset: usize) -> Res
          FROM articles
          WHERE is_saved = 1
          ORDER BY timestamp DESC
-         LIMIT ?2 OFFSET ?3",
+         LIMIT ?1 OFFSET ?2",
     )?;
 
     map_articles(&mut stmt, params![limit, offset])

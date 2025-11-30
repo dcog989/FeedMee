@@ -73,11 +73,11 @@
     }
 
     .modal {
-        background: var(--bg-app);
+        background: var(--bg-pane);
         padding: 1.5rem;
         border-radius: 8px;
         width: 350px;
-        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
         border: 1px solid var(--border-color);
         color: var(--text-primary);
     }

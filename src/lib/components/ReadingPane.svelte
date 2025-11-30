@@ -11,8 +11,45 @@
         }
     });
 
-    let sanitizedContent = $derived(appState.selectedArticle?.summary ? DOMPurify.sanitize(appState.selectedArticle.summary) : "");
+    let fullContent = $state<string | null>(null);
+    let isLoadingFull = $state(false);
+
+    // Derived content: favor fullContent if available, otherwise summary
+    let displayHtml = $derived(fullContent ? DOMPurify.sanitize(fullContent) : appState.selectedArticle?.summary ? DOMPurify.sanitize(appState.selectedArticle.summary) : "");
+
     let isSaved = $derived(appState.selectedArticle?.is_saved ?? false);
+
+    // Reset full content on article change
+    $effect(() => {
+        if (appState.selectedArticle) {
+            fullContent = null;
+        }
+    });
+
+    // Auto-remove 'Read Later' after 5 seconds
+    $effect(() => {
+        if (appState.selectedArticle && appState.selectedArticle.is_saved) {
+            const currentId = appState.selectedArticle.id;
+            const timer = setTimeout(() => {
+                // Ensure we are still looking at the same article
+                if (appState.selectedArticle?.id === currentId && appState.selectedArticle.is_saved) {
+                    appState.toggleSaved(appState.selectedArticle);
+                }
+            }, 5000);
+
+            return () => clearTimeout(timer);
+        }
+    });
+
+    async function loadFullContent() {
+        if (!appState.selectedArticle) return;
+        isLoadingFull = true;
+        const content = await appState.fetchFullContent(appState.selectedArticle);
+        if (content) {
+            fullContent = content;
+        }
+        isLoadingFull = false;
+    }
 </script>
 
 <main class="pane">
@@ -34,20 +71,37 @@
                             </svg>
                         </button>
 
-                        <button class="action-btn" title="Tag this article (Coming Soon)">
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path>
-                                <line x1="7" y1="7" x2="7.01" y2="7"></line>
-                            </svg>
+                        <button class="action-btn" onclick={loadFullContent} title="Load Full Content" disabled={isLoadingFull}>
+                            {#if isLoadingFull}
+                                <span class="spinner"></span>
+                            {:else}
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                                    <polyline points="14 2 14 8 20 8"></polyline>
+                                    <line x1="16" y1="13" x2="8" y2="13"></line>
+                                    <line x1="16" y1="17" x2="8" y2="17"></line>
+                                    <polyline points="10 9 9 9 8 9"></polyline>
+                                </svg>
+                            {/if}
                         </button>
                     </div>
                 </div>
             </header>
 
-            <!-- Safe to render sanitized HTML -->
             <div class="summary">
-                {@html sanitizedContent}
+                {@html displayHtml}
             </div>
+
+            <footer class="article-footer">
+                <a href={appState.selectedArticle.url} target="_blank" rel="noopener noreferrer" class="original-link">
+                    Read original article
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                        <polyline points="15 3 21 3 21 9"></polyline>
+                        <line x1="10" y1="14" x2="21" y2="3"></line>
+                    </svg>
+                </a>
+            </footer>
         </article>
     {:else}
         <div class="empty-state">
@@ -109,7 +163,7 @@
         background: transparent;
         border: none;
         color: var(--text-secondary);
-        padding: 4px;
+        padding: 6px;
         border-radius: 4px;
         display: flex;
         align-items: center;
@@ -125,6 +179,11 @@
 
     .action-btn.active {
         color: var(--bg-selected);
+    }
+
+    .action-btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
     }
 
     .summary {
@@ -153,6 +212,30 @@
         border-radius: 4px;
     }
 
+    .article-footer {
+        margin-top: 3rem;
+        padding-top: 1.5rem;
+        border-top: 1px solid var(--border-color);
+    }
+
+    .original-link {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        color: var(--text-secondary);
+        text-decoration: none;
+        font-size: 0.9rem;
+        padding: 8px 12px;
+        border: 1px solid var(--border-color);
+        border-radius: 4px;
+        transition: background-color 0.2s;
+    }
+
+    .original-link:hover {
+        background-color: var(--bg-hover);
+        color: var(--text-primary);
+    }
+
     .empty-state {
         display: flex;
         justify-content: center;
@@ -160,5 +243,20 @@
         height: 100%;
         color: var(--text-secondary);
         font-size: 1.2rem;
+    }
+
+    .spinner {
+        width: 14px;
+        height: 14px;
+        border: 2px solid var(--text-secondary);
+        border-top-color: transparent;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+        to {
+            transform: rotate(360deg);
+        }
     }
 </style>

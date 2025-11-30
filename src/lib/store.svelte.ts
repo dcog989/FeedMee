@@ -296,6 +296,16 @@ class AppState {
     setTheme(newTheme: Theme) {
         this.theme = newTheme;
     }
+
+    async fetchFullContent(article: Article): Promise<string | null> {
+        try {
+            return await invoke<string>('get_article_content', { url: article.url });
+        } catch (e) {
+            console.error('Failed to load full content:', e);
+            this.alert('Could not fetch full content for this article.');
+            return null;
+        }
+    }
 }
 
 export const appState = new AppState();

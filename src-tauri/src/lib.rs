@@ -47,13 +47,14 @@ pub fn run() {
             commands::mark_article_saved,
             commands::import_opml,
             commands::export_opml,
-            commands::write_file, // Added
+            commands::write_file,
             commands::refresh_feed,
             commands::add_feed,
             commands::rename_folder,
             commands::delete_feed,
             commands::delete_folder,
-            commands::move_feed
+            commands::move_feed,
+            commands::get_article_content // Added
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

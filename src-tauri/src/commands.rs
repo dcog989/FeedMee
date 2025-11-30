@@ -2,6 +2,7 @@ use crate::{
     AppState, db,
     models::{Article, Folder},
 };
+use readability_rust::Readability;
 use scraper::{Html, Selector};
 use std::fmt::Write;
 use std::io::Cursor;
@@ -128,6 +129,25 @@ pub async fn write_file(path: String, content: String) -> Result<(), String> {
 }
 
 #[tauri::command]
+pub async fn get_article_content(url: String) -> Result<String, String> {
+    let html = reqwest::get(&url)
+        .await
+        .map_err(|e| format!("Failed to fetch URL: {}", e))?
+        .text()
+        .await
+        .map_err(|e| format!("Failed to read text: {}", e))?;
+
+    let mut parser =
+        Readability::new(&html, None).map_err(|e| format!("Readability init error: {:?}", e))?;
+
+    let article = parser
+        .parse()
+        .ok_or("Failed to parse readability content".to_string())?;
+
+    article.content.ok_or("No content extracted".to_string())
+}
+
+#[tauri::command]
 pub async fn refresh_feed(feed_id: i64, state: State<'_, AppState>) -> Result<usize, String> {
     let url = {
         let conn = state.db.lock().unwrap();
@@ -249,12 +269,12 @@ pub async fn add_feed(
         .map(|t| t.content)
         .unwrap_or_else(|| "Untitled Feed".to_string());
     let conn = state.db.lock().unwrap();
-    let target_folder = folder_id.unwrap_or(1); // Defaults to ID 1 (Uncategorized)
+    let target_folder = folder_id.unwrap_or(1);
 
     // Attempt creation
-    let _ = db::create_feed(&conn, &title, &final_url, target_folder); // Ignore error if exists
+    let _ = db::create_feed(&conn, &title, &final_url, target_folder);
 
-    // Retrieve ID (whether newly created or existing)
+    // Retrieve ID
     let id: i64 = conn
         .query_row("SELECT id FROM feeds WHERE url = ?1", [&final_url], |row| {
             row.get(0)

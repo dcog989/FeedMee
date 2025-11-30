@@ -43,7 +43,8 @@
         });
     }
 
-    // --- Drag Start (Feed) ---
+    // --- Feed Drag Start ---
+    // We attach this to the inner div to ensure we carry the ID for cross-folder drops
     function onFeedDragStart(e: DragEvent, feedId: number) {
         if (e.dataTransfer) {
             e.dataTransfer.setData("text/plain", feedId.toString());
@@ -51,9 +52,9 @@
         }
     }
 
-    // --- Drop on Folder Header ---
+    // --- Folder Header Drop Targets ---
     function onHeaderDragOver(e: DragEvent) {
-        e.preventDefault();
+        e.preventDefault(); // Necessary to allow dropping
         e.stopPropagation();
         if (e.dataTransfer) {
             e.dataTransfer.dropEffect = "move";
@@ -76,7 +77,17 @@
 <div class="folder" role="treeitem" aria-expanded={isExpanded} aria-selected="false" tabindex="-1">
     <!-- svelte-ignore a11y_click_events_have_key_events -->
     <!-- svelte-ignore a11y_no_static_element_interactions -->
-    <div class="folder-header" onclick={onToggle} oncontextmenu={(e) => onContextMenu(e, "folder", folder.id, folder.name)} ondragenter={() => onExpandHover(folder.id)} ondragover={onHeaderDragOver} ondrop={onHeaderDrop}>
+    <div
+        class="folder-header"
+        onclick={onToggle}
+        oncontextmenu={(e) => onContextMenu(e, "folder", folder.id, folder.name)}
+        ondragenter={(e) => {
+            e.preventDefault();
+            onExpandHover(folder.id);
+        }}
+        ondragover={onHeaderDragOver}
+        ondrop={onHeaderDrop}
+    >
         <span class="toggle-icon">
             <svg width="10" height="10" viewBox="0 0 10 10" style="transform: rotate({isExpanded ? 90 : 0}deg); transition: transform 0.2s;">
                 <path d="M2,2 L8,5 L2,8" fill="currentColor" />
@@ -147,9 +158,11 @@
         color: var(--text-secondary);
         border-radius: 4px;
         transition: background-color 0.2s;
+        /* Critical for Drop Target */
+        position: relative;
     }
 
-    /* Ensure events pass to the header for dropping */
+    /* VITAL: Prevent children from stealing drag events */
     .folder-header > * {
         pointer-events: none;
     }
@@ -206,6 +219,7 @@
         gap: 8px;
         white-space: nowrap;
         overflow: hidden;
+        /* Re-enable pointer events for specific children if needed, but not on container drag */
     }
 
     .feed-name {
