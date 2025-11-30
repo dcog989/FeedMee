@@ -16,6 +16,7 @@ class AppState {
     isLoading = $state(false);
     theme = $state<Theme>('system');
 
+    // Layout State with defaults
     navWidth = $state(280);
     listWidth = $state(320);
 
@@ -27,7 +28,25 @@ class AppState {
     latestHours = $state(24); // Default 24 hours
 
     constructor() {
+        this.initStore();
+    }
+
+    private initStore() {
+        // Load persisted layout
+        const storedNav = localStorage.getItem('navWidth');
+        const storedList = localStorage.getItem('listWidth');
+        if (storedNav) this.navWidth = parseInt(storedNav);
+        if (storedList) this.listWidth = parseInt(storedList);
+
         this.refreshFolders();
+
+        // Reactively save layout changes
+        $effect.root(() => {
+            $effect(() => {
+                localStorage.setItem('navWidth', this.navWidth.toString());
+                localStorage.setItem('listWidth', this.listWidth.toString());
+            });
+        });
     }
 
     async refreshFolders() {
@@ -165,9 +184,6 @@ class AppState {
         const newState = !article.is_saved;
         // Optimistic update
         article.is_saved = newState;
-        // If we are currently viewing "Saved" list and unsave, should we remove it?
-        // Better UX to keep it until refresh, or remove immediately.
-        // For now, keep it reactive.
 
         try {
             await invoke('mark_article_saved', { id: article.id, isSaved: newState });

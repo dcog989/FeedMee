@@ -15,6 +15,9 @@
     });
 
     let sanitizedContent = $derived(appState.selectedArticle?.summary ? DOMPurify.sanitize(appState.selectedArticle.summary) : "");
+
+    // Reactive check for saved status
+    let isSaved = $derived(appState.selectedArticle?.is_saved ?? false);
 </script>
 
 <main class="pane">
@@ -26,7 +29,25 @@
                     <span class="author">By {appState.selectedArticle.author}</span>
                     <span class="date">{new Date(appState.selectedArticle.timestamp * 1000).toLocaleString()}</span>
                 </div>
+
+                <div class="action-bar">
+                    <button class="action-btn" class:active={isSaved} onclick={() => appState.selectedArticle && appState.toggleSaved(appState.selectedArticle)} title="Read Later">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill={isSaved ? "currentColor" : "none"} stroke="currentColor" stroke-width="2">
+                            <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path>
+                        </svg>
+                        <span>Read Later</span>
+                    </button>
+
+                    <button class="action-btn" title="Tag this article (Coming Soon)">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path>
+                            <line x1="7" y1="7" x2="7.01" y2="7"></line>
+                        </svg>
+                        <span>Tag</span>
+                    </button>
+                </div>
             </header>
+
             <!-- Safe to render sanitized HTML -->
             <div class="summary">
                 {@html sanitizedContent}
@@ -54,6 +75,8 @@
     }
 
     h1 {
+        font-family: var(--font-serif);
+        font-weight: 700;
         font-size: 2.2rem;
         margin-bottom: 0.5rem;
         line-height: 1.2;
@@ -62,12 +85,43 @@
 
     .meta {
         color: var(--text-secondary);
-        margin-bottom: 2rem;
         font-size: 0.9rem;
+        display: flex;
+        gap: 1rem;
+        margin-bottom: 1rem;
+    }
+
+    .action-bar {
         display: flex;
         gap: 1rem;
         border-bottom: 1px solid var(--border-color);
         padding-bottom: 1.5rem;
+        margin-bottom: 2rem;
+    }
+
+    .action-btn {
+        background: transparent;
+        border: 1px solid var(--border-color);
+        color: var(--text-secondary);
+        padding: 6px 12px;
+        border-radius: 4px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        cursor: pointer;
+        font-size: 0.85rem;
+        transition: all 0.2s;
+    }
+
+    .action-btn:hover {
+        background-color: var(--bg-hover);
+        color: var(--text-primary);
+    }
+
+    .action-btn.active {
+        background-color: var(--bg-selected-muted);
+        color: var(--bg-selected);
+        border-color: var(--bg-selected);
     }
 
     .summary {

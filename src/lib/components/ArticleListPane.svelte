@@ -20,7 +20,7 @@
             {#each appState.articles as article (article.id)}
                 <li>
                     <button class:selected={appState.selectedArticle?.id === article.id} onclick={() => appState.selectArticle(article)}>
-                        <span class="title">{article.title}</span>
+                        <span class="title" title={article.title}>{article.title}</span>
                         <div class="meta">
                             <span class="author">{article.author}</span>
                             <span class="date">{new Date(article.timestamp * 1000).toLocaleDateString()}</span>
@@ -72,13 +72,14 @@
     button {
         display: block;
         width: 100%;
-        padding: 1rem;
+        padding: 0.8rem 1rem;
         text-align: left;
         border: none;
         border-bottom: 1px solid var(--border-color);
         background: transparent;
         cursor: pointer;
         color: var(--text-primary);
+        overflow: hidden;
     }
 
     button:hover {
@@ -93,16 +94,29 @@
 
     .title {
         display: block;
-        font-weight: 600;
-        margin-bottom: 0.4rem;
-        font-size: 1rem;
+        font-family: var(--font-serif);
+        font-weight: 400; /* Regular weight */
+        margin-bottom: 0.3rem;
+        font-size: 0.95rem;
         line-height: 1.3;
+
+        /* Truncation */
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
     }
 
     .meta {
         display: flex;
         justify-content: space-between;
-        font-size: 0.8rem;
+        font-size: 0.75rem;
         color: var(--text-secondary);
+    }
+
+    .author {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        max-width: 60%;
     }
 </style>

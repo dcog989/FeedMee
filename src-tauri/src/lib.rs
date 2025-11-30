@@ -3,6 +3,7 @@ pub mod db;
 pub mod models;
 
 use std::sync::Mutex;
+use tauri::Manager;
 
 pub struct AppState {
     db: Mutex<rusqlite::Connection>,
@@ -30,23 +31,6 @@ pub fn run() {
             app.manage(AppState {
                 db: Mutex::new(conn),
             });
-
-            // --- Intelligent Window Sizing & Show ---
-            use tauri::Manager;
-            let window = app.get_webview_window("main").unwrap();
-
-            if let Ok(Some(monitor)) = window.current_monitor() {
-                let screen_size = monitor.size();
-                let width = (screen_size.width as f64 * 0.6).round() as u32;
-                let height = (screen_size.height as f64 * 0.6).round() as u32;
-
-                let _ =
-                    window.set_size(tauri::Size::Physical(tauri::PhysicalSize { width, height }));
-                let _ = window.center();
-            }
-
-            // Now that it is resized and centered, show it
-            window.show().unwrap();
 
             Ok(())
         })

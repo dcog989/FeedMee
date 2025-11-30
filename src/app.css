@@ -21,6 +21,13 @@
 
     /* Typography */
     --font-ui: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    --font-serif: "Merriweather", serif;
+}
+
+@font-face {
+    font-family: "Merriweather";
+    src: url("/Merriweather-Variable.ttf") format("truetype");
+    font-weight: 100 900;
 }
 
 /* Dark Theme Override */
