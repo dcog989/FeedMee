@@ -3,6 +3,28 @@
 version = 4
 
 [[package]]
+name = "FeedMee"
+version = "0.1.12"
+dependencies = [
+ "chrono",
+ "feed-rs",
+ "opml",
+ "reqwest",
+ "rusqlite",
+ "rusqlite_migration",
+ "scraper",
+ "serde",
+ "serde_json",
+ "tauri",
+ "tauri-build",
+ "tauri-plugin-dialog",
+ "tauri-plugin-fs",
+ "tauri-plugin-opener",
+ "tauri-plugin-window-state",
+ "url",
+]
+
+[[package]]
 name = "adler2"
 version = "2.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1021,28 +1043,6 @@ dependencies = [
  "siphasher 1.0.1",
  "url",
  "uuid",
-]
-
-[[package]]
-name = "feedmee"
-version = "0.1.12"
-dependencies = [
- "chrono",
- "feed-rs",
- "opml",
- "reqwest",
- "rusqlite",
- "rusqlite_migration",
- "scraper",
- "serde",
- "serde_json",
- "tauri",
- "tauri-build",
- "tauri-plugin-dialog",
- "tauri-plugin-fs",
- "tauri-plugin-opener",
- "tauri-plugin-window-state",
- "url",
 ]
 
 [[package]]

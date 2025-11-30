@@ -1,18 +1,19 @@
 <script lang="ts">
     import { appState } from "$lib/store.svelte";
+    import type { Feed } from "$lib/types";
+    import { dndzone, type DndEvent } from "svelte-dnd-action";
+    import { flip } from "svelte/animate";
 
     let expandedFolders = $state<Set<number>>(new Set());
     let initialized = false;
-
-    // Drag State
-    let dragTargetFolderId = $state<number | null>(null);
-    let draggedFeedId = $state<number | null>(null);
 
     // Context Menu State
     let cmVisible = $state(false);
     let cmX = $state(0);
     let cmY = $state(0);
     let cmTarget = $state<{ type: "folder" | "feed"; id: number; name?: string } | null>(null);
+
+    const FLIP_DURATION = 200;
 
     $effect(() => {
         if (!initialized && appState.folders.length > 0) {
@@ -34,62 +35,30 @@
         expandedFolders = newSet;
     }
 
-    // --- Drag & Drop ---
-    function onDragStart(event: DragEvent, feedId: number) {
-        if (!event.dataTransfer) return;
-        
-        event.dataTransfer.effectAllowed = "move";
-        event.dataTransfer.setData("text/plain", feedId.toString());
-        draggedFeedId = feedId;
-    }
+    // --- Drag & Drop Handlers ---
 
-    function onDragEnd() {
-        draggedFeedId = null;
-        dragTargetFolderId = null;
-    }
-
-    function onDragEnter(event: DragEvent, folderId: number) {
-        event.preventDefault();
-        event.stopPropagation();
-        dragTargetFolderId = folderId;
-    }
-
-    function onDragOver(event: DragEvent, folderId: number) {
-        event.preventDefault();
-        event.stopPropagation();
-        
-        if (event.dataTransfer) {
-            event.dataTransfer.dropEffect = "move";
-        }
-        
-        dragTargetFolderId = folderId;
-    }
-
-    function onDragLeave(event: DragEvent, folderId: number) {
-        if (event.currentTarget === event.target && dragTargetFolderId === folderId) {
-            dragTargetFolderId = null;
+    function handleDndConsider(folderId: number, e: CustomEvent<DndEvent<Feed>>) {
+        const folder = appState.folders.find((f) => f.id === folderId);
+        if (folder) {
+            folder.feeds = e.detail.items;
         }
     }
 
-    function onDrop(event: DragEvent, folderId: number) {
-        event.preventDefault();
-        event.stopPropagation();
-        
-        const data = event.dataTransfer?.getData("text/plain");
-        if (data) {
-            const feedId = parseInt(data);
-            if (!isNaN(feedId)) {
-                const currentFolder = appState.folders.find(f => 
-                    f.feeds.some(feed => feed.id === feedId)
-                );
-                if (currentFolder?.id !== folderId) {
-                    appState.moveFeed(feedId, folderId);
+    function handleDndFinalize(folderId: number, e: CustomEvent<DndEvent<Feed>>) {
+        const folder = appState.folders.find((f) => f.id === folderId);
+        if (folder) {
+            folder.feeds = e.detail.items;
+
+            // Check for items that were moved into this folder
+            e.detail.items.forEach((feed) => {
+                if (feed.folder_id !== folderId) {
+                    // Update Local State Optimistically
+                    feed.folder_id = folderId;
+                    // Persist to DB
+                    appState.moveFeed(feed.id, folderId);
                 }
-            }
+            });
         }
-        
-        dragTargetFolderId = null;
-        draggedFeedId = null;
     }
 
     // --- Context Menu ---
@@ -132,18 +101,7 @@
 <nav class="pane">
     <div class="folder-list" role="tree">
         {#each appState.folders as folder (folder.id)}
-            <div 
-                class="folder" 
-                class:drag-active={dragTargetFolderId === folder.id}
-                ondragenter={(e) => onDragEnter(e, folder.id)} 
-                ondragover={(e) => onDragOver(e, folder.id)}
-                ondragleave={(e) => onDragLeave(e, folder.id)}
-                ondrop={(e) => onDrop(e, folder.id)} 
-                role="treeitem" 
-                aria-expanded={expandedFolders.has(folder.id)} 
-                aria-selected="false" 
-                tabindex="-1"
-            >
+            <div class="folder" role="treeitem" aria-expanded={expandedFolders.has(folder.id)} aria-selected="false" tabindex="-1">
                 <!-- svelte-ignore a11y_click_events_have_key_events -->
                 <!-- svelte-ignore a11y_no_static_element_interactions -->
                 <div class="folder-header" onclick={(e) => toggleFolder(folder.id, e)} oncontextmenu={(e) => handleContextMenu(e, "folder", folder.id, folder.name)}>
@@ -156,18 +114,14 @@
                 </div>
 
                 {#if expandedFolders.has(folder.id)}
-                    <ul class="feed-list" role="group">
+                    <ul class="feed-list" use:dndzone={{ items: folder.feeds, flipDurationMs: FLIP_DURATION, type: "feed", dropTargetStyle: { outline: "2px solid var(--bg-selected)", borderRadius: "4px" } }} onconsider={(e) => handleDndConsider(folder.id, e)} onfinalize={(e) => handleDndFinalize(folder.id, e)}>
                         {#each folder.feeds as feed (feed.id)}
-                            <li role="none">
+                            <li animate:flip={{ duration: FLIP_DURATION }}>
                                 <!-- svelte-ignore a11y_no_static_element_interactions -->
                                 <!-- svelte-ignore a11y_click_events_have_key_events -->
                                 <div
                                     class="feed-item"
                                     class:selected={appState.selectedFeedId === feed.id}
-                                    class:dragging={draggedFeedId === feed.id}
-                                    draggable="true"
-                                    ondragstart={(e) => onDragStart(e, feed.id)}
-                                    ondragend={onDragEnd}
                                     onclick={(e) => {
                                         e.stopPropagation();
                                         appState.selectFeed(feed.id);
@@ -177,7 +131,7 @@
                                     tabindex="0"
                                     aria-selected={appState.selectedFeedId === feed.id}
                                     onkeydown={(e) => {
-                                        if (e.key === 'Enter' || e.key === ' ') {
+                                        if (e.key === "Enter" || e.key === " ") {
                                             e.preventDefault();
                                             appState.selectFeed(feed.id);
                                         }
@@ -231,13 +185,6 @@
     .folder {
         outline: none;
         margin-bottom: 2px;
-        border-radius: 4px;
-        transition: background-color 0.1s;
-    }
-
-    .folder.drag-active {
-        background-color: var(--bg-selected-muted);
-        box-shadow: inset 0 0 0 2px var(--bg-selected);
     }
 
     .folder-header {
@@ -275,6 +222,8 @@
         list-style: none;
         padding: 0 0 0 20px;
         margin: 0;
+        /* Ensure empty folders can receive drops */
+        min-height: 10px;
     }
 
     .feed-item {
@@ -282,7 +231,7 @@
         padding: 0.4rem 0.6rem;
         background: transparent;
         text-align: left;
-        cursor: grab;
+        cursor: pointer;
         border-radius: 6px;
         font-size: 0.9rem;
         color: var(--text-primary);
@@ -291,15 +240,8 @@
         justify-content: space-between;
         gap: 8px;
         border-left: 3px solid transparent;
-    }
-
-    .feed-item:active {
-        cursor: grabbing;
-    }
-
-    .feed-item.dragging {
-        opacity: 0.5;
-        cursor: grabbing;
+        /* Important for DnD styling */
+        box-sizing: border-box;
     }
 
     .feed-name-wrap {

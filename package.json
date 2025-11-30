@@ -1,5 +1,5 @@
 {
-  "name": "feedmee",
+  "name": "FeedMee",
   "version": "0.1.12",
   "description": "The seriously fast cross-platform news / feed reader.",
   "type": "module",
@@ -17,7 +17,8 @@
     "@tauri-apps/plugin-dialog": "^2",
     "@tauri-apps/plugin-fs": "^2",
     "@tauri-apps/plugin-opener": "^2",
-    "dompurify": "^3.3"
+    "dompurify": "^3.3",
+    "svelte-dnd-action": "^0.9.67"
   },
   "devDependencies": {
     "@sveltejs/adapter-static": "^3.0.10",

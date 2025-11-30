@@ -20,6 +20,7 @@ Inspiration: [Inoreader](https://www.inoreader.com/features/) / [NetNewsWire](ht
 ## Technology Stack
 
 - Vite / Rust / Tauri / Svelte / SQLite
+- Packages: https://www.npmjs.com/package/svelte-dnd-action
 
 ---
 
