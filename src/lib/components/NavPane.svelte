@@ -27,7 +27,6 @@
                     console.error(e);
                 }
             } else {
-                // Default to all open if no state
                 const newSet = new Set(expandedFolders);
                 appState.folders.forEach((f) => newSet.add(f.id));
                 expandedFolders = newSet;
@@ -134,23 +133,15 @@
             return "";
         }
     }
+
+    function getFolderUnreadCount(feeds: Feed[]): number {
+        return feeds.reduce((acc, feed) => acc + feed.unread_count, 0);
+    }
 </script>
 
 <svelte:window onclick={closeContextMenu} />
 
 <nav class="pane" oncontextmenu={(e) => handleContextMenu(e, "root", 0)}>
-    <div class="nav-toolbar">
-        <button onclick={expandAll} title="Expand All">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
-        </button>
-        <button onclick={collapseAll} title="Collapse All">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="18 15 12 9 6 15"></polyline></svg>
-        </button>
-        <button onclick={cmCreateFolder} title="New Folder" class="add-folder-btn">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-        </button>
-    </div>
-
     <!-- Special Folders -->
     <div class="special-section">
         <!-- svelte-ignore a11y_click_events_have_key_events -->
@@ -171,10 +162,21 @@
         </div>
     </div>
 
-    <div class="separator"></div>
+    <div class="nav-toolbar">
+        <button onclick={expandAll} title="Expand All">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+        </button>
+        <button onclick={collapseAll} title="Collapse All">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="18 15 12 9 6 15"></polyline></svg>
+        </button>
+        <button onclick={cmCreateFolder} title="New Folder" class="add-folder-btn">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+        </button>
+    </div>
 
     <div class="folder-list" role="tree">
         {#each appState.folders as folder (folder.id)}
+            {@const folderUnread = getFolderUnreadCount(folder.feeds)}
             <div class="folder" role="treeitem" aria-expanded={expandedFolders.has(folder.id)} aria-selected="false" tabindex="-1">
                 <!-- svelte-ignore a11y_click_events_have_key_events -->
                 <!-- svelte-ignore a11y_no_static_element_interactions -->
@@ -185,6 +187,9 @@
                         </svg>
                     </span>
                     <span class="folder-name">{folder.name}</span>
+                    {#if folderUnread > 0}
+                        <span class="badge folder-badge">{folderUnread}</span>
+                    {/if}
                 </div>
 
                 {#if expandedFolders.has(folder.id)}
@@ -255,14 +260,20 @@
         flex-direction: column;
         box-sizing: border-box;
         user-select: none;
+        padding-top: 4px;
+    }
+
+    .special-section {
+        padding: 4px 12px;
     }
 
     .nav-toolbar {
         display: flex;
         align-items: center;
-        padding: 4px 8px;
+        padding: 8px 12px;
         gap: 2px;
         border-bottom: 1px solid var(--border-color);
+        margin-bottom: 4px;
     }
 
     .nav-toolbar button {
@@ -284,16 +295,6 @@
 
     .add-folder-btn {
         margin-left: auto;
-    }
-
-    .special-section {
-        padding: 8px 12px;
-    }
-
-    .separator {
-        height: 1px;
-        background-color: var(--border-color);
-        margin: 0 12px 8px 12px;
     }
 
     .folder-list {
@@ -336,6 +337,7 @@
         font-weight: 700;
         letter-spacing: 0.5px;
         margin-left: 4px;
+        flex: 1;
     }
 
     .feed-list {
@@ -403,6 +405,10 @@
         min-width: 16px;
         text-align: center;
         flex-shrink: 0;
+    }
+
+    .folder-badge {
+        opacity: 0.7;
     }
 
     .feed-item:hover {

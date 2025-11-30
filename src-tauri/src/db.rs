@@ -40,14 +40,17 @@ pub fn init_db(conn: &mut Connection) -> std::result::Result<(), Box<dyn std::er
 // --- Read Operations ---
 
 pub fn get_folders_with_feeds(conn: &Connection) -> Result<Vec<Folder>> {
-    let mut folder_stmt = conn.prepare("SELECT id, name FROM folders ORDER BY name")?;
-    // Subquery to count unread articles for each feed
+    // Sort folders case-insensitive
+    let mut folder_stmt =
+        conn.prepare("SELECT id, name FROM folders ORDER BY name COLLATE NOCASE")?;
+
+    // Subquery to count unread articles for each feed. Sort feeds case-insensitive.
     let mut feed_stmt = conn.prepare(
         "SELECT f.id, f.name, f.url, f.folder_id,
         (SELECT COUNT(*) FROM articles a WHERE a.feed_id = f.id AND a.is_read = 0) as unread_count
         FROM feeds f
         WHERE f.folder_id = ?1
-        ORDER BY f.name",
+        ORDER BY f.name COLLATE NOCASE",
     )?;
 
     let folders = folder_stmt

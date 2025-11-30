@@ -4,12 +4,14 @@
 
     const appWindow = getCurrentWindow();
 
+    let showAddDialog = $state(false);
+    let newFeedUrl = $state("");
+
     function minimize() {
         appWindow.minimize();
     }
 
     async function maximize() {
-        // Explicitly check state for reliable toggling
         const isMaximized = await appWindow.isMaximized();
         if (isMaximized) {
             await appWindow.unmaximize();
@@ -22,10 +24,32 @@
         appWindow.close();
     }
 
-    function handleAddFeed() {
-        const url = prompt("Enter RSS Feed URL:");
-        if (url && url.trim().length > 0) {
-            appState.addFeed(url.trim());
+    function openAddDialog() {
+        newFeedUrl = "";
+        showAddDialog = true;
+    }
+
+    function closeAddDialog() {
+        showAddDialog = false;
+    }
+
+    function submitAddFeed() {
+        if (newFeedUrl && newFeedUrl.trim().length > 0) {
+            appState.addFeed(newFeedUrl.trim());
+            closeAddDialog();
+        }
+    }
+
+    function handleImport() {
+        appState.importOpml();
+        closeAddDialog();
+    }
+
+    function onKeyDown(e: KeyboardEvent) {
+        if (e.key === "Enter") {
+            submitAddFeed();
+        } else if (e.key === "Escape") {
+            closeAddDialog();
         }
     }
 </script>
@@ -37,18 +61,10 @@
     </div>
 
     <div class="toolbar">
-        <button class="tool-btn" onclick={handleAddFeed} title="Add Feed" aria-label="Add Feed">
+        <button class="tool-btn" onclick={openAddDialog} title="Add Content" aria-label="Add Content">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <line x1="12" y1="5" x2="12" y2="19"></line>
                 <line x1="5" y1="12" x2="19" y2="12"></line>
-            </svg>
-        </button>
-
-        <button class="tool-btn" onclick={() => appState.importOpml()} title="Import OPML" aria-label="Import OPML">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                <polyline points="7 10 12 15 17 10"></polyline>
-                <line x1="12" y1="15" x2="12" y2="3"></line>
             </svg>
         </button>
 
@@ -84,6 +100,26 @@
     </div>
 </header>
 
+{#if showAddDialog}
+    <!-- svelte-ignore a11y_click_events_have_key_events -->
+    <!-- svelte-ignore a11y_no_static_element_interactions -->
+    <div class="modal-overlay" onclick={closeAddDialog}>
+        <div class="modal" onclick={(e) => e.stopPropagation()}>
+            <h3>Add Content</h3>
+            <div class="input-group">
+                <input type="text" bind:value={newFeedUrl} placeholder="Enter RSS Feed URL" onkeydown={onKeyDown} autofocus />
+                <button class="primary" onclick={submitAddFeed}>Add Feed</button>
+            </div>
+
+            <div class="divider">
+                <span>OR</span>
+            </div>
+
+            <button class="secondary" onclick={handleImport}>Import OPML File</button>
+        </div>
+    </div>
+{/if}
+
 <style>
     .titlebar {
         height: 40px;
@@ -97,13 +133,12 @@
         -webkit-app-region: drag;
     }
 
-    /* Explicitly disable drag on all interactive elements to ensure clicks work */
     .titlebar button,
     .titlebar input,
     .window-controls,
     .toolbar {
         -webkit-app-region: no-drag;
-        z-index: 20; /* Ensure they sit above the drag region */
+        z-index: 20;
         position: relative;
     }
 
@@ -208,5 +243,95 @@
     .win-btn.close:hover {
         background-color: #e81123;
         color: white;
+    }
+
+    /* Modal Styles */
+    .modal-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        background: rgba(0, 0, 0, 0.5);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 9999;
+        backdrop-filter: blur(2px);
+    }
+
+    .modal {
+        background: var(--bg-app);
+        padding: 1.5rem;
+        border-radius: 8px;
+        width: 400px;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+        border: 1px solid var(--border-color);
+    }
+
+    .modal h3 {
+        margin: 0 0 1rem 0;
+        font-size: 1.1rem;
+        color: var(--text-primary);
+    }
+
+    .input-group {
+        display: flex;
+        gap: 8px;
+        margin-bottom: 1rem;
+    }
+
+    .input-group input {
+        flex: 1;
+        padding: 8px 12px;
+        width: auto;
+    }
+
+    button.primary {
+        background-color: var(--bg-selected);
+        color: white;
+        border: none;
+        border-radius: 4px;
+        padding: 0 12px;
+        font-weight: 500;
+        cursor: pointer;
+    }
+
+    button.primary:hover {
+        opacity: 0.9;
+    }
+
+    button.secondary {
+        width: 100%;
+        padding: 8px;
+        background: transparent;
+        border: 1px solid var(--border-color);
+        color: var(--text-primary);
+        border-radius: 4px;
+        cursor: pointer;
+    }
+
+    button.secondary:hover {
+        background-color: var(--bg-hover);
+    }
+
+    .divider {
+        display: flex;
+        align-items: center;
+        text-align: center;
+        margin: 1rem 0;
+        color: var(--text-secondary);
+        font-size: 0.8rem;
+    }
+
+    .divider::before,
+    .divider::after {
+        content: "";
+        flex: 1;
+        border-bottom: 1px solid var(--border-color);
+    }
+
+    .divider span {
+        padding: 0 10px;
     }
 </style>
