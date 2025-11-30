@@ -1,6 +1,6 @@
 {
   "name": "feedmee",
-  "version": "0.1.16",
+  "version": "0.1.17",
   "description": "The seriously fast cross-platform news / feed reader.",
   "type": "module",
   "scripts": {
