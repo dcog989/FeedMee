@@ -6,6 +6,7 @@
 
     let expandedFolders = $state<Set<number>>(new Set());
     let initialized = false;
+    let dragExpandTimeout = $state<number | null>(null);
 
     // Context Menu State
     let cmVisible = $state(false);
@@ -41,8 +42,8 @@
         }
     });
 
-    function toggleFolder(id: number, e: MouseEvent) {
-        e.stopPropagation();
+    function toggleFolder(id: number, e?: MouseEvent) {
+        if (e) e.stopPropagation();
         const newSet = new Set(expandedFolders);
         if (newSet.has(id)) {
             newSet.delete(id);
@@ -80,6 +81,24 @@
                     appState.moveFeed(feed.id, folderId);
                 }
             });
+        }
+    }
+
+    // --- Drag Over Folder Logic ---
+    function onDragEnterFolder(folderId: number) {
+        if (!expandedFolders.has(folderId)) {
+            dragExpandTimeout = window.setTimeout(() => {
+                const newSet = new Set(expandedFolders);
+                newSet.add(folderId);
+                expandedFolders = newSet;
+            }, 600);
+        }
+    }
+
+    function onDragLeaveFolder() {
+        if (dragExpandTimeout) {
+            clearTimeout(dragExpandTimeout);
+            dragExpandTimeout = null;
         }
     }
 
@@ -187,6 +206,8 @@
                     class="folder-header"
                     onclick={(e) => toggleFolder(folder.id, e)}
                     oncontextmenu={(e) => handleContextMenu(e, "folder", folder.id, folder.name)}
+                    ondragenter={() => onDragEnterFolder(folder.id)}
+                    ondragleave={onDragLeaveFolder}
                     ondragover={(e) => {
                         e.preventDefault();
                         e.dataTransfer!.dropEffect = "move";

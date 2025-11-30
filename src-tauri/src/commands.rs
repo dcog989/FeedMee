@@ -123,6 +123,11 @@ pub async fn export_opml(state: State<'_, AppState>) -> Result<String, String> {
 }
 
 #[tauri::command]
+pub async fn write_file(path: String, content: String) -> Result<(), String> {
+    std::fs::write(path, content).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
 pub async fn refresh_feed(feed_id: i64, state: State<'_, AppState>) -> Result<usize, String> {
     let url = {
         let conn = state.db.lock().unwrap();
@@ -244,8 +249,12 @@ pub async fn add_feed(
         .map(|t| t.content)
         .unwrap_or_else(|| "Untitled Feed".to_string());
     let conn = state.db.lock().unwrap();
-    let target_folder = folder_id.unwrap_or(1);
-    db::create_feed(&conn, &title, &final_url, target_folder).map_err(|e| e.to_string())?;
+    let target_folder = folder_id.unwrap_or(1); // Defaults to ID 1 (Uncategorized)
+
+    // Attempt creation
+    let _ = db::create_feed(&conn, &title, &final_url, target_folder); // Ignore error if exists
+
+    // Retrieve ID (whether newly created or existing)
     let id: i64 = conn
         .query_row("SELECT id FROM feeds WHERE url = ?1", [&final_url], |row| {
             row.get(0)

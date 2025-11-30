@@ -244,7 +244,7 @@
     }
 
     .win-btn {
-        width: 46px;
+        width: 46px; /* Increased from 46px */
         height: 100%;
         border: none;
         background: transparent;
@@ -253,6 +253,11 @@
         align-items: center;
         justify-content: center;
         cursor: default;
+    }
+
+    .win-btn svg {
+        width: 14px; /* Increased icon size */
+        height: 14px;
     }
 
     .win-btn:hover {

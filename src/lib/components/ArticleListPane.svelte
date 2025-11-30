@@ -30,7 +30,11 @@
                         <span class="title" title={article.title}>{article.title}</span>
 
                         <div class="meta-line">
-                            <span class="date">{new Date(article.timestamp * 1000).toLocaleDateString()}</span>
+                            <div class="meta-left">
+                                <span class="date">{new Date(article.timestamp * 1000).toLocaleDateString()}</span>
+                                <span class="separator">•</span>
+                                <span class="author">{article.author}</span>
+                            </div>
 
                             <div class="actions">
                                 <button
@@ -147,6 +151,24 @@
         font-size: 0.75rem;
         color: var(--text-secondary);
         margin-top: 0.4rem;
+    }
+
+    .meta-left {
+        display: flex;
+        gap: 6px;
+        align-items: center;
+        overflow: hidden;
+    }
+
+    .separator {
+        opacity: 0.5;
+    }
+
+    .author {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        font-weight: 500;
     }
 
     .actions {

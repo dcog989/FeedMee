@@ -46,6 +46,8 @@ pub fn run() {
             commands::create_folder,
             commands::mark_article_saved,
             commands::import_opml,
+            commands::export_opml,
+            commands::write_file, // Added
             commands::refresh_feed,
             commands::add_feed,
             commands::rename_folder,

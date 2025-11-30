@@ -34,6 +34,13 @@ pub fn init_db(conn: &mut Connection) -> std::result::Result<(), Box<dyn std::er
     ]);
 
     migrations.to_latest(conn)?;
+
+    // Ensure default folder exists
+    conn.execute(
+        "INSERT OR IGNORE INTO folders (id, name) VALUES (1, 'Uncategorized')",
+        [],
+    )?;
+
     Ok(())
 }
 
@@ -204,9 +211,11 @@ pub fn mark_article_read(conn: &Connection, article_id: i64) -> Result<()> {
 }
 
 pub fn update_article_saved(conn: &Connection, article_id: i64, is_saved: bool) -> Result<()> {
+    // Force boolean to integer conversion to ensure compatibility
+    let val = if is_saved { 1 } else { 0 };
     conn.execute(
         "UPDATE articles SET is_saved = ?1 WHERE id = ?2",
-        params![is_saved, article_id],
+        params![val, article_id],
     )?;
     Ok(())
 }

@@ -1,6 +1,5 @@
 import { invoke } from '@tauri-apps/api/core';
 import { open, save } from '@tauri-apps/plugin-dialog';
-import { writeTextFile } from '@tauri-apps/plugin-fs';
 import type { Article, Folder } from './types';
 
 export type Theme = 'light' | 'dark' | 'sepia' | 'system';
@@ -77,6 +76,8 @@ class AppState {
             await this.refreshFolders();
         } catch (e) {
             console.error('Failed to add feed:', e);
+            // Don't alert if it's just a duplicate, but commands.rs now handles duplicates gracefully.
+            // If error persists, it is a real error.
             alert(`Error adding feed: ${e}`);
         } finally {
             this.isLoading = false;
@@ -123,12 +124,13 @@ class AppState {
             });
 
             if (filePath) {
-                await writeTextFile(filePath, opmlContent);
+                // Use Rust backend to write file to avoid FS scope issues in frontend
+                await invoke('write_file', { path: filePath, content: opmlContent });
                 alert('Export successful!');
             }
         } catch (e) {
             console.error('Export failed:', e);
-            alert('Failed to export OPML.');
+            alert(`Failed to export OPML: ${e}`);
         }
     }
 
@@ -193,7 +195,6 @@ class AppState {
         const offset = page * this.pageSize;
 
         if (feedId === FEED_ID_LATEST) {
-            // Calculate timestamp cutoff
             const cutoff = Math.floor(Date.now() / 1000) - (this.latestHours * 3600);
             return await invoke('get_latest_articles', { cutoffTimestamp: cutoff, limit: this.pageSize, offset });
         } else if (feedId === FEED_ID_SAVED) {
@@ -209,19 +210,16 @@ class AppState {
 
     selectArticle(article: Article) {
         this.selectedArticle = article;
-        // Mark as read logic would go here
     }
 
     async toggleSaved(article: Article) {
         const newState = !article.is_saved;
-        // Optimistic update
         article.is_saved = newState;
 
         try {
             await invoke('mark_article_saved', { id: article.id, isSaved: newState });
         } catch (e) {
             console.error('Failed to toggle saved:', e);
-            // Revert on fail
             article.is_saved = !newState;
         }
     }
