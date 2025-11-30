@@ -52,6 +52,10 @@
             closeAddDialog();
         }
     }
+
+    function focusOnMount(node: HTMLElement) {
+        node.focus();
+    }
 </script>
 
 <header class="titlebar" data-tauri-drag-region>
@@ -107,7 +111,7 @@
         <div class="modal" onclick={(e) => e.stopPropagation()}>
             <h3>Add Content</h3>
             <div class="input-group">
-                <input type="text" bind:value={newFeedUrl} placeholder="Enter RSS Feed URL" onkeydown={onKeyDown} autofocus />
+                <input type="text" bind:value={newFeedUrl} placeholder="Enter RSS Feed URL" onkeydown={onKeyDown} use:focusOnMount />
                 <button class="primary" onclick={submitAddFeed}>Add Feed</button>
             </div>
 

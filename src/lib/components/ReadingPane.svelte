@@ -2,21 +2,16 @@
     import { appState } from "$lib/store.svelte";
     import DOMPurify from "dompurify";
 
-    // Configure DOMPurify to add 'title' attribute showing the URL
-    // We explicitly type 'node' as Element to satisfy TypeScript
     DOMPurify.addHook("afterSanitizeAttributes", (node: Element) => {
         if (node.tagName === "A" && node.hasAttribute("href")) {
             const href = node.getAttribute("href") || "";
             node.setAttribute("title", href);
-            // Security: Open external links safely
             node.setAttribute("target", "_blank");
             node.setAttribute("rel", "noopener noreferrer");
         }
     });
 
     let sanitizedContent = $derived(appState.selectedArticle?.summary ? DOMPurify.sanitize(appState.selectedArticle.summary) : "");
-
-    // Reactive check for saved status
     let isSaved = $derived(appState.selectedArticle?.is_saved ?? false);
 </script>
 
@@ -25,26 +20,27 @@
         <article class="article-content">
             <header>
                 <h1>{appState.selectedArticle.title}</h1>
-                <div class="meta">
-                    <span class="author">By {appState.selectedArticle.author}</span>
-                    <span class="date">{new Date(appState.selectedArticle.timestamp * 1000).toLocaleString()}</span>
-                </div>
+                <div class="meta-row">
+                    <div class="meta-left">
+                        <span class="author">By {appState.selectedArticle.author}</span>
+                        <span class="separator">•</span>
+                        <span class="date">{new Date(appState.selectedArticle.timestamp * 1000).toLocaleString()}</span>
+                    </div>
 
-                <div class="action-bar">
-                    <button class="action-btn" class:active={isSaved} onclick={() => appState.selectedArticle && appState.toggleSaved(appState.selectedArticle)} title="Read Later">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill={isSaved ? "currentColor" : "none"} stroke="currentColor" stroke-width="2">
-                            <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path>
-                        </svg>
-                        <span>Read Later</span>
-                    </button>
+                    <div class="meta-actions">
+                        <button class="action-btn" class:active={isSaved} onclick={() => appState.selectedArticle && appState.toggleSaved(appState.selectedArticle)} title="Read Later">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill={isSaved ? "currentColor" : "none"} stroke="currentColor" stroke-width="2">
+                                <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path>
+                            </svg>
+                        </button>
 
-                    <button class="action-btn" title="Tag this article (Coming Soon)">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path>
-                            <line x1="7" y1="7" x2="7.01" y2="7"></line>
-                        </svg>
-                        <span>Tag</span>
-                    </button>
+                        <button class="action-btn" title="Tag this article (Coming Soon)">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path>
+                                <line x1="7" y1="7" x2="7.01" y2="7"></line>
+                            </svg>
+                        </button>
+                    </div>
                 </div>
             </header>
 
@@ -78,38 +74,47 @@
         font-family: var(--font-serif);
         font-weight: 700;
         font-size: 2.2rem;
-        margin-bottom: 0.5rem;
+        margin-bottom: 0.8rem;
         line-height: 1.2;
         color: var(--text-primary);
     }
 
-    .meta {
+    .meta-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border-bottom: 1px solid var(--border-color);
+        padding-bottom: 1rem;
+        margin-bottom: 2rem;
         color: var(--text-secondary);
         font-size: 0.9rem;
-        display: flex;
-        gap: 1rem;
-        margin-bottom: 1rem;
     }
 
-    .action-bar {
+    .meta-left {
         display: flex;
-        gap: 1rem;
-        border-bottom: 1px solid var(--border-color);
-        padding-bottom: 1.5rem;
-        margin-bottom: 2rem;
+        gap: 0.5rem;
+        align-items: center;
+    }
+
+    .separator {
+        color: var(--border-color);
+    }
+
+    .meta-actions {
+        display: flex;
+        gap: 0.5rem;
     }
 
     .action-btn {
         background: transparent;
-        border: 1px solid var(--border-color);
+        border: none;
         color: var(--text-secondary);
-        padding: 6px 12px;
+        padding: 4px;
         border-radius: 4px;
         display: flex;
         align-items: center;
-        gap: 6px;
+        justify-content: center;
         cursor: pointer;
-        font-size: 0.85rem;
         transition: all 0.2s;
     }
 
@@ -119,9 +124,7 @@
     }
 
     .action-btn.active {
-        background-color: var(--bg-selected-muted);
         color: var(--bg-selected);
-        border-color: var(--bg-selected);
     }
 
     .summary {
