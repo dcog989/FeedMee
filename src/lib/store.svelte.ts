@@ -16,7 +16,7 @@ class AppState {
     isLoading = $state(false);
     theme = $state<Theme>('system');
 
-    // Layout State with defaults
+    // Layout State
     navWidth = $state(280);
     listWidth = $state(320);
 
@@ -25,15 +25,17 @@ class AppState {
     hasMore = $state(true);
 
     // Settings
-    latestHours = $state(24); // Default 24 hours
+    latestHours = $state(24);
 
-    // Confirmation State
-    confirmState = $state<{
+    // Modal State (Confirm & Alert)
+    modalState = $state<{
         isOpen: boolean;
+        type: 'confirm' | 'alert';
         message: string;
         onConfirm: () => void;
     }>({
         isOpen: false,
+        type: 'confirm',
         message: '',
         onConfirm: () => { }
     });
@@ -43,7 +45,6 @@ class AppState {
     }
 
     private initStore() {
-        // Load persisted layout
         const storedNav = localStorage.getItem('navWidth');
         const storedList = localStorage.getItem('listWidth');
         if (storedNav) this.navWidth = parseInt(storedNav);
@@ -51,7 +52,6 @@ class AppState {
 
         this.refreshFolders();
 
-        // Reactively save layout changes
         $effect.root(() => {
             $effect(() => {
                 localStorage.setItem('navWidth', this.navWidth.toString());
@@ -76,9 +76,7 @@ class AppState {
             await this.refreshFolders();
         } catch (e) {
             console.error('Failed to add feed:', e);
-            // Don't alert if it's just a duplicate, but commands.rs now handles duplicates gracefully.
-            // If error persists, it is a real error.
-            alert(`Error adding feed: ${e}`);
+            this.alert(`Error adding feed: ${e}`);
         } finally {
             this.isLoading = false;
         }
@@ -107,7 +105,7 @@ class AppState {
             }
         } catch (e) {
             console.error('OPML Import failed:', e);
-            alert('Failed to import OPML file.');
+            this.alert('Failed to import OPML file.');
         } finally {
             this.isLoading = false;
         }
@@ -124,13 +122,12 @@ class AppState {
             });
 
             if (filePath) {
-                // Use Rust backend to write file to avoid FS scope issues in frontend
                 await invoke('write_file', { path: filePath, content: opmlContent });
-                alert('Export successful!');
+                this.alert('Export successful!');
             }
         } catch (e) {
             console.error('Export failed:', e);
-            alert(`Failed to export OPML: ${e}`);
+            this.alert(`Failed to export OPML: ${e}`);
         }
     }
 
@@ -147,7 +144,6 @@ class AppState {
         try {
             let result = await this.fetchPage(feedId, 0);
 
-            // Auto-refresh only for real feeds if empty
             if (feedId > 0 && (!result || result.length === 0)) {
                 await invoke('refresh_feed', { feedId });
                 result = await this.fetchPage(feedId, 0);
@@ -214,12 +210,14 @@ class AppState {
 
     async toggleSaved(article: Article) {
         const newState = !article.is_saved;
+        // Optimistic
         article.is_saved = newState;
 
         try {
             await invoke('mark_article_saved', { id: article.id, isSaved: newState });
         } catch (e) {
             console.error('Failed to toggle saved:', e);
+            // Revert
             article.is_saved = !newState;
         }
     }
@@ -234,18 +232,30 @@ class AppState {
     }
 
     confirm(message: string, onConfirm: () => void) {
-        this.confirmState = {
+        this.modalState = {
             isOpen: true,
+            type: 'confirm',
             message,
             onConfirm: () => {
                 onConfirm();
-                this.confirmState.isOpen = false;
+                this.modalState.isOpen = false;
             }
         };
     }
 
-    cancelConfirm() {
-        this.confirmState.isOpen = false;
+    alert(message: string) {
+        this.modalState = {
+            isOpen: true,
+            type: 'alert',
+            message,
+            onConfirm: () => {
+                this.modalState.isOpen = false;
+            }
+        };
+    }
+
+    closeModal() {
+        this.modalState.isOpen = false;
     }
 
     async deleteFeed(id: number) {

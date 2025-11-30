@@ -1,6 +1,6 @@
 [package]
 name = "FeedMee"
-version = "0.1.18"
+version = "0.1.19"
 description = "The seriously fast cross-platform news / feed reader."
 authors = ["you"]
 edition = "2024"

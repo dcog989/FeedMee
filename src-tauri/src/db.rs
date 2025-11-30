@@ -140,6 +140,10 @@ fn map_articles(
 ) -> Result<Vec<Article>> {
     let articles = stmt
         .query_map(params, |row| {
+            // Explicitly handle boolean columns as integers to be safe against SQLite typing nuances
+            let is_read_int: i32 = row.get(7).unwrap_or(0);
+            let is_saved_int: i32 = row.get(8).unwrap_or(0);
+
             Ok(Article {
                 id: row.get(0)?,
                 feed_id: row.get(1)?,
@@ -148,8 +152,8 @@ fn map_articles(
                 summary: row.get(4).unwrap_or_default(),
                 url: row.get(5)?,
                 timestamp: row.get(6)?,
-                is_read: row.get(7)?,
-                is_saved: row.get(8).unwrap_or(false),
+                is_read: is_read_int != 0,
+                is_saved: is_saved_int != 0,
             })
         })?
         .collect::<Result<Vec<Article>>>()?;
@@ -211,7 +215,6 @@ pub fn mark_article_read(conn: &Connection, article_id: i64) -> Result<()> {
 }
 
 pub fn update_article_saved(conn: &Connection, article_id: i64, is_saved: bool) -> Result<()> {
-    // Force boolean to integer conversion to ensure compatibility
     let val = if is_saved { 1 } else { 0 };
     conn.execute(
         "UPDATE articles SET is_saved = ?1 WHERE id = ?2",

@@ -23,16 +23,20 @@
         {@render children()}
     </div>
 
-    {#if appState.confirmState.isOpen}
+    {#if appState.modalState.isOpen}
         <!-- svelte-ignore a11y_click_events_have_key_events -->
         <!-- svelte-ignore a11y_no_static_element_interactions -->
-        <div class="modal-overlay" onclick={() => appState.cancelConfirm()}>
+        <div class="modal-overlay" onclick={() => appState.closeModal()}>
             <div class="modal" onclick={(e) => e.stopPropagation()}>
-                <h3>Confirmation</h3>
-                <p>{appState.confirmState.message}</p>
+                <h3>{appState.modalState.type === "confirm" ? "Confirmation" : "Alert"}</h3>
+                <p>{appState.modalState.message}</p>
                 <div class="modal-actions">
-                    <button class="secondary" onclick={() => appState.cancelConfirm()}>Cancel</button>
-                    <button class="danger" onclick={appState.confirmState.onConfirm}>Confirm</button>
+                    {#if appState.modalState.type === "confirm"}
+                        <button class="secondary" onclick={() => appState.closeModal()}>Cancel</button>
+                    {/if}
+                    <button class={appState.modalState.type === "confirm" ? "danger" : "primary"} onclick={appState.modalState.onConfirm}>
+                        {appState.modalState.type === "confirm" ? "Confirm" : "OK"}
+                    </button>
                 </div>
             </div>
         </div>
@@ -117,7 +121,13 @@
         color: white;
     }
 
-    button.danger:hover {
+    button.primary {
+        background: var(--bg-selected);
+        color: white;
+    }
+
+    button.danger:hover,
+    button.primary:hover {
         opacity: 0.9;
     }
 </style>
