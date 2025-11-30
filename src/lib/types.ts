@@ -21,4 +21,5 @@ export interface Article {
 	url: string;
 	timestamp: number;
 	is_read: boolean;
+	is_saved: boolean;
 }

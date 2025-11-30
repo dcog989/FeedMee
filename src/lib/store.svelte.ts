@@ -4,6 +4,10 @@ import type { Article, Folder } from './types';
 
 export type Theme = 'light' | 'dark' | 'sepia' | 'system';
 
+// Special Feed IDs
+export const FEED_ID_LATEST = -1;
+export const FEED_ID_SAVED = -2;
+
 class AppState {
     folders = $state<Folder[]>([]);
     articles = $state<Article[]>([]);
@@ -18,6 +22,9 @@ class AppState {
     page = 0;
     readonly pageSize = 50;
     hasMore = $state(true);
+
+    // Settings
+    latestHours = $state(24); // Default 24 hours
 
     constructor() {
         this.refreshFolders();
@@ -42,6 +49,15 @@ class AppState {
             alert(`Error adding feed: ${e}`);
         } finally {
             this.isLoading = false;
+        }
+    }
+
+    async createFolder(name: string) {
+        try {
+            await invoke('create_folder', { name });
+            await this.refreshFolders();
+        } catch (e) {
+            console.error('Failed to create folder', e);
         }
     }
 
@@ -78,10 +94,10 @@ class AppState {
         try {
             let result = await this.fetchPage(feedId, 0);
 
-            if (!result || result.length === 0) {
+            // Auto-refresh only for real feeds if empty
+            if (feedId > 0 && (!result || result.length === 0)) {
                 await invoke('refresh_feed', { feedId });
                 result = await this.fetchPage(feedId, 0);
-                // Refresh folders to update unread count if needed
                 this.refreshFolders();
             }
 
@@ -123,16 +139,43 @@ class AppState {
     }
 
     private async fetchPage(feedId: number, page: number): Promise<Article[]> {
-        return await invoke<Article[]>('get_articles_for_feed', {
-            feedId,
-            limit: this.pageSize,
-            offset: page * this.pageSize
-        });
+        const offset = page * this.pageSize;
+
+        if (feedId === FEED_ID_LATEST) {
+            // Calculate timestamp cutoff
+            const cutoff = Math.floor(Date.now() / 1000) - (this.latestHours * 3600);
+            return await invoke('get_latest_articles', { cutoffTimestamp: cutoff, limit: this.pageSize, offset });
+        } else if (feedId === FEED_ID_SAVED) {
+            return await invoke('get_saved_articles', { limit: this.pageSize, offset });
+        } else {
+            return await invoke('get_articles_for_feed', {
+                feedId,
+                limit: this.pageSize,
+                offset
+            });
+        }
     }
 
     selectArticle(article: Article) {
         this.selectedArticle = article;
-        // Mark as read logic would go here (update DB then UI)
+        // Mark as read logic would go here
+    }
+
+    async toggleSaved(article: Article) {
+        const newState = !article.is_saved;
+        // Optimistic update
+        article.is_saved = newState;
+        // If we are currently viewing "Saved" list and unsave, should we remove it?
+        // Better UX to keep it until refresh, or remove immediately.
+        // For now, keep it reactive.
+
+        try {
+            await invoke('mark_article_saved', { id: article.id, isSaved: newState });
+        } catch (e) {
+            console.error('Failed to toggle saved:', e);
+            // Revert on fail
+            article.is_saved = !newState;
+        }
     }
 
     async renameFolder(id: number, newName: string) {

@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { appState } from "$lib/store.svelte";
+    import { appState, FEED_ID_LATEST, FEED_ID_SAVED } from "$lib/store.svelte";
     import type { Feed } from "$lib/types";
     import { dndzone, type DndEvent } from "svelte-dnd-action";
     import { flip } from "svelte/animate";
@@ -11,16 +11,34 @@
     let cmVisible = $state(false);
     let cmX = $state(0);
     let cmY = $state(0);
-    let cmTarget = $state<{ type: "folder" | "feed"; id: number; name?: string } | null>(null);
+    let cmTarget = $state<{ type: "folder" | "feed" | "root"; id: number; name?: string } | null>(null);
 
     const FLIP_DURATION = 200;
 
+    // Load/Save Expansion State
     $effect(() => {
-        if (!initialized && appState.folders.length > 0) {
-            const newSet = new Set(expandedFolders);
-            appState.folders.forEach((f) => newSet.add(f.id));
-            expandedFolders = newSet;
+        if (!initialized) {
+            const stored = localStorage.getItem("expandedFolders");
+            if (stored) {
+                try {
+                    const ids = JSON.parse(stored);
+                    expandedFolders = new Set(ids);
+                } catch (e) {
+                    console.error(e);
+                }
+            } else {
+                // Default to all open if no state
+                const newSet = new Set(expandedFolders);
+                appState.folders.forEach((f) => newSet.add(f.id));
+                expandedFolders = newSet;
+            }
             initialized = true;
+        }
+    });
+
+    $effect(() => {
+        if (initialized) {
+            localStorage.setItem("expandedFolders", JSON.stringify(Array.from(expandedFolders)));
         }
     });
 
@@ -35,8 +53,17 @@
         expandedFolders = newSet;
     }
 
-    // --- Drag & Drop Handlers ---
+    function expandAll() {
+        const newSet = new Set<number>();
+        appState.folders.forEach((f) => newSet.add(f.id));
+        expandedFolders = newSet;
+    }
 
+    function collapseAll() {
+        expandedFolders = new Set();
+    }
+
+    // --- Drag & Drop Handlers ---
     function handleDndConsider(folderId: number, e: CustomEvent<DndEvent<Feed>>) {
         const folder = appState.folders.find((f) => f.id === folderId);
         if (folder) {
@@ -48,13 +75,9 @@
         const folder = appState.folders.find((f) => f.id === folderId);
         if (folder) {
             folder.feeds = e.detail.items;
-
-            // Check for items that were moved into this folder
             e.detail.items.forEach((feed) => {
                 if (feed.folder_id !== folderId) {
-                    // Update Local State Optimistically
                     feed.folder_id = folderId;
-                    // Persist to DB
                     appState.moveFeed(feed.id, folderId);
                 }
             });
@@ -62,7 +85,7 @@
     }
 
     // --- Context Menu ---
-    function handleContextMenu(event: MouseEvent, type: "folder" | "feed", id: number, name?: string) {
+    function handleContextMenu(event: MouseEvent, type: "folder" | "feed" | "root", id: number, name?: string) {
         event.preventDefault();
         event.stopPropagation();
         cmVisible = true;
@@ -89,16 +112,67 @@
         if (!cmTarget) return;
         if (cmTarget.type === "folder") {
             appState.deleteFolder(cmTarget.id);
-        } else {
+        } else if (cmTarget.type === "feed") {
             appState.deleteFeed(cmTarget.id);
         }
         closeContextMenu();
+    }
+
+    function cmCreateFolder() {
+        const name = prompt("New Folder Name:");
+        if (name && name.trim()) {
+            appState.createFolder(name.trim());
+        }
+        closeContextMenu();
+    }
+
+    function getFavicon(url: string) {
+        try {
+            const domain = new URL(url).hostname;
+            return `https://www.google.com/s2/favicons?domain=${domain}&sz=32`;
+        } catch {
+            return "";
+        }
     }
 </script>
 
 <svelte:window onclick={closeContextMenu} />
 
-<nav class="pane">
+<nav class="pane" oncontextmenu={(e) => handleContextMenu(e, "root", 0)}>
+    <div class="nav-toolbar">
+        <button onclick={expandAll} title="Expand All">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+        </button>
+        <button onclick={collapseAll} title="Collapse All">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="18 15 12 9 6 15"></polyline></svg>
+        </button>
+        <button onclick={cmCreateFolder} title="New Folder" class="add-folder-btn">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+        </button>
+    </div>
+
+    <!-- Special Folders -->
+    <div class="special-section">
+        <!-- svelte-ignore a11y_click_events_have_key_events -->
+        <!-- svelte-ignore a11y_no_static_element_interactions -->
+        <div class="feed-item special" class:selected={appState.selectedFeedId === FEED_ID_LATEST} onclick={() => appState.selectFeed(FEED_ID_LATEST)}>
+            <span class="feed-name-wrap">
+                <svg class="feed-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                <span class="feed-name">Latest</span>
+            </span>
+        </div>
+        <!-- svelte-ignore a11y_click_events_have_key_events -->
+        <!-- svelte-ignore a11y_no_static_element_interactions -->
+        <div class="feed-item special" class:selected={appState.selectedFeedId === FEED_ID_SAVED} onclick={() => appState.selectFeed(FEED_ID_SAVED)}>
+            <span class="feed-name-wrap">
+                <svg class="feed-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+                <span class="feed-name">Read Later</span>
+            </span>
+        </div>
+    </div>
+
+    <div class="separator"></div>
+
     <div class="folder-list" role="tree">
         {#each appState.folders as folder (folder.id)}
             <div class="folder" role="treeitem" aria-expanded={expandedFolders.has(folder.id)} aria-selected="false" tabindex="-1">
@@ -138,7 +212,11 @@
                                     }}
                                 >
                                     <span class="feed-name-wrap">
-                                        <span class="feed-icon">#</span>
+                                        {#if feed.url}
+                                            <img src={getFavicon(feed.url)} alt="" class="feed-favicon" loading="lazy" />
+                                        {:else}
+                                            <span class="feed-icon">#</span>
+                                        {/if}
                                         <span class="feed-name">{feed.name}</span>
                                     </span>
 
@@ -156,10 +234,14 @@
 
     {#if cmVisible}
         <div class="context-menu" style="top: {cmY}px; left: {cmX}px">
-            {#if cmTarget?.type === "folder"}
+            {#if cmTarget?.type === "root"}
+                <button onclick={cmCreateFolder}>New Folder</button>
+            {:else if cmTarget?.type === "folder"}
                 <button onclick={cmRename}>Rename Folder</button>
+                <button class="danger" onclick={cmDelete}>Delete Folder</button>
+            {:else if cmTarget?.type === "feed"}
+                <button class="danger" onclick={cmDelete}>Delete Feed</button>
             {/if}
-            <button class="danger" onclick={cmDelete}>Delete</button>
         </div>
     {/if}
 </nav>
@@ -172,8 +254,46 @@
         display: flex;
         flex-direction: column;
         box-sizing: border-box;
-        padding-top: 0.5rem;
         user-select: none;
+    }
+
+    .nav-toolbar {
+        display: flex;
+        align-items: center;
+        padding: 4px 8px;
+        gap: 2px;
+        border-bottom: 1px solid var(--border-color);
+    }
+
+    .nav-toolbar button {
+        background: transparent;
+        border: none;
+        color: var(--text-secondary);
+        border-radius: 4px;
+        cursor: pointer;
+        padding: 4px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .nav-toolbar button:hover {
+        background-color: var(--bg-hover);
+        color: var(--text-primary);
+    }
+
+    .add-folder-btn {
+        margin-left: auto;
+    }
+
+    .special-section {
+        padding: 8px 12px;
+    }
+
+    .separator {
+        height: 1px;
+        background-color: var(--border-color);
+        margin: 0 12px 8px 12px;
     }
 
     .folder-list {
@@ -222,7 +342,6 @@
         list-style: none;
         padding: 0 0 0 20px;
         margin: 0;
-        /* Ensure empty folders can receive drops */
         min-height: 10px;
     }
 
@@ -240,8 +359,12 @@
         justify-content: space-between;
         gap: 8px;
         border-left: 3px solid transparent;
-        /* Important for DnD styling */
         box-sizing: border-box;
+    }
+
+    .feed-item.special {
+        font-weight: 500;
+        margin-bottom: 2px;
     }
 
     .feed-name-wrap {
@@ -262,6 +385,12 @@
         font-size: 0.8rem;
         opacity: 0.7;
         flex-shrink: 0;
+    }
+
+    .feed-favicon {
+        width: 16px;
+        height: 16px;
+        border-radius: 2px;
     }
 
     .badge {

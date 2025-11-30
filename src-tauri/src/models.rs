@@ -10,6 +10,7 @@ pub struct Article {
     pub url: String,
     pub timestamp: i64,
     pub is_read: bool,
+    pub is_saved: bool,
 }
 
 #[derive(Serialize, Clone, Debug)]

@@ -4,7 +4,7 @@ version = 4
 
 [[package]]
 name = "FeedMee"
-version = "0.1.12"
+version = "0.1.14"
 dependencies = [
  "chrono",
  "feed-rs",

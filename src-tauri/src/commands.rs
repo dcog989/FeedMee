@@ -25,6 +25,43 @@ pub fn get_articles_for_feed(
 }
 
 #[tauri::command]
+pub fn get_latest_articles(
+    cutoff_timestamp: i64,
+    limit: usize,
+    offset: usize,
+    state: State<'_, AppState>,
+) -> Result<Vec<Article>, String> {
+    let conn = state.db.lock().unwrap();
+    db::get_latest_articles(&conn, cutoff_timestamp, limit, offset).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub fn get_saved_articles(
+    limit: usize,
+    offset: usize,
+    state: State<'_, AppState>,
+) -> Result<Vec<Article>, String> {
+    let conn = state.db.lock().unwrap();
+    db::get_saved_articles(&conn, limit, offset).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub fn create_folder(name: String, state: State<'_, AppState>) -> Result<i64, String> {
+    let conn = state.db.lock().unwrap();
+    db::create_folder(&conn, &name).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub fn mark_article_saved(
+    id: i64,
+    is_saved: bool,
+    state: State<'_, AppState>,
+) -> Result<(), String> {
+    let conn = state.db.lock().unwrap();
+    db::update_article_saved(&conn, id, is_saved).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
 pub async fn import_opml(path: String, state: State<'_, AppState>) -> Result<(), String> {
     let xml_content = std::fs::read_to_string(path).map_err(|e| e.to_string())?;
     let document = opml::OPML::from_str(&xml_content).map_err(|e| e.to_string())?;
@@ -96,6 +133,7 @@ pub async fn refresh_feed(feed_id: i64, state: State<'_, AppState>) -> Result<us
                 .map(|d| d.timestamp())
                 .unwrap_or(0),
             is_read: false,
+            is_saved: false,
         };
 
         if !article.url.is_empty() {

@@ -29,6 +29,8 @@ pub fn init_db(conn: &mut Connection) -> std::result::Result<(), Box<dyn std::er
         ),
         // Migration 2: Add Read Status
         M::up("ALTER TABLE articles ADD COLUMN is_read BOOLEAN NOT NULL DEFAULT 0;"),
+        // Migration 3: Add Saved Status (Read Later)
+        M::up("ALTER TABLE articles ADD COLUMN is_saved BOOLEAN NOT NULL DEFAULT 0;"),
     ]);
 
     migrations.to_latest(conn)?;
@@ -83,15 +85,51 @@ pub fn get_articles_for_feed(
     offset: usize,
 ) -> Result<Vec<Article>> {
     let mut stmt = conn.prepare(
-        "SELECT id, feed_id, title, author, summary, url, timestamp, is_read
+        "SELECT id, feed_id, title, author, summary, url, timestamp, is_read, is_saved
          FROM articles
          WHERE feed_id = ?1
          ORDER BY timestamp DESC
          LIMIT ?2 OFFSET ?3",
     )?;
 
+    map_articles(&mut stmt, params![feed_id, limit, offset])
+}
+
+pub fn get_latest_articles(
+    conn: &Connection,
+    cutoff_timestamp: i64,
+    limit: usize,
+    offset: usize,
+) -> Result<Vec<Article>> {
+    let mut stmt = conn.prepare(
+        "SELECT id, feed_id, title, author, summary, url, timestamp, is_read, is_saved
+         FROM articles
+         WHERE timestamp > ?1
+         ORDER BY timestamp DESC
+         LIMIT ?2 OFFSET ?3",
+    )?;
+
+    map_articles(&mut stmt, params![cutoff_timestamp, limit, offset])
+}
+
+pub fn get_saved_articles(conn: &Connection, limit: usize, offset: usize) -> Result<Vec<Article>> {
+    let mut stmt = conn.prepare(
+        "SELECT id, feed_id, title, author, summary, url, timestamp, is_read, is_saved
+         FROM articles
+         WHERE is_saved = 1
+         ORDER BY timestamp DESC
+         LIMIT ?2 OFFSET ?3",
+    )?;
+
+    map_articles(&mut stmt, params![limit, offset])
+}
+
+fn map_articles(
+    stmt: &mut rusqlite::Statement,
+    params: impl rusqlite::Params,
+) -> Result<Vec<Article>> {
     let articles = stmt
-        .query_map(params![feed_id, limit, offset], |row| {
+        .query_map(params, |row| {
             Ok(Article {
                 id: row.get(0)?,
                 feed_id: row.get(1)?,
@@ -101,6 +139,7 @@ pub fn get_articles_for_feed(
                 url: row.get(5)?,
                 timestamp: row.get(6)?,
                 is_read: row.get(7)?,
+                is_saved: row.get(8).unwrap_or(false),
             })
         })?
         .collect::<Result<Vec<Article>>>()?;
@@ -139,8 +178,8 @@ pub fn create_feed(conn: &Connection, name: &str, url: &str, folder_id: i64) -> 
 
 pub fn insert_article(conn: &Connection, article: &Article) -> Result<()> {
     conn.execute(
-        "INSERT OR IGNORE INTO articles (feed_id, title, author, summary, url, timestamp, is_read)
-         VALUES (?1, ?2, ?3, ?4, ?5, ?6, 0)",
+        "INSERT OR IGNORE INTO articles (feed_id, title, author, summary, url, timestamp, is_read, is_saved)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, 0, 0)",
         params![
             article.feed_id,
             article.title,
@@ -157,6 +196,14 @@ pub fn mark_article_read(conn: &Connection, article_id: i64) -> Result<()> {
     conn.execute(
         "UPDATE articles SET is_read = 1 WHERE id = ?1",
         params![article_id],
+    )?;
+    Ok(())
+}
+
+pub fn update_article_saved(conn: &Connection, article_id: i64, is_saved: bool) -> Result<()> {
+    conn.execute(
+        "UPDATE articles SET is_saved = ?1 WHERE id = ?2",
+        params![is_saved, article_id],
     )?;
     Ok(())
 }
