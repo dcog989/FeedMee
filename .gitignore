@@ -2,8 +2,8 @@
 .ai/
 .archive/
 .assets/
-#.docs/
-.feeds
+.docs/
+.feeds/
 .git/
 .repomixignore
 .vs/
