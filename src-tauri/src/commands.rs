@@ -12,7 +12,6 @@ use std::io::Cursor;
 use tauri::State;
 use url::Url;
 
-// Helper to create a browser-like client
 fn create_client() -> Result<reqwest::Client, String> {
     reqwest::Client::builder()
         .user_agent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
@@ -98,24 +97,20 @@ pub fn mark_article_saved(
 }
 
 #[tauri::command]
-pub fn mark_article_read(id: i64, state: State<'_, AppState>) -> Result<(), String> {
+pub fn mark_article_read(id: i64, read: bool, state: State<'_, AppState>) -> Result<(), String> {
     let conn = state.db.lock().unwrap();
-    db::mark_article_read(&conn, id).map_err(|e| e.to_string())
+    db::set_article_read(&conn, id, read).map_err(|e| e.to_string())
 }
 
 #[tauri::command]
 pub fn mark_all_read(type_: String, id: i64, state: State<'_, AppState>) -> Result<(), String> {
-    info!(
-        "Command mark_all_read called for type: {}, id: {}",
-        type_, id
-    );
+    info!("Mark All Read: type={}, id={}", type_, id);
     let conn = state.db.lock().unwrap();
     if type_ == "feed" {
         db::mark_feed_read(&conn, id).map_err(|e| e.to_string())
     } else if type_ == "folder" {
         db::mark_folder_read(&conn, id).map_err(|e| e.to_string())
     } else {
-        error!("Invalid type for mark_all_read: {}", type_);
         Err("Invalid type".to_string())
     }
 }
@@ -305,7 +300,8 @@ pub async fn add_feed(
 
     let original_url = response.url().clone();
 
-    let is_html = response
+    // Heuristic: If Content-Type implies HTML, forcing discovery is safer
+    let content_type_html = response
         .headers()
         .get(reqwest::header::CONTENT_TYPE)
         .and_then(|v| v.to_str().ok())
@@ -314,15 +310,23 @@ pub async fn add_feed(
 
     let content_bytes = response.bytes().await.map_err(|e| e.to_string())?;
 
-    let mut feed_result = if !is_html {
+    // Try parsing if it looks like it MIGHT be a feed (or if we aren't sure)
+    // If it's definitely HTML, we skip this to avoid false positives (empty feeds)
+    let initial_parse = if !content_type_html {
         feed_rs::parser::parse(Cursor::new(content_bytes.clone())).ok()
     } else {
         None
     };
 
-    let final_url = if feed_result.is_none() {
-        // Discovery Scope: Ensure all scraper/Html types are dropped inside this block
-        let discovered_url = {
+    // If parse failed OR it returned 0 entries (common issue with HTML parsed as XML), try discovery
+    let should_try_discovery = initial_parse
+        .as_ref()
+        .map(|f| f.entries.is_empty())
+        .unwrap_or(true);
+
+    let (feed, final_url) = if should_try_discovery {
+        // Discovery Logic
+        let discovered_url_str = {
             let html_content = String::from_utf8_lossy(&content_bytes);
             let document = Html::parse_document(&html_content);
             let selector = Selector::parse(
@@ -330,46 +334,56 @@ pub async fn add_feed(
             )
             .map_err(|_| "Internal selector error".to_string())?;
 
-            if let Some(element) = document.select(&selector).next() {
-                if let Some(href) = element.value().attr("href") {
+            document
+                .select(&selector)
+                .next()
+                .and_then(|element| element.value().attr("href"))
+                .and_then(|href| {
                     Url::parse(original_url.as_str())
                         .and_then(|base| base.join(href))
                         .ok()
-                        .map(|u| u.to_string())
-                } else {
-                    None
-                }
-            } else {
-                None
-            }
+                })
+                .map(|u| u.to_string())
         };
 
-        if let Some(new_url_str) = discovered_url {
+        if let Some(new_url) = discovered_url_str {
+            // Fetch the discovered feed
             let resp = client
-                .get(&new_url_str)
+                .get(&new_url)
                 .send()
                 .await
                 .map_err(|e| e.to_string())?;
             let bytes = resp.bytes().await.map_err(|e| e.to_string())?;
-            if let Ok(f) = feed_rs::parser::parse(Cursor::new(bytes)) {
-                feed_result = Some(f);
-                new_url_str
-            } else {
-                return Err("Discovered feed failed to parse".to_string());
+            match feed_rs::parser::parse(Cursor::new(bytes)) {
+                Ok(f) => (f, new_url),
+                Err(_) => {
+                    // If discovery fails to parse, revert to initial parse if valid, else error
+                    if let Some(f) = initial_parse {
+                        (f, url)
+                    } else {
+                        return Err("Discovered feed failed to parse".to_string());
+                    }
+                }
             }
         } else {
-            return Err("No feed found".to_string());
+            // No discovery found. Return initial parse if available (even if empty) or error
+            if let Some(f) = initial_parse {
+                (f, url)
+            } else {
+                return Err("No feed found".to_string());
+            }
         }
     } else {
-        url
+        // initial_parse exists and has entries
+        (initial_parse.unwrap(), url)
     };
 
-    let feed = feed_result.ok_or("Failed to parse feed")?;
     let title = feed
         .title
         .map(|t| t.content)
         .unwrap_or_else(|| "Untitled Feed".to_string());
 
+    // DB Scope
     let id = {
         let conn = state.db.lock().unwrap();
         let target = folder_id.unwrap_or(1);
@@ -380,6 +394,7 @@ pub async fn add_feed(
         .map_err(|e| e.to_string())?
     };
 
+    // Initial fetch to populate articles immediately
     let _ = refresh_feed(id, state).await;
 
     Ok(id)

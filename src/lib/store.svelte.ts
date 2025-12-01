@@ -68,11 +68,9 @@ class AppState {
             const s = await invoke<AppSettings>('get_app_settings');
             this.settings = s;
 
-            // Setup Auto Update
             if (this.settings.auto_update_interval_minutes > 0) {
                 const intervalMs = this.settings.auto_update_interval_minutes * 60 * 1000;
                 setInterval(() => this.refreshAllFeeds(), intervalMs);
-                console.log(`Auto-update configured every ${this.settings.auto_update_interval_minutes} minutes`);
             }
         } catch (e) {
             console.error("Failed to load settings", e);
@@ -209,16 +207,14 @@ class AppState {
             } else {
                 return;
             }
-            // Ensure UI updates:
-            // 1. Update the unread counts on left
+
+            // Refresh counts (Sidebar)
             await this.refreshFolders();
 
-            // 2. Update the local articles list immediately to reflect 'is_read'
-            // We can do this optimistically to avoid network/DB delay perception
+            // Optimistic Update (Main Pane)
+            // Clone array to trigger reactivity
             this.articles = this.articles.map(a => ({ ...a, is_read: true }));
 
-            // 3. Optional: Reload from DB to be 100% sure
-            // await this.reloadCurrentArticleList();
         } catch (e) {
             console.error("Mark all read failed:", e);
         }
@@ -354,7 +350,8 @@ class AppState {
         this.selectedArticle = article;
         if (!article.is_read) {
             article.is_read = true;
-            invoke('mark_article_read', { id: article.id }).catch(e => {
+            // Mark as read in DB
+            invoke('mark_article_read', { id: article.id, read: true }).catch(e => {
                 article.is_read = false;
             });
             const feedId = article.feed_id;
@@ -371,10 +368,18 @@ class AppState {
     async toggleSaved(article: Article) {
         const newState = !article.is_saved;
         article.is_saved = newState;
+
+        // If saving, also mark as unread (not read)
+        if (newState) {
+            article.is_read = false; // Clear read status locally
+            // DB Update for unread
+            invoke('mark_article_read', { id: article.id, read: false }).catch(() => { });
+        }
+
         try {
             await invoke('mark_article_saved', { id: article.id, isSaved: newState });
         } catch (e) {
-            article.is_saved = !newState;
+            article.is_saved = !newState; // Revert on fail
         }
     }
 

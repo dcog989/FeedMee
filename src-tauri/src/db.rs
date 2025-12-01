@@ -266,10 +266,10 @@ pub fn insert_article(conn: &Connection, article: &Article) -> Result<()> {
     Ok(())
 }
 
-pub fn mark_article_read(conn: &Connection, article_id: i64) -> Result<()> {
+pub fn set_article_read(conn: &Connection, article_id: i64, is_read: bool) -> Result<()> {
     conn.execute(
-        "UPDATE articles SET is_read = 1 WHERE id = ?1",
-        params![article_id],
+        "UPDATE articles SET is_read = ?1 WHERE id = ?2",
+        params![is_read, article_id],
     )?;
     Ok(())
 }
