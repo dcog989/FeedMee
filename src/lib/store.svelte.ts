@@ -1,6 +1,6 @@
 import { invoke } from '@tauri-apps/api/core';
 import { open, save } from '@tauri-apps/plugin-dialog';
-import type { Article, Folder } from './types';
+import type { Article, Feed, Folder } from './types';
 
 export type Theme = 'light' | 'dark' | 'sepia' | 'system';
 
@@ -27,6 +27,11 @@ class AppState {
 
     // Settings
     latestHours = $state(24);
+
+    // Refresh State
+    lastRefreshed = new Map<number, number>(); // feedId -> timestamp
+    lastRefreshAll = 0;
+    updatingFeedIds = $state(new Set<number>());
 
     // Modal State (Confirm & Alert)
     modalState = $state<{
@@ -70,27 +75,73 @@ class AppState {
         }
     }
 
+    isFeedUpdating(feedId: number) {
+        return this.updatingFeedIds.has(feedId);
+    }
+
     async refreshAllFeeds() {
+        // Debounce 2 minutes (120,000 ms)
+        if (Date.now() - this.lastRefreshAll < 120000) {
+            console.log('Refresh All debounced');
+            return;
+        }
+
+        this.lastRefreshAll = Date.now();
         this.isLoading = true;
+
+        const allFeeds: Feed[] = this.folders.flatMap(f => f.feeds);
+
+        // We run updates in parallel (browser handles limits)
+        // Each feed update will trigger a folder structure refresh on completion
+        // to show progress in the UI (counts updating)
+        const promises = allFeeds.map(feed => this.refreshSingleFeed(feed.id));
+
         try {
-            await invoke('refresh_all_feeds');
+            await Promise.all(promises);
+            // Final sync to ensure everything is correct
             await this.refreshFolders();
-            // Reload current view
+
+            // Reload current view if needed
             if (this.selectedFeedId) {
-                this.articles = [];
-                this.page = 0;
-                await this.selectFeed(this.selectedFeedId, true);
+                await this.reloadCurrentArticleList();
             } else if (this.selectedFolderId) {
-                this.articles = [];
-                this.page = 0;
-                await this.selectFolder(this.selectedFolderId);
+                await this.reloadCurrentArticleList();
             }
         } catch (e) {
             console.error('Failed to refresh all feeds:', e);
-            this.alert('Failed to refresh feeds.');
         } finally {
             this.isLoading = false;
         }
+    }
+
+    // Helper to refresh a single feed and track its loading state
+    async refreshSingleFeed(feedId: number) {
+        // Mark updating
+        const newSet = new Set(this.updatingFeedIds);
+        newSet.add(feedId);
+        this.updatingFeedIds = newSet;
+
+        try {
+            await invoke('refresh_feed', { feedId });
+            this.lastRefreshed.set(feedId, Date.now());
+            // Update unread counts incrementally
+            await this.refreshFolders();
+        } catch (e) {
+            console.error(`Failed to refresh feed ${feedId}:`, e);
+        } finally {
+            // Unmark updating
+            const endSet = new Set(this.updatingFeedIds);
+            endSet.delete(feedId);
+            this.updatingFeedIds = endSet;
+        }
+    }
+
+    async reloadCurrentArticleList() {
+        this.articles = [];
+        this.page = 0;
+        const result = await this.fetchPage(0);
+        this.articles = result || [];
+        this.hasMore = (result?.length || 0) === this.pageSize;
     }
 
     async addFeed(url: string) {
@@ -161,21 +212,8 @@ class AppState {
         this.selectedFolderId = folderId;
         this.selectedFeedId = null;
         this.selectedArticle = null;
-        this.articles = [];
-        this.page = 0;
-        this.hasMore = true;
-        this.isLoading = true;
 
-        try {
-            const result = await this.fetchPage(0);
-            this.articles = result || [];
-            this.hasMore = (result?.length || 0) === this.pageSize;
-        } catch (e) {
-            console.error(`Failed to load articles for folder ${folderId}:`, e);
-            this.articles = [];
-        } finally {
-            this.isLoading = false;
-        }
+        await this.reloadCurrentArticleList();
     }
 
     async selectFeed(feedId: number, forceRefresh = false) {
@@ -184,38 +222,21 @@ class AppState {
         this.selectedFeedId = feedId;
         this.selectedFolderId = null;
         this.selectedArticle = null;
-        this.articles = [];
-        this.page = 0;
-        this.hasMore = true;
-        this.isLoading = true;
 
-        try {
-            // Trigger refresh in background if selecting a specific feed
-            if (feedId > 0) {
-                invoke('refresh_feed', { feedId }).then(() => {
-                    this.refreshFolders(); // Update counts
-                    // If we are still viewing this feed, prepend new articles
+        await this.reloadCurrentArticleList();
+
+        // Background Refresh with Debounce (5 minutes)
+        if (feedId > 0 && !forceRefresh) {
+            const last = this.lastRefreshed.get(feedId) || 0;
+            if (Date.now() - last > 5 * 60 * 1000) {
+                this.refreshSingleFeed(feedId).then(() => {
+                    // If still selected, prepend/refresh list
                     if (this.selectedFeedId === feedId) {
-                        this.fetchPage(0).then(res => {
-                            // Simple reload for now to ensure consistency
-                            this.articles = res || [];
-                        });
+                        this.reloadCurrentArticleList();
                     }
                 });
-            }
-
-            const result = await this.fetchPage(0);
-
-            if (this.selectedFeedId === feedId) {
-                this.articles = result || [];
-                this.hasMore = (result?.length || 0) === this.pageSize;
-            }
-        } catch (e) {
-            console.error(`Failed to load articles for feed ${feedId}:`, e);
-            if (this.selectedFeedId === feedId) this.articles = [];
-        } finally {
-            if (this.selectedFeedId === feedId) {
-                this.isLoading = false;
+            } else {
+                console.log(`Feed ${feedId} refresh skipped (debounce)`);
             }
         }
     }
@@ -273,14 +294,12 @@ class AppState {
 
     async toggleSaved(article: Article) {
         const newState = !article.is_saved;
-        // Optimistic
         article.is_saved = newState;
 
         try {
             await invoke('mark_article_saved', { id: article.id, isSaved: newState });
         } catch (e) {
             console.error('Failed to toggle saved:', e);
-            // Revert
             article.is_saved = !newState;
         }
     }

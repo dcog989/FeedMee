@@ -44,7 +44,6 @@
     }
 
     // --- Feed Drag Start ---
-    // We attach this to the inner div to ensure we carry the ID for cross-folder drops
     function onFeedDragStart(e: DragEvent, feedId: number) {
         if (e.dataTransfer) {
             e.dataTransfer.setData("text/plain", feedId.toString());
@@ -54,12 +53,11 @@
 
     // --- Folder Header Drop Targets ---
     function onHeaderDragOver(e: DragEvent) {
-        e.preventDefault(); // Necessary to allow dropping
+        e.preventDefault();
         e.stopPropagation();
         if (e.dataTransfer) {
             e.dataTransfer.dropEffect = "move";
         }
-        // Trigger expand on hover during drag
         onExpandHover(folder.id);
     }
 
@@ -80,14 +78,12 @@
     <!-- svelte-ignore a11y_click_events_have_key_events -->
     <!-- svelte-ignore a11y_no_static_element_interactions -->
     <div class="folder-header" class:selected={appState.selectedFolderId === folder.id} oncontextmenu={(e) => onContextMenu(e, "folder", folder.id, folder.name)} ondragover={onHeaderDragOver} ondrop={onHeaderDrop}>
-        <!-- Toggle Icon (Click to Expand/Collapse) -->
         <span class="toggle-icon" onclick={onToggle}>
             <svg width="10" height="10" viewBox="0 0 10 10" style="transform: rotate({isExpanded ? 90 : 0}deg); transition: transform 0.2s;">
                 <path d="M2,2 L8,5 L2,8" fill="currentColor" />
             </svg>
         </span>
 
-        <!-- Folder Name (Click to Select) -->
         <span class="folder-name-area" onclick={() => appState.selectFolder(folder.id)}>
             <span class="folder-name">{folder.name}</span>
             {#if getFolderUnreadCount(folder.feeds) > 0}
@@ -131,7 +127,9 @@
                             <span class="feed-name">{feed.name}</span>
                         </span>
 
-                        {#if feed.unread_count > 0}
+                        {#if appState.isFeedUpdating(feed.id)}
+                            <div class="mini-spinner"></div>
+                        {:else if feed.unread_count > 0}
                             <span class="badge">{feed.unread_count}</span>
                         {/if}
                     </div>
@@ -151,7 +149,7 @@
         display: flex;
         align-items: center;
         padding: 4px 4px;
-        cursor: default; /* Logic separated */
+        cursor: default;
         color: var(--text-secondary);
         border-radius: 4px;
         transition: background-color 0.2s;
@@ -172,7 +170,7 @@
         display: flex;
         align-items: center;
         justify-content: center;
-        width: 24px; /* Larger hit area */
+        width: 24px;
         height: 24px;
         cursor: pointer;
         opacity: 0.7;
@@ -283,5 +281,21 @@
     .feed-item.selected .badge {
         background-color: var(--bg-selected);
         color: white;
+    }
+
+    .mini-spinner {
+        width: 12px;
+        height: 12px;
+        border: 2px solid var(--text-secondary);
+        border-top-color: transparent;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        flex-shrink: 0;
+    }
+
+    @keyframes spin {
+        to {
+            transform: rotate(360deg);
+        }
     }
 </style>
