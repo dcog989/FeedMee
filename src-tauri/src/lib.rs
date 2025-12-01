@@ -29,6 +29,32 @@ pub fn run() {
                 std::fs::create_dir_all(&app_data_dir).expect("failed to create app data dir");
             }
 
+            // --- Log Rotation ---
+            let log_file_name = "feedmee.log";
+            let max_logs = 5;
+
+            // Delete oldest if exists
+            let oldest_log = app_data_dir.join(format!("feedmee.{}.log", max_logs));
+            if oldest_log.exists() {
+                let _ = std::fs::remove_file(oldest_log);
+            }
+
+            // Shift existing logs: 4->5, 3->4, etc.
+            for i in (1..max_logs).rev() {
+                let current = app_data_dir.join(format!("feedmee.{}.log", i));
+                let next = app_data_dir.join(format!("feedmee.{}.log", i + 1));
+                if current.exists() {
+                    let _ = std::fs::rename(current, next);
+                }
+            }
+
+            // Shift main log to .1
+            let current_log = app_data_dir.join(log_file_name);
+            if current_log.exists() {
+                let _ = std::fs::rename(&current_log, app_data_dir.join("feedmee.1.log"));
+            }
+            // ---------------------
+
             // Load Settings
             let mut app_settings = settings::load_settings(&app_data_dir);
 
@@ -40,9 +66,8 @@ pub fn run() {
                 _ => LevelFilter::Info,
             };
 
-            let log_path = app_data_dir.join("feedmee.log");
+            let log_path = app_data_dir.join(log_file_name);
 
-            // Configure Logger to ignore noisy external crates even in Debug mode
             let log_config = ConfigBuilder::new()
                 .add_filter_ignore_str("html5ever")
                 .add_filter_ignore_str("selectors")

@@ -211,8 +211,11 @@ class AppState {
             // 1. Refresh unread counts in sidebar
             await this.refreshFolders();
 
-            // 2. Optimistic Update: Set all loaded articles to read
-            this.articles = this.articles.map(a => ({ ...a, is_read: true }));
+            // 2. Intelligent Optimistic Update:
+            // Mark visible articles as read ONLY if they are not saved.
+            this.articles = this.articles.map(a =>
+                a.is_saved ? a : { ...a, is_read: true }
+            );
 
         } catch (e) {
             console.error("Mark all read failed:", e);
@@ -367,10 +370,8 @@ class AppState {
         const newState = !article.is_saved;
         article.is_saved = newState;
 
-        // If marking as saved (Read Later), we often want it to appear "unread" so we remember to read it
-        // OR we just assume "Read Later" means "Keep it".
-        // User requested: "setting 'Read Later' flag ... should clear the read status / strikethrough style"
-        // This implies setting read=false.
+        // If marking as saved (Read Later), unmark as read (make it unread)
+        // If unmarking saved, do not change read status automatically (keep as is)
         if (newState) {
             article.is_read = false;
             invoke('mark_article_read', { id: article.id, read: false }).catch(() => { });

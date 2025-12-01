@@ -281,21 +281,22 @@ pub fn set_article_read(conn: &Connection, article_id: i64, is_read: bool) -> Re
 }
 
 pub fn mark_article_read(conn: &Connection, article_id: i64) -> Result<()> {
-    // Deprecated wrapper, use set_article_read
     set_article_read(conn, article_id, true)
 }
 
 pub fn mark_feed_read(conn: &Connection, feed_id: i64) -> Result<()> {
+    // Only mark read if NOT saved
     conn.execute(
-        "UPDATE articles SET is_read = 1 WHERE feed_id = ?1",
+        "UPDATE articles SET is_read = 1 WHERE feed_id = ?1 AND is_saved = 0",
         params![feed_id],
     )?;
     Ok(())
 }
 
 pub fn mark_folder_read(conn: &Connection, folder_id: i64) -> Result<()> {
+    // Only mark read if NOT saved
     conn.execute(
-        "UPDATE articles SET is_read = 1 WHERE feed_id IN (SELECT id FROM feeds WHERE folder_id = ?1)",
+        "UPDATE articles SET is_read = 1 WHERE feed_id IN (SELECT id FROM feeds WHERE folder_id = ?1) AND is_saved = 0",
         params![folder_id],
     )?;
     Ok(())
