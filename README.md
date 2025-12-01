@@ -1,53 +1,40 @@
-﻿# FeedMee PoC (Tauri + Svelte)
+﻿# FeedMee
 
-Proof-of-Concept for the FeedMee RSS Reader application.
+*FeedMee* is an RSS/Atom news reader built for the desktop. This is the initial, beta release. More to come.
 
-## Structure
+![License](https://img.shields.io/badge/license-MIT-blue.svg)
+![Tauri](https://img.shields.io/badge/built%20with-Tauri-24C8DB.svg)
+![Svelte](https://img.shields.io/badge/frontend-Svelte%205-FF3E00.svg)
 
-- 
+## Features
 
-## Prerequisites
+- **Cross-Platform:** Native performance on Windows, macOS, and Linux (via Tauri v2).
+- **Three-Pane Layout:** Classic, responsive interface (Navigation, Article List, Reading Pane).
+- **Reader Mode:** Extracts full article content using `Readability`, stripping clutter.
+- **Feed Management:**
+  - Auto-discovery of RSS/Atom links from URLs.
+  - Drag-and-drop folder organization.
+  - OPML Import/Export.
+- **Smart Views:** "Latest" (24h) and "Read Later" (Saved) aggregation.
+- **Local Privacy:** All data is stored locally in SQLite. No tracking, no accounts.
+- **Customizable:** Dark/Light themes, configurable refresh intervals, and log rotation.
 
-Before you begin, ensure you have the following installed:
+## Tech Stack
 
-1. **Rust**: Follow the instructions at [rust-lang.org](https://www.rust-lang.org/tools/install).
-2. **Node.js**: LTS version recommended. You can download it from [nodejs.org](https://nodejs.org/).
-3. **Tauri's System Dependencies**: Follow the setup guide for your specific operating system on the [Tauri website](https://tauri.app/v1/guides/getting-started/prerequisites). This is a critical step that includes build tools like C++ compilers and webview libraries.
+- **Frontend:** Svelte 5, TypeScript, Vite
+- **Backend:** Rust, Rusqlite (SQLite), Reqwest, Feed-RS
+- **Build System:** Tauri v2
 
-## How to Run
+## Getting Started
 
-1. **Install Root Dependencies (Tauri CLI):**
-    Open a terminal in the project root directory and run:
+### Prerequisites
 
-    ```bash
-    npm install
-    ```
+1.  **Rust:** [Install Rust](https://www.rust-lang.org/tools/install).
+2.  **Node.js:** [Install Node.js](https://nodejs.org/).
+3.  **OS Dependencies:** Follow the [Tauri Prerequisites guide](https://v2.tauri.app/start/prerequisites/).
 
-2. **Install Frontend Dependencies:**
-    Navigate to the frontend directory and install its dependencies:
+### Installation
 
-    ```bash
-    cd frontend
-    npm install
-    cd ..
-    ```
-
-3. **Run in Development Mode:**
-    From the project root directory, run the following command. This will launch the application in a development window with hot-reloading for both the frontend and backend.
-
-    ```bash
-    npm run tauri dev
-    ```
-
-## How to Build
-
-1. **Ensure all dependencies are installed** by following steps 1 and 2 from the "How to Run" section.
-
-2. **Build the Application:**
-    From the project root directory, run the build command:
-
-    ```bash
-    npm run tauri build
-    ```
-
-    This will compile the Rust backend in release mode and bundle it with the frontend into a standalone, native executable. The final installer or application file will be located in `src/target/release/bundle/`.
+```bash
+# Install dependencies
+npm install
