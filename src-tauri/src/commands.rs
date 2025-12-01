@@ -1,7 +1,6 @@
 use crate::{
-    db,
+    AppState, db,
     models::{Article, Folder},
-    AppState,
 };
 use log::{debug, error, info, warn};
 use readability_rust::Readability;
@@ -171,7 +170,10 @@ pub async fn import_opml(path: String, state: State<'_, AppState>) -> Result<(),
                         if let Some(url) = child.xml_url {
                             match db::create_feed(&conn, &child.text, &url, folder_id) {
                                 Ok(_) => {
-                                    debug!("Added feed '{}' to folder '{}'", child.text, folder_name);
+                                    debug!(
+                                        "Added feed '{}' to folder '{}'",
+                                        child.text, folder_name
+                                    );
                                     feed_count += 1;
                                 }
                                 Err(e) => {
@@ -301,6 +303,34 @@ pub async fn get_article_content(url: String) -> Result<String, String> {
 }
 
 #[tauri::command]
+pub fn get_articles_for_folder(
+    folder_id: i64,
+    limit: usize,
+    offset: usize,
+    state: State<'_, AppState>,
+) -> Result<Vec<Article>, String> {
+    debug!(
+        "Getting articles for folder_id={}, limit={}, offset={}",
+        folder_id, limit, offset
+    );
+    let conn = state.db.lock().unwrap();
+    match db::get_articles_for_folder(&conn, folder_id, limit, offset) {
+        Ok(articles) => {
+            info!(
+                "Retrieved {} articles for folder_id={}",
+                articles.len(),
+                folder_id
+            );
+            Ok(articles)
+        }
+        Err(e) => {
+            error!("Failed to get articles for folder_id={}: {}", folder_id, e);
+            Err(e.to_string())
+        }
+    }
+}
+
+#[tauri::command]
 pub async fn refresh_feed(feed_id: i64, state: State<'_, AppState>) -> Result<usize, String> {
     info!("Refreshing feed_id={}", feed_id);
 
@@ -313,7 +343,14 @@ pub async fn refresh_feed(feed_id: i64, state: State<'_, AppState>) -> Result<us
     };
 
     debug!("Fetching feed from: {}", url);
-    let content = reqwest::get(&url)
+    let client = reqwest::Client::builder()
+        .user_agent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
+        .build()
+        .map_err(|e| e.to_string())?;
+
+    let content = client
+        .get(&url)
+        .send()
         .await
         .map_err(|e| {
             error!("Failed to fetch feed from '{}': {}", url, e);
@@ -385,6 +422,35 @@ pub async fn refresh_feed(feed_id: i64, state: State<'_, AppState>) -> Result<us
 }
 
 #[tauri::command]
+pub async fn refresh_all_feeds(state: State<'_, AppState>) -> Result<usize, String> {
+    info!("Refreshing all feeds");
+    let feeds = {
+        let conn = state.db.lock().unwrap();
+        // Flatten folders to get all feeds
+        let folders = db::get_folders_with_feeds(&conn).map_err(|e| e.to_string())?;
+        let mut all_feeds = Vec::new();
+        for folder in folders {
+            for feed in folder.feeds {
+                all_feeds.push(feed);
+            }
+        }
+        all_feeds
+    };
+
+    let mut total_new = 0;
+    // Note: In a production app, we might want to do this concurrently (e.g. JoinSet)
+    // For now, sequential is safer for SQLite locking.
+    for feed in feeds {
+        match refresh_feed(feed.id, state.clone()).await {
+            Ok(count) => total_new += count,
+            Err(e) => warn!("Failed to refresh feed {}: {}", feed.name, e),
+        }
+    }
+
+    Ok(total_new)
+}
+
+#[tauri::command]
 pub async fn add_feed(
     url: String,
     folder_id: Option<i64>,
@@ -392,7 +458,12 @@ pub async fn add_feed(
 ) -> Result<i64, String> {
     info!("Adding new feed from URL: {}", url);
 
-    let response = reqwest::get(&url).await.map_err(|e| {
+    let client = reqwest::Client::builder()
+        .user_agent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
+        .build()
+        .map_err(|e| e.to_string())?;
+
+    let response = client.get(&url).send().await.map_err(|e| {
         error!("Network error while fetching '{}': {}", url, e);
         format!("Network error: {}", e)
     })?;
@@ -448,7 +519,9 @@ pub async fn add_feed(
 
             if let Some(feed_url) = discovered_url {
                 debug!("Fetching discovered feed: {}", feed_url);
-                let discovered_content = reqwest::get(&feed_url)
+                let discovered_content = client
+                    .get(&feed_url)
+                    .send()
                     .await
                     .map_err(|e| {
                         error!("Fetch discovered feed error for '{}': {}", feed_url, e);

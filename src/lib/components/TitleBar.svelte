@@ -6,6 +6,7 @@
 
     let showAddDialog = $state(false);
     let newFeedUrl = $state("");
+    let isRefreshing = $derived(appState.isLoading);
 
     function minimize() {
         appWindow.minimize();
@@ -73,11 +74,19 @@
             </svg>
         </button>
 
+        <button class="tool-btn" onclick={() => appState.refreshAllFeeds()} title="Refresh All" aria-label="Refresh All" disabled={isRefreshing}>
+            <svg class:spinning={isRefreshing} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M23 4v6h-6"></path>
+                <path d="M1 20v-6h6"></path>
+                <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+            </svg>
+        </button>
+
         <button class="tool-btn" onclick={() => appState.exportOpml()} title="Export OPML" aria-label="Export OPML">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                <polyline points="7 10 12 15 17 10"></polyline>
-                <line x1="12" y1="15" x2="12" y2="3"></line>
+                <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"></path>
+                <polyline points="16 6 12 2 8 6"></polyline>
+                <line x1="12" y1="2" x2="12" y2="15"></line>
             </svg>
         </button>
 
@@ -204,6 +213,24 @@
         color: var(--text-primary);
     }
 
+    .tool-btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+
+    .spinning {
+        animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+        from {
+            transform: rotate(0deg);
+        }
+        to {
+            transform: rotate(360deg);
+        }
+    }
+
     .search-wrapper {
         position: relative;
         margin-left: 1rem;
@@ -244,7 +271,7 @@
     }
 
     .win-btn {
-        width: 46px; /* Increased from 46px */
+        width: 46px;
         height: 100%;
         border: none;
         background: transparent;
@@ -256,7 +283,7 @@
     }
 
     .win-btn svg {
-        width: 14px; /* Increased icon size */
+        width: 14px;
         height: 14px;
     }
 

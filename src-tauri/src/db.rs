@@ -1,7 +1,7 @@
 use crate::models::{Article, Feed, Folder};
 use log::{debug, error, info, warn};
-use rusqlite::{params, Connection, Result};
-use rusqlite_migration::{Migrations, M};
+use rusqlite::{Connection, Result, params};
+use rusqlite_migration::{M, Migrations};
 
 pub fn init_db(conn: &mut Connection) -> std::result::Result<(), Box<dyn std::error::Error>> {
     info!("Initializing database schema");
@@ -154,7 +154,10 @@ pub fn get_latest_articles(
 }
 
 pub fn get_saved_articles(conn: &Connection, limit: usize, offset: usize) -> Result<Vec<Article>> {
-    debug!("Querying saved articles: limit={}, offset={}", limit, offset);
+    debug!(
+        "Querying saved articles: limit={}, offset={}",
+        limit, offset
+    );
 
     let mut stmt = conn.prepare(
         "SELECT id, feed_id, title, author, summary, url, timestamp, is_read, is_saved
@@ -202,6 +205,29 @@ pub fn get_feed_url(conn: &Connection, feed_id: i64) -> Result<String> {
         params![feed_id],
         |row| row.get(0),
     )
+}
+
+pub fn get_articles_for_folder(
+    conn: &Connection,
+    folder_id: i64,
+    limit: usize,
+    offset: usize,
+) -> Result<Vec<Article>> {
+    debug!(
+        "Querying unread articles for folder_id={}, limit={}, offset={}",
+        folder_id, limit, offset
+    );
+
+    let mut stmt = conn.prepare(
+        "SELECT a.id, a.feed_id, a.title, a.author, a.summary, a.url, a.timestamp, a.is_read, a.is_saved
+         FROM articles a
+         JOIN feeds f ON a.feed_id = f.id
+         WHERE f.folder_id = ?1 AND a.is_read = 0
+         ORDER BY a.timestamp DESC
+         LIMIT ?2 OFFSET ?3",
+    )?;
+
+    map_articles(&mut stmt, params![folder_id, limit, offset])
 }
 
 // --- Write Operations ---

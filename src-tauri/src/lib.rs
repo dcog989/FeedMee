@@ -65,6 +65,7 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             commands::get_folders_with_feeds,
             commands::get_articles_for_feed,
+            commands::get_articles_for_folder,
             commands::get_latest_articles,
             commands::get_saved_articles,
             commands::create_folder,
@@ -73,6 +74,7 @@ pub fn run() {
             commands::export_opml,
             commands::write_file,
             commands::refresh_feed,
+            commands::refresh_all_feeds,
             commands::add_feed,
             commands::rename_folder,
             commands::delete_feed,

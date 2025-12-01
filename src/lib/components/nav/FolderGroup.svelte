@@ -79,22 +79,21 @@
 <div class="folder" role="treeitem" aria-expanded={isExpanded} aria-selected="false" tabindex="-1">
     <!-- svelte-ignore a11y_click_events_have_key_events -->
     <!-- svelte-ignore a11y_no_static_element_interactions -->
-    <div
-        class="folder-header"
-        onclick={onToggle}
-        oncontextmenu={(e) => onContextMenu(e, "folder", folder.id, folder.name)}
-        ondragover={onHeaderDragOver}
-        ondrop={onHeaderDrop}
-    >
-        <span class="toggle-icon">
+    <div class="folder-header" class:selected={appState.selectedFolderId === folder.id} oncontextmenu={(e) => onContextMenu(e, "folder", folder.id, folder.name)} ondragover={onHeaderDragOver} ondrop={onHeaderDrop}>
+        <!-- Toggle Icon (Click to Expand/Collapse) -->
+        <span class="toggle-icon" onclick={onToggle}>
             <svg width="10" height="10" viewBox="0 0 10 10" style="transform: rotate({isExpanded ? 90 : 0}deg); transition: transform 0.2s;">
                 <path d="M2,2 L8,5 L2,8" fill="currentColor" />
             </svg>
         </span>
-        <span class="folder-name">{folder.name}</span>
-        {#if getFolderUnreadCount(folder.feeds) > 0}
-            <span class="badge folder-badge">{getFolderUnreadCount(folder.feeds)}</span>
-        {/if}
+
+        <!-- Folder Name (Click to Select) -->
+        <span class="folder-name-area" onclick={() => appState.selectFolder(folder.id)}>
+            <span class="folder-name">{folder.name}</span>
+            {#if getFolderUnreadCount(folder.feeds) > 0}
+                <span class="badge folder-badge">{getFolderUnreadCount(folder.feeds)}</span>
+            {/if}
+        </span>
     </div>
 
     {#if isExpanded}
@@ -151,8 +150,8 @@
     .folder-header {
         display: flex;
         align-items: center;
-        padding: 6px 4px;
-        cursor: pointer;
+        padding: 4px 4px;
+        cursor: default; /* Logic separated */
         color: var(--text-secondary);
         border-radius: 4px;
         transition: background-color 0.2s;
@@ -164,12 +163,31 @@
         background-color: rgba(0, 0, 0, 0.03);
     }
 
+    .folder-header.selected {
+        background-color: var(--bg-selected-muted);
+        color: var(--text-primary);
+    }
+
     .toggle-icon {
         display: flex;
         align-items: center;
         justify-content: center;
-        width: 16px;
-        height: 16px;
+        width: 24px; /* Larger hit area */
+        height: 24px;
+        cursor: pointer;
+        opacity: 0.7;
+    }
+
+    .toggle-icon:hover {
+        opacity: 1;
+    }
+
+    .folder-name-area {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        cursor: pointer;
+        padding: 2px 0;
     }
 
     .folder-name {
@@ -177,7 +195,7 @@
         text-transform: uppercase;
         font-weight: 700;
         letter-spacing: 0.5px;
-        margin-left: 4px;
+        margin-left: 2px;
         flex: 1;
     }
 

@@ -12,6 +12,7 @@ class AppState {
     folders = $state<Folder[]>([]);
     articles = $state<Article[]>([]);
     selectedFeedId = $state<number | null>(null);
+    selectedFolderId = $state<number | null>(null);
     selectedArticle = $state<Article | null>(null);
     isLoading = $state(false);
     theme = $state<Theme>('system');
@@ -66,6 +67,29 @@ class AppState {
             this.folders = result || [];
         } catch (e) {
             console.error('Failed to load folders:', e);
+        }
+    }
+
+    async refreshAllFeeds() {
+        this.isLoading = true;
+        try {
+            await invoke('refresh_all_feeds');
+            await this.refreshFolders();
+            // Reload current view
+            if (this.selectedFeedId) {
+                this.articles = [];
+                this.page = 0;
+                await this.selectFeed(this.selectedFeedId, true);
+            } else if (this.selectedFolderId) {
+                this.articles = [];
+                this.page = 0;
+                await this.selectFolder(this.selectedFolderId);
+            }
+        } catch (e) {
+            console.error('Failed to refresh all feeds:', e);
+            this.alert('Failed to refresh feeds.');
+        } finally {
+            this.isLoading = false;
         }
     }
 
@@ -131,10 +155,11 @@ class AppState {
         }
     }
 
-    async selectFeed(feedId: number) {
-        if (this.selectedFeedId === feedId) return;
+    async selectFolder(folderId: number) {
+        if (this.selectedFolderId === folderId && !this.selectedFeedId) return;
 
-        this.selectedFeedId = feedId;
+        this.selectedFolderId = folderId;
+        this.selectedFeedId = null;
         this.selectedArticle = null;
         this.articles = [];
         this.page = 0;
@@ -142,13 +167,44 @@ class AppState {
         this.isLoading = true;
 
         try {
-            let result = await this.fetchPage(feedId, 0);
+            const result = await this.fetchPage(0);
+            this.articles = result || [];
+            this.hasMore = (result?.length || 0) === this.pageSize;
+        } catch (e) {
+            console.error(`Failed to load articles for folder ${folderId}:`, e);
+            this.articles = [];
+        } finally {
+            this.isLoading = false;
+        }
+    }
 
-            if (feedId > 0 && (!result || result.length === 0)) {
-                await invoke('refresh_feed', { feedId });
-                result = await this.fetchPage(feedId, 0);
-                this.refreshFolders();
+    async selectFeed(feedId: number, forceRefresh = false) {
+        if (this.selectedFeedId === feedId && !forceRefresh) return;
+
+        this.selectedFeedId = feedId;
+        this.selectedFolderId = null;
+        this.selectedArticle = null;
+        this.articles = [];
+        this.page = 0;
+        this.hasMore = true;
+        this.isLoading = true;
+
+        try {
+            // Trigger refresh in background if selecting a specific feed
+            if (feedId > 0) {
+                invoke('refresh_feed', { feedId }).then(() => {
+                    this.refreshFolders(); // Update counts
+                    // If we are still viewing this feed, prepend new articles
+                    if (this.selectedFeedId === feedId) {
+                        this.fetchPage(0).then(res => {
+                            // Simple reload for now to ensure consistency
+                            this.articles = res || [];
+                        });
+                    }
+                });
             }
+
+            const result = await this.fetchPage(0);
 
             if (this.selectedFeedId === feedId) {
                 this.articles = result || [];
@@ -165,13 +221,13 @@ class AppState {
     }
 
     async loadMore() {
-        if (!this.selectedFeedId || !this.hasMore || this.isLoading) return;
+        if ((!this.selectedFeedId && !this.selectedFolderId) || !this.hasMore || this.isLoading) return;
 
         this.isLoading = true;
         const nextPage = this.page + 1;
 
         try {
-            const result = await this.fetchPage(this.selectedFeedId, nextPage);
+            const result = await this.fetchPage(nextPage);
 
             if (result && result.length > 0) {
                 this.articles = [...this.articles, ...result];
@@ -187,21 +243,28 @@ class AppState {
         }
     }
 
-    private async fetchPage(feedId: number, page: number): Promise<Article[]> {
+    private async fetchPage(page: number): Promise<Article[]> {
         const offset = page * this.pageSize;
 
-        if (feedId === FEED_ID_LATEST) {
+        if (this.selectedFeedId === FEED_ID_LATEST) {
             const cutoff = Math.floor(Date.now() / 1000) - (this.latestHours * 3600);
             return await invoke('get_latest_articles', { cutoffTimestamp: cutoff, limit: this.pageSize, offset });
-        } else if (feedId === FEED_ID_SAVED) {
+        } else if (this.selectedFeedId === FEED_ID_SAVED) {
             return await invoke('get_saved_articles', { limit: this.pageSize, offset });
-        } else {
+        } else if (this.selectedFeedId) {
             return await invoke('get_articles_for_feed', {
-                feedId,
+                feedId: this.selectedFeedId,
+                limit: this.pageSize,
+                offset
+            });
+        } else if (this.selectedFolderId) {
+            return await invoke('get_articles_for_folder', {
+                folderId: this.selectedFolderId,
                 limit: this.pageSize,
                 offset
             });
         }
+        return [];
     }
 
     selectArticle(article: Article) {
