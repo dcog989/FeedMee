@@ -52,7 +52,6 @@
     }
 
     function formatDate(ts: number) {
-        // '10 June, 2025 / 19:45'
         const d = new Date(ts * 1000);
         const datePart = d.toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
         const timePart = d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
@@ -236,9 +235,18 @@
         margin-bottom: 1.5rem;
     }
 
+    /* Force override for content that tries to set black text on dark bg */
+    .summary :global(*) {
+        color: inherit !important;
+        background-color: transparent !important;
+        max-width: 100% !important;
+    }
+
+    /* Restore link color */
     .summary :global(a) {
-        color: #4899ec;
+        color: #4899ec !important;
         text-decoration: none;
+        cursor: pointer !important;
     }
 
     .summary :global(a:hover) {
@@ -249,6 +257,8 @@
         max-width: 100%;
         height: auto;
         border-radius: 4px;
+        /* Don't force transparent background on images, some might need white */
+        background-color: initial !important;
     }
 
     .article-footer {

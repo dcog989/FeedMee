@@ -15,6 +15,7 @@ use url::Url;
 fn create_client() -> Result<reqwest::Client, String> {
     reqwest::Client::builder()
         .user_agent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
+        .timeout(std::time::Duration::from_secs(10))
         .build()
         .map_err(|e| e.to_string())
 }
@@ -219,6 +220,15 @@ pub async fn refresh_feed(feed_id: i64, state: State<'_, AppState>) -> Result<us
                     let conn = state.db.lock().unwrap();
                     let mut count = 0;
                     for entry in feed.entries {
+                        // Better link extraction: Prefer alternate (HTML), then first available
+                        let article_url = entry
+                            .links
+                            .iter()
+                            .find(|l| l.rel.as_deref() == Some("alternate"))
+                            .or(entry.links.first())
+                            .map(|l| l.href.clone())
+                            .unwrap_or_default();
+
                         let article = Article {
                             id: 0,
                             feed_id,
@@ -236,11 +246,7 @@ pub async fn refresh_feed(feed_id: i64, state: State<'_, AppState>) -> Result<us
                                 .map(|s| s.content)
                                 .or(entry.content.map(|c| c.body.unwrap_or_default()))
                                 .unwrap_or_default(),
-                            url: entry
-                                .links
-                                .first()
-                                .map(|l| l.href.clone())
-                                .unwrap_or_default(),
+                            url: article_url,
                             timestamp: entry
                                 .published
                                 .or(entry.updated)
@@ -313,21 +319,18 @@ pub async fn add_feed(
 
     let content_bytes = response.bytes().await.map_err(|e| e.to_string())?;
 
-    // Attempt parse if not explicitly HTML
     let initial_parse = if !is_html {
         feed_rs::parser::parse(Cursor::new(content_bytes.clone())).ok()
     } else {
         None
     };
 
-    // If parse failed OR returned 0 entries (HTML often parses as valid-but-empty XML), force discovery
-    let force_discovery = initial_parse
+    let should_try_discovery = initial_parse
         .as_ref()
         .map(|f| f.entries.is_empty())
         .unwrap_or(true);
 
-    let (feed, final_url) = if force_discovery {
-        // Feed Discovery Scope
+    let (feed, final_url) = if should_try_discovery {
         let discovered_url_str = {
             let html_content = String::from_utf8_lossy(&content_bytes);
             let document = Html::parse_document(&html_content);
@@ -375,9 +378,6 @@ pub async fn add_feed(
                 }
             }
         } else {
-            // Only fallback to initial parse if it actually succeeded (even if empty, though unlikely useful)
-            // But if we are here, we decided force_discovery was needed.
-            // If we found NO link, but initial_parse was Some (empty), we reject it to avoid "Untitled Feed".
             return Err("No valid feed found (HTML content with no feed links)".to_string());
         }
     } else {

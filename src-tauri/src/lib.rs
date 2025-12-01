@@ -29,7 +29,7 @@ pub fn run() {
                 std::fs::create_dir_all(&app_data_dir).expect("failed to create app data dir");
             }
 
-            // Load Settings first to get log level
+            // Load Settings
             let app_settings = settings::load_settings(&app_data_dir);
 
             let log_level = match app_settings.log_level.to_lowercase().as_str() {
@@ -42,19 +42,23 @@ pub fn run() {
 
             let log_path = app_data_dir.join("feedmee.log");
 
-            // Initialize Logger
+            // Configure Logger to ignore noisy external crates even in Debug mode
+            let log_config = ConfigBuilder::new()
+                .add_filter_ignore_str("html5ever")
+                .add_filter_ignore_str("selectors")
+                .add_filter_ignore_str("scraper")
+                .add_filter_ignore_str("tendril")
+                .set_time_format_rfc3339()
+                .build();
+
             let _ = CombinedLogger::init(vec![
                 TermLogger::new(
                     log_level,
-                    Config::default(),
+                    log_config.clone(),
                     TerminalMode::Mixed,
                     ColorChoice::Auto,
                 ),
-                WriteLogger::new(
-                    log_level,
-                    Config::default(),
-                    File::create(log_path).unwrap(),
-                ),
+                WriteLogger::new(log_level, log_config, File::create(log_path).unwrap()),
             ]);
 
             info!("Starting FeedMee application");
@@ -89,7 +93,7 @@ pub fn run() {
             commands::get_articles_for_folder,
             commands::get_latest_articles,
             commands::get_saved_articles,
-            commands::get_app_settings, // Added
+            commands::get_app_settings,
             commands::create_folder,
             commands::mark_article_saved,
             commands::mark_article_read,
