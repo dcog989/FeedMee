@@ -11,7 +11,7 @@ export const FEED_ID_SAVED = -2;
 // Configuration Constants
 const DEBOUNCE_FEED_REFRESH_MS = 5 * 60 * 1000; // 5 minutes
 const DEBOUNCE_REFRESH_ALL_MS = 2 * 60 * 1000;  // 2 minutes
-const REFRESH_CONCURRENCY = 3;
+const REFRESH_CONCURRENCY = 2; // Lowered to prevent UI freeze
 
 class AppState {
     folders = $state<Folder[]>([]);
@@ -84,6 +84,13 @@ class AppState {
         return this.updatingFeedIds.has(feedId);
     }
 
+    isFolderUpdating(folderId: number) {
+        const folder = this.folders.find(f => f.id === folderId);
+        if (!folder) return false;
+        // Check if any feed in this folder is currently updating
+        return folder.feeds.some(feed => this.updatingFeedIds.has(feed.id));
+    }
+
     async refreshAllFeeds() {
         if (Date.now() - this.lastRefreshAll < DEBOUNCE_REFRESH_ALL_MS) {
             console.log('Refresh All debounced');
@@ -95,17 +102,15 @@ class AppState {
 
         const allFeeds: Feed[] = this.folders.flatMap(f => f.feeds);
 
-        // Optimistic UI: Set all to updating immediately so spinners show
+        // Optimistic UI: Set all to updating immediately
         const newSet = new Set(this.updatingFeedIds);
         allFeeds.forEach(f => newSet.add(f.id));
         this.updatingFeedIds = newSet;
 
-        // Queue processing with limited concurrency
         let index = 0;
         const worker = async () => {
             while (index < allFeeds.length) {
                 const feed = allFeeds[index++];
-                // We access the raw refresh logic directly to avoid double set manipulation
                 await this.performSingleFeedRefresh(feed.id);
             }
         };
@@ -114,11 +119,8 @@ class AppState {
 
         try {
             await Promise.all(workers);
-
-            // Final sync to ensure consistency
             await this.refreshFolders();
 
-            // Reload current view if necessary
             if (this.selectedFeedId) {
                 await this.reloadCurrentArticleList();
             } else if (this.selectedFolderId) {
@@ -127,7 +129,6 @@ class AppState {
         } catch (e) {
             console.error('Failed to refresh all feeds:', e);
         } finally {
-            // Clear all updating states
             this.updatingFeedIds = new Set();
             this.isLoading = false;
         }
@@ -140,7 +141,6 @@ class AppState {
             return;
         }
 
-        // Add to updating set for UI feedback
         const newSet = new Set(this.updatingFeedIds);
         newSet.add(feedId);
         this.updatingFeedIds = newSet;
@@ -158,12 +158,10 @@ class AppState {
         }
     }
 
-    // Internal helper that performs the actual network/DB call and folder sync
     private async performSingleFeedRefresh(feedId: number) {
         try {
             await invoke('refresh_feed', { feedId });
             this.lastRefreshed.set(feedId, Date.now());
-            // Update unread counts immediately to show progress in UI
             await this.refreshFolders();
         } catch (e) {
             console.error(`Failed to refresh feed ${feedId}:`, e);
@@ -267,7 +265,6 @@ class AppState {
             await this.reloadCurrentArticleList();
 
             if (feedId > 0 && !forceRefresh) {
-                // Background check for refresh
                 const last = this.lastRefreshed.get(feedId) || 0;
                 if (Date.now() - last >= DEBOUNCE_FEED_REFRESH_MS) {
                     this.requestRefreshFeed(feedId);
@@ -329,15 +326,14 @@ class AppState {
         this.selectedArticle = article;
 
         if (!article.is_read) {
-            article.is_read = true; // Optimistic update
+            article.is_read = true; // Optimistic
 
-            // Invoke backend
             invoke('mark_article_read', { id: article.id }).catch(e => {
                 console.error("Failed to mark as read:", e);
-                article.is_read = false; // Revert on failure
+                article.is_read = false;
             });
 
-            // Update local unread count
+            // Update local counts
             const feedId = article.feed_id;
             for (const folder of this.folders) {
                 const feed = folder.feeds.find(f => f.id === feedId);

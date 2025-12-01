@@ -100,7 +100,7 @@
             </div>
 
             <footer class="article-footer">
-                <a href={appState.selectedArticle.url} target="_blank" rel="noopener noreferrer" class="original-link">
+                <a href={appState.selectedArticle.url} target="_blank" rel="noopener noreferrer" class="original-link" title={appState.selectedArticle.url}>
                     Read original article
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>

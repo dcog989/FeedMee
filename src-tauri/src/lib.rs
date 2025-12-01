@@ -12,28 +12,40 @@ pub struct AppState {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    // Initialize the logger
-    env_logger::Builder::from_default_env()
-        .filter_level(log::LevelFilter::Info) // Default to Info level
-        .init();
-
-    info!("Starting FeedMee application");
+    use simplelog::*;
+    use std::fs::File;
 
     tauri::Builder::default()
         .setup(|app| {
-            info!("Setting up application");
-
+            // Setup Logging to File in AppData
             let app_data_dir = app
                 .path()
                 .app_data_dir()
                 .expect("failed to find app data dir");
 
-            info!("App data directory: {:?}", app_data_dir);
-
             if !app_data_dir.exists() {
-                info!("Creating app data directory");
                 std::fs::create_dir_all(&app_data_dir).expect("failed to create app data dir");
             }
+
+            let log_path = app_data_dir.join("feedmee.log");
+
+            // Initialize SimpleLogger (File + Term)
+            let _ = CombinedLogger::init(vec![
+                TermLogger::new(
+                    LevelFilter::Info,
+                    Config::default(),
+                    TerminalMode::Mixed,
+                    ColorChoice::Auto,
+                ),
+                WriteLogger::new(
+                    LevelFilter::Info,
+                    Config::default(),
+                    File::create(log_path).unwrap(),
+                ),
+            ]);
+
+            info!("Starting FeedMee application");
+            info!("App data directory: {:?}", app_data_dir);
 
             let db_path = app_data_dir.join("feedmee.sqlite");
             info!("Opening database at: {:?}", db_path);
@@ -70,7 +82,7 @@ pub fn run() {
             commands::get_saved_articles,
             commands::create_folder,
             commands::mark_article_saved,
-            commands::mark_article_read, // Added this
+            commands::mark_article_read,
             commands::import_opml,
             commands::export_opml,
             commands::write_file,
@@ -85,9 +97,7 @@ pub fn run() {
         ])
         .run(tauri::generate_context!())
         .unwrap_or_else(|e| {
-            error!("Error while running Tauri application: {}", e);
+            // We can't log here easily if setup failed, but panic will print to stderr
             panic!("error while running tauri application: {}", e);
         });
-
-    info!("FeedMee application stopped");
 }

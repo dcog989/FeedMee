@@ -72,12 +72,18 @@
             }
         }
     }
+
+    // Double click to toggle
+    function onHeaderDblClick(e: MouseEvent) {
+        e.stopPropagation();
+        onToggle(e);
+    }
 </script>
 
 <div class="folder" role="treeitem" aria-expanded={isExpanded} aria-selected="false" tabindex="-1">
     <!-- svelte-ignore a11y_click_events_have_key_events -->
     <!-- svelte-ignore a11y_no_static_element_interactions -->
-    <div class="folder-header" class:selected={appState.selectedFolderId === folder.id} oncontextmenu={(e) => onContextMenu(e, "folder", folder.id, folder.name)} ondragover={onHeaderDragOver} ondrop={onHeaderDrop}>
+    <div class="folder-header" class:selected={appState.selectedFolderId === folder.id} oncontextmenu={(e) => onContextMenu(e, "folder", folder.id, folder.name)} ondragover={onHeaderDragOver} ondrop={onHeaderDrop} ondblclick={onHeaderDblClick}>
         <span class="toggle-icon" onclick={onToggle}>
             <svg width="10" height="10" viewBox="0 0 10 10" style="transform: rotate({isExpanded ? 90 : 0}deg); transition: transform 0.2s;">
                 <path d="M2,2 L8,5 L2,8" fill="currentColor" />
@@ -86,7 +92,10 @@
 
         <span class="folder-name-area" onclick={() => appState.selectFolder(folder.id)}>
             <span class="folder-name">{folder.name}</span>
-            {#if getFolderUnreadCount(folder.feeds) > 0}
+
+            {#if appState.isFolderUpdating(folder.id)}
+                <div class="mini-spinner"></div>
+            {:else if getFolderUnreadCount(folder.feeds) > 0}
                 <span class="badge folder-badge">{getFolderUnreadCount(folder.feeds)}</span>
             {/if}
         </span>
@@ -205,6 +214,7 @@
         align-items: center;
         cursor: pointer;
         padding: 2px 0;
+        overflow: hidden;
     }
 
     .folder-name {
@@ -214,6 +224,9 @@
         letter-spacing: 0.5px;
         margin-left: 2px;
         flex: 1;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
     }
 
     .feed-list {
