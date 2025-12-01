@@ -103,12 +103,16 @@ pub fn mark_article_read(id: i64, read: bool, state: State<'_, AppState>) -> Res
 }
 
 #[tauri::command]
-pub fn mark_all_read(type_: String, id: i64, state: State<'_, AppState>) -> Result<(), String> {
-    info!("Mark All Read: type={}, id={}", type_, id);
+pub fn mark_all_read(
+    target_type: String,
+    id: i64,
+    state: State<'_, AppState>,
+) -> Result<(), String> {
+    info!("Mark All Read: type={}, id={}", target_type, id);
     let conn = state.db.lock().unwrap();
-    if type_ == "feed" {
+    if target_type == "feed" {
         db::mark_feed_read(&conn, id).map_err(|e| e.to_string())
-    } else if type_ == "folder" {
+    } else if target_type == "folder" {
         db::mark_folder_read(&conn, id).map_err(|e| e.to_string())
     } else {
         Err("Invalid type".to_string())
@@ -300,7 +304,7 @@ pub async fn add_feed(
 
     let original_url = response.url().clone();
 
-    // Heuristic: If Content-Type implies HTML, forcing discovery is safer
+    // Check if Content-Type suggests HTML
     let content_type_html = response
         .headers()
         .get(reqwest::header::CONTENT_TYPE)
@@ -310,15 +314,14 @@ pub async fn add_feed(
 
     let content_bytes = response.bytes().await.map_err(|e| e.to_string())?;
 
-    // Try parsing if it looks like it MIGHT be a feed (or if we aren't sure)
-    // If it's definitely HTML, we skip this to avoid false positives (empty feeds)
+    // Try initial parse unless it is definitely HTML
     let initial_parse = if !content_type_html {
         feed_rs::parser::parse(Cursor::new(content_bytes.clone())).ok()
     } else {
         None
     };
 
-    // If parse failed OR it returned 0 entries (common issue with HTML parsed as XML), try discovery
+    // If parse failed OR returned 0 entries (common for HTML parsed as XML), try discovery
     let should_try_discovery = initial_parse
         .as_ref()
         .map(|f| f.entries.is_empty())
@@ -347,7 +350,6 @@ pub async fn add_feed(
         };
 
         if let Some(new_url) = discovered_url_str {
-            // Fetch the discovered feed
             let resp = client
                 .get(&new_url)
                 .send()
@@ -357,7 +359,7 @@ pub async fn add_feed(
             match feed_rs::parser::parse(Cursor::new(bytes)) {
                 Ok(f) => (f, new_url),
                 Err(_) => {
-                    // If discovery fails to parse, revert to initial parse if valid, else error
+                    // If discovery fails, revert to initial if it existed (e.g. empty feed)
                     if let Some(f) = initial_parse {
                         (f, url)
                     } else {
@@ -366,7 +368,6 @@ pub async fn add_feed(
                 }
             }
         } else {
-            // No discovery found. Return initial parse if available (even if empty) or error
             if let Some(f) = initial_parse {
                 (f, url)
             } else {
@@ -374,7 +375,6 @@ pub async fn add_feed(
             }
         }
     } else {
-        // initial_parse exists and has entries
         (initial_parse.unwrap(), url)
     };
 
@@ -383,7 +383,6 @@ pub async fn add_feed(
         .map(|t| t.content)
         .unwrap_or_else(|| "Untitled Feed".to_string());
 
-    // DB Scope
     let id = {
         let conn = state.db.lock().unwrap();
         let target = folder_id.unwrap_or(1);
@@ -394,7 +393,6 @@ pub async fn add_feed(
         .map_err(|e| e.to_string())?
     };
 
-    // Initial fetch to populate articles immediately
     let _ = refresh_feed(id, state).await;
 
     Ok(id)

@@ -201,18 +201,17 @@ class AppState {
     async markAllRead() {
         try {
             if (this.selectedFeedId && this.selectedFeedId > 0) {
-                await invoke('mark_all_read', { type_: 'feed', id: this.selectedFeedId });
+                await invoke('mark_all_read', { targetType: 'feed', id: this.selectedFeedId });
             } else if (this.selectedFolderId) {
-                await invoke('mark_all_read', { type_: 'folder', id: this.selectedFolderId });
+                await invoke('mark_all_read', { targetType: 'folder', id: this.selectedFolderId });
             } else {
                 return;
             }
 
-            // Refresh counts (Sidebar)
+            // 1. Refresh unread counts in sidebar
             await this.refreshFolders();
 
-            // Optimistic Update (Main Pane)
-            // Clone array to trigger reactivity
+            // 2. Optimistic Update: Set all loaded articles to read
             this.articles = this.articles.map(a => ({ ...a, is_read: true }));
 
         } catch (e) {
@@ -350,7 +349,6 @@ class AppState {
         this.selectedArticle = article;
         if (!article.is_read) {
             article.is_read = true;
-            // Mark as read in DB
             invoke('mark_article_read', { id: article.id, read: true }).catch(e => {
                 article.is_read = false;
             });
@@ -369,17 +367,19 @@ class AppState {
         const newState = !article.is_saved;
         article.is_saved = newState;
 
-        // If saving, also mark as unread (not read)
+        // If marking as saved (Read Later), we often want it to appear "unread" so we remember to read it
+        // OR we just assume "Read Later" means "Keep it".
+        // User requested: "setting 'Read Later' flag ... should clear the read status / strikethrough style"
+        // This implies setting read=false.
         if (newState) {
-            article.is_read = false; // Clear read status locally
-            // DB Update for unread
+            article.is_read = false;
             invoke('mark_article_read', { id: article.id, read: false }).catch(() => { });
         }
 
         try {
             await invoke('mark_article_saved', { id: article.id, isSaved: newState });
         } catch (e) {
-            article.is_saved = !newState; // Revert on fail
+            article.is_saved = !newState;
         }
     }
 
