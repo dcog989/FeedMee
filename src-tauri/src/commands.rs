@@ -304,8 +304,7 @@ pub async fn add_feed(
 
     let original_url = response.url().clone();
 
-    // Check if Content-Type suggests HTML
-    let content_type_html = response
+    let is_html = response
         .headers()
         .get(reqwest::header::CONTENT_TYPE)
         .and_then(|v| v.to_str().ok())
@@ -314,39 +313,49 @@ pub async fn add_feed(
 
     let content_bytes = response.bytes().await.map_err(|e| e.to_string())?;
 
-    // Try initial parse unless it is definitely HTML
-    let initial_parse = if !content_type_html {
+    // Attempt parse if not explicitly HTML
+    let initial_parse = if !is_html {
         feed_rs::parser::parse(Cursor::new(content_bytes.clone())).ok()
     } else {
         None
     };
 
-    // If parse failed OR returned 0 entries (common for HTML parsed as XML), try discovery
-    let should_try_discovery = initial_parse
+    // If parse failed OR returned 0 entries (HTML often parses as valid-but-empty XML), force discovery
+    let force_discovery = initial_parse
         .as_ref()
         .map(|f| f.entries.is_empty())
         .unwrap_or(true);
 
-    let (feed, final_url) = if should_try_discovery {
-        // Discovery Logic
+    let (feed, final_url) = if force_discovery {
+        // Feed Discovery Scope
         let discovered_url_str = {
             let html_content = String::from_utf8_lossy(&content_bytes);
             let document = Html::parse_document(&html_content);
-            let selector = Selector::parse(
-                "link[type='application/rss+xml'], link[type='application/atom+xml']",
-            )
-            .map_err(|_| "Internal selector error".to_string())?;
+            let selectors = vec![
+                "link[type='application/rss+xml']",
+                "link[type='application/atom+xml']",
+                "link[rel='alternate'][type='application/rss+xml']",
+                "link[rel='alternate'][type='application/atom+xml']",
+            ];
 
-            document
-                .select(&selector)
-                .next()
-                .and_then(|element| element.value().attr("href"))
-                .and_then(|href| {
-                    Url::parse(original_url.as_str())
-                        .and_then(|base| base.join(href))
-                        .ok()
-                })
-                .map(|u| u.to_string())
+            let mut found = None;
+            for sel_str in selectors {
+                if let Ok(selector) = Selector::parse(sel_str) {
+                    if let Some(element) = document.select(&selector).next() {
+                        if let Some(href) = element.value().attr("href") {
+                            found = Some(href.to_string());
+                            break;
+                        }
+                    }
+                }
+            }
+
+            found.and_then(|href| {
+                Url::parse(original_url.as_str())
+                    .and_then(|base| base.join(&href))
+                    .ok()
+                    .map(|u| u.to_string())
+            })
         };
 
         if let Some(new_url) = discovered_url_str {
@@ -358,21 +367,18 @@ pub async fn add_feed(
             let bytes = resp.bytes().await.map_err(|e| e.to_string())?;
             match feed_rs::parser::parse(Cursor::new(bytes)) {
                 Ok(f) => (f, new_url),
-                Err(_) => {
-                    // If discovery fails, revert to initial if it existed (e.g. empty feed)
-                    if let Some(f) = initial_parse {
-                        (f, url)
-                    } else {
-                        return Err("Discovered feed failed to parse".to_string());
-                    }
+                Err(e) => {
+                    return Err(format!(
+                        "Discovered feed at {} failed to parse: {}",
+                        new_url, e
+                    ));
                 }
             }
         } else {
-            if let Some(f) = initial_parse {
-                (f, url)
-            } else {
-                return Err("No feed found".to_string());
-            }
+            // Only fallback to initial parse if it actually succeeded (even if empty, though unlikely useful)
+            // But if we are here, we decided force_discovery was needed.
+            // If we found NO link, but initial_parse was Some (empty), we reject it to avoid "Untitled Feed".
+            return Err("No valid feed found (HTML content with no feed links)".to_string());
         }
     } else {
         (initial_parse.unwrap(), url)
