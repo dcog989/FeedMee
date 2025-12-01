@@ -1,5 +1,6 @@
 <script lang="ts">
     import TitleBar from "$lib/components/TitleBar.svelte";
+    import Tooltip from "$lib/components/Tooltip.svelte";
     import { appState } from "$lib/store.svelte";
     import "../app.css";
 
@@ -22,6 +23,7 @@
     <div class="content-wrapper">
         {@render children()}
     </div>
+    <Tooltip />
 
     {#if appState.modalState.isOpen}
         <!-- svelte-ignore a11y_click_events_have_key_events -->

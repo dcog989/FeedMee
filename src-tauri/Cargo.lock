@@ -4,7 +4,7 @@ version = 4
 
 [[package]]
 name = "FeedMee"
-version = "0.1.28"
+version = "0.1.30"
 dependencies = [
  "chrono",
  "feed-rs",
@@ -24,6 +24,7 @@ dependencies = [
  "tauri-plugin-fs",
  "tauri-plugin-opener",
  "tauri-plugin-window-state",
+ "toml 0.9.8",
  "url",
 ]
 

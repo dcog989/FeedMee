@@ -24,3 +24,10 @@ export interface Article {
 	is_read: boolean;
 	is_saved: boolean;
 }
+
+export interface AppSettings {
+	feed_refresh_debounce_minutes: number;
+	refresh_all_debounce_minutes: number;
+	auto_update_interval_minutes: number;
+	log_level: string;
+}

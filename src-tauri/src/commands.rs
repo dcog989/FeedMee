@@ -1,6 +1,7 @@
 use crate::{
     AppState, db,
     models::{Article, Folder},
+    settings::AppSettings,
 };
 #[allow(unused_imports)]
 use log::{debug, error, info, warn};
@@ -17,6 +18,12 @@ fn create_client() -> Result<reqwest::Client, String> {
         .user_agent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
         .build()
         .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub fn get_app_settings(state: State<'_, AppState>) -> Result<AppSettings, String> {
+    let settings = state.settings.lock().unwrap();
+    Ok(settings.clone())
 }
 
 #[tauri::command]
@@ -98,12 +105,17 @@ pub fn mark_article_read(id: i64, state: State<'_, AppState>) -> Result<(), Stri
 
 #[tauri::command]
 pub fn mark_all_read(type_: String, id: i64, state: State<'_, AppState>) -> Result<(), String> {
+    info!(
+        "Command mark_all_read called for type: {}, id: {}",
+        type_, id
+    );
     let conn = state.db.lock().unwrap();
     if type_ == "feed" {
         db::mark_feed_read(&conn, id).map_err(|e| e.to_string())
     } else if type_ == "folder" {
         db::mark_folder_read(&conn, id).map_err(|e| e.to_string())
     } else {
+        error!("Invalid type for mark_all_read: {}", type_);
         Err("Invalid type".to_string())
     }
 }
@@ -185,8 +197,6 @@ pub async fn get_article_content(url: String) -> Result<String, String> {
         .await
         .map_err(|e| e.to_string())?;
 
-    // Readability::new and parser.parse() are synchronous and work on local variables.
-    // They are dropped before the function returns the Result (which is wrapped in a Future).
     let mut parser = Readability::new(&html, None).map_err(|e| format!("{:?}", e))?;
     let article = parser.parse().ok_or("Failed to parse content")?;
     article.content.ok_or("No content extracted".to_string())
@@ -332,7 +342,7 @@ pub async fn add_feed(
             } else {
                 None
             }
-        }; // document and selector dropped here
+        };
 
         if let Some(new_url_str) = discovered_url {
             let resp = client
@@ -360,7 +370,6 @@ pub async fn add_feed(
         .map(|t| t.content)
         .unwrap_or_else(|| "Untitled Feed".to_string());
 
-    // DB Scope: Ensure MutexGuard is dropped inside this block
     let id = {
         let conn = state.db.lock().unwrap();
         let target = folder_id.unwrap_or(1);
@@ -369,9 +378,8 @@ pub async fn add_feed(
             row.get(0)
         })
         .map_err(|e| e.to_string())?
-    }; // MutexGuard dropped here
+    };
 
-    // Initial fetch
     let _ = refresh_feed(id, state).await;
 
     Ok(id)

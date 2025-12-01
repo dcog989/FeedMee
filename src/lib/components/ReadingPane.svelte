@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { tooltip } from "$lib/actions/tooltip.svelte";
     import { appState } from "$lib/store.svelte";
     import DOMPurify from "dompurify";
 
@@ -15,12 +16,9 @@
     let isLoadingFull = $state(false);
     let loadError = $state(false);
 
-    // Derived content: favor fullContent if available, otherwise summary
     let displayHtml = $derived(fullContent ? DOMPurify.sanitize(fullContent) : appState.selectedArticle?.summary ? DOMPurify.sanitize(appState.selectedArticle.summary) : "");
-
     let isSaved = $derived(appState.selectedArticle?.is_saved ?? false);
 
-    // Reset full content on article change
     $effect(() => {
         if (appState.selectedArticle) {
             fullContent = null;
@@ -28,17 +26,14 @@
         }
     });
 
-    // Auto-remove 'Read Later' after 5 seconds
     $effect(() => {
         if (appState.selectedArticle && appState.selectedArticle.is_saved) {
             const currentId = appState.selectedArticle.id;
             const timer = setTimeout(() => {
-                // Ensure we are still looking at the same article
                 if (appState.selectedArticle?.id === currentId && appState.selectedArticle.is_saved) {
                     appState.toggleSaved(appState.selectedArticle);
                 }
             }, 5000);
-
             return () => clearTimeout(timer);
         }
     });
@@ -47,16 +42,21 @@
         if (!appState.selectedArticle) return;
         isLoadingFull = true;
         loadError = false;
-
         const content = await appState.fetchFullContent(appState.selectedArticle);
-
         if (content) {
             fullContent = content;
         } else {
-            // Failed to load, or empty content returned
             loadError = true;
         }
         isLoadingFull = false;
+    }
+
+    function formatDate(ts: number) {
+        // '10 June, 2025 / 19:45'
+        const d = new Date(ts * 1000);
+        const datePart = d.toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
+        const timePart = d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
+        return `${datePart} / ${timePart}`;
     }
 </script>
 
@@ -69,24 +69,24 @@
                     <div class="meta-left">
                         <span class="author">By {appState.selectedArticle.author}</span>
                         <span class="separator">•</span>
-                        <span class="date">{new Date(appState.selectedArticle.timestamp * 1000).toLocaleString()}</span>
+                        <span class="date">{formatDate(appState.selectedArticle.timestamp)}</span>
                     </div>
 
                     <div class="meta-actions">
-                        <button class="action-btn" class:active={isSaved} onclick={() => appState.selectedArticle && appState.toggleSaved(appState.selectedArticle)} title="Read Later">
+                        <button class="action-btn" class:active={isSaved} onclick={() => appState.selectedArticle && appState.toggleSaved(appState.selectedArticle)} use:tooltip={"Read Later"} aria-label="Read Later">
                             <svg width="18" height="18" viewBox="0 0 24 24" fill={isSaved ? "currentColor" : "none"} stroke="currentColor" stroke-width="2">
                                 <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path>
                             </svg>
                         </button>
 
-                        <button class="action-btn" title="Tag">
+                        <button class="action-btn" use:tooltip={"Tag"} aria-label="Tag">
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path>
                                 <line x1="7" y1="7" x2="7.01" y2="7"></line>
                             </svg>
                         </button>
 
-                        <button class="action-btn" onclick={loadFullContent} title="Load Full Content" disabled={isLoadingFull || !!fullContent}>
+                        <button class="action-btn" onclick={loadFullContent} use:tooltip={"Load Full Content"} disabled={isLoadingFull || !!fullContent} aria-label="Load Full Content">
                             {#if isLoadingFull}
                                 <span class="spinner"></span>
                             {:else}
@@ -115,7 +115,7 @@
             </div>
 
             <footer class="article-footer">
-                <a href={appState.selectedArticle.url} target="_blank" rel="noopener noreferrer" class="original-link" title={appState.selectedArticle.url}>
+                <a href={appState.selectedArticle.url} target="_blank" rel="noopener noreferrer" class="original-link" use:tooltip={appState.selectedArticle.url}>
                     Read original article
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>

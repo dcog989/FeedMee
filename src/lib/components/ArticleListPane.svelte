@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { tooltip } from "$lib/actions/tooltip.svelte";
     import { appState } from "$lib/store.svelte";
     import type { Article } from "$lib/types";
 
@@ -6,7 +7,6 @@
 
     function onScroll() {
         if (!listContainer) return;
-
         const { scrollTop, scrollHeight, clientHeight } = listContainer;
         if (scrollHeight - scrollTop <= clientHeight + 100) {
             appState.loadMore();
@@ -23,17 +23,17 @@
 
 <div class="pane-wrapper">
     <div class="list-toolbar">
-        <button class="tool-btn" onclick={() => appState.setSortOrder(appState.sortOrder === "desc" ? "asc" : "desc")} title={appState.sortOrder === "desc" ? "Sort: Newest First" : "Sort: Oldest First"}>
+        <button class="tool-btn" onclick={() => appState.setSortOrder(appState.sortOrder === "desc" ? "asc" : "desc")} use:tooltip={appState.sortOrder === "desc" ? "Sort: Newest First" : "Sort: Oldest First"} aria-label={appState.sortOrder === "desc" ? "Sort Newest First" : "Sort Oldest First"}>
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 {#if appState.sortOrder === "desc"}
-                    <path d="M10 18h4 M6 12h12 M3 6h18" /> <!-- Funnel/Desc style -->
+                    <path d="M10 18h4 M6 12h12 M3 6h18" />
                 {:else}
-                    <path d="M3 18h18 M6 12h12 M10 6h4" /> <!-- Asc style -->
+                    <path d="M3 18h18 M6 12h12 M10 6h4" />
                 {/if}
             </svg>
         </button>
 
-        <button class="tool-btn" onclick={() => appState.markAllRead()} title="Mark All Read">
+        <button class="tool-btn" onclick={() => appState.markAllRead()} use:tooltip={"Mark All Read"} aria-label="Mark All Read">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M18 6L7 17l-5-5"></path>
                 <path d="M22 10l-7.5 7.5L13 16"></path>
@@ -64,7 +64,7 @@
                                             e.stopPropagation();
                                             appState.toggleSaved(article);
                                         }}
-                                        title="Read Later"
+                                        use:tooltip={"Read Later"}
                                         aria-label="Read Later"
                                     >
                                         <svg width="14" height="14" viewBox="0 0 24 24" fill={article.is_saved ? "currentColor" : "none"} stroke="currentColor" stroke-width="2">
@@ -111,11 +111,12 @@
         display: flex;
         align-items: center;
         justify-content: space-between;
-        padding: 6px 12px;
+        padding: 4px 8px; /* Reduced */
         border-bottom: 1px solid var(--border-color);
         background: var(--bg-pane);
         flex-shrink: 0;
-        height: 32px; /* Fixed height for consistency */
+        height: 32px;
+        box-sizing: border-box;
     }
 
     .tool-btn {
@@ -126,7 +127,7 @@
         display: flex;
         align-items: center;
         justify-content: center;
-        padding: 4px;
+        padding: 0;
         border-radius: 4px;
         width: 32px;
         height: 32px;
@@ -203,10 +204,15 @@
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
+        /* Strikethrough for read articles (which are NOT .unread) */
+        text-decoration: line-through;
+        opacity: 0.8;
     }
 
     .unread .title {
         font-weight: 600;
+        text-decoration: none; /* Reset for unread */
+        opacity: 1;
     }
 
     .meta-line {

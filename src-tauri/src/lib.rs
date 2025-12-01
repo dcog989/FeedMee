@@ -1,6 +1,7 @@
 pub mod commands;
 pub mod db;
 pub mod models;
+pub mod settings;
 
 #[allow(unused_imports)]
 use log::{error, info, warn};
@@ -9,6 +10,7 @@ use tauri::Manager;
 
 pub struct AppState {
     db: Mutex<rusqlite::Connection>,
+    settings: Mutex<settings::AppSettings>,
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -18,7 +20,6 @@ pub fn run() {
 
     tauri::Builder::default()
         .setup(|app| {
-            // Setup Logging to File in AppData
             let app_data_dir = app
                 .path()
                 .app_data_dir()
@@ -28,47 +29,54 @@ pub fn run() {
                 std::fs::create_dir_all(&app_data_dir).expect("failed to create app data dir");
             }
 
+            // Load Settings first to get log level
+            let app_settings = settings::load_settings(&app_data_dir);
+
+            let log_level = match app_settings.log_level.to_lowercase().as_str() {
+                "error" => LevelFilter::Error,
+                "warn" => LevelFilter::Warn,
+                "debug" => LevelFilter::Debug,
+                "trace" => LevelFilter::Trace,
+                _ => LevelFilter::Info,
+            };
+
             let log_path = app_data_dir.join("feedmee.log");
 
-            // Initialize SimpleLogger (File + Term)
+            // Initialize Logger
             let _ = CombinedLogger::init(vec![
                 TermLogger::new(
-                    LevelFilter::Info,
+                    log_level,
                     Config::default(),
                     TerminalMode::Mixed,
                     ColorChoice::Auto,
                 ),
                 WriteLogger::new(
-                    LevelFilter::Info,
+                    log_level,
                     Config::default(),
                     File::create(log_path).unwrap(),
                 ),
             ]);
 
             info!("Starting FeedMee application");
-            info!("App data directory: {:?}", app_data_dir);
+            info!("Settings loaded: {:?}", app_settings);
 
             let db_path = app_data_dir.join("feedmee.sqlite");
-            info!("Opening database at: {:?}", db_path);
 
             let mut conn = rusqlite::Connection::open(&db_path).map_err(|e| {
                 error!("Failed to open database: {}", e);
                 format!("Database open failed: {}", e)
             })?;
 
-            info!("Initializing database schema");
             if let Err(e) = db::init_db(&mut conn) {
                 error!("Schema initialization failed: {}", e);
                 panic!("Schema init failed: {}", e);
             }
 
-            info!("Database initialized successfully");
-
             app.manage(AppState {
                 db: Mutex::new(conn),
+                settings: Mutex::new(app_settings),
             });
 
-            info!("Application setup complete");
             Ok(())
         })
         .plugin(tauri_plugin_opener::init())
@@ -81,10 +89,11 @@ pub fn run() {
             commands::get_articles_for_folder,
             commands::get_latest_articles,
             commands::get_saved_articles,
+            commands::get_app_settings, // Added
             commands::create_folder,
             commands::mark_article_saved,
             commands::mark_article_read,
-            commands::mark_all_read, // Added
+            commands::mark_all_read,
             commands::import_opml,
             commands::export_opml,
             commands::write_file,
@@ -99,7 +108,6 @@ pub fn run() {
         ])
         .run(tauri::generate_context!())
         .unwrap_or_else(|e| {
-            // We can't log here easily if setup failed, but panic will print to stderr
             panic!("error while running tauri application: {}", e);
         });
 }

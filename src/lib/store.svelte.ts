@@ -1,17 +1,13 @@
 import { invoke } from '@tauri-apps/api/core';
 import { open, save } from '@tauri-apps/plugin-dialog';
-import type { Article, Feed, Folder } from './types';
+import type { AppSettings, Article, Feed, Folder } from './types';
 
 export type Theme = 'light' | 'dark' | 'sepia' | 'system';
 export type SortOrder = 'desc' | 'asc';
 
-// Special Feed IDs
 export const FEED_ID_LATEST = -1;
 export const FEED_ID_SAVED = -2;
 
-// Configuration Constants
-const DEBOUNCE_FEED_REFRESH_MS = 5 * 60 * 1000;
-const DEBOUNCE_REFRESH_ALL_MS = 2 * 60 * 1000;
 const REFRESH_CONCURRENCY = 2;
 
 class AppState {
@@ -24,23 +20,25 @@ class AppState {
     theme = $state<Theme>('system');
     sortOrder = $state<SortOrder>('desc');
 
-    // Layout State
+    settings = $state<AppSettings>({
+        feed_refresh_debounce_minutes: 5,
+        refresh_all_debounce_minutes: 2,
+        auto_update_interval_minutes: 30,
+        log_level: 'info'
+    });
+
     navWidth = $state(280);
     listWidth = $state(320);
 
     page = 0;
     readonly pageSize = 50;
     hasMore = $state(true);
-
-    // Settings
     latestHours = $state(24);
 
-    // Refresh State
     lastRefreshed = new Map<number, number>();
     lastRefreshAll = 0;
     updatingFeedIds = $state(new Set<number>());
 
-    // Modal State
     modalState = $state<{
         isOpen: boolean;
         type: 'confirm' | 'alert';
@@ -57,7 +55,7 @@ class AppState {
         this.initStore();
     }
 
-    private initStore() {
+    private async initStore() {
         const storedNav = localStorage.getItem('navWidth');
         const storedList = localStorage.getItem('listWidth');
         const storedSort = localStorage.getItem('sortOrder');
@@ -65,6 +63,20 @@ class AppState {
         if (storedNav) this.navWidth = parseInt(storedNav);
         if (storedList) this.listWidth = parseInt(storedList);
         if (storedSort === 'asc' || storedSort === 'desc') this.sortOrder = storedSort;
+
+        try {
+            const s = await invoke<AppSettings>('get_app_settings');
+            this.settings = s;
+
+            // Setup Auto Update
+            if (this.settings.auto_update_interval_minutes > 0) {
+                const intervalMs = this.settings.auto_update_interval_minutes * 60 * 1000;
+                setInterval(() => this.refreshAllFeeds(), intervalMs);
+                console.log(`Auto-update configured every ${this.settings.auto_update_interval_minutes} minutes`);
+            }
+        } catch (e) {
+            console.error("Failed to load settings", e);
+        }
 
         this.refreshFolders();
 
@@ -97,7 +109,8 @@ class AppState {
     }
 
     async refreshAllFeeds() {
-        if (Date.now() - this.lastRefreshAll < DEBOUNCE_REFRESH_ALL_MS) {
+        const debounceMs = this.settings.refresh_all_debounce_minutes * 60 * 1000;
+        if (Date.now() - this.lastRefreshAll < debounceMs) {
             console.log('Refresh All debounced');
             return;
         }
@@ -139,7 +152,9 @@ class AppState {
 
     async requestRefreshFeed(feedId: number) {
         const last = this.lastRefreshed.get(feedId) || 0;
-        if (Date.now() - last < DEBOUNCE_FEED_REFRESH_MS) {
+        const debounceMs = this.settings.feed_refresh_debounce_minutes * 60 * 1000;
+
+        if (Date.now() - last < debounceMs) {
             return;
         }
 
@@ -192,11 +207,18 @@ class AppState {
             } else if (this.selectedFolderId) {
                 await invoke('mark_all_read', { type_: 'folder', id: this.selectedFolderId });
             } else {
-                return; // Can't mark all for "Latest" or "Saved" easily yet
+                return;
             }
-
+            // Ensure UI updates:
+            // 1. Update the unread counts on left
             await this.refreshFolders();
-            await this.reloadCurrentArticleList();
+
+            // 2. Update the local articles list immediately to reflect 'is_read'
+            // We can do this optimistically to avoid network/DB delay perception
+            this.articles = this.articles.map(a => ({ ...a, is_read: true }));
+
+            // 3. Optional: Reload from DB to be 100% sure
+            // await this.reloadCurrentArticleList();
         } catch (e) {
             console.error("Mark all read failed:", e);
         }
@@ -208,7 +230,6 @@ class AppState {
             await invoke('add_feed', { url, folderId: null });
             await this.refreshFolders();
         } catch (e) {
-            console.error('Failed to add feed:', e);
             this.alert(`Error adding feed: ${e}`);
         } finally {
             this.isLoading = false;
@@ -230,14 +251,12 @@ class AppState {
                 multiple: false,
                 filters: [{ name: 'OPML Files', extensions: ['opml', 'xml'] }]
             });
-
             if (selected && typeof selected === 'string') {
                 this.isLoading = true;
                 await invoke('import_opml', { path: selected });
                 await this.refreshFolders();
             }
         } catch (e) {
-            console.error('OPML Import failed:', e);
             this.alert('Failed to import OPML file.');
         } finally {
             this.isLoading = false;
@@ -248,30 +267,25 @@ class AppState {
         try {
             const opmlContent = await invoke<string>('export_opml');
             if (!opmlContent) return;
-
             const filePath = await save({
                 filters: [{ name: 'OPML File', extensions: ['opml'] }],
                 defaultPath: 'feeds.opml'
             });
-
             if (filePath) {
                 await invoke('write_file', { path: filePath, content: opmlContent });
                 this.alert('Export successful!');
             }
         } catch (e) {
-            console.error('Export failed:', e);
             this.alert(`Failed to export OPML: ${e}`);
         }
     }
 
     async selectFolder(folderId: number) {
         if (this.selectedFolderId === folderId && !this.selectedFeedId) return;
-
         this.selectedFolderId = folderId;
         this.selectedFeedId = null;
         this.selectedArticle = null;
         this.isLoading = true;
-
         try {
             await this.reloadCurrentArticleList();
         } finally {
@@ -281,18 +295,16 @@ class AppState {
 
     async selectFeed(feedId: number, forceRefresh = false) {
         if (this.selectedFeedId === feedId && !forceRefresh) return;
-
         this.selectedFeedId = feedId;
         this.selectedFolderId = null;
         this.selectedArticle = null;
         this.isLoading = true;
-
         try {
             await this.reloadCurrentArticleList();
-
             if (feedId > 0 && !forceRefresh) {
                 const last = this.lastRefreshed.get(feedId) || 0;
-                if (Date.now() - last >= DEBOUNCE_FEED_REFRESH_MS) {
+                const debounceMs = this.settings.feed_refresh_debounce_minutes * 60 * 1000;
+                if (Date.now() - last >= debounceMs) {
                     this.requestRefreshFeed(feedId);
                 }
             }
@@ -303,13 +315,10 @@ class AppState {
 
     async loadMore() {
         if ((!this.selectedFeedId && !this.selectedFolderId) || !this.hasMore || this.isLoading) return;
-
         this.isLoading = true;
         const nextPage = this.page + 1;
-
         try {
             const result = await this.fetchPage(nextPage);
-
             if (result && result.length > 0) {
                 this.articles = [...this.articles, ...result];
                 this.page = nextPage;
@@ -326,7 +335,6 @@ class AppState {
 
     private async fetchPage(page: number): Promise<Article[]> {
         const offset = page * this.pageSize;
-        // Frontend uses "desc" (Newest First) as boolean true for backend logic that expects "sort_desc"
         const sortDesc = this.sortOrder === 'desc';
 
         if (this.selectedFeedId === FEED_ID_LATEST) {
@@ -335,34 +343,20 @@ class AppState {
         } else if (this.selectedFeedId === FEED_ID_SAVED) {
             return await invoke('get_saved_articles', { limit: this.pageSize, offset, sortDesc });
         } else if (this.selectedFeedId) {
-            return await invoke('get_articles_for_feed', {
-                feedId: this.selectedFeedId,
-                limit: this.pageSize,
-                offset,
-                sortDesc
-            });
+            return await invoke('get_articles_for_feed', { feedId: this.selectedFeedId, limit: this.pageSize, offset, sortDesc });
         } else if (this.selectedFolderId) {
-            return await invoke('get_articles_for_folder', {
-                folderId: this.selectedFolderId,
-                limit: this.pageSize,
-                offset,
-                sortDesc
-            });
+            return await invoke('get_articles_for_folder', { folderId: this.selectedFolderId, limit: this.pageSize, offset, sortDesc });
         }
         return [];
     }
 
     selectArticle(article: Article) {
         this.selectedArticle = article;
-
         if (!article.is_read) {
-            article.is_read = true; // Optimistic
-
+            article.is_read = true;
             invoke('mark_article_read', { id: article.id }).catch(e => {
-                console.error("Failed to mark as read:", e);
                 article.is_read = false;
             });
-
             const feedId = article.feed_id;
             for (const folder of this.folders) {
                 const feed = folder.feeds.find(f => f.id === feedId);
@@ -377,11 +371,9 @@ class AppState {
     async toggleSaved(article: Article) {
         const newState = !article.is_saved;
         article.is_saved = newState;
-
         try {
             await invoke('mark_article_saved', { id: article.id, isSaved: newState });
         } catch (e) {
-            console.error('Failed to toggle saved:', e);
             article.is_saved = !newState;
         }
     }
@@ -390,32 +382,15 @@ class AppState {
         try {
             await invoke('rename_folder', { id, newName });
             await this.refreshFolders();
-        } catch (e) {
-            console.error('Rename failed:', e);
-        }
+        } catch (e) { console.error(e); }
     }
 
     confirm(message: string, onConfirm: () => void) {
-        this.modalState = {
-            isOpen: true,
-            type: 'confirm',
-            message,
-            onConfirm: () => {
-                onConfirm();
-                this.modalState.isOpen = false;
-            }
-        };
+        this.modalState = { isOpen: true, type: 'confirm', message, onConfirm: () => { onConfirm(); this.modalState.isOpen = false; } };
     }
 
     alert(message: string) {
-        this.modalState = {
-            isOpen: true,
-            type: 'alert',
-            message,
-            onConfirm: () => {
-                this.modalState.isOpen = false;
-            }
-        };
+        this.modalState = { isOpen: true, type: 'alert', message, onConfirm: () => { this.modalState.isOpen = false; } };
     }
 
     closeModal() {
@@ -423,28 +398,21 @@ class AppState {
     }
 
     async deleteFeed(id: number) {
-        this.confirm('Are you sure you want to delete this feed?', async () => {
+        this.confirm('Delete feed?', async () => {
             try {
                 await invoke('delete_feed', { id });
-                if (this.selectedFeedId === id) {
-                    this.selectedFeedId = null;
-                    this.articles = [];
-                }
+                if (this.selectedFeedId === id) { this.selectedFeedId = null; this.articles = []; }
                 await this.refreshFolders();
-            } catch (e) {
-                console.error('Delete feed failed:', e);
-            }
+            } catch (e) { console.error(e); }
         });
     }
 
     async deleteFolder(id: number) {
-        this.confirm('Delete folder and all its feeds?', async () => {
+        this.confirm('Delete folder and feeds?', async () => {
             try {
                 await invoke('delete_folder', { id });
                 await this.refreshFolders();
-            } catch (e) {
-                console.error('Delete folder failed:', e);
-            }
+            } catch (e) { console.error(e); }
         });
     }
 
@@ -452,21 +420,15 @@ class AppState {
         try {
             await invoke('move_feed', { feedId, folderId });
             await this.refreshFolders();
-        } catch (e) {
-            console.error('Move feed failed:', e);
-        }
+        } catch (e) { console.error(e); }
     }
 
-    setTheme(newTheme: Theme) {
-        this.theme = newTheme;
-    }
+    setTheme(newTheme: Theme) { this.theme = newTheme; }
 
     async fetchFullContent(article: Article): Promise<string | null> {
         try {
             return await invoke<string>('get_article_content', { url: article.url });
         } catch (e) {
-            console.error('Failed to load full content:', e);
-            this.alert('Could not fetch full content for this article.');
             return null;
         }
     }

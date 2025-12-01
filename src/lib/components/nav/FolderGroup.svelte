@@ -1,8 +1,10 @@
 <script lang="ts">
+    import { tooltip } from "$lib/actions/tooltip.svelte";
     import { appState } from "$lib/store.svelte";
     import type { Feed, Folder } from "$lib/types";
     import { dndzone, type DndEvent } from "svelte-dnd-action";
     import { flip } from "svelte/animate";
+    import { slide } from "svelte/transition";
 
     let { folder, isExpanded, onToggle, onContextMenu, onExpandHover } = $props<{
         folder: Folder;
@@ -43,7 +45,6 @@
         });
     }
 
-    // --- Feed Drag Start ---
     function onFeedDragStart(e: DragEvent, feedId: number) {
         if (e.dataTransfer) {
             e.dataTransfer.setData("text/plain", feedId.toString());
@@ -51,7 +52,6 @@
         }
     }
 
-    // --- Folder Header Drop Targets ---
     function onHeaderDragOver(e: DragEvent) {
         e.preventDefault();
         e.stopPropagation();
@@ -101,7 +101,7 @@
     </div>
 
     {#if isExpanded}
-        <ul class="feed-list" use:dndzone={{ items: folder.feeds, flipDurationMs: FLIP_DURATION, type: "feed", dropTargetStyle: { outline: "2px solid var(--bg-selected)", borderRadius: "4px" } }} onconsider={handleDndConsider} onfinalize={handleDndFinalize}>
+        <ul class="feed-list" transition:slide={{ duration: 200 }} use:dndzone={{ items: folder.feeds, flipDurationMs: FLIP_DURATION, type: "feed", dropTargetStyle: { outline: "2px solid var(--bg-selected)", borderRadius: "4px" } }} onconsider={handleDndConsider} onfinalize={handleDndFinalize}>
             {#each folder.feeds as feed (feed.id)}
                 <li animate:flip={{ duration: FLIP_DURATION }}>
                     <!-- svelte-ignore a11y_no_static_element_interactions -->
@@ -148,16 +148,16 @@
                             {#if appState.isFeedUpdating(feed.id)}
                                 <div class="mini-spinner"></div>
                             {:else if feed.has_error}
-                                <span class="error-badge" title="Feed update failed">
+                                <span class="error-badge" use:tooltip={"Feed update failed"}>
                                     <svg width="10" height="10" viewBox="0 0 10 10">
                                         <line x1="2" y1="2" x2="8" y2="8" stroke="white" stroke-width="2" />
                                         <line x1="8" y1="2" x2="2" y2="8" stroke="white" stroke-width="2" />
                                     </svg>
                                 </span>
                             {:else if feed.unread_count > 0}
-                                <span class="badge" title="Click to refresh">{feed.unread_count}</span>
+                                <span class="badge" use:tooltip={"Click to refresh"}>{feed.unread_count}</span>
                             {:else}
-                                <span class="refresh-icon" title="Refresh">
+                                <span class="refresh-icon" use:tooltip={"Refresh"}>
                                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                         <path d="M23 4v6h-6"></path>
                                         <path d="M1 20v-6h6"></path>
@@ -174,6 +174,7 @@
 </div>
 
 <style>
+    /* Styles remain same as previous step, just applied to this block */
     .folder {
         outline: none;
         margin-bottom: 2px;
