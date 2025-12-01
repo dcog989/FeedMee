@@ -127,11 +127,30 @@
                             <span class="feed-name">{feed.name}</span>
                         </span>
 
-                        {#if appState.isFeedUpdating(feed.id)}
-                            <div class="mini-spinner"></div>
-                        {:else if feed.unread_count > 0}
-                            <span class="badge">{feed.unread_count}</span>
-                        {/if}
+                        <!-- Action Area: Spinner / Badge / Refresh Icon -->
+                        <!-- svelte-ignore a11y_click_events_have_key_events -->
+                        <!-- svelte-ignore a11y_no_static_element_interactions -->
+                        <div
+                            class="feed-action-area"
+                            onclick={(e) => {
+                                e.stopPropagation();
+                                appState.requestRefreshFeed(feed.id);
+                            }}
+                        >
+                            {#if appState.isFeedUpdating(feed.id)}
+                                <div class="mini-spinner"></div>
+                            {:else if feed.unread_count > 0}
+                                <span class="badge" title="Click to refresh">{feed.unread_count}</span>
+                            {:else}
+                                <span class="refresh-icon" title="Refresh">
+                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M23 4v6h-6"></path>
+                                        <path d="M1 20v-6h6"></path>
+                                        <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+                                    </svg>
+                                </span>
+                            {/if}
+                        </div>
                     </div>
                 </li>
             {/each}
@@ -247,6 +266,15 @@
         border-radius: 2px;
     }
 
+    .feed-action-area {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        min-width: 24px;
+        height: 100%;
+        cursor: pointer;
+    }
+
     .badge {
         background-color: var(--text-secondary);
         color: var(--bg-pane);
@@ -259,8 +287,30 @@
         flex-shrink: 0;
     }
 
+    .badge:hover {
+        background-color: var(--bg-selected);
+        color: white;
+    }
+
     .folder-badge {
         opacity: 0.7;
+    }
+
+    .refresh-icon {
+        color: var(--text-secondary);
+        opacity: 0;
+        transition: opacity 0.2s;
+        display: flex;
+        align-items: center;
+    }
+
+    .feed-item:hover .refresh-icon {
+        opacity: 0.5;
+    }
+
+    .refresh-icon:hover {
+        opacity: 1 !important;
+        color: var(--text-primary);
     }
 
     .feed-item:hover {

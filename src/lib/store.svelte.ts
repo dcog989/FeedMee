@@ -33,7 +33,7 @@ class AppState {
     lastRefreshAll = 0;
     updatingFeedIds = $state(new Set<number>());
 
-    // Modal State (Confirm & Alert)
+    // Modal State
     modalState = $state<{
         isOpen: boolean;
         type: 'confirm' | 'alert';
@@ -80,7 +80,7 @@ class AppState {
     }
 
     async refreshAllFeeds() {
-        // Debounce 2 minutes (120,000 ms)
+        // Debounce 2 minutes
         if (Date.now() - this.lastRefreshAll < 120000) {
             console.log('Refresh All debounced');
             return;
@@ -91,17 +91,26 @@ class AppState {
 
         const allFeeds: Feed[] = this.folders.flatMap(f => f.feeds);
 
-        // We run updates in parallel (browser handles limits)
-        // Each feed update will trigger a folder structure refresh on completion
-        // to show progress in the UI (counts updating)
-        const promises = allFeeds.map(feed => this.refreshSingleFeed(feed.id));
+        // Concurrency Control: Max 3 simultaneous requests to prevent DB locking/High CPU
+        const CONCURRENCY = 3;
+        let index = 0;
+
+        const worker = async () => {
+            while (index < allFeeds.length) {
+                const feed = allFeeds[index++];
+                await this.refreshSingleFeed(feed.id);
+            }
+        };
+
+        const workers = Array(CONCURRENCY).fill(null).map(() => worker());
 
         try {
-            await Promise.all(promises);
-            // Final sync to ensure everything is correct
+            await Promise.all(workers);
+
+            // Final sync
             await this.refreshFolders();
 
-            // Reload current view if needed
+            // Reload current view
             if (this.selectedFeedId) {
                 await this.reloadCurrentArticleList();
             } else if (this.selectedFolderId) {
@@ -114,9 +123,26 @@ class AppState {
         }
     }
 
-    // Helper to refresh a single feed and track its loading state
-    async refreshSingleFeed(feedId: number) {
-        // Mark updating
+    async requestRefreshFeed(feedId: number) {
+        // Debounce 2 minutes per feed
+        const last = this.lastRefreshed.get(feedId) || 0;
+        if (Date.now() - last < 120000) {
+            console.log(`Feed ${feedId} refresh debounced`);
+            return;
+        }
+
+        await this.refreshSingleFeed(feedId);
+
+        // If currently viewing this feed, update list
+        if (this.selectedFeedId === feedId) {
+            await this.reloadCurrentArticleList();
+        }
+    }
+
+    private async refreshSingleFeed(feedId: number) {
+        // Avoid double refresh if already updating
+        if (this.updatingFeedIds.has(feedId)) return;
+
         const newSet = new Set(this.updatingFeedIds);
         newSet.add(feedId);
         this.updatingFeedIds = newSet;
@@ -124,12 +150,12 @@ class AppState {
         try {
             await invoke('refresh_feed', { feedId });
             this.lastRefreshed.set(feedId, Date.now());
-            // Update unread counts incrementally
+            // Update unread counts incrementally to show progress
+            // We use a lighter check if possible, but refreshFolders is the standard way
             await this.refreshFolders();
         } catch (e) {
             console.error(`Failed to refresh feed ${feedId}:`, e);
         } finally {
-            // Unmark updating
             const endSet = new Set(this.updatingFeedIds);
             endSet.delete(feedId);
             this.updatingFeedIds = endSet;
@@ -212,8 +238,13 @@ class AppState {
         this.selectedFolderId = folderId;
         this.selectedFeedId = null;
         this.selectedArticle = null;
+        this.isLoading = true;
 
-        await this.reloadCurrentArticleList();
+        try {
+            await this.reloadCurrentArticleList();
+        } finally {
+            this.isLoading = false;
+        }
     }
 
     async selectFeed(feedId: number, forceRefresh = false) {
@@ -222,22 +253,18 @@ class AppState {
         this.selectedFeedId = feedId;
         this.selectedFolderId = null;
         this.selectedArticle = null;
+        this.isLoading = true;
 
-        await this.reloadCurrentArticleList();
+        try {
+            await this.reloadCurrentArticleList();
 
-        // Background Refresh with Debounce (5 minutes)
-        if (feedId > 0 && !forceRefresh) {
-            const last = this.lastRefreshed.get(feedId) || 0;
-            if (Date.now() - last > 5 * 60 * 1000) {
-                this.refreshSingleFeed(feedId).then(() => {
-                    // If still selected, prepend/refresh list
-                    if (this.selectedFeedId === feedId) {
-                        this.reloadCurrentArticleList();
-                    }
-                });
-            } else {
-                console.log(`Feed ${feedId} refresh skipped (debounce)`);
+            // Background Refresh
+            if (feedId > 0 && !forceRefresh) {
+                // Use requestRefreshFeed logic to check debounce
+                this.requestRefreshFeed(feedId);
             }
+        } finally {
+            this.isLoading = false;
         }
     }
 
