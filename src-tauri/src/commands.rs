@@ -646,3 +646,17 @@ pub fn move_feed(feed_id: i64, folder_id: i64, state: State<'_, AppState>) -> Re
         }
     }
 }
+
+#[tauri::command]
+pub fn mark_article_read(id: i64, state: State<'_, AppState>) -> Result<(), String> {
+    // No logging here to reduce noise for frequent actions, or use debug!
+    debug!("Marking article id={} as read", id);
+    let conn = state.db.lock().unwrap();
+    match db::mark_article_read(&conn, id) {
+        Ok(_) => Ok(()),
+        Err(e) => {
+            error!("Failed to mark article id={} as read: {}", id, e);
+            Err(e.to_string())
+        }
+    }
+}

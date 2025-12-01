@@ -8,6 +8,11 @@ export type Theme = 'light' | 'dark' | 'sepia' | 'system';
 export const FEED_ID_LATEST = -1;
 export const FEED_ID_SAVED = -2;
 
+// Configuration Constants
+const DEBOUNCE_FEED_REFRESH_MS = 5 * 60 * 1000; // 5 minutes
+const DEBOUNCE_REFRESH_ALL_MS = 2 * 60 * 1000;  // 2 minutes
+const REFRESH_CONCURRENCY = 3;
+
 class AppState {
     folders = $state<Folder[]>([]);
     articles = $state<Article[]>([]);
@@ -80,8 +85,7 @@ class AppState {
     }
 
     async refreshAllFeeds() {
-        // Debounce 2 minutes
-        if (Date.now() - this.lastRefreshAll < 120000) {
+        if (Date.now() - this.lastRefreshAll < DEBOUNCE_REFRESH_ALL_MS) {
             console.log('Refresh All debounced');
             return;
         }
@@ -91,10 +95,13 @@ class AppState {
 
         const allFeeds: Feed[] = this.folders.flatMap(f => f.feeds);
 
-        // Concurrency Control: Max 3 simultaneous requests to prevent DB locking/High CPU
-        const CONCURRENCY = 3;
-        let index = 0;
+        // Optimistic UI: Set all to updating immediately
+        const newSet = new Set(this.updatingFeedIds);
+        allFeeds.forEach(f => newSet.add(f.id));
+        this.updatingFeedIds = newSet;
 
+        // Queue processing
+        let index = 0;
         const worker = async () => {
             while (index < allFeeds.length) {
                 const feed = allFeeds[index++];
@@ -102,7 +109,7 @@ class AppState {
             }
         };
 
-        const workers = Array(CONCURRENCY).fill(null).map(() => worker());
+        const workers = Array(REFRESH_CONCURRENCY).fill(null).map(() => worker());
 
         try {
             await Promise.all(workers);
@@ -119,43 +126,43 @@ class AppState {
         } catch (e) {
             console.error('Failed to refresh all feeds:', e);
         } finally {
+            // Ensure visual state is cleared even if errors occurred
+            this.updatingFeedIds = new Set();
             this.isLoading = false;
         }
     }
 
     async requestRefreshFeed(feedId: number) {
-        // Debounce 2 minutes per feed
         const last = this.lastRefreshed.get(feedId) || 0;
-        if (Date.now() - last < 120000) {
+        if (Date.now() - last < DEBOUNCE_FEED_REFRESH_MS) {
             console.log(`Feed ${feedId} refresh debounced`);
             return;
         }
 
         await this.refreshSingleFeed(feedId);
 
-        // If currently viewing this feed, update list
         if (this.selectedFeedId === feedId) {
             await this.reloadCurrentArticleList();
         }
     }
 
     private async refreshSingleFeed(feedId: number) {
-        // Avoid double refresh if already updating
-        if (this.updatingFeedIds.has(feedId)) return;
-
-        const newSet = new Set(this.updatingFeedIds);
-        newSet.add(feedId);
-        this.updatingFeedIds = newSet;
+        // Ensure feed is marked updating (if called directly vs from refreshAll)
+        if (!this.updatingFeedIds.has(feedId)) {
+            const newSet = new Set(this.updatingFeedIds);
+            newSet.add(feedId);
+            this.updatingFeedIds = newSet;
+        }
 
         try {
             await invoke('refresh_feed', { feedId });
             this.lastRefreshed.set(feedId, Date.now());
-            // Update unread counts incrementally to show progress
-            // We use a lighter check if possible, but refreshFolders is the standard way
-            await this.refreshFolders();
+            // Incremental update of structure (counts) handled by background or final sync
+            // We can do a lightweight refresh here if needed, but usually redundant in bulk
         } catch (e) {
             console.error(`Failed to refresh feed ${feedId}:`, e);
         } finally {
+            // Remove from updating set
             const endSet = new Set(this.updatingFeedIds);
             endSet.delete(feedId);
             this.updatingFeedIds = endSet;
@@ -258,9 +265,7 @@ class AppState {
         try {
             await this.reloadCurrentArticleList();
 
-            // Background Refresh
             if (feedId > 0 && !forceRefresh) {
-                // Use requestRefreshFeed logic to check debounce
                 this.requestRefreshFeed(feedId);
             }
         } finally {
@@ -317,6 +322,26 @@ class AppState {
 
     selectArticle(article: Article) {
         this.selectedArticle = article;
+
+        if (!article.is_read) {
+            article.is_read = true; // Optimistic update
+
+            // Invoke backend
+            invoke('mark_article_read', { id: article.id }).catch(e => {
+                console.error("Failed to mark as read:", e);
+                article.is_read = false; // Revert on failure
+            });
+
+            // Update local unread count
+            const feedId = article.feed_id;
+            for (const folder of this.folders) {
+                const feed = folder.feeds.find(f => f.id === feedId);
+                if (feed && feed.unread_count > 0) {
+                    feed.unread_count--;
+                    break;
+                }
+            }
+        }
     }
 
     async toggleSaved(article: Article) {

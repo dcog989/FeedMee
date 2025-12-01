@@ -70,6 +70,7 @@ pub fn run() {
             commands::get_saved_articles,
             commands::create_folder,
             commands::mark_article_saved,
+            commands::mark_article_read, // Added this
             commands::import_opml,
             commands::export_opml,
             commands::write_file,
