@@ -13,6 +13,7 @@
 
     let fullContent = $state<string | null>(null);
     let isLoadingFull = $state(false);
+    let loadError = $state(false);
 
     // Derived content: favor fullContent if available, otherwise summary
     let displayHtml = $derived(fullContent ? DOMPurify.sanitize(fullContent) : appState.selectedArticle?.summary ? DOMPurify.sanitize(appState.selectedArticle.summary) : "");
@@ -23,6 +24,7 @@
     $effect(() => {
         if (appState.selectedArticle) {
             fullContent = null;
+            loadError = false;
         }
     });
 
@@ -44,9 +46,15 @@
     async function loadFullContent() {
         if (!appState.selectedArticle) return;
         isLoadingFull = true;
+        loadError = false;
+
         const content = await appState.fetchFullContent(appState.selectedArticle);
+
         if (content) {
             fullContent = content;
+        } else {
+            // Failed to load, or empty content returned
+            loadError = true;
         }
         isLoadingFull = false;
     }
@@ -78,7 +86,7 @@
                             </svg>
                         </button>
 
-                        <button class="action-btn" onclick={loadFullContent} title="Load Full Content" disabled={isLoadingFull}>
+                        <button class="action-btn" onclick={loadFullContent} title="Load Full Content" disabled={isLoadingFull || !!fullContent}>
                             {#if isLoadingFull}
                                 <span class="spinner"></span>
                             {:else}
@@ -94,6 +102,13 @@
                     </div>
                 </div>
             </header>
+
+            {#if loadError}
+                <div class="error-banner">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+                    <span>Could not extract full content. Showing summary instead.</span>
+                </div>
+            {/if}
 
             <div class="summary">
                 {@html displayHtml}
@@ -191,6 +206,23 @@
     .action-btn:disabled {
         opacity: 0.5;
         cursor: not-allowed;
+    }
+
+    .error-banner {
+        background-color: #ffeef0;
+        color: #d32f2f;
+        padding: 12px;
+        border-radius: 6px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 1.5rem;
+        font-size: 0.9rem;
+    }
+
+    :global([data-theme="dark"]) .error-banner {
+        background-color: #3e1b1b;
+        color: #ff9999;
     }
 
     .summary {

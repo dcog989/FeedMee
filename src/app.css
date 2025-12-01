@@ -8,7 +8,6 @@
     --bg-content: #ffffff;
     --bg-hover: #e9e9e9;
     --bg-selected: #ec4899; /* Pink 500 */
-    /* 30% opacity pink (70% transparent) */
     --bg-selected-muted: rgba(236, 72, 153, 0.3);
 
     /* Text */
@@ -60,12 +59,12 @@ html,
 body {
     margin: 0;
     padding: 0;
-    height: 100%;
-    width: 100%;
+    height: 100vh; /* Force view height */
+    width: 100vw;
     font-family: var(--font-ui);
-    background-color: var(--bg-app);
+    background-color: var(--bg-app); /* Ensures artifacts are same color */
     color: var(--text-primary);
-    overflow: hidden;
+    overflow: hidden; /* Prevent native scrollbars */
 }
 
 /* === Custom Scrollbars === */

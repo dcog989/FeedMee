@@ -19,28 +19,25 @@
             appState.selectArticle(article);
         }
     }
-
-    // Sort order derived from store, handled in toolbar click
 </script>
 
 <div class="pane-wrapper">
     <div class="list-toolbar">
-        <button class="tool-btn" onclick={() => appState.setSortOrder(appState.sortOrder === "desc" ? "asc" : "desc")} title={appState.sortOrder === "desc" ? "Newest First" : "Oldest First"}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <button class="tool-btn" onclick={() => appState.setSortOrder(appState.sortOrder === "desc" ? "asc" : "desc")} title={appState.sortOrder === "desc" ? "Sort: Newest First" : "Sort: Oldest First"}>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 {#if appState.sortOrder === "desc"}
-                    <path d="M6 9l6 6 6-6"></path>
+                    <path d="M10 18h4 M6 12h12 M3 6h18" /> <!-- Funnel/Desc style -->
                 {:else}
-                    <path d="M18 15l-6-6-6 6"></path>
+                    <path d="M3 18h18 M6 12h12 M10 6h4" /> <!-- Asc style -->
                 {/if}
             </svg>
-            <span class="label">{appState.sortOrder === "desc" ? "Newest" : "Oldest"}</span>
         </button>
 
         <button class="tool-btn" onclick={() => appState.markAllRead()} title="Mark All Read">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <polyline points="20 6 9 17 4 12"></polyline>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M18 6L7 17l-5-5"></path>
+                <path d="M22 10l-7.5 7.5L13 16"></path>
             </svg>
-            <span class="label">Mark All Read</span>
         </button>
     </div>
 
@@ -118,19 +115,21 @@
         border-bottom: 1px solid var(--border-color);
         background: var(--bg-pane);
         flex-shrink: 0;
+        height: 32px; /* Fixed height for consistency */
     }
 
     .tool-btn {
         background: transparent;
         border: none;
         color: var(--text-secondary);
-        font-size: 0.8rem;
         cursor: pointer;
         display: flex;
         align-items: center;
-        gap: 6px;
-        padding: 4px 8px;
+        justify-content: center;
+        padding: 4px;
         border-radius: 4px;
+        width: 32px;
+        height: 32px;
     }
 
     .tool-btn:hover {
@@ -168,7 +167,7 @@
         border-bottom: 1px solid var(--border-color);
         background: transparent;
         cursor: pointer;
-        color: var(--text-secondary); /* Default muted */
+        color: var(--text-secondary);
         overflow: hidden;
         outline: none;
         box-sizing: border-box;
