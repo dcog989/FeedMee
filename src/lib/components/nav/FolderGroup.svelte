@@ -273,6 +273,7 @@
         min-width: 24px;
         height: 100%;
         cursor: pointer;
+        padding-left: 8px;
     }
 
     .badge {
@@ -298,18 +299,14 @@
 
     .refresh-icon {
         color: var(--text-secondary);
-        opacity: 0;
+        opacity: 0.5;
         transition: opacity 0.2s;
         display: flex;
         align-items: center;
     }
 
-    .feed-item:hover .refresh-icon {
-        opacity: 0.5;
-    }
-
     .refresh-icon:hover {
-        opacity: 1 !important;
+        opacity: 1;
         color: var(--text-primary);
     }
 

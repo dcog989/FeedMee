@@ -95,17 +95,18 @@ class AppState {
 
         const allFeeds: Feed[] = this.folders.flatMap(f => f.feeds);
 
-        // Optimistic UI: Set all to updating immediately
+        // Optimistic UI: Set all to updating immediately so spinners show
         const newSet = new Set(this.updatingFeedIds);
         allFeeds.forEach(f => newSet.add(f.id));
         this.updatingFeedIds = newSet;
 
-        // Queue processing
+        // Queue processing with limited concurrency
         let index = 0;
         const worker = async () => {
             while (index < allFeeds.length) {
                 const feed = allFeeds[index++];
-                await this.refreshSingleFeed(feed.id);
+                // We access the raw refresh logic directly to avoid double set manipulation
+                await this.performSingleFeedRefresh(feed.id);
             }
         };
 
@@ -114,10 +115,10 @@ class AppState {
         try {
             await Promise.all(workers);
 
-            // Final sync
+            // Final sync to ensure consistency
             await this.refreshFolders();
 
-            // Reload current view
+            // Reload current view if necessary
             if (this.selectedFeedId) {
                 await this.reloadCurrentArticleList();
             } else if (this.selectedFolderId) {
@@ -126,7 +127,7 @@ class AppState {
         } catch (e) {
             console.error('Failed to refresh all feeds:', e);
         } finally {
-            // Ensure visual state is cleared even if errors occurred
+            // Clear all updating states
             this.updatingFeedIds = new Set();
             this.isLoading = false;
         }
@@ -139,33 +140,33 @@ class AppState {
             return;
         }
 
-        await this.refreshSingleFeed(feedId);
+        // Add to updating set for UI feedback
+        const newSet = new Set(this.updatingFeedIds);
+        newSet.add(feedId);
+        this.updatingFeedIds = newSet;
+
+        try {
+            await this.performSingleFeedRefresh(feedId);
+        } finally {
+            const endSet = new Set(this.updatingFeedIds);
+            endSet.delete(feedId);
+            this.updatingFeedIds = endSet;
+        }
 
         if (this.selectedFeedId === feedId) {
             await this.reloadCurrentArticleList();
         }
     }
 
-    private async refreshSingleFeed(feedId: number) {
-        // Ensure feed is marked updating (if called directly vs from refreshAll)
-        if (!this.updatingFeedIds.has(feedId)) {
-            const newSet = new Set(this.updatingFeedIds);
-            newSet.add(feedId);
-            this.updatingFeedIds = newSet;
-        }
-
+    // Internal helper that performs the actual network/DB call and folder sync
+    private async performSingleFeedRefresh(feedId: number) {
         try {
             await invoke('refresh_feed', { feedId });
             this.lastRefreshed.set(feedId, Date.now());
-            // Incremental update of structure (counts) handled by background or final sync
-            // We can do a lightweight refresh here if needed, but usually redundant in bulk
+            // Update unread counts immediately to show progress in UI
+            await this.refreshFolders();
         } catch (e) {
             console.error(`Failed to refresh feed ${feedId}:`, e);
-        } finally {
-            // Remove from updating set
-            const endSet = new Set(this.updatingFeedIds);
-            endSet.delete(feedId);
-            this.updatingFeedIds = endSet;
         }
     }
 
@@ -266,7 +267,11 @@ class AppState {
             await this.reloadCurrentArticleList();
 
             if (feedId > 0 && !forceRefresh) {
-                this.requestRefreshFeed(feedId);
+                // Background check for refresh
+                const last = this.lastRefreshed.get(feedId) || 0;
+                if (Date.now() - last >= DEBOUNCE_FEED_REFRESH_MS) {
+                    this.requestRefreshFeed(feedId);
+                }
             }
         } finally {
             this.isLoading = false;
