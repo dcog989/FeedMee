@@ -2,6 +2,7 @@ pub mod commands;
 pub mod db;
 pub mod models;
 
+#[allow(unused_imports)]
 use log::{error, info, warn};
 use std::sync::Mutex;
 use tauri::Manager;
@@ -83,6 +84,7 @@ pub fn run() {
             commands::create_folder,
             commands::mark_article_saved,
             commands::mark_article_read,
+            commands::mark_all_read, // Added
             commands::import_opml,
             commands::export_opml,
             commands::write_file,

@@ -3,15 +3,16 @@ import { open, save } from '@tauri-apps/plugin-dialog';
 import type { Article, Feed, Folder } from './types';
 
 export type Theme = 'light' | 'dark' | 'sepia' | 'system';
+export type SortOrder = 'desc' | 'asc';
 
 // Special Feed IDs
 export const FEED_ID_LATEST = -1;
 export const FEED_ID_SAVED = -2;
 
 // Configuration Constants
-const DEBOUNCE_FEED_REFRESH_MS = 5 * 60 * 1000; // 5 minutes
-const DEBOUNCE_REFRESH_ALL_MS = 2 * 60 * 1000;  // 2 minutes
-const REFRESH_CONCURRENCY = 2; // Lowered to prevent UI freeze
+const DEBOUNCE_FEED_REFRESH_MS = 5 * 60 * 1000;
+const DEBOUNCE_REFRESH_ALL_MS = 2 * 60 * 1000;
+const REFRESH_CONCURRENCY = 2;
 
 class AppState {
     folders = $state<Folder[]>([]);
@@ -21,6 +22,7 @@ class AppState {
     selectedArticle = $state<Article | null>(null);
     isLoading = $state(false);
     theme = $state<Theme>('system');
+    sortOrder = $state<SortOrder>('desc');
 
     // Layout State
     navWidth = $state(280);
@@ -34,7 +36,7 @@ class AppState {
     latestHours = $state(24);
 
     // Refresh State
-    lastRefreshed = new Map<number, number>(); // feedId -> timestamp
+    lastRefreshed = new Map<number, number>();
     lastRefreshAll = 0;
     updatingFeedIds = $state(new Set<number>());
 
@@ -58,8 +60,11 @@ class AppState {
     private initStore() {
         const storedNav = localStorage.getItem('navWidth');
         const storedList = localStorage.getItem('listWidth');
+        const storedSort = localStorage.getItem('sortOrder');
+
         if (storedNav) this.navWidth = parseInt(storedNav);
         if (storedList) this.listWidth = parseInt(storedList);
+        if (storedSort === 'asc' || storedSort === 'desc') this.sortOrder = storedSort;
 
         this.refreshFolders();
 
@@ -67,6 +72,7 @@ class AppState {
             $effect(() => {
                 localStorage.setItem('navWidth', this.navWidth.toString());
                 localStorage.setItem('listWidth', this.listWidth.toString());
+                localStorage.setItem('sortOrder', this.sortOrder);
             });
         });
     }
@@ -87,7 +93,6 @@ class AppState {
     isFolderUpdating(folderId: number) {
         const folder = this.folders.find(f => f.id === folderId);
         if (!folder) return false;
-        // Check if any feed in this folder is currently updating
         return folder.feeds.some(feed => this.updatingFeedIds.has(feed.id));
     }
 
@@ -101,8 +106,6 @@ class AppState {
         this.isLoading = true;
 
         const allFeeds: Feed[] = this.folders.flatMap(f => f.feeds);
-
-        // Optimistic UI: Set all to updating immediately
         const newSet = new Set(this.updatingFeedIds);
         allFeeds.forEach(f => newSet.add(f.id));
         this.updatingFeedIds = newSet;
@@ -137,7 +140,6 @@ class AppState {
     async requestRefreshFeed(feedId: number) {
         const last = this.lastRefreshed.get(feedId) || 0;
         if (Date.now() - last < DEBOUNCE_FEED_REFRESH_MS) {
-            console.log(`Feed ${feedId} refresh debounced`);
             return;
         }
 
@@ -174,6 +176,30 @@ class AppState {
         const result = await this.fetchPage(0);
         this.articles = result || [];
         this.hasMore = (result?.length || 0) === this.pageSize;
+    }
+
+    async setSortOrder(order: SortOrder) {
+        if (this.sortOrder !== order) {
+            this.sortOrder = order;
+            await this.reloadCurrentArticleList();
+        }
+    }
+
+    async markAllRead() {
+        try {
+            if (this.selectedFeedId && this.selectedFeedId > 0) {
+                await invoke('mark_all_read', { type_: 'feed', id: this.selectedFeedId });
+            } else if (this.selectedFolderId) {
+                await invoke('mark_all_read', { type_: 'folder', id: this.selectedFolderId });
+            } else {
+                return; // Can't mark all for "Latest" or "Saved" easily yet
+            }
+
+            await this.refreshFolders();
+            await this.reloadCurrentArticleList();
+        } catch (e) {
+            console.error("Mark all read failed:", e);
+        }
     }
 
     async addFeed(url: string) {
@@ -300,23 +326,27 @@ class AppState {
 
     private async fetchPage(page: number): Promise<Article[]> {
         const offset = page * this.pageSize;
+        // Frontend uses "desc" (Newest First) as boolean true for backend logic that expects "sort_desc"
+        const sortDesc = this.sortOrder === 'desc';
 
         if (this.selectedFeedId === FEED_ID_LATEST) {
             const cutoff = Math.floor(Date.now() / 1000) - (this.latestHours * 3600);
-            return await invoke('get_latest_articles', { cutoffTimestamp: cutoff, limit: this.pageSize, offset });
+            return await invoke('get_latest_articles', { cutoffTimestamp: cutoff, limit: this.pageSize, offset, sortDesc });
         } else if (this.selectedFeedId === FEED_ID_SAVED) {
-            return await invoke('get_saved_articles', { limit: this.pageSize, offset });
+            return await invoke('get_saved_articles', { limit: this.pageSize, offset, sortDesc });
         } else if (this.selectedFeedId) {
             return await invoke('get_articles_for_feed', {
                 feedId: this.selectedFeedId,
                 limit: this.pageSize,
-                offset
+                offset,
+                sortDesc
             });
         } else if (this.selectedFolderId) {
             return await invoke('get_articles_for_folder', {
                 folderId: this.selectedFolderId,
                 limit: this.pageSize,
-                offset
+                offset,
+                sortDesc
             });
         }
         return [];
@@ -333,7 +363,6 @@ class AppState {
                 article.is_read = false;
             });
 
-            // Update local counts
             const feedId = article.feed_id;
             for (const folder of this.folders) {
                 const feed = folder.feeds.find(f => f.id === feedId);

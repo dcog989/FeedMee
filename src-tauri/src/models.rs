@@ -20,6 +20,7 @@ pub struct Feed {
     pub url: String,
     pub folder_id: i64,
     pub unread_count: i64,
+    pub has_error: bool,
 }
 
 #[derive(Serialize, Clone, Debug)]

@@ -30,10 +30,10 @@ pub fn init_db(conn: &mut Connection) -> std::result::Result<(), Box<dyn std::er
                 FOREIGN KEY (feed_id) REFERENCES feeds (id)
             );",
         ),
-        // Migration 2: Add Read Status
         M::up("ALTER TABLE articles ADD COLUMN is_read BOOLEAN NOT NULL DEFAULT 0;"),
-        // Migration 3: Add Saved Status (Read Later)
         M::up("ALTER TABLE articles ADD COLUMN is_saved BOOLEAN NOT NULL DEFAULT 0;"),
+        // Migration 4: Add Error State to Feeds
+        M::up("ALTER TABLE feeds ADD COLUMN has_error BOOLEAN NOT NULL DEFAULT 0;"),
     ]);
 
     match migrations.to_latest(conn) {
@@ -46,7 +46,6 @@ pub fn init_db(conn: &mut Connection) -> std::result::Result<(), Box<dyn std::er
         }
     }
 
-    // Ensure default folder exists
     match conn.execute(
         "INSERT OR IGNORE INTO folders (id, name) VALUES (1, 'Uncategorized')",
         [],
@@ -67,13 +66,11 @@ pub fn init_db(conn: &mut Connection) -> std::result::Result<(), Box<dyn std::er
 pub fn get_folders_with_feeds(conn: &Connection) -> Result<Vec<Folder>> {
     debug!("Querying folders with feeds");
 
-    // Sort folders case-insensitive
     let mut folder_stmt =
         conn.prepare("SELECT id, name FROM folders ORDER BY name COLLATE NOCASE")?;
 
-    // Subquery to count unread articles for each feed. Sort feeds case-insensitive.
     let mut feed_stmt = conn.prepare(
-        "SELECT f.id, f.name, f.url, f.folder_id,
+        "SELECT f.id, f.name, f.url, f.folder_id, f.has_error,
         (SELECT COUNT(*) FROM articles a WHERE a.feed_id = f.id AND a.is_read = 0) as unread_count
         FROM feeds f
         WHERE f.folder_id = ?1
@@ -92,7 +89,8 @@ pub fn get_folders_with_feeds(conn: &Connection) -> Result<Vec<Folder>> {
                         name: feed_row.get(1)?,
                         url: feed_row.get(2)?,
                         folder_id: feed_row.get(3)?,
-                        unread_count: feed_row.get(4)?,
+                        has_error: feed_row.get::<_, bool>(4).unwrap_or(false),
+                        unread_count: feed_row.get(5)?,
                     })
                 })
                 .and_then(|mapped_rows| mapped_rows.collect());
@@ -105,7 +103,6 @@ pub fn get_folders_with_feeds(conn: &Connection) -> Result<Vec<Folder>> {
         })?
         .collect::<Result<Vec<Folder>>>()?;
 
-    debug!("Retrieved {} folders", folders.len());
     Ok(folders)
 }
 
@@ -114,21 +111,42 @@ pub fn get_articles_for_feed(
     feed_id: i64,
     limit: usize,
     offset: usize,
+    sort_asc: bool,
 ) -> Result<Vec<Article>> {
-    debug!(
-        "Querying articles for feed_id={}, limit={}, offset={}",
-        feed_id, limit, offset
-    );
-
-    let mut stmt = conn.prepare(
+    let order = if sort_asc { "ASC" } else { "DESC" };
+    let sql = format!(
         "SELECT id, feed_id, title, author, summary, url, timestamp, is_read, is_saved
          FROM articles
          WHERE feed_id = ?1
-         ORDER BY timestamp DESC
+         ORDER BY timestamp {}
          LIMIT ?2 OFFSET ?3",
-    )?;
+        order
+    );
 
+    let mut stmt = conn.prepare(&sql)?;
     map_articles(&mut stmt, params![feed_id, limit, offset])
+}
+
+pub fn get_articles_for_folder(
+    conn: &Connection,
+    folder_id: i64,
+    limit: usize,
+    offset: usize,
+    sort_asc: bool,
+) -> Result<Vec<Article>> {
+    let order = if sort_asc { "ASC" } else { "DESC" };
+    let sql = format!(
+        "SELECT a.id, a.feed_id, a.title, a.author, a.summary, a.url, a.timestamp, a.is_read, a.is_saved
+         FROM articles a
+         JOIN feeds f ON a.feed_id = f.id
+         WHERE f.folder_id = ?1 AND a.is_read = 0
+         ORDER BY a.timestamp {}
+         LIMIT ?2 OFFSET ?3",
+        order
+    );
+
+    let mut stmt = conn.prepare(&sql)?;
+    map_articles(&mut stmt, params![folder_id, limit, offset])
 }
 
 pub fn get_latest_articles(
@@ -136,37 +154,39 @@ pub fn get_latest_articles(
     cutoff_timestamp: i64,
     limit: usize,
     offset: usize,
+    sort_asc: bool,
 ) -> Result<Vec<Article>> {
-    debug!(
-        "Querying latest articles: cutoff={}, limit={}, offset={}",
-        cutoff_timestamp, limit, offset
-    );
-
-    let mut stmt = conn.prepare(
+    let order = if sort_asc { "ASC" } else { "DESC" };
+    let sql = format!(
         "SELECT id, feed_id, title, author, summary, url, timestamp, is_read, is_saved
          FROM articles
          WHERE timestamp > ?1
-         ORDER BY timestamp DESC
+         ORDER BY timestamp {}
          LIMIT ?2 OFFSET ?3",
-    )?;
+        order
+    );
 
+    let mut stmt = conn.prepare(&sql)?;
     map_articles(&mut stmt, params![cutoff_timestamp, limit, offset])
 }
 
-pub fn get_saved_articles(conn: &Connection, limit: usize, offset: usize) -> Result<Vec<Article>> {
-    debug!(
-        "Querying saved articles: limit={}, offset={}",
-        limit, offset
-    );
-
-    let mut stmt = conn.prepare(
+pub fn get_saved_articles(
+    conn: &Connection,
+    limit: usize,
+    offset: usize,
+    sort_asc: bool,
+) -> Result<Vec<Article>> {
+    let order = if sort_asc { "ASC" } else { "DESC" };
+    let sql = format!(
         "SELECT id, feed_id, title, author, summary, url, timestamp, is_read, is_saved
          FROM articles
          WHERE is_saved = 1
-         ORDER BY timestamp DESC
+         ORDER BY timestamp {}
          LIMIT ?1 OFFSET ?2",
-    )?;
+        order
+    );
 
+    let mut stmt = conn.prepare(&sql)?;
     map_articles(&mut stmt, params![limit, offset])
 }
 
@@ -176,10 +196,6 @@ fn map_articles(
 ) -> Result<Vec<Article>> {
     let articles = stmt
         .query_map(params, |row| {
-            // Explicitly handle boolean columns as integers to be safe against SQLite typing nuances
-            let is_read_int: i32 = row.get(7).unwrap_or(0);
-            let is_saved_int: i32 = row.get(8).unwrap_or(0);
-
             Ok(Article {
                 id: row.get(0)?,
                 feed_id: row.get(1)?,
@@ -188,18 +204,15 @@ fn map_articles(
                 summary: row.get(4).unwrap_or_default(),
                 url: row.get(5)?,
                 timestamp: row.get(6)?,
-                is_read: is_read_int != 0,
-                is_saved: is_saved_int != 0,
+                is_read: row.get(7)?,
+                is_saved: row.get(8)?,
             })
         })?
         .collect::<Result<Vec<Article>>>()?;
-
-    debug!("Mapped {} articles", articles.len());
     Ok(articles)
 }
 
 pub fn get_feed_url(conn: &Connection, feed_id: i64) -> Result<String> {
-    debug!("Getting URL for feed_id={}", feed_id);
     conn.query_row(
         "SELECT url FROM feeds WHERE id = ?1",
         params![feed_id],
@@ -207,76 +220,38 @@ pub fn get_feed_url(conn: &Connection, feed_id: i64) -> Result<String> {
     )
 }
 
-pub fn get_articles_for_folder(
-    conn: &Connection,
-    folder_id: i64,
-    limit: usize,
-    offset: usize,
-) -> Result<Vec<Article>> {
-    debug!(
-        "Querying unread articles for folder_id={}, limit={}, offset={}",
-        folder_id, limit, offset
-    );
-
-    let mut stmt = conn.prepare(
-        "SELECT a.id, a.feed_id, a.title, a.author, a.summary, a.url, a.timestamp, a.is_read, a.is_saved
-         FROM articles a
-         JOIN feeds f ON a.feed_id = f.id
-         WHERE f.folder_id = ?1 AND a.is_read = 0
-         ORDER BY a.timestamp DESC
-         LIMIT ?2 OFFSET ?3",
-    )?;
-
-    map_articles(&mut stmt, params![folder_id, limit, offset])
-}
-
 // --- Write Operations ---
 
 pub fn create_folder(conn: &Connection, name: &str) -> Result<i64> {
-    debug!("Creating folder: {}", name);
-
     conn.execute(
         "INSERT OR IGNORE INTO folders (name) VALUES (?1)",
         params![name],
     )?;
-
-    let id = conn.query_row(
+    conn.query_row(
         "SELECT id FROM folders WHERE name = ?1",
         params![name],
         |row| row.get(0),
-    )?;
-
-    debug!("Folder '{}' has id={}", name, id);
-    Ok(id)
+    )
 }
 
 pub fn create_feed(conn: &Connection, name: &str, url: &str, folder_id: i64) -> Result<()> {
-    debug!(
-        "Creating feed '{}' with url='{}' in folder_id={}",
-        name, url, folder_id
-    );
-
-    match conn.execute(
-        "INSERT OR IGNORE INTO feeds (name, url, folder_id) VALUES (?1, ?2, ?3)",
+    conn.execute(
+        "INSERT OR IGNORE INTO feeds (name, url, folder_id, has_error) VALUES (?1, ?2, ?3, 0)",
         params![name, url, folder_id],
-    ) {
-        Ok(rows) => {
-            if rows > 0 {
-                debug!("Feed '{}' created successfully", name);
-            } else {
-                debug!("Feed '{}' already exists", name);
-            }
-            Ok(())
-        }
-        Err(e) => {
-            error!("Failed to create feed '{}': {}", name, e);
-            Err(e)
-        }
-    }
+    )?;
+    Ok(())
+}
+
+pub fn update_feed_error(conn: &Connection, feed_id: i64, has_error: bool) -> Result<()> {
+    conn.execute(
+        "UPDATE feeds SET has_error = ?1 WHERE id = ?2",
+        params![has_error, feed_id],
+    )?;
+    Ok(())
 }
 
 pub fn insert_article(conn: &Connection, article: &Article) -> Result<()> {
-    match conn.execute(
+    conn.execute(
         "INSERT OR IGNORE INTO articles (feed_id, title, author, summary, url, timestamp, is_read, is_saved)
          VALUES (?1, ?2, ?3, ?4, ?5, ?6, 0, 0)",
         params![
@@ -287,23 +262,11 @@ pub fn insert_article(conn: &Connection, article: &Article) -> Result<()> {
             article.url,
             article.timestamp
         ],
-    ) {
-        Ok(rows) => {
-            if rows > 0 {
-                debug!("Inserted new article: {}", article.title);
-            }
-            Ok(())
-        }
-        Err(e) => {
-            // Only log as debug since duplicate articles are expected
-            debug!("Article insert ignored (likely duplicate): {}", article.title);
-            Ok(())
-        }
-    }
+    )?;
+    Ok(())
 }
 
 pub fn mark_article_read(conn: &Connection, article_id: i64) -> Result<()> {
-    debug!("Marking article id={} as read", article_id);
     conn.execute(
         "UPDATE articles SET is_read = 1 WHERE id = ?1",
         params![article_id],
@@ -311,12 +274,23 @@ pub fn mark_article_read(conn: &Connection, article_id: i64) -> Result<()> {
     Ok(())
 }
 
-pub fn update_article_saved(conn: &Connection, article_id: i64, is_saved: bool) -> Result<()> {
-    debug!(
-        "Updating article id={} saved status to {}",
-        article_id, is_saved
-    );
+pub fn mark_feed_read(conn: &Connection, feed_id: i64) -> Result<()> {
+    conn.execute(
+        "UPDATE articles SET is_read = 1 WHERE feed_id = ?1",
+        params![feed_id],
+    )?;
+    Ok(())
+}
 
+pub fn mark_folder_read(conn: &Connection, folder_id: i64) -> Result<()> {
+    conn.execute(
+        "UPDATE articles SET is_read = 1 WHERE feed_id IN (SELECT id FROM feeds WHERE folder_id = ?1)",
+        params![folder_id],
+    )?;
+    Ok(())
+}
+
+pub fn update_article_saved(conn: &Connection, article_id: i64, is_saved: bool) -> Result<()> {
     let val = if is_saved { 1 } else { 0 };
     conn.execute(
         "UPDATE articles SET is_saved = ?1 WHERE id = ?2",
@@ -328,7 +302,6 @@ pub fn update_article_saved(conn: &Connection, article_id: i64, is_saved: bool) 
 // --- Management Operations ---
 
 pub fn rename_folder(conn: &Connection, id: i64, new_name: &str) -> Result<()> {
-    debug!("Renaming folder id={} to '{}'", id, new_name);
     conn.execute(
         "UPDATE folders SET name = ?1 WHERE id = ?2",
         params![new_name, id],
@@ -337,50 +310,26 @@ pub fn rename_folder(conn: &Connection, id: i64, new_name: &str) -> Result<()> {
 }
 
 pub fn delete_feed(conn: &Connection, id: i64) -> Result<()> {
-    debug!("Deleting feed id={}", id);
-
-    // Count articles to be deleted
-    let article_count: i64 = conn.query_row(
-        "SELECT COUNT(*) FROM articles WHERE feed_id = ?1",
-        params![id],
-        |row| row.get(0),
-    )?;
-
     conn.execute("DELETE FROM articles WHERE feed_id = ?1", params![id])?;
     conn.execute("DELETE FROM feeds WHERE id = ?1", params![id])?;
-
-    debug!(
-        "Deleted feed id={} and {} associated articles",
-        id, article_count
-    );
     Ok(())
 }
 
 pub fn delete_folder(conn: &Connection, id: i64) -> Result<()> {
-    debug!("Deleting folder id={}", id);
-
     let mut stmt = conn.prepare("SELECT id FROM feeds WHERE folder_id = ?1")?;
     let feed_ids: Vec<i64> = stmt
         .query_map(params![id], |row| row.get(0))?
         .collect::<Result<Vec<i64>>>()?;
-
-    debug!("Folder id={} contains {} feeds", id, feed_ids.len());
 
     for feed_id in feed_ids {
         delete_feed(conn, feed_id)?;
     }
 
     conn.execute("DELETE FROM folders WHERE id = ?1", params![id])?;
-    debug!("Folder id={} deleted successfully", id);
     Ok(())
 }
 
 pub fn move_feed(conn: &Connection, feed_id: i64, target_folder_id: i64) -> Result<()> {
-    debug!(
-        "Moving feed_id={} to folder_id={}",
-        feed_id, target_folder_id
-    );
-
     conn.execute(
         "UPDATE feeds SET folder_id = ?1 WHERE id = ?2",
         params![target_folder_id, feed_id],

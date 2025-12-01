@@ -73,7 +73,6 @@
         }
     }
 
-    // Double click to toggle
     function onHeaderDblClick(e: MouseEvent) {
         e.stopPropagation();
         onToggle(e);
@@ -136,7 +135,7 @@
                             <span class="feed-name">{feed.name}</span>
                         </span>
 
-                        <!-- Action Area: Spinner / Badge / Refresh Icon -->
+                        <!-- Action Area -->
                         <!-- svelte-ignore a11y_click_events_have_key_events -->
                         <!-- svelte-ignore a11y_no_static_element_interactions -->
                         <div
@@ -148,6 +147,13 @@
                         >
                             {#if appState.isFeedUpdating(feed.id)}
                                 <div class="mini-spinner"></div>
+                            {:else if feed.has_error}
+                                <span class="error-badge" title="Feed update failed">
+                                    <svg width="10" height="10" viewBox="0 0 10 10">
+                                        <line x1="2" y1="2" x2="8" y2="8" stroke="white" stroke-width="2" />
+                                        <line x1="8" y1="2" x2="2" y2="8" stroke="white" stroke-width="2" />
+                                    </svg>
+                                </span>
                             {:else if feed.unread_count > 0}
                                 <span class="badge" title="Click to refresh">{feed.unread_count}</span>
                             {:else}
@@ -304,6 +310,17 @@
     .badge:hover {
         background-color: var(--bg-selected);
         color: white;
+    }
+
+    .error-badge {
+        width: 16px;
+        height: 16px;
+        background-color: #d32f2f;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
     }
 
     .folder-badge {

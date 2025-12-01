@@ -10,6 +10,7 @@ export interface Feed {
 	url: string;
 	folder_id: number;
 	unread_count: number;
+	has_error: boolean;
 }
 
 export interface Article {
