@@ -6,6 +6,13 @@ use rusqlite_migration::{M, Migrations};
 pub fn init_db(conn: &mut Connection) -> std::result::Result<(), Box<dyn std::error::Error>> {
     info!("Initializing database schema");
 
+    // Enable WAL mode for better concurrency and performance
+    conn.execute_batch(
+        "PRAGMA journal_mode = WAL;
+         PRAGMA synchronous = NORMAL;
+         PRAGMA foreign_keys = ON;",
+    )?;
+
     let migrations = Migrations::new(vec![
         M::up(
             "CREATE TABLE folders (

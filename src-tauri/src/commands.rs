@@ -1,7 +1,7 @@
 use crate::{
     AppState, db,
     models::{Article, Folder},
-    settings::AppSettings,
+    settings::{self, AppSettings},
 };
 #[allow(unused_imports)]
 use log::{debug, error, info, warn};
@@ -9,7 +9,7 @@ use readability_rust::Readability;
 use scraper::{Html, Selector};
 use std::fmt::Write;
 use std::io::Cursor;
-use tauri::State;
+use tauri::{AppHandle, Manager, State};
 use url::Url;
 
 fn create_client() -> Result<reqwest::Client, String> {
@@ -24,6 +24,24 @@ fn create_client() -> Result<reqwest::Client, String> {
 pub fn get_app_settings(state: State<'_, AppState>) -> Result<AppSettings, String> {
     let settings = state.settings.lock().unwrap();
     Ok(settings.clone())
+}
+
+#[tauri::command]
+pub fn save_app_settings(
+    new_settings: AppSettings,
+    app_handle: AppHandle,
+    state: State<'_, AppState>,
+) -> Result<(), String> {
+    let mut settings_guard = state.settings.lock().unwrap();
+    *settings_guard = new_settings.clone();
+
+    if let Ok(app_data_dir) = app_handle.path().app_data_dir() {
+        settings::save_settings(&app_data_dir, &new_settings);
+        info!("Settings saved to disk");
+        Ok(())
+    } else {
+        Err("Could not determine app data directory".to_string())
+    }
 }
 
 #[tauri::command]
@@ -220,7 +238,6 @@ pub async fn refresh_feed(feed_id: i64, state: State<'_, AppState>) -> Result<us
                     let conn = state.db.lock().unwrap();
                     let mut count = 0;
                     for entry in feed.entries {
-                        // Better link extraction: Prefer alternate (HTML), then first available
                         let article_url = entry
                             .links
                             .iter()
@@ -310,7 +327,7 @@ pub async fn add_feed(
 
     let original_url = response.url().clone();
 
-    let is_html = response
+    let content_type_html = response
         .headers()
         .get(reqwest::header::CONTENT_TYPE)
         .and_then(|v| v.to_str().ok())
@@ -319,18 +336,24 @@ pub async fn add_feed(
 
     let content_bytes = response.bytes().await.map_err(|e| e.to_string())?;
 
-    let initial_parse = if !is_html {
-        feed_rs::parser::parse(Cursor::new(content_bytes.clone())).ok()
+    let initial_parse = if !content_type_html {
+        match feed_rs::parser::parse(Cursor::new(content_bytes.clone())) {
+            Ok(f) => {
+                if f.title.is_none() && f.entries.is_empty() {
+                    None
+                } else {
+                    Some(f)
+                }
+            }
+            Err(_) => None,
+        }
     } else {
         None
     };
 
-    let should_try_discovery = initial_parse
-        .as_ref()
-        .map(|f| f.entries.is_empty())
-        .unwrap_or(true);
-
-    let (feed, final_url) = if should_try_discovery {
+    let (feed, final_url) = if let Some(f) = initial_parse {
+        (f, url)
+    } else {
         let discovered_url_str = {
             let html_content = String::from_utf8_lossy(&content_bytes);
             let document = Html::parse_document(&html_content);
@@ -370,18 +393,11 @@ pub async fn add_feed(
             let bytes = resp.bytes().await.map_err(|e| e.to_string())?;
             match feed_rs::parser::parse(Cursor::new(bytes)) {
                 Ok(f) => (f, new_url),
-                Err(e) => {
-                    return Err(format!(
-                        "Discovered feed at {} failed to parse: {}",
-                        new_url, e
-                    ));
-                }
+                Err(e) => return Err(format!("Discovered feed failed to parse: {}", e)),
             }
         } else {
-            return Err("No valid feed found (HTML content with no feed links)".to_string());
+            return Err("No valid feed found".to_string());
         }
-    } else {
-        (initial_parse.unwrap(), url)
     };
 
     let title = feed

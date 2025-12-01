@@ -27,6 +27,9 @@ class AppState {
         log_level: 'info'
     });
 
+    // UI States
+    showSettings = $state(false);
+
     navWidth = $state(280);
     listWidth = $state(320);
 
@@ -207,16 +210,8 @@ class AppState {
             } else {
                 return;
             }
-
-            // 1. Refresh unread counts in sidebar
             await this.refreshFolders();
-
-            // 2. Intelligent Optimistic Update:
-            // Mark visible articles as read ONLY if they are not saved.
-            this.articles = this.articles.map(a =>
-                a.is_saved ? a : { ...a, is_read: true }
-            );
-
+            this.articles = this.articles.map(a => a.is_saved ? a : { ...a, is_read: true });
         } catch (e) {
             console.error("Mark all read failed:", e);
         }
@@ -370,8 +365,6 @@ class AppState {
         const newState = !article.is_saved;
         article.is_saved = newState;
 
-        // If marking as saved (Read Later), unmark as read (make it unread)
-        // If unmarking saved, do not change read status automatically (keep as is)
         if (newState) {
             article.is_read = false;
             invoke('mark_article_read', { id: article.id, read: false }).catch(() => { });
@@ -436,6 +429,25 @@ class AppState {
             return await invoke<string>('get_article_content', { url: article.url });
         } catch (e) {
             return null;
+        }
+    }
+
+    openSettings() {
+        this.showSettings = true;
+    }
+
+    closeSettings() {
+        this.showSettings = false;
+    }
+
+    async saveSettings(newSettings: AppSettings) {
+        try {
+            await invoke('save_app_settings', { newSettings });
+            this.settings = newSettings;
+            this.closeSettings();
+            // Optionally restart auto-update interval if changed
+        } catch (e) {
+            this.alert(`Failed to save settings: ${e}`);
         }
     }
 }

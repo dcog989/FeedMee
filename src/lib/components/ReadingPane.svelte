@@ -1,6 +1,7 @@
 <script lang="ts">
     import { tooltip } from "$lib/actions/tooltip.svelte";
     import { appState } from "$lib/store.svelte";
+    import { openUrl } from "@tauri-apps/plugin-opener";
     import DOMPurify from "dompurify";
 
     DOMPurify.addHook("afterSanitizeAttributes", (node: Element) => {
@@ -57,6 +58,16 @@
         const timePart = d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
         return `${datePart} / ${timePart}`;
     }
+
+    // Intercept clicks on links
+    async function handleContentClick(e: MouseEvent) {
+        const target = e.target as HTMLElement;
+        const anchor = target.closest("a");
+        if (anchor && anchor.href) {
+            e.preventDefault();
+            await openUrl(anchor.href);
+        }
+    }
 </script>
 
 <main class="pane">
@@ -109,12 +120,24 @@
                 </div>
             {/if}
 
-            <div class="summary">
+            <!-- svelte-ignore a11y_click_events_have_key_events -->
+            <!-- svelte-ignore a11y_no_static_element_interactions -->
+            <div class="summary" onclick={handleContentClick}>
                 {@html displayHtml}
             </div>
 
             <footer class="article-footer">
-                <a href={appState.selectedArticle.url} target="_blank" rel="noopener noreferrer" class="original-link" use:tooltip={appState.selectedArticle.url}>
+                <a
+                    href={appState.selectedArticle.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="original-link"
+                    use:tooltip={appState.selectedArticle.url}
+                    onclick={(e) => {
+                        e.preventDefault();
+                        openUrl(appState.selectedArticle!.url);
+                    }}
+                >
                     Read original article
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>

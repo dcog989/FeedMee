@@ -1,4 +1,5 @@
 <script lang="ts">
+    import SettingsModal from "$lib/components/SettingsModal.svelte";
     import TitleBar from "$lib/components/TitleBar.svelte";
     import Tooltip from "$lib/components/Tooltip.svelte";
     import { appState } from "$lib/store.svelte";
@@ -24,6 +25,10 @@
         {@render children()}
     </div>
     <Tooltip />
+
+    {#if appState.showSettings}
+        <SettingsModal />
+    {/if}
 
     {#if appState.modalState.isOpen}
         <!-- svelte-ignore a11y_click_events_have_key_events -->

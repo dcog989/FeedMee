@@ -133,6 +133,7 @@ pub fn run() {
             commands::get_latest_articles,
             commands::get_saved_articles,
             commands::get_app_settings,
+            commands::save_app_settings, // Added
             commands::create_folder,
             commands::mark_article_saved,
             commands::mark_article_read,
