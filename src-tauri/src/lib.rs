@@ -30,7 +30,7 @@ pub fn run() {
             }
 
             // Load Settings
-            let app_settings = settings::load_settings(&app_data_dir);
+            let mut app_settings = settings::load_settings(&app_data_dir);
 
             let log_level = match app_settings.log_level.to_lowercase().as_str() {
                 "error" => LevelFilter::Error,
@@ -74,6 +74,20 @@ pub fn run() {
             if let Err(e) = db::init_db(&mut conn) {
                 error!("Schema initialization failed: {}", e);
                 panic!("Schema init failed: {}", e);
+            }
+
+            // Check Vacuum (every 24 hours = 86400 seconds)
+            let now = std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_secs() as i64;
+            if now - app_settings.last_vacuum > 86400 {
+                if let Err(e) = db::run_vacuum(&conn) {
+                    error!("Maintenance VACUUM failed: {}", e);
+                } else {
+                    app_settings.last_vacuum = now;
+                    settings::save_settings(&app_data_dir, &app_settings);
+                }
             }
 
             app.manage(AppState {

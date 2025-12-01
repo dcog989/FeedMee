@@ -32,7 +32,6 @@ pub fn init_db(conn: &mut Connection) -> std::result::Result<(), Box<dyn std::er
         ),
         M::up("ALTER TABLE articles ADD COLUMN is_read BOOLEAN NOT NULL DEFAULT 0;"),
         M::up("ALTER TABLE articles ADD COLUMN is_saved BOOLEAN NOT NULL DEFAULT 0;"),
-        // Migration 4: Add Error State to Feeds
         M::up("ALTER TABLE feeds ADD COLUMN has_error BOOLEAN NOT NULL DEFAULT 0;"),
     ]);
 
@@ -58,6 +57,13 @@ pub fn init_db(conn: &mut Connection) -> std::result::Result<(), Box<dyn std::er
         }
     }
 
+    Ok(())
+}
+
+pub fn run_vacuum(conn: &Connection) -> Result<()> {
+    info!("Running database VACUUM maintenance...");
+    conn.execute("VACUUM", [])?;
+    info!("Database VACUUM completed.");
     Ok(())
 }
 
@@ -272,6 +278,11 @@ pub fn set_article_read(conn: &Connection, article_id: i64, is_read: bool) -> Re
         params![is_read, article_id],
     )?;
     Ok(())
+}
+
+pub fn mark_article_read(conn: &Connection, article_id: i64) -> Result<()> {
+    // Deprecated wrapper, use set_article_read
+    set_article_read(conn, article_id, true)
 }
 
 pub fn mark_feed_read(conn: &Connection, feed_id: i64) -> Result<()> {
