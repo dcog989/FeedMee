@@ -59,6 +59,8 @@
         if (e.dataTransfer) {
             e.dataTransfer.dropEffect = "move";
         }
+        // Trigger expand on hover during drag
+        onExpandHover(folder.id);
     }
 
     function onHeaderDrop(e: DragEvent) {
@@ -81,10 +83,6 @@
         class="folder-header"
         onclick={onToggle}
         oncontextmenu={(e) => onContextMenu(e, "folder", folder.id, folder.name)}
-        ondragenter={(e) => {
-            e.preventDefault();
-            onExpandHover(folder.id);
-        }}
         ondragover={onHeaderDragOver}
         ondrop={onHeaderDrop}
     >
@@ -158,13 +156,7 @@
         color: var(--text-secondary);
         border-radius: 4px;
         transition: background-color 0.2s;
-        /* Critical for Drop Target */
         position: relative;
-    }
-
-    /* VITAL: Prevent children from stealing drag events */
-    .folder-header > * {
-        pointer-events: none;
     }
 
     .folder-header:hover {
@@ -219,7 +211,6 @@
         gap: 8px;
         white-space: nowrap;
         overflow: hidden;
-        /* Re-enable pointer events for specific children if needed, but not on container drag */
     }
 
     .feed-name {

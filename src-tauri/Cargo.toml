@@ -1,6 +1,6 @@
 [package]
 name = "FeedMee"
-version = "0.1.21"
+version = "0.1.22"
 description = "The seriously fast cross-platform news / feed reader."
 authors = ["you"]
 edition = "2024"
@@ -29,3 +29,5 @@ chrono = "0.4"
 scraper = "0.24"
 url = "2.5"
 readability-rust = "0.1"
+log = "0.4.28"
+env_logger = "0.11"
