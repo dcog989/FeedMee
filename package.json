@@ -1,33 +1,39 @@
 {
-    "name": "feedmee",
-    "version": "0.2.0",
-    "description": "The seriously fast cross-platform news / feed reader.",
-    "type": "module",
-    "scripts": {
-        "dev": "npx vite dev",
-        "build": "npx vite build",
-        "preview": "npx vite preview",
-        "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
-        "check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
-        "tauri": "npx tauri"
-    },
-    "license": "MIT",
-    "dependencies": {
-        "@tauri-apps/api": "^2",
-        "@tauri-apps/plugin-dialog": "^2",
-        "@tauri-apps/plugin-fs": "^2",
-        "@tauri-apps/plugin-opener": "^2",
-        "dompurify": "^3.3",
-        "svelte-dnd-action": "^0.9.67"
-    },
-    "devDependencies": {
-        "@sveltejs/adapter-static": "^3.0.10",
-        "@sveltejs/kit": "^2.48.5",
-        "@sveltejs/vite-plugin-svelte": "^6.2.1",
-        "@tauri-apps/cli": "^2",
-        "svelte": "^5.43.8",
-        "svelte-check": "^4.3.4",
-        "typescript": "~5.9.3",
-        "vite": "^7.2.2"
-    }
+  "name": "feedmee",
+  "version": "0.2.0",
+  "description": "The seriously fast feed reader.",
+  "type": "module",
+  "scripts": {
+    "clean": "rm -rf build .context .svelte-kit node_modules bun.lock dist releases src-tauri/gen src-tauri/target src-tauri/Cargo.lock",
+    "dev": "bunx vite dev",
+    "build": "bunx vite build",
+    "preview": "bunx vite preview",
+    "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
+    "check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
+    "crates": "cd src-tauri && cargo update --verbose",
+    "tauri": "bunx tauri",
+    "version": "bun scripts/version.js"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "@tauri-apps/api": "^2.10.1",
+    "@tauri-apps/plugin-dialog": "^2.6.0",
+    "@tauri-apps/plugin-fs": "^2.4.5",
+    "@tauri-apps/plugin-opener": "^2.5.3",
+    "dompurify": "^3.3.1",
+    "svelte-dnd-action": "^0.9.69"
+  },
+  "devDependencies": {
+    "@sveltejs/adapter-static": "^3.0.10",
+    "@sveltejs/kit": "^2.50.2",
+    "@sveltejs/vite-plugin-svelte": "^6.2.4",
+    "@tauri-apps/cli": "^2.10.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.2.7",
+    "prettier": "^3.8.1",
+    "svelte-check": "^4.3.6",
+    "svelte": "^5.50.0",
+    "typescript": "~5.9.3",
+    "vite": "^7.3.1"
+  }
 }

@@ -1,0 +1,22 @@
+# --- General ---
+*.log
+.DS_Store
+Thumbs.db
+build/
+bun.lock
+dist/
+node_modules/
+out/
+yarn.lock
+
+# --- Rust ---
+src-tauri/gen/
+src-tauri/target/
+**/*.rs
+
+# --- Project Stuff ---
+.assets/
+.context/
+.docs/
+.git/
+.husky/

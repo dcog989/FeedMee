@@ -15,10 +15,10 @@
                 "title": "FeedMee",
                 "width": 1024,
                 "height": 768,
+                "resizable": true,
                 "decorations": false,
                 "transparent": false,
-                "visible": false,
-                "resizable": true
+                "visible": false
             }
         ],
         "security": {
