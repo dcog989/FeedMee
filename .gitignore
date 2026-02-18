@@ -28,6 +28,3 @@ project.lock.json
 publish/
 repomix.*.json
 src-tauri/Cargo.lock
-vite.config.js.timestamp-*
-vite.config.ts.timestamp-*
-yarn-error.log

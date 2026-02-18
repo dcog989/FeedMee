@@ -1,0 +1,17 @@
+# Rustfmt Configuration for MarkdownRS
+edition = "2024"
+
+# Width settings
+max_width = 100
+tab_spaces = 4
+hard_tabs = false
+newline_style = "Unix"
+
+# Import/Use formatting
+use_small_heuristics = "Default"
+merge_derives = false
+force_explicit_abi = false
+
+# Control flow
+match_block_trailing_comma = true
+single_line_if_else_max_width = 50

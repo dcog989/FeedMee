@@ -1,6 +1,6 @@
 ﻿# FeedMee
 
-*FeedMee* is an RSS/Atom news reader built for the desktop. This is the initial, beta release. More to come.
+*FeedMee* is an RSS/Atom news reader built for the desktop.
 
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
 ![Tauri](https://img.shields.io/badge/built%20with-Tauri-24C8DB.svg)
@@ -38,3 +38,4 @@
 ```bash
 # Install dependencies
 bun install
+```
