@@ -2,8 +2,8 @@
 name = "FeedMee"
 version = "0.2.1"
 description = "The seriously fast feed reader."
-authors = ["you"]
 edition = "2024"
+authors = ["dcog989"]
 
 [lib]
 name = "feedmee_lib"
