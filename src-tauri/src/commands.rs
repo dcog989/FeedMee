@@ -272,27 +272,25 @@ pub async fn refresh_feed(feed_id: i64, state: State<'_, AppState>) -> Result<us
                             is_read: false,
                             is_saved: false,
                         };
-                        if !article.url.is_empty() {
-                            if let Ok(_) = db::insert_article(&conn, &article) {
-                                count += 1;
-                            }
+                        if !article.url.is_empty() && db::insert_article(&conn, &article).is_ok() {
+                            count += 1;
                         }
                     }
                     let _ = db::update_feed_error(&conn, feed_id, false);
                     Ok(count)
-                }
+                },
                 Err(e) => {
                     let conn = state.db.lock().unwrap();
                     let _ = db::update_feed_error(&conn, feed_id, true);
                     Err(format!("Parse error: {}", e))
-                }
+                },
             }
-        }
+        },
         Err(e) => {
             let conn = state.db.lock().unwrap();
             let _ = db::update_feed_error(&conn, feed_id, true);
             Err(format!("Network error: {}", e))
-        }
+        },
     }
 }
 
@@ -344,7 +342,7 @@ pub async fn add_feed(
                 } else {
                     Some(f)
                 }
-            }
+            },
             Err(_) => None,
         }
     } else {
@@ -366,13 +364,13 @@ pub async fn add_feed(
 
             let mut found = None;
             for sel_str in selectors {
-                if let Ok(selector) = Selector::parse(sel_str) {
-                    if let Some(element) = document.select(&selector).next() {
-                        if let Some(href) = element.value().attr("href") {
-                            found = Some(href.to_string());
-                            break;
-                        }
-                    }
+                if let Some(href) = Selector::parse(sel_str)
+                    .ok()
+                    .and_then(|s| document.select(&s).next())
+                    .and_then(|e| e.value().attr("href"))
+                {
+                    found = Some(href.to_string());
+                    break;
                 }
             }
 

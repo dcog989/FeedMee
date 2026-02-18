@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 use std::fs;
-use std::path::PathBuf;
+use std::path::Path;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct AppSettings {
@@ -24,7 +24,7 @@ impl Default for AppSettings {
     }
 }
 
-pub fn load_settings(app_dir: &PathBuf) -> AppSettings {
+pub fn load_settings(app_dir: &Path) -> AppSettings {
     let settings_path = app_dir.join("settings.toml");
 
     if settings_path.exists() {
@@ -41,7 +41,7 @@ pub fn load_settings(app_dir: &PathBuf) -> AppSettings {
     settings
 }
 
-pub fn save_settings(app_dir: &PathBuf, settings: &AppSettings) {
+pub fn save_settings(app_dir: &Path, settings: &AppSettings) {
     let settings_path = app_dir.join("settings.toml");
     if let Ok(toml_string) = toml::to_string_pretty(settings) {
         let _ = fs::write(settings_path, toml_string);

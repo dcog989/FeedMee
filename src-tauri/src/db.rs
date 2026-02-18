@@ -45,11 +45,11 @@ pub fn init_db(conn: &mut Connection) -> std::result::Result<(), Box<dyn std::er
     match migrations.to_latest(conn) {
         Ok(_) => {
             info!("Database migrations applied successfully");
-        }
+        },
         Err(e) => {
             error!("Failed to apply database migrations: {}", e);
             return Err(e.into());
-        }
+        },
     }
 
     match conn.execute(
@@ -58,10 +58,10 @@ pub fn init_db(conn: &mut Connection) -> std::result::Result<(), Box<dyn std::er
     ) {
         Ok(_) => {
             debug!("Default 'Uncategorized' folder ensured");
-        }
+        },
         Err(e) => {
             warn!("Failed to create default folder: {}", e);
-        }
+        },
     }
 
     Ok(())
@@ -137,7 +137,7 @@ pub fn get_articles_for_feed(
     );
 
     let mut stmt = conn.prepare(&sql)?;
-    map_articles(&mut stmt, params![feed_id, limit, offset])
+    map_articles(&mut stmt, params![feed_id, limit as i64, offset as i64])
 }
 
 pub fn get_articles_for_folder(
@@ -159,7 +159,7 @@ pub fn get_articles_for_folder(
     );
 
     let mut stmt = conn.prepare(&sql)?;
-    map_articles(&mut stmt, params![folder_id, limit, offset])
+    map_articles(&mut stmt, params![folder_id, limit as i64, offset as i64])
 }
 
 pub fn get_latest_articles(
@@ -180,7 +180,10 @@ pub fn get_latest_articles(
     );
 
     let mut stmt = conn.prepare(&sql)?;
-    map_articles(&mut stmt, params![cutoff_timestamp, limit, offset])
+    map_articles(
+        &mut stmt,
+        params![cutoff_timestamp, limit as i64, offset as i64],
+    )
 }
 
 pub fn get_saved_articles(
@@ -200,7 +203,7 @@ pub fn get_saved_articles(
     );
 
     let mut stmt = conn.prepare(&sql)?;
-    map_articles(&mut stmt, params![limit, offset])
+    map_articles(&mut stmt, params![limit as i64, offset as i64])
 }
 
 fn map_articles(
