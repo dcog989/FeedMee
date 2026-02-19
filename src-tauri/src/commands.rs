@@ -325,28 +325,13 @@ pub async fn add_feed(
 
     let original_url = response.url().clone();
 
-    let content_type_html = response
-        .headers()
-        .get(reqwest::header::CONTENT_TYPE)
-        .and_then(|v| v.to_str().ok())
-        .map(|ct| ct.contains("text/html") || ct.contains("application/xhtml"))
-        .unwrap_or(false);
-
     let content_bytes = response.bytes().await.map_err(|e| e.to_string())?;
 
-    let initial_parse = if !content_type_html {
-        match feed_rs::parser::parse(Cursor::new(content_bytes.clone())) {
-            Ok(f) => {
-                if f.title.is_none() && f.entries.is_empty() {
-                    None
-                } else {
-                    Some(f)
-                }
-            },
-            Err(_) => None,
-        }
-    } else {
-        None
+    // Always attempt direct parse first — some servers (e.g. Squarespace) serve
+    // RSS/Atom with text/html content-type, so we cannot rely on headers alone.
+    let initial_parse = match feed_rs::parser::parse(Cursor::new(content_bytes.clone())) {
+        Ok(f) if f.title.is_some() || !f.entries.is_empty() => Some(f),
+        _ => None,
     };
 
     let (feed, final_url) = if let Some(f) = initial_parse {
@@ -355,24 +340,21 @@ pub async fn add_feed(
         let discovered_url_str = {
             let html_content = String::from_utf8_lossy(&content_bytes);
             let document = Html::parse_document(&html_content);
-            let selectors = vec![
-                "link[type='application/rss+xml']",
-                "link[type='application/atom+xml']",
-                "link[rel='alternate'][type='application/rss+xml']",
-                "link[rel='alternate'][type='application/atom+xml']",
-            ];
-
-            let mut found = None;
-            for sel_str in selectors {
-                if let Some(href) = Selector::parse(sel_str)
-                    .ok()
-                    .and_then(|s| document.select(&s).next())
-                    .and_then(|e| e.value().attr("href"))
-                {
-                    found = Some(href.to_string());
-                    break;
-                }
-            }
+            // Select all <link> elements and filter in Rust — avoids CSS quoted-attribute
+            // parsing inconsistencies in the scraper crate.
+            let feed_types = ["application/rss+xml", "application/atom+xml", "application/feed+json"];
+            let found = Selector::parse("link")
+                .ok()
+                .and_then(|sel| {
+                    document.select(&sel).find_map(|el| {
+                        let t = el.value().attr("type").unwrap_or("");
+                        if feed_types.iter().any(|ft| t.contains(ft)) {
+                            el.value().attr("href").map(|h| h.to_string())
+                        } else {
+                            None
+                        }
+                    })
+                });
 
             found.and_then(|href| {
                 Url::parse(original_url.as_str())
