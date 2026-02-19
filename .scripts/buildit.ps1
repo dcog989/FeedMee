@@ -15,7 +15,7 @@ function Show-Menu {
     Clear-Host
     Write-Host "================ FeedMee Project Manager ================"
     Write-Host "1: Install Dependencies"
-    Write-Host "2: Clean Project (npm & Rust)"
+    Write-Host "2: Clean Project (bun & Rust)"
     Write-Host "3: Clean & Install"
     Write-Host "4: Run Development Server"
     Write-Host "Q: Quit"
@@ -79,14 +79,14 @@ function Clear-ProjectBuildCache {
         Write-Host "[WARN] 'src-tauri' directory not found. Skipping 'cargo clean'." -ForegroundColor Yellow
     }
 
-    # Clean npm artifacts
+    # Clean bun artifacts
     if (Test-Path $NodeModulesPath) {
         Write-Host "- Removing node_modules..."
         # Use cmd's rmdir as it's more resilient to file locks than PowerShell's Remove-Item
         cmd.exe /c "rmdir /s /q `"$NodeModulesPath`""
     }
     if (Test-Path $LockFilePath) {
-        Write-Host "- Removing package-lock.json..."
+        Write-Host "- Removing bun.lock..."
         Remove-Item -Force $LockFilePath
     }
     Write-Host "[INFO] Clean complete."
@@ -96,7 +96,7 @@ function Install-Dependencies {
     Write-Host "`n[INFO] Installing dependencies in '$ProjectRoot'..."
     if (Test-Path $ProjectRoot) {
         Push-Location $ProjectRoot
-        npm install
+        bun install
         Pop-Location
         Write-Host "[SUCCESS] Installation complete."
     }
@@ -132,10 +132,10 @@ while ($true) {
             if (Test-Path $ProjectRoot) {
                 Push-Location $ProjectRoot
                 try {
-                    npm run tauri dev
+                    bun run tauri dev
                 }
                 catch {
-                    Write-Host "[ERROR] An error occurred while running 'npm run tauri dev': $_" -ForegroundColor Red
+                    Write-Host "[ERROR] An error occurred while running 'bun run tauri dev': $_" -ForegroundColor Red
                 }
                 finally {
                     Pop-Location
