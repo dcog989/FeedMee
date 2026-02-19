@@ -87,7 +87,18 @@
     {#if appState.selectedArticle}
         <article class="article-content">
             <header>
-                <h1>{appState.selectedArticle.title}</h1>
+                <h1>
+                    <a
+                        href={appState.selectedArticle.url}
+                        onclick={(e) => {
+                            e.preventDefault();
+                            openUrl(appState.selectedArticle!.url);
+                        }}
+                        rel="noopener noreferrer"
+                        class="title-link">
+                        {appState.selectedArticle.title}
+                    </a>
+                </h1>
                 <div class="meta-row">
                     <div class="meta-left">
                         <span class="author">By {appState.selectedArticle.author}</span>
@@ -220,7 +231,7 @@
 
 <style>
     .pane {
-        background-color: var(--bg-content);
+        background-color: var(--bg-reading);
         overflow-y: auto;
         height: 100%;
         padding: 2rem 3rem;
@@ -238,7 +249,16 @@
         font-size: 2.2rem;
         margin-bottom: 0.8rem;
         line-height: 1.2;
-        color: var(--text-primary);
+    }
+
+    .title-link {
+        color: var(--accent-muted);
+        text-decoration: none;
+    }
+
+    .title-link:hover {
+        text-decoration: underline;
+        text-decoration-color: var(--accent-muted);
     }
 
     .meta-row {
