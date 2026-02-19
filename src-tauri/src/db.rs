@@ -331,6 +331,14 @@ pub fn rename_folder(conn: &Connection, id: i64, new_name: &str) -> Result<()> {
     Ok(())
 }
 
+pub fn rename_feed(conn: &Connection, id: i64, new_name: &str) -> Result<()> {
+    conn.execute(
+        "UPDATE feeds SET name = ?1 WHERE id = ?2",
+        params![new_name, id],
+    )?;
+    Ok(())
+}
+
 pub fn delete_feed(conn: &Connection, id: i64) -> Result<()> {
     conn.execute("DELETE FROM articles WHERE feed_id = ?1", params![id])?;
     conn.execute("DELETE FROM feeds WHERE id = ?1", params![id])?;

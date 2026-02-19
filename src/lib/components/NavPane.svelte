@@ -110,6 +110,15 @@
         closeContextMenu();
     }
 
+    function cmRenameFeed() {
+        if (!cmTarget || cmTarget.type !== 'feed') return;
+        const newName = prompt('Rename Feed:', cmTarget.name);
+        if (newName && newName.trim() !== '') {
+            appState.renameFeed(cmTarget.id, newName.trim());
+        }
+        closeContextMenu();
+    }
+
     function cmDelete() {
         if (!cmTarget) return;
         if (cmTarget.type === 'folder') {
@@ -161,6 +170,7 @@
                 <button onclick={cmRename}>Rename Folder</button>
                 <button class="danger" onclick={cmDelete}>Delete Folder</button>
             {:else if cmTarget?.type === 'feed'}
+                <button onclick={cmRenameFeed}>Rename Feed</button>
                 <button class="danger" onclick={cmDelete}>Delete Feed</button>
             {/if}
         </div>

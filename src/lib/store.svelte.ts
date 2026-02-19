@@ -404,6 +404,15 @@ class AppState {
         }
     }
 
+    async renameFeed(id: number, newName: string) {
+        try {
+            await invoke('rename_feed', { id, newName });
+            await this.refreshFolders();
+        } catch (e) {
+            console.error(e);
+        }
+    }
+
     confirm(message: string, onConfirm: () => void) {
         this.modalState = {
             isOpen: true,

@@ -425,6 +425,12 @@ pub fn rename_folder(id: i64, new_name: String, state: State<'_, AppState>) -> R
 }
 
 #[tauri::command]
+pub fn rename_feed(id: i64, new_name: String, state: State<'_, AppState>) -> Result<(), String> {
+    let conn = state.db.lock().unwrap();
+    db::rename_feed(&conn, id, &new_name).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
 pub fn delete_feed(id: i64, state: State<'_, AppState>) -> Result<(), String> {
     let conn = state.db.lock().unwrap();
     db::delete_feed(&conn, id).map_err(|e| e.to_string())
