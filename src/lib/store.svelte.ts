@@ -251,7 +251,7 @@ class AppState {
                 await invoke('import_opml', { path: selected });
                 await this.refreshFolders();
             }
-        } catch (_e) {
+        } catch {
             this.alert('Failed to import OPML file.');
         } finally {
             this.isLoading = false;
@@ -390,7 +390,7 @@ class AppState {
 
         try {
             await invoke('mark_article_saved', { id: article.id, isSaved: newState });
-        } catch (_e) {
+        } catch {
             article.is_saved = !newState;
         }
     }
@@ -473,7 +473,7 @@ class AppState {
     async fetchFullContent(article: Article): Promise<string | null> {
         try {
             return await invoke<string>('get_article_content', { url: article.url });
-        } catch (_e) {
+        } catch {
             return null;
         }
     }

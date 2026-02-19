@@ -2,7 +2,7 @@
     import { tooltip } from '$lib/actions/tooltip.svelte';
     import { appState } from '$lib/store.svelte';
     import type { Feed, Folder } from '$lib/types';
-    import { dndzone, type DndEvent } from 'svelte-dnd-action';
+    import { dndzone, type DndEvent, type Item } from 'svelte-dnd-action';
     import { flip } from 'svelte/animate';
     import { slide } from 'svelte/transition';
 
@@ -30,11 +30,11 @@
     }
 
     // --- DnD List Handlers ---
-    function handleDndConsider(e: CustomEvent<DndEvent<any>>) {
+    function handleDndConsider(e: CustomEvent<DndEvent<Item>>) {
         folder.feeds = e.detail.items as Feed[];
     }
 
-    function handleDndFinalize(e: CustomEvent<DndEvent<any>>) {
+    function handleDndFinalize(e: CustomEvent<DndEvent<Item>>) {
         folder.feeds = e.detail.items as Feed[];
         const items = e.detail.items as Feed[];
         items.forEach((feed) => {
