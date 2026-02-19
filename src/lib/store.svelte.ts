@@ -251,7 +251,7 @@ class AppState {
                 await invoke('import_opml', { path: selected });
                 await this.refreshFolders();
             }
-        } catch (e) {
+        } catch (_e) {
             this.alert('Failed to import OPML file.');
         } finally {
             this.isLoading = false;
@@ -365,7 +365,7 @@ class AppState {
         this.selectedArticle = article;
         if (!article.is_read) {
             article.is_read = true;
-            invoke('mark_article_read', { id: article.id, read: true }).catch((e) => {
+            invoke('mark_article_read', { id: article.id, read: true }).catch((_e) => {
                 article.is_read = false;
             });
             const feedId = article.feed_id;
@@ -390,7 +390,7 @@ class AppState {
 
         try {
             await invoke('mark_article_saved', { id: article.id, isSaved: newState });
-        } catch (e) {
+        } catch (_e) {
             article.is_saved = !newState;
         }
     }
@@ -473,7 +473,7 @@ class AppState {
     async fetchFullContent(article: Article): Promise<string | null> {
         try {
             return await invoke<string>('get_article_content', { url: article.url });
-        } catch (e) {
+        } catch (_e) {
             return null;
         }
     }

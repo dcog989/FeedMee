@@ -10,12 +10,25 @@
     function cancel() {
         appState.closeSettings();
     }
+
+    function onKeyDown(e: KeyboardEvent) {
+        if (e.key === 'Escape') cancel();
+    }
 </script>
 
+<svelte:window onkeydown={onKeyDown} />
 <!-- svelte-ignore a11y_click_events_have_key_events -->
 <!-- svelte-ignore a11y_no_static_element_interactions -->
-<div class="modal-overlay" onclick={cancel}>
-    <div class="modal" onclick={(e) => e.stopPropagation()}>
+<div class="modal-overlay" onclick={cancel} role="presentation">
+    <!-- svelte-ignore a11y_click_events_have_key_events -->
+    <!-- svelte-ignore a11y_no_static_element_interactions -->
+    <div
+        class="modal"
+        onclick={(e) => e.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Settings"
+        tabindex="-1">
         <h3>Settings</h3>
 
         <div class="form-group">
