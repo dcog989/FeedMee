@@ -8,7 +8,7 @@ export type SortOrder = 'desc' | 'asc';
 export const FEED_ID_LATEST = -1;
 export const FEED_ID_SAVED = -2;
 
-const REFRESH_CONCURRENCY = 2;
+const REFRESH_CONCURRENCY = 5;
 
 class AppState {
     folders = $state<Folder[]>([]);
@@ -182,9 +182,12 @@ class AppState {
         try {
             await invoke('refresh_feed', { feedId });
             this.lastRefreshed.set(feedId, Date.now());
-            await this.refreshFolders();
         } catch (e) {
             console.error(`Failed to refresh feed ${feedId}:`, e);
+        } finally {
+            const newSet = new Set(this.updatingFeedIds);
+            newSet.delete(feedId);
+            this.updatingFeedIds = newSet;
         }
     }
 
