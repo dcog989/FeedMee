@@ -6,6 +6,7 @@
 
     let showAddDialog = $state(false);
     let newFeedUrl = $state('');
+    let selectedFolderId = $state<number | null>(null);
 
     function minimize() {
         appWindow.minimize();
@@ -24,8 +25,17 @@
         appWindow.close();
     }
 
-    function openAddDialog() {
+    async function openAddDialog() {
         newFeedUrl = '';
+        selectedFolderId = null;
+        try {
+            const text = await navigator.clipboard.readText();
+            if (/^https?:\/\/.+/.test(text.trim())) {
+                newFeedUrl = text.trim();
+            }
+        } catch {
+            /* clipboard access denied */
+        }
         showAddDialog = true;
     }
 
@@ -35,7 +45,7 @@
 
     function submitAddFeed() {
         if (newFeedUrl && newFeedUrl.trim().length > 0) {
-            appState.addFeed(newFeedUrl.trim());
+            appState.addFeed(newFeedUrl.trim(), selectedFolderId);
             closeAddDialog();
         }
     }
@@ -175,6 +185,16 @@
                     onkeydown={onKeyDown}
                     use:focusOnMount />
                 <button class="primary" onclick={submitAddFeed}>Add Feed</button>
+            </div>
+
+            <div class="form-group">
+                <label for="folder-select">Add to folder</label>
+                <select id="folder-select" bind:value={selectedFolderId}>
+                    <option value={null}>Uncategorized</option>
+                    {#each appState.folders as folder (folder.id)}
+                        <option value={folder.id}>{folder.name}</option>
+                    {/each}
+                </select>
             </div>
 
             <div class="divider">
@@ -389,6 +409,28 @@
 
     button.secondary:hover {
         background-color: var(--bg-hover);
+    }
+
+    .form-group {
+        margin-bottom: 1rem;
+    }
+
+    .form-group label {
+        display: block;
+        font-size: 0.8rem;
+        color: var(--text-secondary);
+        margin-bottom: 4px;
+    }
+
+    .form-group select {
+        width: 100%;
+        padding: 8px;
+        background: var(--bg-app);
+        border: 1px solid var(--border-color);
+        color: var(--text-primary);
+        border-radius: 4px;
+        font-size: 0.9rem;
+        cursor: pointer;
     }
 
     .divider {

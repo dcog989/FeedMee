@@ -219,10 +219,10 @@ class AppState {
         }
     }
 
-    async addFeed(url: string) {
+    async addFeed(url: string, folderId: number | null = null) {
         this.isLoading = true;
         try {
-            await invoke('add_feed', { url, folderId: null });
+            await invoke('add_feed', { url, folderId });
             await this.refreshFolders();
         } catch (e) {
             this.alert(`Error adding feed: ${e}`);
