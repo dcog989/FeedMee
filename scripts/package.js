@@ -35,7 +35,7 @@ console.log(`🚀 Packaging FeedMee v${version} with Velopack...`);
 // and frontend is built via the beforeBuildCommand.
 console.log('🏗️  Compiling binary...');
 try {
-    execSync('tauri build', { stdio: 'inherit', cwd: rootDir });
+    execSync('bunx tauri build --no-bundle', { stdio: 'inherit', cwd: rootDir });
 } catch {
     console.error('❌ Compilation failed.');
     process.exit(1);
