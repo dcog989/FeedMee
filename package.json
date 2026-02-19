@@ -5,6 +5,7 @@
   "license": "MIT",
   "type": "module",
   "scripts": {
+    "prepare": "husky",
     "build": "bunx vite build",
     "check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
     "check": "svelte-kit sync ; bun run lint:types ; bun run lint:frontend ; bun run lint:backend",
@@ -15,6 +16,7 @@
     "lint:backend": "echo \"[Lint] Checking Backend...\" && cd src-tauri && cargo check && cargo clippy --all-targets --all-features -- -D warnings",
     "lint:frontend": "echo \"[Lint] Checking Frontend Syntax...\" && eslint .",
     "lint:types": "echo \"[Lint] Checking Frontend Types...\" && svelte-check --tsconfig ./tsconfig.json --threshold error",
+    "package": "bun scripts/package.js",
     "preview": "bunx vite preview",
     "tauri": "bunx tauri",
     "update": "bun update && bun run crates",

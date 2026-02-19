@@ -1,9 +1,10 @@
-echo "🚀 Starting pre-commit checks..."
+#!/usr/bin/env sh
+echo "Starting pre-commit checks..."
 
 # 1. Run whole-project type check
-bun run lint:types || { echo "❌ Type check failed. Commit aborted."; exit 1; }
+bun run lint:types || { echo "Type check failed. Commit aborted."; exit 1; }
 
-# 2. Run lint-staged for auto-fixes (ESLint + Prettier)
-bunx lint-staged || { echo "❌ Linting failed. Commit aborted."; exit 1; }
+# 2. Run lint-staged for auto-fixes (Prettier + ESLint)
+bunx lint-staged || { echo "Linting failed. Commit aborted."; exit 1; }
 
-echo "✅ All checks passed. Committing..."
+echo "All checks passed. Committing..."
