@@ -1,45 +1,42 @@
 <!doctype html>
 <html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <link rel="icon" href="%sveltekit.assets%/feedmee.png" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <title>FeedMee</title>
 
-<head>
-  <meta charset="utf-8" />
-  <link rel="icon" href="%sveltekit.assets%/feedmee.png" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>FeedMee</title>
+        <!-- Critical CSS: Paints background immediately based on system theme -->
+        <style>
+            html,
+            body {
+                background-color: #ffffff;
+                height: 100%;
+                margin: 0;
+            }
 
-  <!-- Critical CSS: Paints background immediately based on system theme -->
-  <style>
-    html,
-    body {
-      background-color: #ffffff;
-      height: 100%;
-      margin: 0;
-    }
+            @media (prefers-color-scheme: dark) {
+                html,
+                body {
+                    background-color: #1e1e1e;
+                }
+            }
+        </style>
 
-    @media (prefers-color-scheme: dark) {
+        <!-- Theme Initialization Script -->
+        <script>
+            (function () {
+                const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+                if (prefersDark) {
+                    document.documentElement.setAttribute('data-theme', 'dark');
+                }
+            })();
+        </script>
 
-      html,
-      body {
-        background-color: #1e1e1e;
-      }
-    }
-  </style>
+        %sveltekit.head%
+    </head>
 
-  <!-- Theme Initialization Script -->
-  <script>
-    (function () {
-      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-      if (prefersDark) {
-        document.documentElement.setAttribute('data-theme', 'dark');
-      }
-    })();
-  </script>
-
-  %sveltekit.head%
-</head>
-
-<body data-sveltekit-preload-data="hover">
-  <div style="display: contents">%sveltekit.body%</div>
-</body>
-
+    <body data-sveltekit-preload-data="hover">
+        <div style="display: contents">%sveltekit.body%</div>
+    </body>
 </html>

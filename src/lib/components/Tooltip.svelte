@@ -1,12 +1,15 @@
 <script lang="ts">
-    import { tooltipState } from "$lib/actions/tooltip.svelte";
+    import { tooltipState } from '$lib/actions/tooltip.svelte';
     // Safety check to keep tooltip on screen would be nice, but simple fixed positioning for MVP
     // We add a transition for ease-in
-    import { fade } from "svelte/transition";
+    import { fade } from 'svelte/transition';
 </script>
 
 {#if tooltipState.visible}
-    <div class="tooltip" style="top: {tooltipState.y}px; left: {tooltipState.x}px;" transition:fade={{ duration: 150 }}>
+    <div
+        class="tooltip"
+        style="top: {tooltipState.y}px; left: {tooltipState.x}px;"
+        transition:fade={{ duration: 150 }}>
         {tooltipState.text}
     </div>
 {/if}

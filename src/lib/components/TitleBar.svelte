@@ -1,11 +1,11 @@
 <script lang="ts">
-    import { appState } from "$lib/store.svelte";
-    import { getCurrentWindow } from "@tauri-apps/api/window";
+    import { appState } from '$lib/store.svelte';
+    import { getCurrentWindow } from '@tauri-apps/api/window';
 
     const appWindow = getCurrentWindow();
 
     let showAddDialog = $state(false);
-    let newFeedUrl = $state("");
+    let newFeedUrl = $state('');
 
     function minimize() {
         appWindow.minimize();
@@ -25,7 +25,7 @@
     }
 
     function openAddDialog() {
-        newFeedUrl = "";
+        newFeedUrl = '';
         showAddDialog = true;
     }
 
@@ -46,9 +46,9 @@
     }
 
     function onKeyDown(e: KeyboardEvent) {
-        if (e.key === "Enter") {
+        if (e.key === 'Enter') {
             submitAddFeed();
-        } else if (e.key === "Escape") {
+        } else if (e.key === 'Escape') {
             closeAddDialog();
         }
     }
@@ -66,15 +66,35 @@
     </div>
 
     <div class="toolbar">
-        <button class="tool-btn" onclick={openAddDialog} title="Add Content" aria-label="Add Content">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <button
+            class="tool-btn"
+            onclick={openAddDialog}
+            title="Add Content"
+            aria-label="Add Content">
+            <svg
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2">
                 <line x1="12" y1="5" x2="12" y2="19"></line>
                 <line x1="5" y1="12" x2="19" y2="12"></line>
             </svg>
         </button>
 
-        <button class="tool-btn" onclick={() => appState.exportOpml()} title="Export OPML" aria-label="Export OPML">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <button
+            class="tool-btn"
+            onclick={() => appState.exportOpml()}
+            title="Export OPML"
+            aria-label="Export OPML">
+            <svg
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2">
                 <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"></path>
                 <polyline points="16 6 12 2 8 6"></polyline>
                 <line x1="12" y1="2" x2="12" y2="15"></line>
@@ -82,7 +102,14 @@
         </button>
 
         <div class="search-wrapper">
-            <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <svg
+                class="search-icon"
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2">
                 <circle cx="11" cy="11" r="8"></circle>
                 <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
             </svg>
@@ -91,8 +118,18 @@
     </div>
 
     <div class="right-section">
-        <button class="tool-btn" onclick={() => appState.openSettings()} title="Settings" aria-label="Settings">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <button
+            class="tool-btn"
+            onclick={() => appState.openSettings()}
+            title="Settings"
+            aria-label="Settings">
+            <svg
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2">
                 <line x1="3" y1="12" x2="21" y2="12"></line>
                 <line x1="3" y1="6" x2="21" y2="6"></line>
                 <line x1="3" y1="18" x2="21" y2="18"></line>
@@ -101,13 +138,23 @@
 
         <div class="window-controls">
             <button class="win-btn" onclick={minimize} aria-label="Minimize">
-                <svg width="10" height="10" viewBox="0 0 10 10"><path d="M1,5 L9,5" stroke="currentColor" stroke-width="1" /></svg>
+                <svg width="10" height="10" viewBox="0 0 10 10"
+                    ><path d="M1,5 L9,5" stroke="currentColor" stroke-width="1" /></svg>
             </button>
             <button class="win-btn" onclick={maximize} aria-label="Maximize">
-                <svg width="10" height="10" viewBox="0 0 10 10"><rect x="2" y="2" width="6" height="6" stroke="currentColor" stroke-width="1" fill="none" /></svg>
+                <svg width="10" height="10" viewBox="0 0 10 10"
+                    ><rect
+                        x="2"
+                        y="2"
+                        width="6"
+                        height="6"
+                        stroke="currentColor"
+                        stroke-width="1"
+                        fill="none" /></svg>
             </button>
             <button class="win-btn close" onclick={close} aria-label="Close">
-                <svg width="10" height="10" viewBox="0 0 10 10"><path d="M2,2 L8,8 M8,2 L2,8" stroke="currentColor" stroke-width="1" /></svg>
+                <svg width="10" height="10" viewBox="0 0 10 10"
+                    ><path d="M2,2 L8,8 M8,2 L2,8" stroke="currentColor" stroke-width="1" /></svg>
             </button>
         </div>
     </div>
@@ -120,7 +167,12 @@
         <div class="modal" onclick={(e) => e.stopPropagation()}>
             <h3>Add Content</h3>
             <div class="input-group">
-                <input type="text" bind:value={newFeedUrl} placeholder="Enter RSS Feed URL" onkeydown={onKeyDown} use:focusOnMount />
+                <input
+                    type="text"
+                    bind:value={newFeedUrl}
+                    placeholder="Enter RSS Feed URL"
+                    onkeydown={onKeyDown}
+                    use:focusOnMount />
                 <button class="primary" onclick={submitAddFeed}>Add Feed</button>
             </div>
 
@@ -349,7 +401,7 @@
 
     .divider::before,
     .divider::after {
-        content: "";
+        content: '';
         flex: 1;
         border-bottom: 1px solid var(--border-color);
     }

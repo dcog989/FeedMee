@@ -1,6 +1,6 @@
 # FeedMee
 
-*FeedMee* is an RSS/Atom news reader built for the desktop.
+_FeedMee_ is an RSS/Atom news reader built for the desktop.
 
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
 ![Tauri](https://img.shields.io/badge/built%20with-Tauri-24C8DB.svg)
@@ -12,9 +12,9 @@
 - **Three-Pane Layout:** Classic, responsive interface (Navigation, Article List, Reading Pane).
 - **Reader Mode:** Extracts full article content using `Readability`, stripping clutter.
 - **Feed Management:**
-  - Auto-discovery of RSS/Atom links from URLs.
-  - Drag-and-drop folder organization.
-  - OPML Import/Export.
+    - Auto-discovery of RSS/Atom links from URLs.
+    - Drag-and-drop folder organization.
+    - OPML Import/Export.
 - **Smart Views:** "Latest" (24h) and "Read Later" (Saved) aggregation.
 - **Local Privacy:** All data is stored locally in SQLite. No tracking, no accounts.
 - **Customizable:** Dark/Light themes, configurable refresh intervals, and log rotation.

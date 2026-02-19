@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { appState } from "$lib/store.svelte";
+    import { appState } from '$lib/store.svelte';
 
     let settings = $state({ ...appState.settings });
 
@@ -20,17 +20,29 @@
 
         <div class="form-group">
             <label for="refresh-rate">Feed Refresh Debounce (Minutes)</label>
-            <input type="number" id="refresh-rate" bind:value={settings.feed_refresh_debounce_minutes} min="1" />
+            <input
+                type="number"
+                id="refresh-rate"
+                bind:value={settings.feed_refresh_debounce_minutes}
+                min="1" />
         </div>
 
         <div class="form-group">
             <label for="refresh-all-rate">"Refresh All" Debounce (Minutes)</label>
-            <input type="number" id="refresh-all-rate" bind:value={settings.refresh_all_debounce_minutes} min="1" />
+            <input
+                type="number"
+                id="refresh-all-rate"
+                bind:value={settings.refresh_all_debounce_minutes}
+                min="1" />
         </div>
 
         <div class="form-group">
             <label for="auto-update">Auto Update Interval (Minutes)</label>
-            <input type="number" id="auto-update" bind:value={settings.auto_update_interval_minutes} min="0" />
+            <input
+                type="number"
+                id="auto-update"
+                bind:value={settings.auto_update_interval_minutes}
+                min="0" />
             <span class="hint">Set to 0 to disable</span>
         </div>
 

@@ -24,7 +24,7 @@ class AppState {
         feed_refresh_debounce_minutes: 5,
         refresh_all_debounce_minutes: 2,
         auto_update_interval_minutes: 30,
-        log_level: 'info'
+        log_level: 'info',
     });
 
     // UI States
@@ -51,7 +51,7 @@ class AppState {
         isOpen: false,
         type: 'confirm',
         message: '',
-        onConfirm: () => { }
+        onConfirm: () => {},
     });
 
     constructor() {
@@ -76,7 +76,7 @@ class AppState {
                 setInterval(() => this.refreshAllFeeds(), intervalMs);
             }
         } catch (e) {
-            console.error("Failed to load settings", e);
+            console.error('Failed to load settings', e);
         }
 
         this.refreshFolders();
@@ -104,9 +104,9 @@ class AppState {
     }
 
     isFolderUpdating(folderId: number) {
-        const folder = this.folders.find(f => f.id === folderId);
+        const folder = this.folders.find((f) => f.id === folderId);
         if (!folder) return false;
-        return folder.feeds.some(feed => this.updatingFeedIds.has(feed.id));
+        return folder.feeds.some((feed) => this.updatingFeedIds.has(feed.id));
     }
 
     async refreshAllFeeds() {
@@ -119,9 +119,9 @@ class AppState {
         this.lastRefreshAll = Date.now();
         this.isLoading = true;
 
-        const allFeeds: Feed[] = this.folders.flatMap(f => f.feeds);
+        const allFeeds: Feed[] = this.folders.flatMap((f) => f.feeds);
         const newSet = new Set(this.updatingFeedIds);
-        allFeeds.forEach(f => newSet.add(f.id));
+        allFeeds.forEach((f) => newSet.add(f.id));
         this.updatingFeedIds = newSet;
 
         let index = 0;
@@ -132,7 +132,9 @@ class AppState {
             }
         };
 
-        const workers = Array(REFRESH_CONCURRENCY).fill(null).map(() => worker());
+        const workers = Array(REFRESH_CONCURRENCY)
+            .fill(null)
+            .map(() => worker());
 
         try {
             await Promise.all(workers);
@@ -211,9 +213,9 @@ class AppState {
                 return;
             }
             await this.refreshFolders();
-            this.articles = this.articles.map(a => a.is_saved ? a : { ...a, is_read: true });
+            this.articles = this.articles.map((a) => (a.is_saved ? a : { ...a, is_read: true }));
         } catch (e) {
-            console.error("Mark all read failed:", e);
+            console.error('Mark all read failed:', e);
         }
     }
 
@@ -242,7 +244,7 @@ class AppState {
         try {
             const selected = await open({
                 multiple: false,
-                filters: [{ name: 'OPML Files', extensions: ['opml', 'xml'] }]
+                filters: [{ name: 'OPML Files', extensions: ['opml', 'xml'] }],
             });
             if (selected && typeof selected === 'string') {
                 this.isLoading = true;
@@ -262,7 +264,7 @@ class AppState {
             if (!opmlContent) return;
             const filePath = await save({
                 filters: [{ name: 'OPML File', extensions: ['opml'] }],
-                defaultPath: 'feeds.opml'
+                defaultPath: 'feeds.opml',
             });
             if (filePath) {
                 await invoke('write_file', { path: filePath, content: opmlContent });
@@ -307,7 +309,8 @@ class AppState {
     }
 
     async loadMore() {
-        if ((!this.selectedFeedId && !this.selectedFolderId) || !this.hasMore || this.isLoading) return;
+        if ((!this.selectedFeedId && !this.selectedFolderId) || !this.hasMore || this.isLoading)
+            return;
         this.isLoading = true;
         const nextPage = this.page + 1;
         try {
@@ -331,14 +334,29 @@ class AppState {
         const sortDesc = this.sortOrder === 'desc';
 
         if (this.selectedFeedId === FEED_ID_LATEST) {
-            const cutoff = Math.floor(Date.now() / 1000) - (this.latestHours * 3600);
-            return await invoke('get_latest_articles', { cutoffTimestamp: cutoff, limit: this.pageSize, offset, sortDesc });
+            const cutoff = Math.floor(Date.now() / 1000) - this.latestHours * 3600;
+            return await invoke('get_latest_articles', {
+                cutoffTimestamp: cutoff,
+                limit: this.pageSize,
+                offset,
+                sortDesc,
+            });
         } else if (this.selectedFeedId === FEED_ID_SAVED) {
             return await invoke('get_saved_articles', { limit: this.pageSize, offset, sortDesc });
         } else if (this.selectedFeedId) {
-            return await invoke('get_articles_for_feed', { feedId: this.selectedFeedId, limit: this.pageSize, offset, sortDesc });
+            return await invoke('get_articles_for_feed', {
+                feedId: this.selectedFeedId,
+                limit: this.pageSize,
+                offset,
+                sortDesc,
+            });
         } else if (this.selectedFolderId) {
-            return await invoke('get_articles_for_folder', { folderId: this.selectedFolderId, limit: this.pageSize, offset, sortDesc });
+            return await invoke('get_articles_for_folder', {
+                folderId: this.selectedFolderId,
+                limit: this.pageSize,
+                offset,
+                sortDesc,
+            });
         }
         return [];
     }
@@ -347,12 +365,12 @@ class AppState {
         this.selectedArticle = article;
         if (!article.is_read) {
             article.is_read = true;
-            invoke('mark_article_read', { id: article.id, read: true }).catch(e => {
+            invoke('mark_article_read', { id: article.id, read: true }).catch((e) => {
                 article.is_read = false;
             });
             const feedId = article.feed_id;
             for (const folder of this.folders) {
-                const feed = folder.feeds.find(f => f.id === feedId);
+                const feed = folder.feeds.find((f) => f.id === feedId);
                 if (feed && feed.unread_count > 0) {
                     feed.unread_count--;
                     break;
@@ -367,7 +385,7 @@ class AppState {
 
         if (newState) {
             article.is_read = false;
-            invoke('mark_article_read', { id: article.id, read: false }).catch(() => { });
+            invoke('mark_article_read', { id: article.id, read: false }).catch(() => {});
         }
 
         try {
@@ -381,15 +399,32 @@ class AppState {
         try {
             await invoke('rename_folder', { id, newName });
             await this.refreshFolders();
-        } catch (e) { console.error(e); }
+        } catch (e) {
+            console.error(e);
+        }
     }
 
     confirm(message: string, onConfirm: () => void) {
-        this.modalState = { isOpen: true, type: 'confirm', message, onConfirm: () => { onConfirm(); this.modalState.isOpen = false; } };
+        this.modalState = {
+            isOpen: true,
+            type: 'confirm',
+            message,
+            onConfirm: () => {
+                onConfirm();
+                this.modalState.isOpen = false;
+            },
+        };
     }
 
     alert(message: string) {
-        this.modalState = { isOpen: true, type: 'alert', message, onConfirm: () => { this.modalState.isOpen = false; } };
+        this.modalState = {
+            isOpen: true,
+            type: 'alert',
+            message,
+            onConfirm: () => {
+                this.modalState.isOpen = false;
+            },
+        };
     }
 
     closeModal() {
@@ -400,9 +435,14 @@ class AppState {
         this.confirm('Delete feed?', async () => {
             try {
                 await invoke('delete_feed', { id });
-                if (this.selectedFeedId === id) { this.selectedFeedId = null; this.articles = []; }
+                if (this.selectedFeedId === id) {
+                    this.selectedFeedId = null;
+                    this.articles = [];
+                }
                 await this.refreshFolders();
-            } catch (e) { console.error(e); }
+            } catch (e) {
+                console.error(e);
+            }
         });
     }
 
@@ -411,7 +451,9 @@ class AppState {
             try {
                 await invoke('delete_folder', { id });
                 await this.refreshFolders();
-            } catch (e) { console.error(e); }
+            } catch (e) {
+                console.error(e);
+            }
         });
     }
 
@@ -419,10 +461,14 @@ class AppState {
         try {
             await invoke('move_feed', { feedId, folderId });
             await this.refreshFolders();
-        } catch (e) { console.error(e); }
+        } catch (e) {
+            console.error(e);
+        }
     }
 
-    setTheme(newTheme: Theme) { this.theme = newTheme; }
+    setTheme(newTheme: Theme) {
+        this.theme = newTheme;
+    }
 
     async fetchFullContent(article: Article): Promise<string | null> {
         try {

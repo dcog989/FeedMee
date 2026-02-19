@@ -1,7 +1,7 @@
 <script lang="ts">
-    import { tooltip } from "$lib/actions/tooltip.svelte";
-    import { appState } from "$lib/store.svelte";
-    import type { Article } from "$lib/types";
+    import { tooltip } from '$lib/actions/tooltip.svelte';
+    import { appState } from '$lib/store.svelte';
+    import type { Article } from '$lib/types';
 
     let listContainer: HTMLElement;
 
@@ -14,7 +14,7 @@
     }
 
     function handleKeydown(e: KeyboardEvent, article: Article) {
-        if (e.key === "Enter" || e.key === " ") {
+        if (e.key === 'Enter' || e.key === ' ') {
             e.preventDefault();
             appState.selectArticle(article);
         }
@@ -23,9 +23,21 @@
 
 <div class="pane-wrapper">
     <div class="list-toolbar">
-        <button class="tool-btn" onclick={() => appState.setSortOrder(appState.sortOrder === "desc" ? "asc" : "desc")} use:tooltip={appState.sortOrder === "desc" ? "Sort: Newest First" : "Sort: Oldest First"} aria-label={appState.sortOrder === "desc" ? "Sort Newest First" : "Sort Oldest First"}>
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                {#if appState.sortOrder === "desc"}
+        <button
+            class="tool-btn"
+            onclick={() => appState.setSortOrder(appState.sortOrder === 'desc' ? 'asc' : 'desc')}
+            use:tooltip={appState.sortOrder === 'desc'
+                ? 'Sort: Newest First'
+                : 'Sort: Oldest First'}
+            aria-label={appState.sortOrder === 'desc' ? 'Sort Newest First' : 'Sort Oldest First'}>
+            <svg
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2">
+                {#if appState.sortOrder === 'desc'}
                     <path d="M10 18h4 M6 12h12 M3 6h18" />
                 {:else}
                     <path d="M3 18h18 M6 12h12 M10 6h4" />
@@ -33,8 +45,18 @@
             </svg>
         </button>
 
-        <button class="tool-btn" onclick={() => appState.markAllRead()} use:tooltip={"Mark All Read"} aria-label="Mark All Read">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <button
+            class="tool-btn"
+            onclick={() => appState.markAllRead()}
+            use:tooltip={'Mark All Read'}
+            aria-label="Mark All Read">
+            <svg
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2">
                 <path d="M18 6L7 17l-5-5"></path>
                 <path d="M22 10l-7.5 7.5L13 16"></path>
             </svg>
@@ -46,12 +68,22 @@
             <ul class="article-list">
                 {#each appState.articles as article (article.id)}
                     <li>
-                        <div class="article-card" class:selected={appState.selectedArticle?.id === article.id} class:unread={!article.is_read} onclick={() => appState.selectArticle(article)} onkeydown={(e) => handleKeydown(e, article)} role="button" tabindex="0">
+                        <div
+                            class="article-card"
+                            class:selected={appState.selectedArticle?.id === article.id}
+                            class:unread={!article.is_read}
+                            onclick={() => appState.selectArticle(article)}
+                            onkeydown={(e) => handleKeydown(e, article)}
+                            role="button"
+                            tabindex="0">
                             <span class="title" title={article.title}>{article.title}</span>
 
                             <div class="meta-line">
                                 <div class="meta-left">
-                                    <span class="date">{new Date(article.timestamp * 1000).toLocaleDateString()}</span>
+                                    <span class="date"
+                                        >{new Date(
+                                            article.timestamp * 1000,
+                                        ).toLocaleDateString()}</span>
                                     <span class="separator">•</span>
                                     <span class="author">{article.author}</span>
                                 </div>
@@ -64,11 +96,18 @@
                                             e.stopPropagation();
                                             appState.toggleSaved(article);
                                         }}
-                                        use:tooltip={"Read Later"}
-                                        aria-label="Read Later"
-                                    >
-                                        <svg width="14" height="14" viewBox="0 0 24 24" fill={article.is_saved ? "currentColor" : "none"} stroke="currentColor" stroke-width="2">
-                                            <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path>
+                                        use:tooltip={'Read Later'}
+                                        aria-label="Read Later">
+                                        <svg
+                                            width="14"
+                                            height="14"
+                                            viewBox="0 0 24 24"
+                                            fill={article.is_saved ? 'currentColor' : 'none'}
+                                            stroke="currentColor"
+                                            stroke-width="2">
+                                            <path
+                                                d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"
+                                            ></path>
                                         </svg>
                                     </button>
                                 </div>

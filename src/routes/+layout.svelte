@@ -1,20 +1,20 @@
 <script lang="ts">
-    import SettingsModal from "$lib/components/SettingsModal.svelte";
-    import TitleBar from "$lib/components/TitleBar.svelte";
-    import Tooltip from "$lib/components/Tooltip.svelte";
-    import { appState } from "$lib/store.svelte";
-    import "../app.css";
+    import SettingsModal from '$lib/components/SettingsModal.svelte';
+    import TitleBar from '$lib/components/TitleBar.svelte';
+    import Tooltip from '$lib/components/Tooltip.svelte';
+    import { appState } from '$lib/store.svelte';
+    import '../app.css';
 
     let { children } = $props();
 
     $effect(() => {
         const root = document.documentElement;
 
-        if (appState.theme === "system") {
-            const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-            root.setAttribute("data-theme", prefersDark ? "dark" : "light");
+        if (appState.theme === 'system') {
+            const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+            root.setAttribute('data-theme', prefersDark ? 'dark' : 'light');
         } else {
-            root.setAttribute("data-theme", appState.theme);
+            root.setAttribute('data-theme', appState.theme);
         }
     });
 </script>
@@ -35,14 +35,17 @@
         <!-- svelte-ignore a11y_no_static_element_interactions -->
         <div class="modal-overlay" onclick={() => appState.closeModal()}>
             <div class="modal" onclick={(e) => e.stopPropagation()}>
-                <h3>{appState.modalState.type === "confirm" ? "Confirmation" : "Alert"}</h3>
+                <h3>{appState.modalState.type === 'confirm' ? 'Confirmation' : 'Alert'}</h3>
                 <p>{appState.modalState.message}</p>
                 <div class="modal-actions">
-                    {#if appState.modalState.type === "confirm"}
-                        <button class="secondary" onclick={() => appState.closeModal()}>Cancel</button>
+                    {#if appState.modalState.type === 'confirm'}
+                        <button class="secondary" onclick={() => appState.closeModal()}
+                            >Cancel</button>
                     {/if}
-                    <button class={appState.modalState.type === "confirm" ? "danger" : "primary"} onclick={appState.modalState.onConfirm}>
-                        {appState.modalState.type === "confirm" ? "Confirm" : "OK"}
+                    <button
+                        class={appState.modalState.type === 'confirm' ? 'danger' : 'primary'}
+                        onclick={appState.modalState.onConfirm}>
+                        {appState.modalState.type === 'confirm' ? 'Confirm' : 'OK'}
                     </button>
                 </div>
             </div>

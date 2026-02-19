@@ -1,10 +1,13 @@
-{
+﻿{
   "[json][jsonc][markdown][toml][yaml]": {
     "editor.tabSize": 2
   },
   "[rust]": {
     "editor.defaultFormatter": "rust-lang.rust-analyzer",
     "editor.formatOnSave": true
+  },
+  "[svelte]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
   },
   "css.lint.unknownAtRules": "ignore",
   "editor.codeActionsOnSave": {
@@ -26,6 +29,7 @@
       "mode": "auto"
     }
   ],
+  "files.eol": "\n",
   "files.associations": {
     "*.css": "css",
     "*.svelte": "svelte"

@@ -1,16 +1,16 @@
 <script lang="ts">
-    import { tooltip } from "$lib/actions/tooltip.svelte";
-    import { appState } from "$lib/store.svelte";
-    import type { Feed, Folder } from "$lib/types";
-    import { dndzone, type DndEvent } from "svelte-dnd-action";
-    import { flip } from "svelte/animate";
-    import { slide } from "svelte/transition";
+    import { tooltip } from '$lib/actions/tooltip.svelte';
+    import { appState } from '$lib/store.svelte';
+    import type { Feed, Folder } from '$lib/types';
+    import { dndzone, type DndEvent } from 'svelte-dnd-action';
+    import { flip } from 'svelte/animate';
+    import { slide } from 'svelte/transition';
 
     let { folder, isExpanded, onToggle, onContextMenu, onExpandHover } = $props<{
         folder: Folder;
         isExpanded: boolean;
         onToggle: (e: MouseEvent) => void;
-        onContextMenu: (e: MouseEvent, type: "folder" | "feed", id: number, name?: string) => void;
+        onContextMenu: (e: MouseEvent, type: 'folder' | 'feed', id: number, name?: string) => void;
         onExpandHover: (id: number) => void;
     }>();
 
@@ -21,7 +21,7 @@
             const domain = new URL(url).hostname;
             return `https://www.google.com/s2/favicons?domain=${domain}&sz=32`;
         } catch {
-            return "";
+            return '';
         }
     }
 
@@ -47,8 +47,8 @@
 
     function onFeedDragStart(e: DragEvent, feedId: number) {
         if (e.dataTransfer) {
-            e.dataTransfer.setData("text/plain", feedId.toString());
-            e.dataTransfer.effectAllowed = "move";
+            e.dataTransfer.setData('text/plain', feedId.toString());
+            e.dataTransfer.effectAllowed = 'move';
         }
     }
 
@@ -56,7 +56,7 @@
         e.preventDefault();
         e.stopPropagation();
         if (e.dataTransfer) {
-            e.dataTransfer.dropEffect = "move";
+            e.dataTransfer.dropEffect = 'move';
         }
         onExpandHover(folder.id);
     }
@@ -64,7 +64,7 @@
     function onHeaderDrop(e: DragEvent) {
         e.preventDefault();
         e.stopPropagation();
-        const data = e.dataTransfer?.getData("text/plain");
+        const data = e.dataTransfer?.getData('text/plain');
         if (data) {
             const feedId = parseInt(data);
             if (!isNaN(feedId) && feedId > 0) {
@@ -82,9 +82,19 @@
 <div class="folder" role="treeitem" aria-expanded={isExpanded} aria-selected="false" tabindex="-1">
     <!-- svelte-ignore a11y_click_events_have_key_events -->
     <!-- svelte-ignore a11y_no_static_element_interactions -->
-    <div class="folder-header" class:selected={appState.selectedFolderId === folder.id} oncontextmenu={(e) => onContextMenu(e, "folder", folder.id, folder.name)} ondragover={onHeaderDragOver} ondrop={onHeaderDrop} ondblclick={onHeaderDblClick}>
+    <div
+        class="folder-header"
+        class:selected={appState.selectedFolderId === folder.id}
+        oncontextmenu={(e) => onContextMenu(e, 'folder', folder.id, folder.name)}
+        ondragover={onHeaderDragOver}
+        ondrop={onHeaderDrop}
+        ondblclick={onHeaderDblClick}>
         <span class="toggle-icon" onclick={onToggle}>
-            <svg width="10" height="10" viewBox="0 0 10 10" style="transform: rotate({isExpanded ? 90 : 0}deg); transition: transform 0.2s;">
+            <svg
+                width="10"
+                height="10"
+                viewBox="0 0 10 10"
+                style="transform: rotate({isExpanded ? 90 : 0}deg); transition: transform 0.2s;">
                 <path d="M2,2 L8,5 L2,8" fill="currentColor" />
             </svg>
         </span>
@@ -101,7 +111,17 @@
     </div>
 
     {#if isExpanded}
-        <ul class="feed-list" transition:slide={{ duration: 200 }} use:dndzone={{ items: folder.feeds, flipDurationMs: FLIP_DURATION, type: "feed", dropTargetStyle: { outline: "2px solid var(--bg-selected)", borderRadius: "4px" } }} onconsider={handleDndConsider} onfinalize={handleDndFinalize}>
+        <ul
+            class="feed-list"
+            transition:slide={{ duration: 200 }}
+            use:dndzone={{
+                items: folder.feeds,
+                flipDurationMs: FLIP_DURATION,
+                type: 'feed',
+                dropTargetStyle: { outline: '2px solid var(--bg-selected)', borderRadius: '4px' },
+            }}
+            onconsider={handleDndConsider}
+            onfinalize={handleDndFinalize}>
             {#each folder.feeds as feed (feed.id)}
                 <li animate:flip={{ duration: FLIP_DURATION }}>
                     <!-- svelte-ignore a11y_no_static_element_interactions -->
@@ -113,22 +133,25 @@
                             e.stopPropagation();
                             appState.selectFeed(feed.id);
                         }}
-                        oncontextmenu={(e) => onContextMenu(e, "feed", feed.id)}
+                        oncontextmenu={(e) => onContextMenu(e, 'feed', feed.id)}
                         role="option"
                         tabindex="0"
                         aria-selected={appState.selectedFeedId === feed.id}
                         onkeydown={(e) => {
-                            if (e.key === "Enter" || e.key === " ") {
+                            if (e.key === 'Enter' || e.key === ' ') {
                                 e.preventDefault();
                                 appState.selectFeed(feed.id);
                             }
                         }}
                         draggable="true"
-                        ondragstart={(e) => onFeedDragStart(e, feed.id)}
-                    >
+                        ondragstart={(e) => onFeedDragStart(e, feed.id)}>
                         <span class="feed-name-wrap">
                             {#if feed.url}
-                                <img src={getFavicon(feed.url)} alt="" class="feed-favicon" loading="lazy" />
+                                <img
+                                    src={getFavicon(feed.url)}
+                                    alt=""
+                                    class="feed-favicon"
+                                    loading="lazy" />
                             {:else}
                                 <span class="feed-icon">#</span>
                             {/if}
@@ -143,25 +166,45 @@
                             onclick={(e) => {
                                 e.stopPropagation();
                                 appState.requestRefreshFeed(feed.id);
-                            }}
-                        >
+                            }}>
                             {#if appState.isFeedUpdating(feed.id)}
                                 <div class="mini-spinner"></div>
                             {:else if feed.has_error}
-                                <span class="error-badge" use:tooltip={"Feed update failed"}>
+                                <span class="error-badge" use:tooltip={'Feed update failed'}>
                                     <svg width="10" height="10" viewBox="0 0 10 10">
-                                        <line x1="2" y1="2" x2="8" y2="8" stroke="white" stroke-width="2" />
-                                        <line x1="8" y1="2" x2="2" y2="8" stroke="white" stroke-width="2" />
+                                        <line
+                                            x1="2"
+                                            y1="2"
+                                            x2="8"
+                                            y2="8"
+                                            stroke="white"
+                                            stroke-width="2" />
+                                        <line
+                                            x1="8"
+                                            y1="2"
+                                            x2="2"
+                                            y2="8"
+                                            stroke="white"
+                                            stroke-width="2" />
                                     </svg>
                                 </span>
                             {:else if feed.unread_count > 0}
-                                <span class="badge" use:tooltip={"Click to refresh"}>{feed.unread_count}</span>
+                                <span class="badge" use:tooltip={'Click to refresh'}
+                                    >{feed.unread_count}</span>
                             {:else}
-                                <span class="refresh-icon" use:tooltip={"Refresh"}>
-                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <span class="refresh-icon" use:tooltip={'Refresh'}>
+                                    <svg
+                                        width="12"
+                                        height="12"
+                                        viewBox="0 0 24 24"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        stroke-width="2">
                                         <path d="M23 4v6h-6"></path>
                                         <path d="M1 20v-6h6"></path>
-                                        <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+                                        <path
+                                            d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"
+                                        ></path>
                                     </svg>
                                 </span>
                             {/if}

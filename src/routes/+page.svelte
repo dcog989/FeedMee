@@ -1,35 +1,35 @@
 <script lang="ts">
-    import ArticleListPane from "$lib/components/ArticleListPane.svelte";
-    import NavPane from "$lib/components/NavPane.svelte";
-    import ReadingPane from "$lib/components/ReadingPane.svelte";
-    import { appState } from "$lib/store.svelte";
+    import ArticleListPane from '$lib/components/ArticleListPane.svelte';
+    import NavPane from '$lib/components/NavPane.svelte';
+    import ReadingPane from '$lib/components/ReadingPane.svelte';
+    import { appState } from '$lib/store.svelte';
 
     // Resizing Logic
-    let isResizing = $state<"nav" | "list" | null>(null);
+    let isResizing = $state<'nav' | 'list' | null>(null);
 
-    function startResize(target: "nav" | "list") {
+    function startResize(target: 'nav' | 'list') {
         isResizing = target;
         // Add global cursor style and disable text selection while dragging
-        document.body.style.cursor = "col-resize";
-        document.body.style.userSelect = "none";
+        document.body.style.cursor = 'col-resize';
+        document.body.style.userSelect = 'none';
     }
 
     function stopResize() {
         if (isResizing) {
             isResizing = null;
-            document.body.style.cursor = "";
-            document.body.style.userSelect = "";
+            document.body.style.cursor = '';
+            document.body.style.userSelect = '';
         }
     }
 
     function onMouseMove(e: MouseEvent) {
         if (!isResizing) return;
 
-        if (isResizing === "nav") {
+        if (isResizing === 'nav') {
             // Min width 150px, Max width 500px
             const newWidth = Math.max(150, Math.min(500, e.clientX));
             appState.navWidth = newWidth;
-        } else if (isResizing === "list") {
+        } else if (isResizing === 'list') {
             // Calculate width based on Nav width offset
             // Min 200px, Max 600px
             const newWidth = Math.max(200, Math.min(600, e.clientX - appState.navWidth));
@@ -45,7 +45,9 @@
 	This allows the Media Queries in the <style> block to easily override them
 	on mobile without fighting inline style specificity.
 -->
-<div class="app-container" style="--nav-w: {appState.navWidth}px; --list-w: {appState.listWidth}px;">
+<div
+    class="app-container"
+    style="--nav-w: {appState.navWidth}px; --list-w: {appState.listWidth}px;">
     <!-- Navigation Pane -->
     <div class="nav-area">
         <NavPane />
@@ -53,7 +55,7 @@
 
     <!-- Resizer Handle 1 (Nav <-> List) -->
     <!-- svelte-ignore a11y_no_static_element_interactions -->
-    <div class="resizer nav-resizer" onmousedown={() => startResize("nav")}></div>
+    <div class="resizer nav-resizer" onmousedown={() => startResize('nav')}></div>
 
     <!-- Article List Pane -->
     <div class="list-area">
@@ -62,7 +64,7 @@
 
     <!-- Resizer Handle 2 (List <-> Reading) -->
     <!-- svelte-ignore a11y_no_static_element_interactions -->
-    <div class="resizer list-resizer" onmousedown={() => startResize("list")}></div>
+    <div class="resizer list-resizer" onmousedown={() => startResize('list')}></div>
 
     <!-- Reading Pane -->
     <div class="reading-area">
@@ -83,7 +85,7 @@
 		   fixing the issue where panes were not resizable until window resize.
 		*/
         grid-template-columns: var(--nav-w, 280px) 4px var(--list-w, 320px) 4px 1fr;
-        grid-template-areas: "nav resizer1 list resizer2 reading";
+        grid-template-areas: 'nav resizer1 list resizer2 reading';
     }
 
     .nav-area {
@@ -138,8 +140,8 @@
             grid-template-columns: 1fr;
             grid-template-rows: auto 1fr;
             grid-template-areas:
-                "nav"
-                "list";
+                'nav'
+                'list';
         }
 
         .reading-area {

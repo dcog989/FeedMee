@@ -3,7 +3,7 @@ export const tooltipState = $state({
     visible: false,
     text: '',
     x: 0,
-    y: 0
+    y: 0,
 });
 
 export function tooltip(node: HTMLElement, text: string) {
@@ -43,6 +43,6 @@ export function tooltip(node: HTMLElement, text: string) {
             node.removeEventListener('mousemove', onMouseMove);
             node.removeEventListener('mouseleave', onMouseLeave);
             tooltipState.visible = false;
-        }
+        },
     };
 }

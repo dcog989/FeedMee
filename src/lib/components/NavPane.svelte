@@ -1,8 +1,8 @@
 <script lang="ts">
-    import { appState } from "$lib/store.svelte";
-    import FolderGroup from "./nav/FolderGroup.svelte";
-    import NavToolbar from "./nav/NavToolbar.svelte";
-    import SpecialFeeds from "./nav/SpecialFeeds.svelte";
+    import { appState } from '$lib/store.svelte';
+    import FolderGroup from './nav/FolderGroup.svelte';
+    import NavToolbar from './nav/NavToolbar.svelte';
+    import SpecialFeeds from './nav/SpecialFeeds.svelte';
 
     let expandedFolders = $state<Set<number>>(new Set());
     let initialized = false;
@@ -12,12 +12,14 @@
     let cmVisible = $state(false);
     let cmX = $state(0);
     let cmY = $state(0);
-    let cmTarget = $state<{ type: "folder" | "feed" | "root"; id: number; name?: string } | null>(null);
+    let cmTarget = $state<{ type: 'folder' | 'feed' | 'root'; id: number; name?: string } | null>(
+        null,
+    );
 
     // Load/Save Expansion State
     $effect(() => {
         if (!initialized) {
-            const stored = localStorage.getItem("expandedFolders");
+            const stored = localStorage.getItem('expandedFolders');
             if (stored) {
                 try {
                     const ids = JSON.parse(stored);
@@ -36,7 +38,7 @@
 
     $effect(() => {
         if (initialized) {
-            localStorage.setItem("expandedFolders", JSON.stringify(Array.from(expandedFolders)));
+            localStorage.setItem('expandedFolders', JSON.stringify(Array.from(expandedFolders)));
         }
     });
 
@@ -80,7 +82,12 @@
     }
 
     // --- Context Menu ---
-    function handleContextMenu(event: MouseEvent, type: "folder" | "feed" | "root", id: number, name?: string) {
+    function handleContextMenu(
+        event: MouseEvent,
+        type: 'folder' | 'feed' | 'root',
+        id: number,
+        name?: string,
+    ) {
         event.preventDefault();
         event.stopPropagation();
         cmVisible = true;
@@ -95,9 +102,9 @@
     }
 
     function cmRename() {
-        if (!cmTarget || cmTarget.type !== "folder") return;
-        const newName = prompt("Rename Folder:", cmTarget.name);
-        if (newName && newName.trim() !== "") {
+        if (!cmTarget || cmTarget.type !== 'folder') return;
+        const newName = prompt('Rename Folder:', cmTarget.name);
+        if (newName && newName.trim() !== '') {
             appState.renameFolder(cmTarget.id, newName.trim());
         }
         closeContextMenu();
@@ -105,16 +112,16 @@
 
     function cmDelete() {
         if (!cmTarget) return;
-        if (cmTarget.type === "folder") {
+        if (cmTarget.type === 'folder') {
             appState.deleteFolder(cmTarget.id);
-        } else if (cmTarget.type === "feed") {
+        } else if (cmTarget.type === 'feed') {
             appState.deleteFeed(cmTarget.id);
         }
         closeContextMenu();
     }
 
     function cmCreateFolder() {
-        const name = prompt("New Folder Name:");
+        const name = prompt('New Folder Name:');
         if (name && name.trim()) {
             appState.createFolder(name.trim());
         }
@@ -125,7 +132,10 @@
 <svelte:window onclick={closeContextMenu} />
 
 <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
-<nav class="pane" oncontextmenu={(e) => handleContextMenu(e, "root", 0)} ondragleave={onDragLeavePane}>
+<nav
+    class="pane"
+    oncontextmenu={(e) => handleContextMenu(e, 'root', 0)}
+    ondragleave={onDragLeavePane}>
     <SpecialFeeds />
     <NavToolbar onExpandAll={expandAll} onCollapseAll={collapseAll} />
 
@@ -139,19 +149,18 @@
                     toggleFolder(folder.id);
                 }}
                 onContextMenu={handleContextMenu}
-                onExpandHover={handleExpandHover}
-            />
+                onExpandHover={handleExpandHover} />
         {/each}
     </div>
 
     {#if cmVisible}
         <div class="context-menu" style="top: {cmY}px; left: {cmX}px">
-            {#if cmTarget?.type === "root"}
+            {#if cmTarget?.type === 'root'}
                 <button onclick={cmCreateFolder}>New Folder</button>
-            {:else if cmTarget?.type === "folder"}
+            {:else if cmTarget?.type === 'folder'}
                 <button onclick={cmRename}>Rename Folder</button>
                 <button class="danger" onclick={cmDelete}>Delete Folder</button>
-            {:else if cmTarget?.type === "feed"}
+            {:else if cmTarget?.type === 'feed'}
                 <button class="danger" onclick={cmDelete}>Delete Feed</button>
             {/if}
         </div>
