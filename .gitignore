@@ -6,6 +6,7 @@
 .git/
 .repomix/
 .repomixignore
+.svelte-kit
 [Dd]ist/
 [Ll]og/
 [Ll]ogs/
@@ -16,15 +17,10 @@
 [Rr]eleases/
 **/[Bb]in/*
 **/[Pp]ackages/*
-/.svelte-kit
-/build
-/src-tauri/gen/
-/src-tauri/target/
+build/
 node_modules/
-obj/x64/
-obj/x86/
-project.fragment.lock.json
-project.lock.json
 publish/
 repomix.*.json
 src-tauri/Cargo.lock
+src-tauri/gen/
+src-tauri/target/

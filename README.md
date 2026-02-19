@@ -1,4 +1,4 @@
-﻿# FeedMee
+# FeedMee
 
 *FeedMee* is an RSS/Atom news reader built for the desktop.
 
@@ -21,7 +21,7 @@
 
 ## Tech Stack
 
-- **Frontend:** Svelte 5, TypeScript, Vite
+- **Frontend:** Svelte 5 / Runes, TypeScript, Vite
 - **Backend:** Rust, Rusqlite (SQLite), Reqwest, Feed-RS
 - **Build System:** Tauri v2
 
@@ -29,9 +29,9 @@
 
 ### Prerequisites
 
-1.  **Rust:** [Install Rust](https://www.rust-lang.org/tools/install).
-2.  **Node.js:** [Install Node.js](https://nodejs.org/).
-3.  **OS Dependencies:** Follow the [Tauri Prerequisites guide](https://v2.tauri.app/start/prerequisites/).
+1. **Rust:** [Install Rust](https://www.rust-lang.org/tools/install).
+2. **Node.js:** [Install Node.js](https://nodejs.org/).
+3. **OS Dependencies:** Follow the [Tauri Prerequisites guide](https://v2.tauri.app/start/prerequisites/).
 
 ### Installation
 
