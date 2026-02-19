@@ -17,7 +17,7 @@ FeedMee is a desktop RSS / Atom news feed reader with a clean, minimal style. It
 
 ### Core Components
 
-- `src/routes/+page.svelte` - Main UI with 3-pane layout
+- `src/routes/+page.svelte` - Main UI with 3-pane layout. To be extended in future version.
 - `src/lib/components/NavPane.svelte` - Folder/feed navigation
 - `src/lib/components/ArticleListPane.svelte` - Article list
 - `src/lib/components/ReadingPane.svelte` - Article content reader
