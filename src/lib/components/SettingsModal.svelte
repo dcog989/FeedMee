@@ -8,6 +8,7 @@
     }
 
     function cancel() {
+        (document.activeElement as HTMLElement)?.blur();
         appState.closeSettings();
     }
 

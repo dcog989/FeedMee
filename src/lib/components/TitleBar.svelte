@@ -12,8 +12,19 @@
         appWindow.minimize();
     }
 
+    let isMaximized = $state(false);
+
+    $effect(() => {
+        appWindow.isMaximized().then((v) => (isMaximized = v));
+        const unlisten = appWindow.onResized(() => {
+            appWindow.isMaximized().then((v) => (isMaximized = v));
+        });
+        return () => {
+            unlisten.then((fn) => fn());
+        };
+    });
+
     async function maximize() {
-        const isMaximized = await appWindow.isMaximized();
         if (isMaximized) {
             await appWindow.unmaximize();
         } else {
@@ -152,16 +163,40 @@
                 <svg width="10" height="10" viewBox="0 0 10 10"
                     ><path d="M1,5 L9,5" stroke="currentColor" stroke-width="1" /></svg>
             </button>
-            <button class="win-btn" onclick={maximize} aria-label="Maximize">
-                <svg width="10" height="10" viewBox="0 0 10 10"
-                    ><rect
-                        x="2"
-                        y="2"
-                        width="6"
-                        height="6"
-                        stroke="currentColor"
-                        stroke-width="1"
-                        fill="none" /></svg>
+            <button
+                class="win-btn"
+                onclick={maximize}
+                aria-label={isMaximized ? 'Restore' : 'Maximize'}>
+                {#if isMaximized}
+                    <svg width="10" height="10" viewBox="0 0 10 10">
+                        <rect
+                            x="3"
+                            y="1"
+                            width="6"
+                            height="6"
+                            stroke="currentColor"
+                            stroke-width="1"
+                            fill="none" />
+                        <rect
+                            x="1"
+                            y="3"
+                            width="6"
+                            height="6"
+                            stroke="currentColor"
+                            stroke-width="1"
+                            fill="var(--bg-pane)" />
+                    </svg>
+                {:else}
+                    <svg width="10" height="10" viewBox="0 0 10 10"
+                        ><rect
+                            x="2"
+                            y="2"
+                            width="6"
+                            height="6"
+                            stroke="currentColor"
+                            stroke-width="1"
+                            fill="none" /></svg>
+                {/if}
             </button>
             <button class="win-btn close" onclick={close} aria-label="Close">
                 <svg width="10" height="10" viewBox="0 0 10 10"

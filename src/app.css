@@ -58,6 +58,15 @@
     --border-color: #333333;
 }
 
+/* Focus rings — keyboard only */
+:focus {
+    outline: none;
+}
+:focus-visible {
+    outline: 2px solid var(--bg-selected);
+    outline-offset: 2px;
+}
+
 /* Global Reset */
 html,
 body {
