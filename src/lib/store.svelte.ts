@@ -394,14 +394,17 @@ class AppState {
         const folder = this.folders.find((f) => f.id === folderId);
         if (!folder || folder.feeds.length === 0) return;
 
+        const staleFeeds = folder.feeds.filter((f) => !this.isFeedFresh(f.id));
+        if (staleFeeds.length === 0) return;
+
         const newSet = new Set(this.updatingFeedIds);
-        folder.feeds.forEach((f) => newSet.add(f.id));
+        staleFeeds.forEach((f) => newSet.add(f.id));
         this.updatingFeedIds = newSet;
 
         let index = 0;
         const worker = async () => {
-            while (index < folder.feeds.length) {
-                const feed = folder.feeds[index++];
+            while (index < staleFeeds.length) {
+                const feed = staleFeeds[index++];
                 await this.performSingleFeedRefresh(feed.id);
             }
         };

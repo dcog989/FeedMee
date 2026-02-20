@@ -11,6 +11,8 @@ export interface Feed {
     folder_id: number;
     unread_count: number;
     has_error: boolean;
+    feed_type?: string;
+    content_hash?: string | null;
 }
 
 export interface Article {

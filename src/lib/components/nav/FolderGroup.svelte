@@ -115,8 +115,9 @@
                         e.stopPropagation();
                         appState.requestRefreshFolder(folder.id);
                     }}
-                    use:tooltip={'Click to refresh folder'}
-                    >{getFolderUnreadCount(folder.feeds)}</span>
+                    use:tooltip={appState.isFolderFresh(folder.id)
+                        ? 'Already fresh!'
+                        : 'Click to refresh folder'}>{getFolderUnreadCount(folder.feeds)}</span>
             {/if}
         </span>
     </div>

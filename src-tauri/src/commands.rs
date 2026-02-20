@@ -211,12 +211,12 @@ pub async fn import_opml(path: String, state: State<'_, AppState>) -> Result<(),
             if let Ok(folder_id) = db::create_folder(&conn, &folder_name) {
                 for child in outline.outlines {
                     if let Some(url) = child.xml_url {
-                        let _ = db::create_feed(&conn, &child.text, &url, folder_id);
+                        let _ = db::create_feed(&conn, &child.text, &url, folder_id, "rss");
                     }
                 }
             }
         } else if let Some(url) = outline.xml_url {
-            let _ = db::create_feed(&conn, &outline.text, &url, default_folder_id);
+            let _ = db::create_feed(&conn, &outline.text, &url, default_folder_id, "rss");
         }
     }
     Ok(())
@@ -284,12 +284,63 @@ pub async fn get_article_content(url: String) -> Result<String, String> {
 
 #[tauri::command]
 pub async fn refresh_feed(feed_id: i64, state: State<'_, AppState>) -> Result<usize, String> {
-    let url = {
+    let (url, feed_type, stored_hash) = {
         let conn = state.db.lock().unwrap();
-        db::get_feed_url(&conn, feed_id).map_err(|e| e.to_string())?
+        let feed = db::get_feed(&conn, feed_id).map_err(|e| e.to_string())?;
+        (feed.url, feed.feed_type, feed.content_hash)
     };
 
     let client = create_client()?;
+
+    // Check if this is a website feed (or legacy feed without feed_type)
+    let is_website = feed_type == "website" || feed_type.is_empty();
+    debug!(
+        "refresh_feed: feed_id={}, url={}, feed_type='{}', is_website={}",
+        feed_id, url, feed_type, is_website
+    );
+
+    if is_website {
+        // For website feeds, check content hash
+        let response = client.get(&url).send().await.map_err(|e| e.to_string())?;
+        let html = response.text().await.map_err(|e| e.to_string())?;
+
+        let options = ReadabilityOptions::default();
+        let readability =
+            Readability::new(&html, Some(&url), Some(options)).map_err(|e| format!("{:?}", e))?;
+        let article = readability.parse().ok_or("Failed to parse content")?;
+
+        let content = article.content.clone();
+        let new_hash = compute_content_hash(content.as_deref().unwrap_or(""));
+
+        if stored_hash.as_ref() != Some(&new_hash) {
+            // Content changed, create new article
+            let article = Article {
+                id: 0,
+                feed_id,
+                title: article.title.unwrap_or_else(|| "Untitled".to_string()),
+                author: String::new(),
+                summary: content.clone().unwrap_or_default(),
+                url: url.clone(),
+                timestamp: chrono::Utc::now().timestamp(),
+                is_read: false,
+                is_saved: false,
+            };
+
+            let conn = state.db.lock().unwrap();
+            if db::insert_article(&conn, &article).is_ok() {
+                db::update_feed_content_hash(&conn, feed_id, &new_hash)
+                    .map_err(|e| e.to_string())?;
+                let _ = db::update_feed_error(&conn, feed_id, false);
+                return Ok(1);
+            }
+        }
+
+        let conn = state.db.lock().unwrap();
+        let _ = db::update_feed_error(&conn, feed_id, false);
+        return Ok(0);
+    }
+
+    // Default: RSS/Atom feed handling
     let result = client.get(&url).send().await;
 
     match result {
@@ -376,6 +427,14 @@ pub async fn refresh_all_feeds(state: State<'_, AppState>) -> Result<usize, Stri
     Ok(total)
 }
 
+fn compute_content_hash(content: &str) -> String {
+    use std::collections::hash_map::DefaultHasher;
+    use std::hash::{Hash, Hasher};
+    let mut hasher = DefaultHasher::new();
+    content.hash(&mut hasher);
+    format!("{:x}", hasher.finish())
+}
+
 #[tauri::command]
 pub async fn add_feed(
     url: String,
@@ -386,24 +445,27 @@ pub async fn add_feed(
     let response = client.get(&url).send().await.map_err(|e| e.to_string())?;
 
     let original_url = response.url().clone();
-
     let content_bytes = response.bytes().await.map_err(|e| e.to_string())?;
 
-    // Always attempt direct parse first — some servers (e.g. Squarespace) serve
-    // RSS/Atom with text/html content-type, so we cannot rely on headers alone.
+    // Try direct RSS parse first
     let initial_parse = match feed_rs::parser::parse(Cursor::new(content_bytes.clone())) {
-        Ok(f) if f.title.is_some() || !f.entries.is_empty() => Some(f),
+        Ok(f) if f.title.is_some() || !f.entries.is_empty() => Some((f, url.clone())),
         _ => None,
     };
 
-    let (feed, final_url) = if let Some(f) = initial_parse {
-        (f, url)
+    debug!(
+        "add_feed: url={}, initial_parse={}",
+        url,
+        initial_parse.is_some()
+    );
+
+    let (feed, final_url, feed_type) = if let Some((f, u)) = initial_parse {
+        (f, u, "rss".to_string())
     } else {
+        // Try to discover RSS in HTML
         let discovered_url_str = {
             let html_content = String::from_utf8_lossy(&content_bytes);
             let document = Html::parse_document(&html_content);
-            // Select all <link> elements and filter in Rust — avoids CSS quoted-attribute
-            // parsing inconsistencies in the scraper crate.
             let feed_types = [
                 "application/rss+xml",
                 "application/atom+xml",
@@ -436,11 +498,105 @@ pub async fn add_feed(
                 .map_err(|e| e.to_string())?;
             let bytes = resp.bytes().await.map_err(|e| e.to_string())?;
             match feed_rs::parser::parse(Cursor::new(bytes)) {
-                Ok(f) => (f, new_url),
-                Err(e) => return Err(format!("Discovered feed failed to parse: {}", e)),
+                Ok(f) => (f, new_url, "rss".to_string()),
+                Err(_) => {
+                    // No valid RSS found - fallback to website scraping
+                    let options = ReadabilityOptions::default();
+                    let readability = Readability::new(
+                        &String::from_utf8_lossy(&content_bytes),
+                        Some(&url),
+                        Some(options),
+                    )
+                    .map_err(|e| format!("{:?}", e))?;
+                    let article = readability.parse();
+                    let title = article
+                        .as_ref()
+                        .and_then(|a| a.title.clone())
+                        .unwrap_or_else(|| "Untitled".to_string());
+                    let content = article.and_then(|a| a.content.clone());
+                    let hash = compute_content_hash(content.as_deref().unwrap_or(""));
+
+                    let feed_id = {
+                        let conn = state.db.lock().unwrap();
+                        let target = folder_id.unwrap_or(1);
+                        db::create_feed(&conn, &title, &url, target, "website")
+                            .map_err(|e| e.to_string())?;
+                        let id = conn
+                            .query_row("SELECT id FROM feeds WHERE url = ?1", [&url], |row| {
+                                row.get(0)
+                            })
+                            .map_err(|e| e.to_string())?;
+                        db::update_feed_content_hash(&conn, id, &hash)
+                            .map_err(|e| e.to_string())?;
+                        id
+                    };
+
+                    // Create initial article
+                    let article = Article {
+                        id: 0,
+                        feed_id,
+                        title: title.clone(),
+                        author: String::new(),
+                        summary: content.clone().unwrap_or_default(),
+                        url: url.clone(),
+                        timestamp: chrono::Utc::now().timestamp(),
+                        is_read: false,
+                        is_saved: false,
+                    };
+                    let conn = state.db.lock().unwrap();
+                    let _ = db::insert_article(&conn, &article);
+
+                    return Ok(feed_id);
+                },
             }
         } else {
-            return Err("No valid feed found".to_string());
+            // No RSS found at all - fallback to website scraping
+            debug!("add_feed: no RSS, treating as website");
+            let options = ReadabilityOptions::default();
+            let readability = Readability::new(
+                &String::from_utf8_lossy(&content_bytes),
+                Some(&url),
+                Some(options),
+            )
+            .map_err(|e| format!("{:?}", e))?;
+            let article = readability.parse();
+            let title = article
+                .as_ref()
+                .and_then(|a| a.title.clone())
+                .unwrap_or_else(|| "Untitled".to_string());
+            let content = article.and_then(|a| a.content.clone());
+            let hash = compute_content_hash(content.as_deref().unwrap_or(""));
+
+            let feed_id = {
+                let conn = state.db.lock().unwrap();
+                let target = folder_id.unwrap_or(1);
+                db::create_feed(&conn, &title, &url, target, "website")
+                    .map_err(|e| e.to_string())?;
+                let id = conn
+                    .query_row("SELECT id FROM feeds WHERE url = ?1", [&url], |row| {
+                        row.get(0)
+                    })
+                    .map_err(|e| e.to_string())?;
+                db::update_feed_content_hash(&conn, id, &hash).map_err(|e| e.to_string())?;
+                id
+            };
+
+            // Create initial article
+            let article = Article {
+                id: 0,
+                feed_id,
+                title: title.clone(),
+                author: String::new(),
+                summary: content.clone().unwrap_or_default(),
+                url: url.clone(),
+                timestamp: chrono::Utc::now().timestamp(),
+                is_read: false,
+                is_saved: false,
+            };
+            let conn = state.db.lock().unwrap();
+            let _ = db::insert_article(&conn, &article);
+
+            return Ok(feed_id);
         }
     };
 
@@ -452,7 +608,8 @@ pub async fn add_feed(
     let id = {
         let conn = state.db.lock().unwrap();
         let target = folder_id.unwrap_or(1);
-        db::create_feed(&conn, &title, &final_url, target).map_err(|e| e.to_string())?;
+        db::create_feed(&conn, &title, &final_url, target, &feed_type)
+            .map_err(|e| e.to_string())?;
         conn.query_row("SELECT id FROM feeds WHERE url = ?1", [&final_url], |row| {
             row.get(0)
         })

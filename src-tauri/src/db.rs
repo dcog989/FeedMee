@@ -1,56 +1,64 @@
 use crate::models::{Article, Feed, Folder};
-use log::{debug, error, info, warn};
+use log::{debug, info, warn};
 use rusqlite::{Connection, Result, params};
-use rusqlite_migration::{M, Migrations};
 
-pub fn init_db(conn: &mut Connection) -> std::result::Result<(), Box<dyn std::error::Error>> {
+pub fn init_db(conn: &mut Connection) -> Result<(), Box<dyn std::error::Error>> {
     info!("Initializing database schema");
 
-    // Enable WAL mode for better concurrency and performance
     conn.execute_batch(
         "PRAGMA journal_mode = WAL;
          PRAGMA synchronous = NORMAL;
          PRAGMA foreign_keys = ON;",
     )?;
 
-    let migrations = Migrations::new(vec![
-        M::up(
-            "CREATE TABLE folders (
-                id INTEGER PRIMARY KEY,
-                name TEXT NOT NULL UNIQUE
-            );
-            CREATE TABLE feeds (
-                id INTEGER PRIMARY KEY,
-                name TEXT NOT NULL,
-                url TEXT NOT NULL UNIQUE,
-                folder_id INTEGER NOT NULL,
-                FOREIGN KEY (folder_id) REFERENCES folders (id)
-            );
-            CREATE TABLE articles (
-                id INTEGER PRIMARY KEY,
-                feed_id INTEGER NOT NULL,
-                title TEXT NOT NULL,
-                author TEXT,
-                summary TEXT,
-                url TEXT NOT NULL UNIQUE,
-                timestamp INTEGER,
-                FOREIGN KEY (feed_id) REFERENCES feeds (id)
-            );",
-        ),
-        M::up("ALTER TABLE articles ADD COLUMN is_read BOOLEAN NOT NULL DEFAULT 0;"),
-        M::up("ALTER TABLE articles ADD COLUMN is_saved BOOLEAN NOT NULL DEFAULT 0;"),
-        M::up("ALTER TABLE feeds ADD COLUMN has_error BOOLEAN NOT NULL DEFAULT 0;"),
-    ]);
+    // Create tables if not exist
+    conn.execute_batch(
+        "CREATE TABLE IF NOT EXISTS folders (
+            id INTEGER PRIMARY KEY,
+            name TEXT NOT NULL UNIQUE
+        );
+        CREATE TABLE IF NOT EXISTS feeds (
+            id INTEGER PRIMARY KEY,
+            name TEXT NOT NULL,
+            url TEXT NOT NULL UNIQUE,
+            folder_id INTEGER NOT NULL,
+            has_error BOOLEAN NOT NULL DEFAULT 0,
+            feed_type TEXT DEFAULT 'rss',
+            content_hash TEXT,
+            FOREIGN KEY (folder_id) REFERENCES folders (id)
+        );
+        CREATE TABLE IF NOT EXISTS articles (
+            id INTEGER PRIMARY KEY,
+            feed_id INTEGER NOT NULL,
+            title TEXT NOT NULL,
+            author TEXT,
+            summary TEXT,
+            url TEXT NOT NULL UNIQUE,
+            timestamp INTEGER,
+            is_read BOOLEAN NOT NULL DEFAULT 0,
+            is_saved BOOLEAN NOT NULL DEFAULT 0,
+            FOREIGN KEY (feed_id) REFERENCES feeds (id)
+        );",
+    )?;
 
-    match migrations.to_latest(conn) {
-        Ok(_) => {
-            info!("Database migrations applied successfully");
-        },
-        Err(e) => {
-            error!("Failed to apply database migrations: {}", e);
-            return Err(e.into());
-        },
-    }
+    // Try adding columns for existing databases (ignore errors if they exist)
+    let _ = conn.execute(
+        "ALTER TABLE feeds ADD COLUMN feed_type TEXT DEFAULT 'rss'",
+        [],
+    );
+    let _ = conn.execute("ALTER TABLE feeds ADD COLUMN content_hash TEXT", []);
+    let _ = conn.execute(
+        "ALTER TABLE feeds ADD COLUMN has_error BOOLEAN NOT NULL DEFAULT 0",
+        [],
+    );
+    let _ = conn.execute(
+        "ALTER TABLE articles ADD COLUMN is_read BOOLEAN NOT NULL DEFAULT 0",
+        [],
+    );
+    let _ = conn.execute(
+        "ALTER TABLE articles ADD COLUMN is_saved BOOLEAN NOT NULL DEFAULT 0",
+        [],
+    );
 
     match conn.execute(
         "INSERT OR IGNORE INTO folders (id, name) VALUES (1, 'Uncategorized')",
@@ -83,7 +91,7 @@ pub fn get_folders_with_feeds(conn: &Connection) -> Result<Vec<Folder>> {
         conn.prepare("SELECT id, name FROM folders ORDER BY name COLLATE NOCASE")?;
 
     let mut feed_stmt = conn.prepare(
-        "SELECT f.id, f.name, f.url, f.folder_id, f.has_error,
+        "SELECT f.id, f.name, f.url, f.folder_id, f.has_error, f.feed_type, f.content_hash,
         (SELECT COUNT(*) FROM articles a WHERE a.feed_id = f.id AND a.is_read = 0) as unread_count
         FROM feeds f
         WHERE f.folder_id = ?1
@@ -103,7 +111,9 @@ pub fn get_folders_with_feeds(conn: &Connection) -> Result<Vec<Folder>> {
                         url: feed_row.get(2)?,
                         folder_id: feed_row.get(3)?,
                         has_error: feed_row.get::<_, bool>(4).unwrap_or(false),
-                        unread_count: feed_row.get(5)?,
+                        feed_type: feed_row.get(5).unwrap_or_else(|_| "rss".to_string()),
+                        content_hash: feed_row.get(6).unwrap_or_default(),
+                        unread_count: feed_row.get(7)?,
                     })
                 })
                 .and_then(|mapped_rows| mapped_rows.collect());
@@ -236,6 +246,25 @@ pub fn get_feed_url(conn: &Connection, feed_id: i64) -> Result<String> {
     )
 }
 
+pub fn get_feed(conn: &Connection, feed_id: i64) -> Result<Feed> {
+    conn.query_row(
+        "SELECT id, name, url, folder_id, has_error, feed_type, content_hash FROM feeds WHERE id = ?1",
+        params![feed_id],
+        |row| {
+            Ok(Feed {
+                id: row.get(0)?,
+                name: row.get(1)?,
+                url: row.get(2)?,
+                folder_id: row.get(3)?,
+                has_error: row.get::<_, bool>(4).unwrap_or(false),
+                feed_type: row.get(5).unwrap_or_else(|_| "rss".to_string()),
+                content_hash: row.get(6).unwrap_or_default(),
+                unread_count: 0,
+            })
+        },
+    )
+}
+
 // --- Write Operations ---
 
 pub fn create_folder(conn: &Connection, name: &str) -> Result<i64> {
@@ -250,10 +279,16 @@ pub fn create_folder(conn: &Connection, name: &str) -> Result<i64> {
     )
 }
 
-pub fn create_feed(conn: &Connection, name: &str, url: &str, folder_id: i64) -> Result<()> {
+pub fn create_feed(
+    conn: &Connection,
+    name: &str,
+    url: &str,
+    folder_id: i64,
+    feed_type: &str,
+) -> Result<()> {
     conn.execute(
-        "INSERT OR IGNORE INTO feeds (name, url, folder_id, has_error) VALUES (?1, ?2, ?3, 0)",
-        params![name, url, folder_id],
+        "INSERT OR IGNORE INTO feeds (name, url, folder_id, has_error, feed_type) VALUES (?1, ?2, ?3, 0, ?4)",
+        params![name, url, folder_id, feed_type],
     )?;
     Ok(())
 }
@@ -262,6 +297,14 @@ pub fn update_feed_error(conn: &Connection, feed_id: i64, has_error: bool) -> Re
     conn.execute(
         "UPDATE feeds SET has_error = ?1 WHERE id = ?2",
         params![has_error, feed_id],
+    )?;
+    Ok(())
+}
+
+pub fn update_feed_content_hash(conn: &Connection, feed_id: i64, content_hash: &str) -> Result<()> {
+    conn.execute(
+        "UPDATE feeds SET content_hash = ?1 WHERE id = ?2",
+        params![content_hash, feed_id],
     )?;
     Ok(())
 }
