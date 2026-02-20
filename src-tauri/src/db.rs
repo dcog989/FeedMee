@@ -366,3 +366,25 @@ pub fn move_feed(conn: &Connection, feed_id: i64, target_folder_id: i64) -> Resu
     )?;
     Ok(())
 }
+
+pub fn search_articles(
+    conn: &Connection,
+    query: &str,
+    limit: usize,
+    offset: usize,
+    sort_asc: bool,
+) -> Result<Vec<Article>> {
+    let order = if sort_asc { "ASC" } else { "DESC" };
+    let pattern = format!("%{}%", query);
+    let sql = format!(
+        "SELECT id, feed_id, title, author, summary, url, timestamp, is_read, is_saved
+         FROM articles
+         WHERE title LIKE ?1
+         ORDER BY timestamp {}
+         LIMIT ?2 OFFSET ?3",
+        order
+    );
+
+    let mut stmt = conn.prepare(&sql)?;
+    map_articles(&mut stmt, params![pattern, limit as i64, offset as i64])
+}

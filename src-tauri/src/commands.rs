@@ -455,3 +455,15 @@ pub fn move_feed(feed_id: i64, folder_id: i64, state: State<'_, AppState>) -> Re
     let conn = state.db.lock().unwrap();
     db::move_feed(&conn, feed_id, folder_id).map_err(|e| e.to_string())
 }
+
+#[tauri::command]
+pub fn search_articles(
+    query: String,
+    limit: usize,
+    offset: usize,
+    sort_desc: bool,
+    state: State<'_, AppState>,
+) -> Result<Vec<crate::models::Article>, String> {
+    let conn = state.db.lock().unwrap();
+    db::search_articles(&conn, &query, limit, offset, !sort_desc).map_err(|e| e.to_string())
+}

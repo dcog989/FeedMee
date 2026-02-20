@@ -80,6 +80,13 @@
     function focusOnMount(node: HTMLElement) {
         node.focus();
     }
+
+    let searchDebounce: ReturnType<typeof setTimeout> | null = null;
+    function onSearchInput(e: Event) {
+        const query = (e.target as HTMLInputElement).value;
+        if (searchDebounce) clearTimeout(searchDebounce);
+        searchDebounce = setTimeout(() => appState.setSearch(query), 250);
+    }
 </script>
 
 <header class="titlebar" data-tauri-drag-region>
@@ -146,7 +153,12 @@
                 <circle cx="11" cy="11" r="8"></circle>
                 <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
             </svg>
-            <input type="text" placeholder="Search..." aria-label="Search articles" />
+            <input
+                type="text"
+                placeholder="Search..."
+                aria-label="Search articles"
+                oninput={onSearchInput}
+                value={appState.searchQuery} />
         </div>
     </div>
 

@@ -17,6 +17,7 @@ class AppState {
     selectedFolderId = $state<number | null>(null);
     selectedArticle = $state<Article | null>(null);
     isLoading = $state(false);
+    searchQuery = $state('');
     theme = $state<Theme>('system');
     sortOrder = $state<SortOrder>('desc');
 
@@ -250,6 +251,11 @@ class AppState {
         }
     }
 
+    async setSearch(query: string) {
+        this.searchQuery = query;
+        await this.reloadCurrentArticleList();
+    }
+
     async markAllRead() {
         try {
             if (this.selectedFeedId && this.selectedFeedId > 0) {
@@ -372,6 +378,15 @@ class AppState {
     private async fetchPage(page: number): Promise<Article[]> {
         const offset = page * this.pageSize;
         const sortDesc = this.sortOrder === 'desc';
+
+        if (this.searchQuery.trim()) {
+            return await invoke('search_articles', {
+                query: this.searchQuery.trim(),
+                limit: this.pageSize,
+                offset,
+                sortDesc,
+            });
+        }
 
         if (this.selectedFeedId === FEED_ID_LATEST) {
             const cutoff = Math.floor(Date.now() / 1000) - this.latestHours * 3600;
