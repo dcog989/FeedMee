@@ -1,8 +1,8 @@
 <script lang="ts">
     import { appState } from '$lib/store.svelte';
     import { getCurrentWindow } from '@tauri-apps/api/window';
+    import { Rss, Search, Settings } from 'lucide-svelte';
     import AboutModal from './AboutModal.svelte';
-    import { Settings, Rss, Search } from 'lucide-svelte';
 
     const appWindow = getCurrentWindow();
 
@@ -316,15 +316,6 @@
 
     .search-wrapper {
         position: relative;
-    }
-
-    .search-icon {
-        position: absolute;
-        left: 8px;
-        top: 50%;
-        transform: translateY(-50%);
-        color: var(--text-secondary);
-        pointer-events: none;
     }
 
     :global(.search-icon) {
