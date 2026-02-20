@@ -1,8 +1,8 @@
-<script lang="ts">
+﻿<script lang="ts">
     import { tooltip } from '$lib/actions/tooltip.svelte';
     import { appState } from '$lib/store.svelte';
     import type { Article } from '$lib/types';
-    import { ArrowUpDown, CheckCheck, Bookmark } from 'lucide-svelte';
+    import { ArrowUpDown, Bookmark, CheckCheck } from 'lucide-svelte';
 
     let listContainer: HTMLElement;
 

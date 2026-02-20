@@ -1,9 +1,9 @@
-<script lang="ts">
+﻿<script lang="ts">
     import { tooltip } from '$lib/actions/tooltip.svelte';
     import { appState } from '$lib/store.svelte';
     import { openUrl } from '@tauri-apps/plugin-opener';
     import DOMPurify from 'dompurify';
-    import { Bookmark, Tag, FileText, AlertCircle, ExternalLink } from 'lucide-svelte';
+    import { Bookmark, CircleAlert, ExternalLink, FileText, Tag } from 'lucide-svelte';
 
     DOMPurify.addHook('afterSanitizeAttributes', (node: Element) => {
         if (node.tagName === 'A' && node.hasAttribute('href')) {
@@ -96,7 +96,8 @@
                             openUrl(appState.selectedArticle!.url);
                         }}
                         rel="noopener noreferrer"
-                        class="title-link">
+                        class="title-link"
+                        use:tooltip={appState.selectedArticle.url}>
                         {appState.selectedArticle.title}
                     </a>
                 </h1>
@@ -141,7 +142,7 @@
 
             {#if loadError}
                 <div class="error-banner">
-                    <AlertCircle size={16} />
+                    <CircleAlert size={16} />
                     <span>Could not extract full content. Showing summary instead.</span>
                 </div>
             {/if}

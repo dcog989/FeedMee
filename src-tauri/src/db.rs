@@ -1,7 +1,7 @@
 ﻿use crate::models::{Article, Feed, Folder};
 use log::{debug, info};
 use rusqlite::{Connection, Result, params};
-use rusqlite_migration::{Migrations, M};
+use rusqlite_migration::{M, Migrations};
 
 // Each entry is an immutable, append-only migration.
 // Never edit a past migration - add a new one instead.
@@ -99,7 +99,11 @@ pub fn get_folders_with_feeds(conn: &Connection) -> Result<Vec<Folder>> {
                     })
                 })
                 .and_then(|rows| rows.collect());
-            Ok(Folder { id, name, feeds: feeds.unwrap_or_default() })
+            Ok(Folder {
+                id,
+                name,
+                feeds: feeds.unwrap_or_default(),
+            })
         })?
         .collect::<Result<Vec<Folder>>>()?;
 
@@ -159,7 +163,10 @@ pub fn get_latest_articles(
         order
     );
     let mut stmt = conn.prepare(&sql)?;
-    map_articles(&mut stmt, params![cutoff_timestamp, limit as i64, offset as i64])
+    map_articles(
+        &mut stmt,
+        params![cutoff_timestamp, limit as i64, offset as i64],
+    )
 }
 
 pub fn get_saved_articles(
@@ -179,7 +186,10 @@ pub fn get_saved_articles(
     map_articles(&mut stmt, params![limit as i64, offset as i64])
 }
 
-fn map_articles(stmt: &mut rusqlite::Statement, params: impl rusqlite::Params) -> Result<Vec<Article>> {
+fn map_articles(
+    stmt: &mut rusqlite::Statement,
+    params: impl rusqlite::Params,
+) -> Result<Vec<Article>> {
     stmt.query_map(params, |row| {
         Ok(Article {
             id: row.get(0)?,
@@ -197,7 +207,11 @@ fn map_articles(stmt: &mut rusqlite::Statement, params: impl rusqlite::Params) -
 }
 
 pub fn get_feed_url(conn: &Connection, feed_id: i64) -> Result<String> {
-    conn.query_row("SELECT url FROM feeds WHERE id = ?1", params![feed_id], |r| r.get(0))
+    conn.query_row(
+        "SELECT url FROM feeds WHERE id = ?1",
+        params![feed_id],
+        |r| r.get(0),
+    )
 }
 
 pub fn get_feed(conn: &Connection, feed_id: i64) -> Result<Feed> {
@@ -220,25 +234,45 @@ pub fn get_feed(conn: &Connection, feed_id: i64) -> Result<Feed> {
 // --- Write Operations ---
 
 pub fn create_folder(conn: &Connection, name: &str) -> Result<i64> {
-    conn.execute("INSERT OR IGNORE INTO folders (name) VALUES (?1)", params![name])?;
-    conn.query_row("SELECT id FROM folders WHERE name = ?1", params![name], |r| r.get(0))
+    conn.execute(
+        "INSERT OR IGNORE INTO folders (name) VALUES (?1)",
+        params![name],
+    )?;
+    conn.query_row(
+        "SELECT id FROM folders WHERE name = ?1",
+        params![name],
+        |r| r.get(0),
+    )
 }
 
-pub fn create_feed(conn: &Connection, name: &str, url: &str, folder_id: i64, feed_type: &str) -> Result<()> {
+pub fn create_feed(
+    conn: &Connection,
+    name: &str,
+    url: &str,
+    folder_id: i64,
+    feed_type: &str,
+) -> Result<()> {
     conn.execute(
-        "INSERT OR IGNORE INTO feeds (name, url, folder_id, has_error, feed_type) VALUES (?1, ?2, ?3, 0, ?4)",
+        "INSERT INTO feeds (name, url, folder_id, has_error, feed_type) VALUES (?1, ?2, ?3, 0, ?4)
+         ON CONFLICT(url) DO UPDATE SET feed_type = excluded.feed_type",
         params![name, url, folder_id, feed_type],
     )?;
     Ok(())
 }
 
 pub fn update_feed_error(conn: &Connection, feed_id: i64, has_error: bool) -> Result<()> {
-    conn.execute("UPDATE feeds SET has_error = ?1 WHERE id = ?2", params![has_error, feed_id])?;
+    conn.execute(
+        "UPDATE feeds SET has_error = ?1 WHERE id = ?2",
+        params![has_error, feed_id],
+    )?;
     Ok(())
 }
 
 pub fn update_feed_content_hash(conn: &Connection, feed_id: i64, content_hash: &str) -> Result<()> {
-    conn.execute("UPDATE feeds SET content_hash = ?1 WHERE id = ?2", params![content_hash, feed_id])?;
+    conn.execute(
+        "UPDATE feeds SET content_hash = ?1 WHERE id = ?2",
+        params![content_hash, feed_id],
+    )?;
     Ok(())
 }
 
@@ -252,7 +286,10 @@ pub fn insert_article(conn: &Connection, article: &Article) -> Result<()> {
 }
 
 pub fn set_article_read(conn: &Connection, article_id: i64, is_read: bool) -> Result<()> {
-    conn.execute("UPDATE articles SET is_read = ?1 WHERE id = ?2", params![is_read, article_id])?;
+    conn.execute(
+        "UPDATE articles SET is_read = ?1 WHERE id = ?2",
+        params![is_read, article_id],
+    )?;
     Ok(())
 }
 
@@ -278,19 +315,28 @@ pub fn mark_folder_read(conn: &Connection, folder_id: i64) -> Result<()> {
 }
 
 pub fn update_article_saved(conn: &Connection, article_id: i64, is_saved: bool) -> Result<()> {
-    conn.execute("UPDATE articles SET is_saved = ?1 WHERE id = ?2", params![is_saved as i64, article_id])?;
+    conn.execute(
+        "UPDATE articles SET is_saved = ?1 WHERE id = ?2",
+        params![is_saved as i64, article_id],
+    )?;
     Ok(())
 }
 
 // --- Management Operations ---
 
 pub fn rename_folder(conn: &Connection, id: i64, new_name: &str) -> Result<()> {
-    conn.execute("UPDATE folders SET name = ?1 WHERE id = ?2", params![new_name, id])?;
+    conn.execute(
+        "UPDATE folders SET name = ?1 WHERE id = ?2",
+        params![new_name, id],
+    )?;
     Ok(())
 }
 
 pub fn rename_feed(conn: &Connection, id: i64, new_name: &str) -> Result<()> {
-    conn.execute("UPDATE feeds SET name = ?1 WHERE id = ?2", params![new_name, id])?;
+    conn.execute(
+        "UPDATE feeds SET name = ?1 WHERE id = ?2",
+        params![new_name, id],
+    )?;
     Ok(())
 }
 
@@ -313,7 +359,10 @@ pub fn delete_folder(conn: &Connection, id: i64) -> Result<()> {
 }
 
 pub fn move_feed(conn: &Connection, feed_id: i64, target_folder_id: i64) -> Result<()> {
-    conn.execute("UPDATE feeds SET folder_id = ?1 WHERE id = ?2", params![target_folder_id, feed_id])?;
+    conn.execute(
+        "UPDATE feeds SET folder_id = ?1 WHERE id = ?2",
+        params![target_folder_id, feed_id],
+    )?;
     Ok(())
 }
 
