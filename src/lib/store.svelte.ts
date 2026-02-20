@@ -27,6 +27,8 @@ class AppState {
         refresh_all_debounce_minutes: 0,
         auto_update_interval_minutes: 30,
         log_level: 'info',
+        default_view_type: 'latest',
+        default_view_id: -1,
     });
 
     // UI States
@@ -255,6 +257,19 @@ class AppState {
 
         await this.refreshFolders();
         this.refreshAllFeeds();
+
+        const viewType = this.settings.default_view_type;
+        const viewId = this.settings.default_view_id;
+
+        if (viewType === 'saved') {
+            this.selectFeed(FEED_ID_SAVED);
+        } else if (viewType === 'latest') {
+            this.selectFeed(FEED_ID_LATEST);
+        } else if (viewType === 'folder' && viewId > 0) {
+            this.selectFolder(viewId);
+        } else if (viewType === 'feed' && viewId > 0) {
+            this.selectFeed(viewId);
+        }
 
         $effect.root(() => {
             $effect(() => {

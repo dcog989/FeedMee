@@ -2,9 +2,14 @@
     import { appState } from '$lib/store.svelte';
     import { Keyboard } from 'lucide-svelte';
     import ShortcutsModal from './ShortcutsModal.svelte';
+    import type { AppSettings } from '$lib/types';
 
-    let settings = $state({ ...appState.settings });
+    let settings = $state<AppSettings>({ ...appState.settings });
     let showShortcuts = $state(false);
+
+    $effect(() => {
+        settings = { ...appState.settings };
+    });
 
     function save() {
         appState.saveSettings(settings);
@@ -72,6 +77,38 @@
                 <option value="trace">Trace</option>
             </select>
         </div>
+
+        <div class="form-group">
+            <label for="default-view">Default View on Start</label>
+            <select id="default-view" bind:value={settings.default_view_type}>
+                <option value="latest">Latest</option>
+                <option value="saved">Read Later</option>
+                <option value="folder">Folder</option>
+                <option value="feed">Feed</option>
+            </select>
+        </div>
+
+        {#if settings.default_view_type === 'folder'}
+            <div class="form-group">
+                <label for="default-folder">Select Folder</label>
+                <select id="default-folder" bind:value={settings.default_view_id}>
+                    {#each appState.folders as folder (folder.id)}
+                        <option value={folder.id}>{folder.name}</option>
+                    {/each}
+                </select>
+            </div>
+        {:else if settings.default_view_type === 'feed'}
+            <div class="form-group">
+                <label for="default-feed">Select Feed</label>
+                <select id="default-feed" bind:value={settings.default_view_id}>
+                    {#each appState.folders as folder}
+                        {#each folder.feeds as feed (feed.id)}
+                            <option value={feed.id}>{folder.name} / {feed.name}</option>
+                        {/each}
+                    {/each}
+                </select>
+            </div>
+        {/if}
 
         <div class="actions">
             <button class="secondary" onclick={cancel}>Cancel</button>

@@ -30,4 +30,6 @@ export interface AppSettings {
     refresh_all_debounce_minutes: number;
     auto_update_interval_minutes: number;
     log_level: string;
+    default_view_type: string;
+    default_view_id: number;
 }
