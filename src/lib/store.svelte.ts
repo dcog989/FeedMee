@@ -21,8 +21,8 @@ class AppState {
     sortOrder = $state<SortOrder>('desc');
 
     settings = $state<AppSettings>({
-        feed_refresh_debounce_minutes: 5,
-        refresh_all_debounce_minutes: 2,
+        feed_refresh_debounce_minutes: 4,
+        refresh_all_debounce_minutes: 0,
         auto_update_interval_minutes: 30,
         log_level: 'info',
     });
@@ -39,7 +39,6 @@ class AppState {
     latestHours = $state(24);
 
     lastRefreshed = new Map<number, number>();
-    lastRefreshAll = 0;
     updatingFeedIds = $state(new Set<number>());
 
     modalState = $state<{
@@ -109,14 +108,25 @@ class AppState {
         return folder.feeds.some((feed) => this.updatingFeedIds.has(feed.id));
     }
 
-    async refreshAllFeeds() {
-        const debounceMs = this.settings.refresh_all_debounce_minutes * 60 * 1000;
-        if (Date.now() - this.lastRefreshAll < debounceMs) {
-            console.log('Refresh All debounced');
-            return;
-        }
+    get debounceMs() {
+        return this.settings.feed_refresh_debounce_minutes * 60 * 1000;
+    }
 
-        this.lastRefreshAll = Date.now();
+    isFeedFresh(feedId: number): boolean {
+        return Date.now() - (this.lastRefreshed.get(feedId) || 0) < this.debounceMs;
+    }
+
+    isFolderFresh(folderId: number): boolean {
+        const folder = this.folders.find((f) => f.id === folderId);
+        if (!folder || folder.feeds.length === 0) return false;
+        return folder.feeds.every((f) => this.isFeedFresh(f.id));
+    }
+
+    isAllFresh(): boolean {
+        return this.folders.flatMap((f) => f.feeds).every((f) => this.isFeedFresh(f.id));
+    }
+
+    async refreshAllFeeds() {
         this.isLoading = true;
 
         const allFeeds: Feed[] = this.folders.flatMap((f) => f.feeds);
@@ -154,12 +164,7 @@ class AppState {
     }
 
     async requestRefreshFeed(feedId: number) {
-        const last = this.lastRefreshed.get(feedId) || 0;
-        const debounceMs = this.settings.feed_refresh_debounce_minutes * 60 * 1000;
-
-        if (Date.now() - last < debounceMs) {
-            return;
-        }
+        if (this.isFeedFresh(feedId)) return;
 
         const newSet = new Set(this.updatingFeedIds);
         newSet.add(feedId);

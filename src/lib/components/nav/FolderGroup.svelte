@@ -203,10 +203,17 @@
                                     </svg>
                                 </span>
                             {:else if feed.unread_count > 0}
-                                <span class="badge" use:tooltip={'Click to refresh'}
-                                    >{feed.unread_count}</span>
+                                <span
+                                    class="badge"
+                                    use:tooltip={appState.isFeedFresh(feed.id)
+                                        ? 'Already fresh!'
+                                        : 'Click to refresh'}>{feed.unread_count}</span>
                             {:else}
-                                <span class="refresh-icon" use:tooltip={'Refresh'}>
+                                <span
+                                    class="refresh-icon"
+                                    use:tooltip={appState.isFeedFresh(feed.id)
+                                        ? 'Already fresh!'
+                                        : 'Refresh'}>
                                     <svg
                                         width="12"
                                         height="12"

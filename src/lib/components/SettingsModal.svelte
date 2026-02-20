@@ -42,15 +42,6 @@
         </div>
 
         <div class="form-group">
-            <label for="refresh-all-rate">"Refresh All" Debounce (Minutes)</label>
-            <input
-                type="number"
-                id="refresh-all-rate"
-                bind:value={settings.refresh_all_debounce_minutes}
-                min="1" />
-        </div>
-
-        <div class="form-group">
             <label for="auto-update">Auto Update Interval (Minutes)</label>
             <input
                 type="number"

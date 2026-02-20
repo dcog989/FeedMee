@@ -5,6 +5,7 @@ use std::path::Path;
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct AppSettings {
     pub feed_refresh_debounce_minutes: u64,
+    #[serde(default)] // Retained for backward compatibility with existing settings.toml files
     pub refresh_all_debounce_minutes: u64,
     pub auto_update_interval_minutes: u64,
     pub log_level: String,
@@ -15,8 +16,8 @@ pub struct AppSettings {
 impl Default for AppSettings {
     fn default() -> Self {
         Self {
-            feed_refresh_debounce_minutes: 5,
-            refresh_all_debounce_minutes: 2,
+            feed_refresh_debounce_minutes: 4,
+            refresh_all_debounce_minutes: 0,
             auto_update_interval_minutes: 30,
             log_level: "info".to_string(),
             last_vacuum: 0,

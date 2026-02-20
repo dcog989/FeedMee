@@ -8,6 +8,7 @@
     }>();
 
     let isRefreshing = $derived(appState.isLoading);
+    let refreshAllTooltip = $derived(appState.isAllFresh() ? 'Already fresh!' : 'Refresh All');
 
     function createFolder() {
         const name = prompt('New Folder Name:');
@@ -38,7 +39,7 @@
     </button>
     <button
         onclick={() => appState.refreshAllFeeds()}
-        use:tooltip={'Refresh All'}
+        use:tooltip={refreshAllTooltip}
         disabled={isRefreshing}
         aria-label="Refresh All">
         <svg
