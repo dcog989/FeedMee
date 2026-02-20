@@ -53,7 +53,8 @@
             onclick={(e) => e.stopPropagation()}
             role="dialog"
             aria-modal="true"
-            aria-label="About FeedMee">
+            aria-label="About FeedMee"
+            tabindex="-1">
             <div class="modal-body">
                 <img src="/feedmee.png" alt="FeedMee" class="logo" />
                 <h2>FeedMee</h2>
@@ -97,7 +98,7 @@
                     </div>
                 </div>
 
-                <button class="open-logs-btn" onclick={openLogsDir}>Open Logs Folder ?</button>
+                <button class="open-logs-btn" onclick={openLogsDir}>Open Logs Folder</button>
 
                 <p class="footer">Giants' Shoulders = Rust / Tauri / Svelte / SQLite</p>
                 <p class="footer">FeedMee � 2025. All rights reserved.</p>
