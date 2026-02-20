@@ -1,14 +1,33 @@
 <script lang="ts">
     import { appState } from '$lib/store.svelte';
+    import type { AppSettings } from '$lib/types';
     import { Keyboard } from 'lucide-svelte';
     import ShortcutsModal from './ShortcutsModal.svelte';
-    import type { AppSettings } from '$lib/types';
 
-    let settings = $state<AppSettings>({ ...appState.settings });
+    interface SettingsWithDefault extends AppSettings {
+        default_view_type: string;
+        default_view_id: number;
+    }
+
+    let settings = $state<SettingsWithDefault>({
+        feed_refresh_debounce_minutes: 4,
+        refresh_all_debounce_minutes: 0,
+        auto_update_interval_minutes: 30,
+        log_level: 'info',
+        default_view_type: 'latest',
+        default_view_id: -1,
+    });
     let showShortcuts = $state(false);
 
     $effect(() => {
-        settings = { ...appState.settings };
+        const s = appState.settings as unknown as Record<string, unknown>;
+        if (s && 'default_view_type' in s) {
+            settings = {
+                ...appState.settings,
+                default_view_type: (s.default_view_type as string) || 'latest',
+                default_view_id: (s.default_view_id as number) ?? -1,
+            };
+        }
     });
 
     function save() {
@@ -49,33 +68,28 @@
         </div>
 
         <div class="form-group">
-            <label for="refresh-rate">Feed Refresh Debounce (Minutes)</label>
-            <input
-                type="number"
-                id="refresh-rate"
-                bind:value={settings.feed_refresh_debounce_minutes}
-                min="1" />
+            <label for="refresh-rate">Feed Refresh Debounce</label>
+            <div class="input-row">
+                <input
+                    type="number"
+                    id="refresh-rate"
+                    bind:value={settings.feed_refresh_debounce_minutes}
+                    min="1" />
+                <span class="unit">min</span>
+            </div>
         </div>
 
         <div class="form-group">
-            <label for="auto-update">Auto Update Interval (Minutes)</label>
-            <input
-                type="number"
-                id="auto-update"
-                bind:value={settings.auto_update_interval_minutes}
-                min="0" />
+            <label for="auto-update">Auto Update Interval</label>
+            <div class="input-row">
+                <input
+                    type="number"
+                    id="auto-update"
+                    bind:value={settings.auto_update_interval_minutes}
+                    min="0" />
+                <span class="unit">min</span>
+            </div>
             <span class="hint">Set to 0 to disable</span>
-        </div>
-
-        <div class="form-group">
-            <label for="log-level">Log Level</label>
-            <select id="log-level" bind:value={settings.log_level}>
-                <option value="error">Error</option>
-                <option value="warn">Warn</option>
-                <option value="info">Info</option>
-                <option value="debug">Debug</option>
-                <option value="trace">Trace</option>
-            </select>
         </div>
 
         <div class="form-group">
@@ -89,8 +103,8 @@
         </div>
 
         {#if settings.default_view_type === 'folder'}
-            <div class="form-group">
-                <label for="default-folder">Select Folder</label>
+            <div class="form-group indent">
+                <label for="default-folder">Folder</label>
                 <select id="default-folder" bind:value={settings.default_view_id}>
                     {#each appState.folders as folder (folder.id)}
                         <option value={folder.id}>{folder.name}</option>
@@ -98,8 +112,8 @@
                 </select>
             </div>
         {:else if settings.default_view_type === 'feed'}
-            <div class="form-group">
-                <label for="default-feed">Select Feed</label>
+            <div class="form-group indent">
+                <label for="default-feed">Feed</label>
                 <select id="default-feed" bind:value={settings.default_view_id}>
                     {#each appState.folders as folder}
                         {#each folder.feeds as feed (feed.id)}
@@ -109,6 +123,17 @@
                 </select>
             </div>
         {/if}
+
+        <div class="form-group">
+            <label for="log-level">Log Level</label>
+            <select id="log-level" bind:value={settings.log_level}>
+                <option value="error">Error</option>
+                <option value="warn">Warn</option>
+                <option value="info">Info</option>
+                <option value="debug">Debug</option>
+                <option value="trace">Trace</option>
+            </select>
+        </div>
 
         <div class="actions">
             <button class="secondary" onclick={cancel}>Cancel</button>
@@ -171,18 +196,40 @@
 
     .form-group {
         margin-bottom: 1rem;
+        display: flex;
+        align-items: center;
+        gap: 1rem;
     }
 
-    label {
-        display: block;
+    .form-group label {
+        flex: 0 0 140px;
         font-size: 0.9rem;
-        margin-bottom: 0.3rem;
+        color: var(--text-secondary);
+        margin-bottom: 0;
+    }
+
+    .form-group.indent {
+        padding-left: 140px;
+    }
+
+    .form-group.indent label {
+        flex: 0 0 auto;
+    }
+
+    .input-row {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .unit {
+        font-size: 0.8rem;
         color: var(--text-secondary);
     }
 
     input,
     select {
-        width: 100%;
+        flex: 1;
         padding: 8px;
         border: 1px solid var(--border-color);
         background: var(--bg-app);
