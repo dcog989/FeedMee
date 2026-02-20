@@ -4,7 +4,6 @@
     import NavToolbar from './nav/NavToolbar.svelte';
     import SpecialFeeds from './nav/SpecialFeeds.svelte';
 
-    let expandedFolders = $state<Set<number>>(new Set());
     let initialized = false;
     let dragExpandTimeout = $state<number | null>(null);
 
@@ -19,18 +18,18 @@
     // Load/Save Expansion State
     $effect(() => {
         if (!initialized) {
-            const stored = localStorage.getItem('expandedFolders');
+            const stored = localStorage.getItem('appState.expandedFolders');
             if (stored) {
                 try {
                     const ids = JSON.parse(stored);
-                    expandedFolders = new Set(ids);
+                    appState.expandedFolders = new Set(ids);
                 } catch (e) {
                     console.error(e);
                 }
             } else {
-                const newSet = new Set(expandedFolders);
+                const newSet = new Set(appState.expandedFolders);
                 appState.folders.forEach((f) => newSet.add(f.id));
-                expandedFolders = newSet;
+                appState.expandedFolders = newSet;
             }
             initialized = true;
         }
@@ -38,38 +37,41 @@
 
     $effect(() => {
         if (initialized) {
-            localStorage.setItem('expandedFolders', JSON.stringify(Array.from(expandedFolders)));
+            localStorage.setItem(
+                'appState.expandedFolders',
+                JSON.stringify(Array.from(appState.expandedFolders)),
+            );
         }
     });
 
     function toggleFolder(id: number) {
-        const newSet = new Set(expandedFolders);
+        const newSet = new Set(appState.expandedFolders);
         if (newSet.has(id)) {
             newSet.delete(id);
         } else {
             newSet.add(id);
         }
-        expandedFolders = newSet;
+        appState.expandedFolders = newSet;
     }
 
     function expandAll() {
         const newSet = new Set<number>();
         appState.folders.forEach((f) => newSet.add(f.id));
-        expandedFolders = newSet;
+        appState.expandedFolders = newSet;
     }
 
     function collapseAll() {
-        expandedFolders = new Set();
+        appState.expandedFolders = new Set();
     }
 
     // --- Drag to Expand Logic ---
     function handleExpandHover(folderId: number) {
-        if (!expandedFolders.has(folderId)) {
+        if (!appState.expandedFolders.has(folderId)) {
             if (dragExpandTimeout) clearTimeout(dragExpandTimeout);
             dragExpandTimeout = window.setTimeout(() => {
-                const newSet = new Set(expandedFolders);
+                const newSet = new Set(appState.expandedFolders);
                 newSet.add(folderId);
-                expandedFolders = newSet;
+                appState.expandedFolders = newSet;
             }, 600);
         }
     }
@@ -152,7 +154,7 @@
         {#each appState.folders as folder (folder.id)}
             <FolderGroup
                 {folder}
-                isExpanded={expandedFolders.has(folder.id)}
+                isExpanded={appState.expandedFolders.has(folder.id)}
                 onToggle={(e) => {
                     e.stopPropagation();
                     toggleFolder(folder.id);

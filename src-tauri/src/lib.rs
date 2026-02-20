@@ -140,6 +140,8 @@ pub fn run() {
             commands::get_saved_articles,
             commands::get_app_settings,
             commands::save_app_settings, // Added
+            commands::get_shortcuts,
+            commands::save_shortcuts,
             commands::create_folder,
             commands::mark_article_saved,
             commands::mark_article_read,

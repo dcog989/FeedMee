@@ -39,3 +39,20 @@ _FeedMee_ is an RSS/Atom news reader built for the desktop.
 # Install dependencies
 bun install
 ```
+
+## Keyboard Shortcuts
+
+| Key     | Action                     |
+| ------- | -------------------------- |
+| `/`     | Focus search               |
+| `r`     | Refresh all feeds          |
+| `n`     | Add new feed               |
+| `,`     | Open settings              |
+| `s`     | Save/Read later            |
+| `m`     | Mark as read/unread        |
+| `Enter` | Open article in browser    |
+| `x`     | Expand all folders         |
+| `c`     | Collapse all folders       |
+| `Esc`   | Close modal / Clear search |
+
+> Tip: Click the keyboard icon in Settings to customize shortcuts.

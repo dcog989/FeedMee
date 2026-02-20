@@ -9,6 +9,7 @@ use readability_rust::Readability;
 use scraper::{Html, Selector};
 use serde::Serialize;
 use std::fmt::Write;
+use std::fs;
 
 #[derive(Serialize)]
 pub struct AppInfo {
@@ -20,10 +21,7 @@ pub struct AppInfo {
 
 #[tauri::command]
 pub fn get_app_info(app: tauri::AppHandle) -> Result<AppInfo, String> {
-    let app_data_dir = app
-        .path()
-        .app_data_dir()
-        .map_err(|e| e.to_string())?;
+    let app_data_dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
 
     let version = app.package_info().version.to_string();
 
@@ -31,7 +29,11 @@ pub fn get_app_info(app: tauri::AppHandle) -> Result<AppInfo, String> {
         version,
         data_path: app_data_dir.to_string_lossy().to_string(),
         logs_path: app_data_dir.join("Logs").to_string_lossy().to_string(),
-        db_path: app_data_dir.join("Database").join("feedmee.sqlite").to_string_lossy().to_string(),
+        db_path: app_data_dir
+            .join("Database")
+            .join("feedmee.sqlite")
+            .to_string_lossy()
+            .to_string(),
     })
 }
 use std::io::Cursor;
@@ -68,6 +70,38 @@ pub fn save_app_settings(
     } else {
         Err("Could not determine app data directory".to_string())
     }
+}
+
+#[tauri::command]
+pub fn get_shortcuts(
+    app: tauri::AppHandle,
+) -> Result<std::collections::HashMap<String, String>, String> {
+    let app_data_dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
+    let shortcuts_path = app_data_dir.join("shortcuts.json");
+
+    if shortcuts_path.exists() {
+        let content = fs::read_to_string(&shortcuts_path).map_err(|e| e.to_string())?;
+        let shortcuts: std::collections::HashMap<String, String> =
+            serde_json::from_str(&content).unwrap_or_default();
+        Ok(shortcuts)
+    } else {
+        Ok(std::collections::HashMap::new())
+    }
+}
+
+#[tauri::command]
+pub fn save_shortcuts(
+    shortcuts: std::collections::HashMap<String, String>,
+    app: tauri::AppHandle,
+) -> Result<(), String> {
+    let app_data_dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
+    let shortcuts_path = app_data_dir.join("shortcuts.json");
+
+    let json = serde_json::to_string_pretty(&shortcuts).map_err(|e| e.to_string())?;
+    fs::write(shortcuts_path, json).map_err(|e| e.to_string())?;
+
+    info!("Shortcuts saved to disk");
+    Ok(())
 }
 
 #[tauri::command]
@@ -368,19 +402,21 @@ pub async fn add_feed(
             let document = Html::parse_document(&html_content);
             // Select all <link> elements and filter in Rust — avoids CSS quoted-attribute
             // parsing inconsistencies in the scraper crate.
-            let feed_types = ["application/rss+xml", "application/atom+xml", "application/feed+json"];
-            let found = Selector::parse("link")
-                .ok()
-                .and_then(|sel| {
-                    document.select(&sel).find_map(|el| {
-                        let t = el.value().attr("type").unwrap_or("");
-                        if feed_types.iter().any(|ft| t.contains(ft)) {
-                            el.value().attr("href").map(|h| h.to_string())
-                        } else {
-                            None
-                        }
-                    })
-                });
+            let feed_types = [
+                "application/rss+xml",
+                "application/atom+xml",
+                "application/feed+json",
+            ];
+            let found = Selector::parse("link").ok().and_then(|sel| {
+                document.select(&sel).find_map(|el| {
+                    let t = el.value().attr("type").unwrap_or("");
+                    if feed_types.iter().any(|ft| t.contains(ft)) {
+                        el.value().attr("href").map(|h| h.to_string())
+                    } else {
+                        None
+                    }
+                })
+            });
 
             found.and_then(|href| {
                 Url::parse(original_url.as_str())

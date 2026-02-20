@@ -1,7 +1,10 @@
 <script lang="ts">
     import { appState } from '$lib/store.svelte';
+    import { Keyboard } from 'lucide-svelte';
+    import ShortcutsModal from './ShortcutsModal.svelte';
 
     let settings = $state({ ...appState.settings });
+    let showShortcuts = $state(false);
 
     function save() {
         appState.saveSettings(settings);
@@ -30,7 +33,15 @@
         aria-modal="true"
         aria-label="Settings"
         tabindex="-1">
-        <h3>Settings</h3>
+        <div class="modal-header">
+            <h3>Settings</h3>
+            <button
+                class="shortcuts-btn"
+                onclick={() => (showShortcuts = true)}
+                title="Keyboard Shortcuts">
+                <Keyboard size={18} />
+            </button>
+        </div>
 
         <div class="form-group">
             <label for="refresh-rate">Feed Refresh Debounce (Minutes)</label>
@@ -69,6 +80,8 @@
     </div>
 </div>
 
+<ShortcutsModal bind:isOpen={showShortcuts} onClose={() => (showShortcuts = false)} />
+
 <style>
     .modal-overlay {
         position: fixed;
@@ -93,9 +106,30 @@
         color: var(--text-primary);
     }
 
-    h3 {
-        margin-top: 0;
+    .modal-header {
+        display: flex;
+        align-items: center;
         margin-bottom: 1.5rem;
+    }
+
+    h3 {
+        margin: 0;
+        flex: 1;
+    }
+
+    .shortcuts-btn {
+        background: none;
+        border: none;
+        color: var(--text-secondary);
+        cursor: pointer;
+        padding: 4px;
+        border-radius: 4px;
+        display: flex;
+    }
+
+    .shortcuts-btn:hover {
+        color: var(--text-primary);
+        background: var(--bg-hover);
     }
 
     .form-group {

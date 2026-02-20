@@ -7,7 +7,6 @@
     const appWindow = getCurrentWindow();
 
     let showAbout = $state(false);
-    let showAddDialog = $state(false);
     let newFeedUrl = $state('');
     let selectedFolderId = $state<number | null>(null);
 
@@ -50,28 +49,28 @@
         } catch {
             /* clipboard access denied */
         }
-        showAddDialog = true;
+        appState.showAddDialog = true;
     }
 
     function closeAddDialog() {
-        showAddDialog = false;
+        appState.showAddDialog = false;
     }
 
     function submitAddFeed() {
         if (newFeedUrl.trim().length > 0) {
             appState.addFeed(newFeedUrl.trim(), selectedFolderId);
-            closeAddDialog();
+            appState.showAddDialog = false;
         }
     }
 
     function handleImport() {
         appState.importOpml();
-        closeAddDialog();
+        appState.showAddDialog = false;
     }
 
     function handleExport() {
         appState.exportOpml();
-        closeAddDialog();
+        appState.showAddDialog = false;
     }
 
     function onKeyDown(e: KeyboardEvent) {
@@ -191,7 +190,7 @@
 
 <AboutModal bind:isOpen={showAbout} onClose={() => (showAbout = false)} />
 
-{#if showAddDialog}
+{#if appState.showAddDialog}
     <!-- svelte-ignore a11y_click_events_have_key_events -->
     <!-- svelte-ignore a11y_no_static_element_interactions -->
     <div class="modal-overlay" onclick={closeAddDialog}>

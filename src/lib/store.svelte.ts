@@ -1,6 +1,7 @@
 import { invoke } from '@tauri-apps/api/core';
 import { open, save } from '@tauri-apps/plugin-dialog';
 import type { AppSettings, Article, Feed, Folder } from './types';
+import { shortcutManager } from './utils/shortcuts';
 
 export type Theme = 'light' | 'dark' | 'sepia' | 'system';
 export type SortOrder = 'desc' | 'asc';
@@ -30,6 +31,11 @@ class AppState {
 
     // UI States
     showSettings = $state(false);
+    showAddDialog = $state(false);
+    expandedFolders = $state<Set<number>>(new Set());
+
+    // Custom keyboard shortcuts
+    customShortcuts = $state<Record<string, string>>({});
 
     navWidth = $state(280);
     listWidth = $state(320);
@@ -56,6 +62,172 @@ class AppState {
 
     constructor() {
         this.initStore();
+        this.registerShortcuts();
+        this.setupKeyHandler();
+    }
+
+    private registerShortcuts() {
+        shortcutManager.register({
+            id: 'settings',
+            command: 'settings',
+            defaultKey: ',',
+            description: 'Open settings',
+            category: 'General',
+            handler: () => this.openSettings(),
+        });
+
+        shortcutManager.register({
+            id: 'add-feed',
+            command: 'add-feed',
+            defaultKey: 'n',
+            description: 'Add new feed',
+            category: 'General',
+            handler: () => {
+                this.showAddDialog = true;
+            },
+        });
+
+        shortcutManager.register({
+            id: 'refresh-all',
+            command: 'refresh-all',
+            defaultKey: 'r',
+            description: 'Refresh all feeds',
+            category: 'Feeds',
+            handler: () => this.refreshAllFeeds(),
+        });
+
+        shortcutManager.register({
+            id: 'focus-search',
+            command: 'focus-search',
+            defaultKey: '/',
+            description: 'Focus search',
+            category: 'General',
+            handler: () => {
+                const searchInput = document.querySelector(
+                    '.search-wrapper input',
+                ) as HTMLInputElement;
+                searchInput?.focus();
+            },
+        });
+
+        shortcutManager.register({
+            id: 'toggle-save',
+            command: 'toggle-save',
+            defaultKey: 's',
+            description: 'Save/Read later',
+            category: 'Articles',
+            handler: () => {
+                if (this.selectedArticle) {
+                    this.toggleSaved(this.selectedArticle);
+                }
+            },
+        });
+
+        shortcutManager.register({
+            id: 'mark-read',
+            command: 'mark-read',
+            defaultKey: 'm',
+            description: 'Mark as read/unread',
+            category: 'Articles',
+            handler: async () => {
+                if (this.selectedArticle) {
+                    const article = this.selectedArticle;
+                    const newReadState = !article.is_read;
+                    article.is_read = newReadState;
+                    await invoke('mark_article_read', { id: article.id, read: newReadState });
+                }
+            },
+        });
+
+        shortcutManager.register({
+            id: 'focus-search',
+            command: 'focus-search',
+            defaultKey: '/',
+            description: 'Focus search',
+            category: 'General',
+            handler: () => {
+                const searchInput = document.querySelector(
+                    '.search-wrapper input',
+                ) as HTMLInputElement;
+                searchInput?.focus();
+            },
+        });
+
+        shortcutManager.register({
+            id: 'expand-all',
+            command: 'expand-all',
+            defaultKey: 'x',
+            description: 'Expand all folders',
+            category: 'Feeds',
+            handler: () => {
+                const newSet = new Set<number>();
+                this.folders.forEach((f) => newSet.add(f.id));
+                this.expandedFolders = newSet;
+            },
+        });
+
+        shortcutManager.register({
+            id: 'collapse-all',
+            command: 'collapse-all',
+            defaultKey: 'c',
+            description: 'Collapse all folders',
+            category: 'Feeds',
+            handler: () => {
+                this.expandedFolders = new Set<number>();
+            },
+        });
+
+        shortcutManager.register({
+            id: 'open-article',
+            command: 'open-article',
+            defaultKey: 'enter',
+            description: 'Open article in browser',
+            category: 'Articles',
+            handler: () => {
+                if (this.selectedArticle) {
+                    import('@tauri-apps/plugin-opener').then(({ openUrl }) => {
+                        openUrl(this.selectedArticle!.url);
+                    });
+                }
+            },
+        });
+    }
+
+    private setupKeyHandler() {
+        window.addEventListener('keydown', (e) => {
+            if (this.showSettings) return;
+            shortcutManager.handleKeyEvent(e);
+        });
+    }
+
+    setShortcut(commandId: string, key: string) {
+        this.customShortcuts[commandId] = key;
+        shortcutManager.setCustomMappings(this.customShortcuts);
+        this.saveShortcutSettings();
+    }
+
+    resetShortcut(commandId: string) {
+        delete this.customShortcuts[commandId];
+        shortcutManager.setCustomMappings(this.customShortcuts);
+        this.saveShortcutSettings();
+    }
+
+    private async saveShortcutSettings() {
+        try {
+            await invoke('save_shortcuts', { shortcuts: this.customShortcuts });
+        } catch (e) {
+            console.error('Failed to save shortcuts:', e);
+        }
+    }
+
+    private async loadShortcutSettings() {
+        try {
+            const shortcuts = await invoke<Record<string, string>>('get_shortcuts');
+            this.customShortcuts = shortcuts || {};
+            shortcutManager.setCustomMappings(this.customShortcuts);
+        } catch (e) {
+            console.error('Failed to load shortcuts:', e);
+        }
     }
 
     private async initStore() {
@@ -78,6 +250,8 @@ class AppState {
         } catch (e) {
             console.error('Failed to load settings', e);
         }
+
+        await this.loadShortcutSettings();
 
         await this.refreshFolders();
         this.refreshAllFeeds();
