@@ -25,8 +25,13 @@ pub fn run() {
                 .app_data_dir()
                 .expect("failed to find app data dir");
 
-            if !app_data_dir.exists() {
-                std::fs::create_dir_all(&app_data_dir).expect("failed to create app data dir");
+            let logs_dir = app_data_dir.join("Logs");
+            let db_dir = app_data_dir.join("Database");
+
+            for dir in [&app_data_dir, &logs_dir, &db_dir] {
+                if !dir.exists() {
+                    std::fs::create_dir_all(dir).expect("failed to create app data dir");
+                }
             }
 
             // --- Log Rotation ---
@@ -34,24 +39,24 @@ pub fn run() {
             let max_logs = 5;
 
             // Delete oldest if exists
-            let oldest_log = app_data_dir.join(format!("feedmee.{}.log", max_logs));
+            let oldest_log = logs_dir.join(format!("feedmee.{}.log", max_logs));
             if oldest_log.exists() {
                 let _ = std::fs::remove_file(oldest_log);
             }
 
             // Shift existing logs: 4->5, 3->4, etc.
             for i in (1..max_logs).rev() {
-                let current = app_data_dir.join(format!("feedmee.{}.log", i));
-                let next = app_data_dir.join(format!("feedmee.{}.log", i + 1));
+                let current = logs_dir.join(format!("feedmee.{}.log", i));
+                let next = logs_dir.join(format!("feedmee.{}.log", i + 1));
                 if current.exists() {
                     let _ = std::fs::rename(current, next);
                 }
             }
 
             // Shift main log to .1
-            let current_log = app_data_dir.join(log_file_name);
+            let current_log = logs_dir.join(log_file_name);
             if current_log.exists() {
-                let _ = std::fs::rename(&current_log, app_data_dir.join("feedmee.1.log"));
+                let _ = std::fs::rename(&current_log, logs_dir.join("feedmee.1.log"));
             }
             // ---------------------
 
@@ -66,7 +71,7 @@ pub fn run() {
                 _ => LevelFilter::Info,
             };
 
-            let log_path = app_data_dir.join(log_file_name);
+            let log_path = logs_dir.join(log_file_name);
 
             let log_config = ConfigBuilder::new()
                 .add_filter_ignore_str("html5ever")
@@ -89,7 +94,7 @@ pub fn run() {
             info!("Starting FeedMee application");
             info!("Settings loaded: {:?}", app_settings);
 
-            let db_path = app_data_dir.join("feedmee.sqlite");
+            let db_path = db_dir.join("feedmee.sqlite");
 
             let mut conn = rusqlite::Connection::open(&db_path).map_err(|e| {
                 error!("Failed to open database: {}", e);
