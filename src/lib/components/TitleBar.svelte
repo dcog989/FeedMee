@@ -1,12 +1,11 @@
 <script lang="ts">
-    import AboutModal from './AboutModal.svelte';
     import { appState } from '$lib/store.svelte';
     import { getCurrentWindow } from '@tauri-apps/api/window';
+    import AboutModal from './AboutModal.svelte';
 
     const appWindow = getCurrentWindow();
 
     let showAbout = $state(false);
-
     let showAddDialog = $state(false);
     let newFeedUrl = $state('');
     let selectedFolderId = $state<number | null>(null);
@@ -58,7 +57,7 @@
     }
 
     function submitAddFeed() {
-        if (newFeedUrl && newFeedUrl.trim().length > 0) {
+        if (newFeedUrl.trim().length > 0) {
             appState.addFeed(newFeedUrl.trim(), selectedFolderId);
             closeAddDialog();
         }
@@ -66,6 +65,11 @@
 
     function handleImport() {
         appState.importOpml();
+        closeAddDialog();
+    }
+
+    function handleExport() {
+        appState.exportOpml();
         closeAddDialog();
     }
 
@@ -82,6 +86,7 @@
     }
 
     let searchDebounce: ReturnType<typeof setTimeout> | null = null;
+
     function onSearchInput(e: Event) {
         const query = (e.target as HTMLInputElement).value;
         if (searchDebounce) clearTimeout(searchDebounce);
@@ -92,6 +97,7 @@
 <header class="titlebar" data-tauri-drag-region>
     <div class="left-section">
         <div class="mac-spacer"></div>
+
         <!-- svelte-ignore a11y_click_events_have_key_events -->
         <!-- svelte-ignore a11y_no_static_element_interactions -->
         <span
@@ -103,17 +109,34 @@
             <img src="/feedmee.png" alt="" class="app-icon" />
             <span class="app-title">FeedMee</span>
         </span>
-    </div>
 
-    <div class="toolbar">
+        <button
+            class="tool-btn"
+            onclick={() => appState.openSettings()}
+            title="Settings"
+            aria-label="Settings">
+            <svg
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2">
+                <circle cx="12" cy="12" r="3"></circle>
+                <path
+                    d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"
+                ></path>
+            </svg>
+        </button>
+
         <button
             class="tool-btn"
             onclick={openAddDialog}
             title="Add Content"
             aria-label="Add Content">
             <svg
-                width="20"
-                height="20"
+                width="18"
+                height="18"
                 viewBox="0 0 24 24"
                 fill="none"
                 stroke="currentColor"
@@ -122,25 +145,9 @@
                 <line x1="5" y1="12" x2="19" y2="12"></line>
             </svg>
         </button>
+    </div>
 
-        <button
-            class="tool-btn"
-            onclick={() => appState.exportOpml()}
-            title="Export OPML"
-            aria-label="Export OPML">
-            <svg
-                width="20"
-                height="20"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2">
-                <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"></path>
-                <polyline points="16 6 12 2 8 6"></polyline>
-                <line x1="12" y1="2" x2="12" y2="15"></line>
-            </svg>
-        </button>
-
+    <div class="toolbar">
         <div class="search-wrapper">
             <svg
                 class="search-icon"
@@ -163,25 +170,6 @@
     </div>
 
     <div class="right-section">
-        <button
-            class="tool-btn"
-            onclick={() => appState.openSettings()}
-            title="Settings"
-            aria-label="Settings">
-            <svg
-                width="20"
-                height="20"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2">
-                <circle cx="12" cy="12" r="3"></circle>
-                <path
-                    d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"
-                ></path>
-            </svg>
-        </button>
-
         <div class="window-controls">
             <button class="win-btn" onclick={minimize} aria-label="Minimize">
                 <svg width="10" height="10" viewBox="0 0 10 10"
@@ -238,6 +226,7 @@
     <div class="modal-overlay" onclick={closeAddDialog}>
         <div class="modal" onclick={(e) => e.stopPropagation()}>
             <h3>Add Content</h3>
+
             <div class="input-group">
                 <input
                     type="text"
@@ -263,6 +252,7 @@
             </div>
 
             <button class="secondary" onclick={handleImport}>Import OPML File</button>
+            <button class="secondary" onclick={handleExport}>Export OPML File</button>
         </div>
     </div>
 {/if}
@@ -298,6 +288,7 @@
         border-bottom: 1px solid var(--border-color);
         -webkit-app-region: drag;
     }
+
     .titlebar button,
     .titlebar input,
     .window-controls,
@@ -317,7 +308,7 @@
 
     .left-section {
         padding-left: 1rem;
-        min-width: 200px;
+        gap: 2px;
     }
 
     .app-title {
@@ -325,17 +316,17 @@
         font-size: 0.9rem;
         color: var(--text-primary);
         opacity: 0.8;
+        margin-right: 4px;
     }
 
     .toolbar {
-        gap: 0.5rem;
         flex: 1;
         justify-content: center;
     }
 
     .tool-btn {
-        width: 32px;
-        height: 32px;
+        width: 30px;
+        height: 30px;
         display: flex;
         align-items: center;
         justify-content: center;
@@ -344,6 +335,7 @@
         color: var(--text-secondary);
         border-radius: 4px;
         cursor: pointer;
+        flex-shrink: 0;
     }
 
     .tool-btn:hover {
@@ -353,7 +345,6 @@
 
     .search-wrapper {
         position: relative;
-        margin-left: 1rem;
     }
 
     .search-icon {
@@ -372,7 +363,7 @@
         padding: 4px 8px 4px 28px;
         border-radius: 4px;
         font-size: 0.85rem;
-        width: 200px;
+        width: 220px;
         outline: none;
     }
 
@@ -382,7 +373,6 @@
 
     .right-section {
         padding-right: 0;
-        gap: 0.5rem;
     }
 
     .window-controls {
@@ -410,6 +400,7 @@
     .win-btn:hover {
         background-color: var(--bg-hover);
     }
+
     .win-btn.close:hover {
         background-color: #e81123;
         color: white;
@@ -418,10 +409,7 @@
     /* Modal Styles */
     .modal-overlay {
         position: fixed;
-        top: 0;
-        left: 0;
-        width: 100vw;
-        height: 100vh;
+        inset: 0;
         background: rgba(0, 0, 0, 0.5);
         display: flex;
         justify-content: center;
@@ -479,6 +467,7 @@
         color: var(--text-primary);
         border-radius: 4px;
         cursor: pointer;
+        margin-top: 8px;
     }
 
     button.secondary:hover {
