@@ -1,4 +1,4 @@
-<script lang="ts">
+﻿<script lang="ts">
     import { tooltip } from '$lib/actions/tooltip.svelte';
     import { appState } from '$lib/store.svelte';
     import { ChevronDown, ChevronUp, RefreshCw, FolderPlus } from 'lucide-svelte';
@@ -82,7 +82,7 @@
         margin-left: auto;
     }
 
-    .spinning {
+    :global(.spinning) {
         animation: spin 1s linear infinite;
     }
 

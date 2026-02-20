@@ -1,4 +1,4 @@
-<script lang="ts">
+﻿<script lang="ts">
     import SettingsModal from '$lib/components/SettingsModal.svelte';
     import TitleBar from '$lib/components/TitleBar.svelte';
     import Tooltip from '$lib/components/Tooltip.svelte';
@@ -23,7 +23,7 @@
     });
 </script>
 
-<div class="layout-wrapper" oncontextmenu={disableContextMenu}>
+<div class="layout-wrapper" role="application" oncontextmenu={disableContextMenu}>
     <TitleBar />
     <div class="content-wrapper">
         {@render children()}

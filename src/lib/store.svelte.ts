@@ -1,4 +1,5 @@
-import { invoke } from '@tauri-apps/api/core';
+﻿import { invoke } from '@tauri-apps/api/core';
+import { openUrl } from '@tauri-apps/plugin-opener';
 import { open, save } from '@tauri-apps/plugin-dialog';
 import type { AppSettings, Article, Feed, Folder } from './types';
 import { shortcutManager } from './utils/shortcuts';
@@ -187,9 +188,7 @@ class AppState {
             category: 'Articles',
             handler: () => {
                 if (this.selectedArticle) {
-                    import('@tauri-apps/plugin-opener').then(({ openUrl }) => {
-                        openUrl(this.selectedArticle!.url);
-                    });
+                    openUrl(this.selectedArticle!.url);
                 }
             },
         });

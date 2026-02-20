@@ -1,4 +1,4 @@
-<script lang="ts">
+﻿<script lang="ts">
     import { appState, FEED_ID_LATEST, FEED_ID_SAVED } from '$lib/store.svelte';
     import { Clock, Bookmark } from 'lucide-svelte';
 </script>
@@ -77,13 +77,6 @@
     .feed-name {
         overflow: hidden;
         text-overflow: ellipsis;
-    }
-
-    .feed-icon {
-        color: var(--text-secondary);
-        font-size: 0.8rem;
-        opacity: 0.7;
-        flex-shrink: 0;
     }
 
     :global(.feed-icon) {
