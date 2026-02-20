@@ -1,6 +1,6 @@
 [package]
 name = "FeedMee"
-version = "0.2.2"
+version = "0.2.3"
 description = "The seriously fast feed reader."
 edition = "2024"
 authors = ["dcog989"]
@@ -31,6 +31,6 @@ tauri-plugin-dialog = "2.6.0"
 tauri-plugin-fs = "2.4.5"
 tauri-plugin-opener = "2.5.3"
 tauri-plugin-window-state = "2.4.1"
-velopack = "0.0.1369-g1d5c984"
 toml = "0.8.23"
 url = "2.5.8"
+velopack = "0.0.1369-g1d5c984"
