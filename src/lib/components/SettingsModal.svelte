@@ -68,28 +68,13 @@
         </div>
 
         <div class="form-group">
-            <label for="refresh-rate">Feed Refresh Debounce</label>
-            <div class="input-row">
-                <input
-                    type="number"
-                    id="refresh-rate"
-                    bind:value={settings.feed_refresh_debounce_minutes}
-                    min="1" />
-                <span class="unit">min</span>
-            </div>
-        </div>
-
-        <div class="form-group">
-            <label for="auto-update">Auto Update Interval</label>
-            <div class="input-row">
-                <input
-                    type="number"
-                    id="auto-update"
-                    bind:value={settings.auto_update_interval_minutes}
-                    min="0" />
-                <span class="unit">min</span>
-            </div>
-            <span class="hint">Set to 0 to disable</span>
+            <label for="auto-update">Auto Update Interval (min)</label>
+            <input
+                type="number"
+                id="auto-update"
+                bind:value={settings.auto_update_interval_minutes}
+                min="5"
+                title="0 to disable" />
         </div>
 
         <div class="form-group">
@@ -216,17 +201,6 @@
         flex: 0 0 auto;
     }
 
-    .input-row {
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-    }
-
-    .unit {
-        font-size: 0.8rem;
-        color: var(--text-secondary);
-    }
-
     input,
     select {
         flex: 1;
@@ -236,12 +210,6 @@
         color: var(--text-primary);
         border-radius: 4px;
         box-sizing: border-box;
-    }
-
-    .hint {
-        font-size: 0.75rem;
-        color: var(--text-secondary);
-        opacity: 0.8;
     }
 
     .actions {
