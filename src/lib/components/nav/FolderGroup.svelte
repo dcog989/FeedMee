@@ -99,7 +99,12 @@
             </svg>
         </span>
 
-        <span class="folder-name-area" onclick={() => appState.selectFolder(folder.id)}>
+        <span
+            class="folder-name-area"
+            onclick={(e) => {
+                appState.selectFolder(folder.id);
+                onToggle(e);
+            }}>
             <span class="folder-name">{folder.name}</span>
 
             {#if appState.isFolderUpdating(folder.id)}
