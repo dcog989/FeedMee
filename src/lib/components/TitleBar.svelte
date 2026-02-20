@@ -130,7 +130,7 @@
 
     <div class="toolbar">
         <div class="search-wrapper">
-            <Search class="search-icon" size={16} />
+            <Search class="search-icon" size={18} />
             <input
                 type="text"
                 placeholder="Search..."
@@ -326,10 +326,10 @@
         background: var(--bg-app);
         border: 1px solid var(--border-color);
         color: var(--text-primary);
-        padding: 4px 8px 4px 28px;
+        padding: 6px 12px;
         border-radius: 4px;
         font-size: 0.85rem;
-        width: 220px;
+        width: 280px;
         outline: none;
     }
 
