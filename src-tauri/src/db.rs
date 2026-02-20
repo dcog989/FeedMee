@@ -1,4 +1,4 @@
-﻿use crate::models::{Article, Feed, Folder};
+use crate::models::{Article, Feed, Folder};
 use log::{debug, info};
 use rusqlite::{Connection, Result, params};
 use rusqlite_migration::{M, Migrations};

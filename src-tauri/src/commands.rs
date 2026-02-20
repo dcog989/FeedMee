@@ -320,7 +320,10 @@ pub async fn refresh_feed(feed_id: i64, state: State<'_, AppState>) -> Result<us
             let content = response.bytes().await.map_err(|e| e.to_string())?;
             match feed_rs::parser::parse(Cursor::new(content)) {
                 Ok(feed) => {
-                    info!("refresh_feed: parsed feed ok, {} entries", feed.entries.len());
+                    info!(
+                        "refresh_feed: parsed feed ok, {} entries",
+                        feed.entries.len()
+                    );
                     let conn = state.db.lock().unwrap();
                     let mut count = 0;
                     for entry in feed.entries {
@@ -336,9 +339,17 @@ pub async fn refresh_feed(feed_id: i64, state: State<'_, AppState>) -> Result<us
                                 let key = if !entry.id.is_empty() {
                                     entry.id.clone()
                                 } else {
-                                    entry.title.as_ref().map(|t| t.content.clone()).unwrap_or_default()
+                                    entry
+                                        .title
+                                        .as_ref()
+                                        .map(|t| t.content.clone())
+                                        .unwrap_or_default()
                                 };
-                                format!("{}/#{}", url.trim_end_matches('/'), compute_content_hash(&key))
+                                format!(
+                                    "{}/#{}",
+                                    url.trim_end_matches('/'),
+                                    compute_content_hash(&key)
+                                )
                             });
 
                         let article = Article {
@@ -369,7 +380,10 @@ pub async fn refresh_feed(feed_id: i64, state: State<'_, AppState>) -> Result<us
                         };
                         match db::insert_article(&conn, &article) {
                             Ok(_) => count += 1,
-                            Err(e) => error!("refresh_feed: insert_article failed for url={}: {}", article.url, e),
+                            Err(e) => error!(
+                                "refresh_feed: insert_article failed for url={}: {}",
+                                article.url, e
+                            ),
                         }
                     }
                     let _ = db::update_feed_error(&conn, feed_id, false);
@@ -474,13 +488,15 @@ fn scrape_articles_from_page(html: &str, page_url: &str) -> Vec<Article> {
             t.to_string()
         } else {
             // Derive title from the URL path slug (last meaningful segment)
-            let slug = abs.path_segments()
-                .and_then(|segs| segs.filter(|s| !s.is_empty() && s.len() > 3).last())
+            let slug = abs
+                .path_segments()
+                .and_then(|mut segs| segs.rfind(|s| !s.is_empty() && s.len() > 3))
                 .unwrap_or("");
-            let from_slug = slug.replace('-', " ").replace('_', " ");
+            let from_slug = slug.replace(['-', '_'], " ");
             if from_slug.len() >= 10 {
                 // Title-case the slug
-                from_slug.split_whitespace()
+                from_slug
+                    .split_whitespace()
                     .map(|w| {
                         let mut c = w.chars();
                         match c.next() {
@@ -498,7 +514,10 @@ fn scrape_articles_from_page(html: &str, page_url: &str) -> Vec<Article> {
 
         // Skip navigation/category URLs - only keep URLs that look like articles
         // (have a path depth of at least 2 segments, or passed the anchor text check)
-        let path_depth = abs.path_segments().map(|s| s.filter(|p| !p.is_empty()).count()).unwrap_or(0);
+        let path_depth = abs
+            .path_segments()
+            .map(|s| s.filter(|p| !p.is_empty()).count())
+            .unwrap_or(0);
         if path_depth < 2 && anchor_text.len() < 10 {
             debug!("scrape: skipping shallow nav url {}", url_str);
             continue;
@@ -542,8 +561,10 @@ async fn add_website_feed(
         let conn = state.db.lock().unwrap();
         let target = folder_id.unwrap_or(1);
         db::create_feed(&conn, &title, url, target, "website").map_err(|e| e.to_string())?;
-        conn.query_row("SELECT id FROM feeds WHERE url = ?1", [url], |row| row.get(0))
-            .map_err(|e| e.to_string())?
+        conn.query_row("SELECT id FROM feeds WHERE url = ?1", [url], |row| {
+            row.get(0)
+        })
+        .map_err(|e| e.to_string())?
     };
 
     let mut articles = scrape_articles_from_page(&html, url);
@@ -593,7 +614,10 @@ pub async fn add_feed(
         // Try to discover RSS in HTML
         let discovered_url_str = {
             let html_content = String::from_utf8_lossy(&content_bytes);
-            debug!("add_feed: HTML preview (first 1000): {}", &html_content[..html_content.len().min(1000)]);
+            debug!(
+                "add_feed: HTML preview (first 1000): {}",
+                &html_content[..html_content.len().min(1000)]
+            );
             let document = Html::parse_document(&html_content);
             let feed_types = [
                 "application/rss+xml",
@@ -606,7 +630,9 @@ pub async fn add_feed(
                 for el in &all_links {
                     let t = el.value().attr("type").unwrap_or("");
                     let h = el.value().attr("href").unwrap_or("");
-                    if !t.is_empty() { debug!("add_feed: <link type={:?} href={:?}>", t, h); }
+                    if !t.is_empty() {
+                        debug!("add_feed: <link type={:?} href={:?}>", t, h);
+                    }
                 }
                 all_links.into_iter().find_map(|el| {
                     let t = el.value().attr("type").unwrap_or("");
@@ -636,9 +662,16 @@ pub async fn add_feed(
             let bytes = resp.bytes().await.map_err(|e| e.to_string())?;
             match feed_rs::parser::parse(Cursor::new(bytes.clone())) {
                 Ok(f) => {
-                    info!("add_feed: RSS parse ok, {} entries, title={:?}", f.entries.len(), f.title.as_ref().map(|t| &t.content));
+                    info!(
+                        "add_feed: RSS parse ok, {} entries, title={:?}",
+                        f.entries.len(),
+                        f.title.as_ref().map(|t| &t.content)
+                    );
                     if f.entries.is_empty() {
-                        info!("add_feed: RSS feed is empty, falling back to website scraping for {}", url);
+                        info!(
+                            "add_feed: RSS feed is empty, falling back to website scraping for {}",
+                            url
+                        );
                         return add_website_feed(&url, &content_bytes, folder_id, &state).await;
                     }
                     (f, new_url, "rss".to_string())
@@ -649,7 +682,7 @@ pub async fn add_feed(
                     let preview = String::from_utf8_lossy(&bytes[..bytes.len().min(500)]);
                     error!("add_feed: response preview: {}", preview);
                     return add_website_feed(&url, &content_bytes, folder_id, &state).await;
-                }
+                },
             }
         } else {
             debug!("add_feed: no RSS found, treating as website");
