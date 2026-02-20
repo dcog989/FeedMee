@@ -5,7 +5,7 @@ use crate::{
 };
 #[allow(unused_imports)]
 use log::{debug, error, info, warn};
-use readability_rust::Readability;
+use readabilityrs::{Readability, ReadabilityOptions};
 use scraper::{Html, Selector};
 use serde::Serialize;
 use std::fmt::Write;
@@ -275,8 +275,10 @@ pub async fn get_article_content(url: String) -> Result<String, String> {
         .await
         .map_err(|e| e.to_string())?;
 
-    let mut parser = Readability::new(&html, None).map_err(|e| format!("{:?}", e))?;
-    let article = parser.parse().ok_or("Failed to parse content")?;
+    let options = ReadabilityOptions::default();
+    let readability =
+        Readability::new(&html, Some(&url), Some(options)).map_err(|e| format!("{:?}", e))?;
+    let article = readability.parse().ok_or("Failed to parse content")?;
     article.content.ok_or("No content extracted".to_string())
 }
 
