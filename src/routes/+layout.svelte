@@ -7,6 +7,10 @@
 
     let { children } = $props();
 
+    function disableContextMenu(e: MouseEvent) {
+        e.preventDefault();
+    }
+
     $effect(() => {
         const root = document.documentElement;
 
@@ -19,7 +23,7 @@
     });
 </script>
 
-<div class="layout-wrapper">
+<div class="layout-wrapper" oncontextmenu={disableContextMenu}>
     <TitleBar />
     <div class="content-wrapper">
         {@render children()}
