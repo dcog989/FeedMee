@@ -5,6 +5,7 @@
     import { dndzone, type DndEvent, type Item } from 'svelte-dnd-action';
     import { flip } from 'svelte/animate';
     import { slide } from 'svelte/transition';
+    import { ChevronRight, X, RefreshCw } from 'lucide-svelte';
 
     let { folder, isExpanded, onToggle, onContextMenu, onExpandHover } = $props<{
         folder: Folder;
@@ -90,13 +91,9 @@
         ondrop={onHeaderDrop}
         ondblclick={onHeaderDblClick}>
         <span class="toggle-icon" onclick={onToggle}>
-            <svg
-                width="10"
-                height="10"
-                viewBox="0 0 10 10"
-                style="transform: rotate({isExpanded ? 90 : 0}deg); transition: transform 0.2s;">
-                <path d="M2,2 L8,5 L2,8" fill="currentColor" />
-            </svg>
+            <ChevronRight
+                size={10}
+                style="transform: rotate({isExpanded ? 90 : 0}deg); transition: transform 0.2s;" />
         </span>
 
         <span
@@ -185,22 +182,7 @@
                                 <div class="mini-spinner"></div>
                             {:else if feed.has_error}
                                 <span class="error-badge" use:tooltip={'Feed update failed'}>
-                                    <svg width="10" height="10" viewBox="0 0 10 10">
-                                        <line
-                                            x1="2"
-                                            y1="2"
-                                            x2="8"
-                                            y2="8"
-                                            stroke="white"
-                                            stroke-width="2" />
-                                        <line
-                                            x1="8"
-                                            y1="2"
-                                            x2="2"
-                                            y2="8"
-                                            stroke="white"
-                                            stroke-width="2" />
-                                    </svg>
+                                    <X size={10} color="white" />
                                 </span>
                             {:else if feed.unread_count > 0}
                                 <span
@@ -214,19 +196,7 @@
                                     use:tooltip={appState.isFeedFresh(feed.id)
                                         ? 'Already fresh!'
                                         : 'Refresh'}>
-                                    <svg
-                                        width="12"
-                                        height="12"
-                                        viewBox="0 0 24 24"
-                                        fill="none"
-                                        stroke="currentColor"
-                                        stroke-width="2">
-                                        <path d="M23 4v6h-6"></path>
-                                        <path d="M1 20v-6h6"></path>
-                                        <path
-                                            d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"
-                                        ></path>
-                                    </svg>
+                                    <RefreshCw size={12} />
                                 </span>
                             {/if}
                         </div>

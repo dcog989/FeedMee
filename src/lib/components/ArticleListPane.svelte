@@ -2,6 +2,7 @@
     import { tooltip } from '$lib/actions/tooltip.svelte';
     import { appState } from '$lib/store.svelte';
     import type { Article } from '$lib/types';
+    import { ArrowUpDown, CheckCheck, Bookmark } from 'lucide-svelte';
 
     let listContainer: HTMLElement;
 
@@ -30,19 +31,7 @@
                 ? 'Sort: Newest First'
                 : 'Sort: Oldest First'}
             aria-label={appState.sortOrder === 'desc' ? 'Sort Newest First' : 'Sort Oldest First'}>
-            <svg
-                width="20"
-                height="20"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2">
-                {#if appState.sortOrder === 'desc'}
-                    <path d="M10 18h4 M6 12h12 M3 6h18" />
-                {:else}
-                    <path d="M3 18h18 M6 12h12 M10 6h4" />
-                {/if}
-            </svg>
+            <ArrowUpDown size={20} />
         </button>
 
         <button
@@ -50,16 +39,7 @@
             onclick={() => appState.markAllRead()}
             use:tooltip={'Mark All Read'}
             aria-label="Mark All Read">
-            <svg
-                width="20"
-                height="20"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2">
-                <path d="M18 6L7 17l-5-5"></path>
-                <path d="M22 10l-7.5 7.5L13 16"></path>
-            </svg>
+            <CheckCheck size={20} />
         </button>
     </div>
 
@@ -98,17 +78,9 @@
                                         }}
                                         use:tooltip={'Read Later'}
                                         aria-label="Read Later">
-                                        <svg
-                                            width="14"
-                                            height="14"
-                                            viewBox="0 0 24 24"
-                                            fill={article.is_saved ? 'currentColor' : 'none'}
-                                            stroke="currentColor"
-                                            stroke-width="2">
-                                            <path
-                                                d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"
-                                            ></path>
-                                        </svg>
+                                        <Bookmark
+                                            size={14}
+                                            fill={article.is_saved ? 'currentColor' : 'none'} />
                                     </button>
                                 </div>
                             </div>

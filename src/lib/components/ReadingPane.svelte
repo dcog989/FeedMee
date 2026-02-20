@@ -3,6 +3,7 @@
     import { appState } from '$lib/store.svelte';
     import { openUrl } from '@tauri-apps/plugin-opener';
     import DOMPurify from 'dompurify';
+    import { Bookmark, Tag, FileText, AlertCircle, ExternalLink } from 'lucide-svelte';
 
     DOMPurify.addHook('afterSanitizeAttributes', (node: Element) => {
         if (node.tagName === 'A' && node.hasAttribute('href')) {
@@ -115,30 +116,11 @@
                                 appState.toggleSaved(appState.selectedArticle)}
                             use:tooltip={'Read Later'}
                             aria-label="Read Later">
-                            <svg
-                                width="18"
-                                height="18"
-                                viewBox="0 0 24 24"
-                                fill={isSaved ? 'currentColor' : 'none'}
-                                stroke="currentColor"
-                                stroke-width="2">
-                                <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path>
-                            </svg>
+                            <Bookmark size={18} fill={isSaved ? 'currentColor' : 'none'} />
                         </button>
 
                         <button class="action-btn" use:tooltip={'Tag'} aria-label="Tag">
-                            <svg
-                                width="18"
-                                height="18"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                stroke="currentColor"
-                                stroke-width="2">
-                                <path
-                                    d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"
-                                ></path>
-                                <line x1="7" y1="7" x2="7.01" y2="7"></line>
-                            </svg>
+                            <Tag size={18} />
                         </button>
 
                         <button
@@ -150,21 +132,7 @@
                             {#if isLoadingFull}
                                 <span class="spinner"></span>
                             {:else}
-                                <svg
-                                    width="18"
-                                    height="18"
-                                    viewBox="0 0 24 24"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    stroke-width="2">
-                                    <path
-                                        d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"
-                                    ></path>
-                                    <polyline points="14 2 14 8 20 8"></polyline>
-                                    <line x1="16" y1="13" x2="8" y2="13"></line>
-                                    <line x1="16" y1="17" x2="8" y2="17"></line>
-                                    <polyline points="10 9 9 9 8 9"></polyline>
-                                </svg>
+                                <FileText size={18} />
                             {/if}
                         </button>
                     </div>
@@ -173,19 +141,7 @@
 
             {#if loadError}
                 <div class="error-banner">
-                    <svg
-                        width="16"
-                        height="16"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        stroke-width="2"
-                        ><circle cx="12" cy="12" r="10"></circle><line
-                            x1="12"
-                            y1="8"
-                            x2="12"
-                            y2="12"></line
-                        ><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+                    <AlertCircle size={16} />
                     <span>Could not extract full content. Showing summary instead.</span>
                 </div>
             {/if}
@@ -208,17 +164,7 @@
                         openUrl(appState.selectedArticle!.url);
                     }}>
                     Read original article
-                    <svg
-                        width="12"
-                        height="12"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        stroke-width="2">
-                        <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
-                        <polyline points="15 3 21 3 21 9"></polyline>
-                        <line x1="10" y1="14" x2="21" y2="3"></line>
-                    </svg>
+                    <ExternalLink size={12} />
                 </a>
             </footer>
         </article>

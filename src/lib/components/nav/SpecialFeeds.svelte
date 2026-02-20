@@ -1,5 +1,6 @@
 <script lang="ts">
     import { appState, FEED_ID_LATEST, FEED_ID_SAVED } from '$lib/store.svelte';
+    import { Clock, Bookmark } from 'lucide-svelte';
 </script>
 
 <div class="special-section">
@@ -10,17 +11,7 @@
         class:selected={appState.selectedFeedId === FEED_ID_LATEST}
         onclick={() => appState.selectFeed(FEED_ID_LATEST)}>
         <span class="feed-name-wrap">
-            <svg
-                class="feed-icon"
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                ><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"
-                ></polyline
-                ></svg>
+            <Clock size={16} class="feed-icon" />
             <span class="feed-name">Latest</span>
         </span>
     </div>
@@ -31,16 +22,7 @@
         class:selected={appState.selectedFeedId === FEED_ID_SAVED}
         onclick={() => appState.selectFeed(FEED_ID_SAVED)}>
         <span class="feed-name-wrap">
-            <svg
-                class="feed-icon"
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2">
-                <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path>
-            </svg>
+            <Bookmark size={16} class="feed-icon" />
             <span class="feed-name">Read Later</span>
         </span>
     </div>
@@ -102,5 +84,9 @@
         font-size: 0.8rem;
         opacity: 0.7;
         flex-shrink: 0;
+    }
+
+    :global(.feed-icon) {
+        color: var(--text-secondary);
     }
 </style>
