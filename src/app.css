@@ -21,20 +21,20 @@
     --border-color: #e0e0e0;
 
     /* Typography */
-    --font-ui: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-    --font-serif: 'Merriweather', serif;
-    --font-body: 'OpenSans', sans-serif;
-}
-
-@font-face {
-    font-family: 'Merriweather';
-    src: url('/Merriweather-Variable.ttf') format('truetype');
-    font-weight: 100 900;
+    --font-ui: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    --font-serif: 'Monaspace Xenon Var', serif;
+    --font-body: 'Open Sans', sans-serif;
 }
 
 @font-face {
     font-family: 'OpenSans';
     src: url('/OpenSans-Variable.ttf') format('truetype');
+    font-weight: 100 900;
+}
+
+@font-face {
+    font-family: 'Monaspace Xenon Var';
+    src: url('/Monaspace Xenon Var.ttf') format('truetype');
     font-weight: 100 900;
 }
 

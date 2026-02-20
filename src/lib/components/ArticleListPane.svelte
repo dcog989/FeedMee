@@ -187,7 +187,7 @@
 
     .article-card.unread {
         color: var(--text-primary);
-        font-weight: 500;
+        font-weight: 400;
     }
 
     .article-card:hover {
@@ -211,17 +211,17 @@
         font-family: var(--font-serif);
         margin-bottom: 0.3rem;
         font-size: 0.95rem;
+        font-weight: 300;
         line-height: 1.3;
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
         /* Strikethrough for read articles (which are NOT .unread) */
         text-decoration: line-through;
-        opacity: 0.8;
+        opacity: 0.7;
     }
 
     .unread .title {
-        font-weight: 600;
         text-decoration: none; /* Reset for unread */
         opacity: 1;
     }
