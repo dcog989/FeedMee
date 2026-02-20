@@ -105,7 +105,16 @@
             {#if appState.isFolderUpdating(folder.id)}
                 <div class="mini-spinner"></div>
             {:else if getFolderUnreadCount(folder.feeds) > 0}
-                <span class="badge folder-badge">{getFolderUnreadCount(folder.feeds)}</span>
+                <!-- svelte-ignore a11y_click_events_have_key_events -->
+                <!-- svelte-ignore a11y_no_static_element_interactions -->
+                <span
+                    class="badge folder-badge"
+                    onclick={(e) => {
+                        e.stopPropagation();
+                        appState.requestRefreshFolder(folder.id);
+                    }}
+                    use:tooltip={'Click to refresh folder'}
+                    >{getFolderUnreadCount(folder.feeds)}</span>
             {/if}
         </span>
     </div>

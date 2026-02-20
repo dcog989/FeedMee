@@ -178,6 +178,40 @@ class AppState {
         }
     }
 
+    async requestRefreshFolder(folderId: number) {
+        const folder = this.folders.find((f) => f.id === folderId);
+        if (!folder || folder.feeds.length === 0) return;
+
+        const newSet = new Set(this.updatingFeedIds);
+        folder.feeds.forEach((f) => newSet.add(f.id));
+        this.updatingFeedIds = newSet;
+
+        let index = 0;
+        const worker = async () => {
+            while (index < folder.feeds.length) {
+                const feed = folder.feeds[index++];
+                await this.performSingleFeedRefresh(feed.id);
+            }
+        };
+
+        const workers = Array(REFRESH_CONCURRENCY)
+            .fill(null)
+            .map(() => worker());
+
+        try {
+            await Promise.all(workers);
+            await this.refreshFolders();
+            if (
+                this.selectedFolderId === folderId ||
+                folder.feeds.some((f) => f.id === this.selectedFeedId)
+            ) {
+                await this.reloadCurrentArticleList();
+            }
+        } catch (e) {
+            console.error(`Failed to refresh folder ${folderId}:`, e);
+        }
+    }
+
     private async performSingleFeedRefresh(feedId: number) {
         try {
             await invoke('refresh_feed', { feedId });
@@ -291,21 +325,14 @@ class AppState {
         }
     }
 
-    async selectFeed(feedId: number, forceRefresh = false) {
-        if (this.selectedFeedId === feedId && !forceRefresh) return;
+    async selectFeed(feedId: number) {
+        if (this.selectedFeedId === feedId) return;
         this.selectedFeedId = feedId;
         this.selectedFolderId = null;
         this.selectedArticle = null;
         this.isLoading = true;
         try {
             await this.reloadCurrentArticleList();
-            if (feedId > 0 && !forceRefresh) {
-                const last = this.lastRefreshed.get(feedId) || 0;
-                const debounceMs = this.settings.feed_refresh_debounce_minutes * 60 * 1000;
-                if (Date.now() - last >= debounceMs) {
-                    this.requestRefreshFeed(feedId);
-                }
-            }
         } finally {
             this.isLoading = false;
         }
