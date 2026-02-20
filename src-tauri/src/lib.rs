@@ -132,6 +132,7 @@ pub fn run() {
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_window_state::Builder::default().build())
         .invoke_handler(tauri::generate_handler![
+            commands::get_app_info,
             commands::get_folders_with_feeds,
             commands::get_articles_for_feed,
             commands::get_articles_for_folder,

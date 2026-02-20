@@ -7,7 +7,33 @@ use crate::{
 use log::{debug, error, info, warn};
 use readability_rust::Readability;
 use scraper::{Html, Selector};
+use serde::Serialize;
 use std::fmt::Write;
+
+#[derive(Serialize)]
+pub struct AppInfo {
+    pub version: String,
+    pub data_path: String,
+    pub logs_path: String,
+    pub db_path: String,
+}
+
+#[tauri::command]
+pub fn get_app_info(app: tauri::AppHandle) -> Result<AppInfo, String> {
+    let app_data_dir = app
+        .path()
+        .app_data_dir()
+        .map_err(|e| e.to_string())?;
+
+    let version = app.package_info().version.to_string();
+
+    Ok(AppInfo {
+        version,
+        data_path: app_data_dir.to_string_lossy().to_string(),
+        logs_path: app_data_dir.join("Logs").to_string_lossy().to_string(),
+        db_path: app_data_dir.join("Database").join("feedmee.sqlite").to_string_lossy().to_string(),
+    })
+}
 use std::io::Cursor;
 use tauri::{AppHandle, Manager, State};
 use url::Url;

@@ -1,8 +1,11 @@
 <script lang="ts">
+    import AboutModal from './AboutModal.svelte';
     import { appState } from '$lib/store.svelte';
     import { getCurrentWindow } from '@tauri-apps/api/window';
 
     const appWindow = getCurrentWindow();
+
+    let showAbout = $state(false);
 
     let showAddDialog = $state(false);
     let newFeedUrl = $state('');
@@ -82,8 +85,17 @@
 <header class="titlebar" data-tauri-drag-region>
     <div class="left-section">
         <div class="mac-spacer"></div>
-        <img src="/feedmee.png" alt="" class="app-icon" />
-        <span class="app-title">FeedMee</span>
+        <!-- svelte-ignore a11y_click_events_have_key_events -->
+        <!-- svelte-ignore a11y_no_static_element_interactions -->
+        <span
+            class="app-brand"
+            onclick={() => (showAbout = true)}
+            role="button"
+            tabindex="-1"
+            title="About FeedMee">
+            <img src="/feedmee.png" alt="" class="app-icon" />
+            <span class="app-title">FeedMee</span>
+        </span>
     </div>
 
     <div class="toolbar">
@@ -206,6 +218,8 @@
     </div>
 </header>
 
+<AboutModal bind:isOpen={showAbout} onClose={() => (showAbout = false)} />
+
 {#if showAddDialog}
     <!-- svelte-ignore a11y_click_events_have_key_events -->
     <!-- svelte-ignore a11y_no_static_element_interactions -->
@@ -242,6 +256,19 @@
 {/if}
 
 <style>
+    .app-brand {
+        display: flex;
+        align-items: center;
+        cursor: pointer;
+        border-radius: 4px;
+        padding: 2px 4px;
+        -webkit-app-region: no-drag;
+    }
+
+    .app-brand:hover .app-title {
+        opacity: 1;
+    }
+
     .app-icon {
         width: 20px;
         height: 20px;
