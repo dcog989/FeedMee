@@ -55,11 +55,24 @@
         loadError = false;
         const content = await appState.fetchFullContent(appState.selectedArticle);
         if (content) {
-            fullContent = content;
+            fullContent = stripDuplicateTitle(content, appState.selectedArticle.title);
         } else {
             loadError = true;
         }
         isLoadingFull = false;
+    }
+
+    function stripDuplicateTitle(html: string, articleTitle: string): string {
+        const doc = new DOMParser().parseFromString(html, 'text/html');
+        const normalize = (s: string) => s.toLowerCase().replace(/\s+/g, ' ').trim();
+        const normalizedTitle = normalize(articleTitle);
+        for (const el of doc.querySelectorAll('h1, h2')) {
+            if (normalize(el.textContent ?? '').includes(normalizedTitle.slice(0, 30))) {
+                el.remove();
+                break;
+            }
+        }
+        return doc.body.innerHTML;
     }
 
     function formatDate(ts: number) {
