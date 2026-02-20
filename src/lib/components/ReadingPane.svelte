@@ -224,7 +224,8 @@
         </article>
     {:else}
         <div class="empty-state">
-            <p>Select an article to start reading</p>
+            <p class="empty-hint">Select an article to start reading</p>
+            <img src="/feedmee.png" alt="" class="empty-logo" />
         </div>
     {/if}
 </main>
@@ -394,11 +395,25 @@
 
     .empty-state {
         display: flex;
+        flex-direction: column;
         justify-content: center;
         align-items: center;
         height: 100%;
+        gap: 2rem;
+    }
+
+    .empty-hint {
         color: var(--text-secondary);
-        font-size: 1.2rem;
+        font-size: 1rem;
+        margin: 0;
+        opacity: 0.6;
+    }
+
+    .empty-logo {
+        width: min(60%, 320px);
+        opacity: 0.3;
+        user-select: none;
+        pointer-events: none;
     }
 
     .spinner {
