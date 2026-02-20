@@ -236,10 +236,22 @@ class AppState {
         const storedNav = localStorage.getItem('navWidth');
         const storedList = localStorage.getItem('listWidth');
         const storedSort = localStorage.getItem('sortOrder');
+        const storedLastRefreshed = localStorage.getItem('lastRefreshed');
 
         if (storedNav) this.navWidth = parseInt(storedNav);
         if (storedList) this.listWidth = parseInt(storedList);
         if (storedSort === 'asc' || storedSort === 'desc') this.sortOrder = storedSort;
+
+        if (storedLastRefreshed) {
+            try {
+                const parsed = JSON.parse(storedLastRefreshed);
+                this.lastRefreshed = new Map(
+                    Object.entries(parsed).map(([k, v]) => [parseInt(k), v as number]),
+                );
+            } catch (e) {
+                console.error('Failed to parse lastRefreshed', e);
+            }
+        }
 
         try {
             const s = await invoke<AppSettings>('get_app_settings');
@@ -412,10 +424,16 @@ class AppState {
         }
     }
 
+    private saveLastRefreshed() {
+        const obj = Object.fromEntries(this.lastRefreshed);
+        localStorage.setItem('lastRefreshed', JSON.stringify(obj));
+    }
+
     private async performSingleFeedRefresh(feedId: number) {
         try {
             await invoke('refresh_feed', { feedId });
             this.lastRefreshed.set(feedId, Date.now());
+            this.saveLastRefreshed();
         } catch (e) {
             console.error(`Failed to refresh feed ${feedId}:`, e);
         } finally {
