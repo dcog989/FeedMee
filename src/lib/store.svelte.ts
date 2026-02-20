@@ -78,7 +78,8 @@ class AppState {
             console.error('Failed to load settings', e);
         }
 
-        this.refreshFolders();
+        await this.refreshFolders();
+        this.refreshAllFeeds();
 
         $effect.root(() => {
             $effect(() => {
@@ -127,17 +128,21 @@ class AppState {
     }
 
     async refreshAllFeeds() {
+        const staleFeeds: Feed[] = this.folders
+            .flatMap((f) => f.feeds)
+            .filter((f) => !this.isFeedFresh(f.id));
+        if (staleFeeds.length === 0) return;
+
         this.isLoading = true;
 
-        const allFeeds: Feed[] = this.folders.flatMap((f) => f.feeds);
         const newSet = new Set(this.updatingFeedIds);
-        allFeeds.forEach((f) => newSet.add(f.id));
+        staleFeeds.forEach((f) => newSet.add(f.id));
         this.updatingFeedIds = newSet;
 
         let index = 0;
         const worker = async () => {
-            while (index < allFeeds.length) {
-                const feed = allFeeds[index++];
+            while (index < staleFeeds.length) {
+                const feed = staleFeeds[index++];
                 await this.performSingleFeedRefresh(feed.id);
             }
         };
