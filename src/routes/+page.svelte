@@ -53,8 +53,13 @@
     class="app-container"
     style="--nav-w: {appState.navWidth}px; --list-w: {appState.listWidth}px;">
     <!-- Navigation Pane -->
+    <!-- svelte-ignore a11y_click_events_have_key_events -->
+    <!-- svelte-ignore a11y_no_static_element_interactions -->
+    <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
     <div
         class="nav-area"
+        role="region"
+        aria-label="Navigation"
         class:pane-focused={appState.focusedPane === 'nav'}
         onclick={() => focusPane('nav')}>
         <NavPane />
@@ -65,8 +70,13 @@
     <div class="resizer nav-resizer" onmousedown={() => startResize('nav')}></div>
 
     <!-- Article List Pane -->
+    <!-- svelte-ignore a11y_click_events_have_key_events -->
+    <!-- svelte-ignore a11y_no_static_element_interactions -->
+    <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
     <div
         class="list-area"
+        role="region"
+        aria-label="Article List"
         class:pane-focused={appState.focusedPane === 'list'}
         onclick={() => focusPane('list')}>
         <ArticleListPane />
@@ -77,8 +87,13 @@
     <div class="resizer list-resizer" onmousedown={() => startResize('list')}></div>
 
     <!-- Reading Pane -->
+    <!-- svelte-ignore a11y_click_events_have_key_events -->
+    <!-- svelte-ignore a11y_no_static_element_interactions -->
+    <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
     <div
         class="reading-area"
+        role="region"
+        aria-label="Reading"
         class:pane-focused={appState.focusedPane === 'reading'}
         onclick={() => focusPane('reading')}>
         <ReadingPane />

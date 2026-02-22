@@ -69,14 +69,6 @@
         font-weight: 500;
     }
 
-    .feed-name-wrap {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        white-space: nowrap;
-        overflow: hidden;
-    }
-
     .feed-name {
         overflow: hidden;
         text-overflow: ellipsis;
