@@ -61,7 +61,7 @@ if (!/^\d+\.\d+\.\d+/.test(newVersion)) {
 // 3. Update package.json
 try {
     packageJson.version = newVersion;
-    fs.writeFileSync(packageJsonPath, JSON.stringify(packageJson, null, 4) + '\n');
+    fs.writeFileSync(packageJsonPath, JSON.stringify(packageJson, null, 2) + '\n');
     console.log('✅ Updated package.json');
 } catch (error) {
     console.error('Failed to update package.json:', error);
@@ -72,7 +72,7 @@ try {
 try {
     const content = JSON.parse(fs.readFileSync(tauriConfPath, 'utf8'));
     content.version = newVersion;
-    fs.writeFileSync(tauriConfPath, JSON.stringify(content, null, 4) + '\n');
+    fs.writeFileSync(tauriConfPath, JSON.stringify(content, null, 2) + '\n');
     console.log('✅ Updated src-tauri/tauri.conf.json');
 } catch (error) {
     console.error('Failed to update tauri.conf.json:', error);
