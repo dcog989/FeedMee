@@ -8,7 +8,7 @@
         onCollapseAll: () => void;
     }>();
 
-    let isRefreshing = $derived(appState.isLoading);
+    let isRefreshing = $derived(appState.isRefreshingFeeds);
     let refreshAllTooltip = $derived(appState.isAllFresh() ? 'Already fresh!' : 'Refresh All');
 
     function createFolder() {
