@@ -1,4 +1,4 @@
-﻿import { invoke } from '@tauri-apps/api/core';
+import { invoke } from '@tauri-apps/api/core';
 import { openUrl } from '@tauri-apps/plugin-opener';
 import { open, save } from '@tauri-apps/plugin-dialog';
 import type { AppSettings, Article, Feed, Folder } from './types';
@@ -540,6 +540,7 @@ class AppState {
 
     async selectFolder(folderId: number) {
         if (this.selectedFolderId === folderId && !this.selectedFeedId) return;
+        this.searchQuery = '';
         this.selectedFolderId = folderId;
         this.selectedFeedId = null;
         this.selectedArticle = null;
@@ -553,6 +554,7 @@ class AppState {
 
     async selectFeed(feedId: number) {
         if (this.selectedFeedId === feedId) return;
+        this.searchQuery = '';
         this.selectedFeedId = feedId;
         this.selectedFolderId = null;
         this.selectedArticle = null;

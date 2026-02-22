@@ -92,6 +92,13 @@
         if (searchDebounce) clearTimeout(searchDebounce);
         searchDebounce = setTimeout(() => appState.setSearch(query), 250);
     }
+
+    function onSearchKeyDown(e: KeyboardEvent) {
+        if (e.key === 'Escape') {
+            appState.setSearch('');
+            (e.target as HTMLInputElement).blur();
+        }
+    }
 </script>
 
 <header class="titlebar" data-tauri-drag-region>
@@ -135,6 +142,7 @@
                 placeholder="Search..."
                 aria-label="Search articles"
                 oninput={onSearchInput}
+                onkeydown={onSearchKeyDown}
                 value={appState.searchQuery} />
         </div>
     </div>
