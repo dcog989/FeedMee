@@ -144,20 +144,6 @@ class AppState {
         });
 
         shortcutManager.register({
-            id: 'focus-search',
-            command: 'focus-search',
-            defaultKey: '/',
-            description: 'Focus search',
-            category: 'General',
-            handler: () => {
-                const searchInput = document.querySelector(
-                    '.search-wrapper input',
-                ) as HTMLInputElement;
-                searchInput?.focus();
-            },
-        });
-
-        shortcutManager.register({
             id: 'expand-all',
             command: 'expand-all',
             defaultKey: 'x',
