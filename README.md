@@ -2,6 +2,8 @@
 
 _FeedMee_ is an RSS/Atom news reader built for the desktop.
 
+[Download from Latest Releases](https://github.com/dcog989/FeedMee/releases).
+
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
 ![Tauri](https://img.shields.io/badge/built%20with-Tauri-24C8DB.svg)
 ![Svelte](https://img.shields.io/badge/frontend-Svelte%205-FF3E00.svg)
