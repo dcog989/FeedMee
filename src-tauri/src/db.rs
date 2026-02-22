@@ -140,7 +140,7 @@ pub fn get_articles_for_folder(
         "SELECT a.id, a.feed_id, a.title, a.author, a.summary, a.url, a.timestamp, a.is_read, a.is_saved
          FROM articles a
          JOIN feeds f ON a.feed_id = f.id
-         WHERE f.folder_id = ?1 AND a.is_read = 0
+         WHERE f.folder_id = ?1
          ORDER BY a.timestamp {} LIMIT ?2 OFFSET ?3",
         order
     );
