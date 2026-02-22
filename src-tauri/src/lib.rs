@@ -11,6 +11,7 @@ use tauri::Manager;
 pub struct AppState {
     db: Mutex<rusqlite::Connection>,
     settings: Mutex<settings::AppSettings>,
+    pub http_client: reqwest::Client,
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -120,9 +121,16 @@ pub fn run() {
                 }
             }
 
+            let http_client = reqwest::Client::builder()
+                .user_agent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
+                .timeout(std::time::Duration::from_secs(10))
+                .build()
+                .expect("failed to build HTTP client");
+
             app.manage(AppState {
                 db: Mutex::new(conn),
                 settings: Mutex::new(app_settings),
+                http_client,
             });
 
             Ok(())

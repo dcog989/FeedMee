@@ -1,4 +1,4 @@
-﻿use crate::{
+use crate::{
     AppState, db,
     models::{Article, Folder},
     settings::{self, AppSettings},
@@ -40,13 +40,6 @@ use std::io::Cursor;
 use tauri::{AppHandle, Manager, State};
 use url::Url;
 
-fn create_client() -> Result<reqwest::Client, String> {
-    reqwest::Client::builder()
-        .user_agent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
-        .timeout(std::time::Duration::from_secs(10))
-        .build()
-        .map_err(|e| e.to_string())
-}
 
 #[tauri::command]
 pub fn get_app_settings(state: State<'_, AppState>) -> Result<AppSettings, String> {
@@ -264,8 +257,8 @@ pub async fn write_file(path: String, content: String) -> Result<(), String> {
 }
 
 #[tauri::command]
-pub async fn get_article_content(url: String) -> Result<String, String> {
-    let client = create_client()?;
+pub async fn get_article_content(url: String, state: State<'_, AppState>) -> Result<String, String> {
+    let client = state.http_client.clone();
     let html = client
         .get(&url)
         .send()
@@ -290,7 +283,7 @@ pub async fn refresh_feed(feed_id: i64, state: State<'_, AppState>) -> Result<us
         (feed.url, feed.feed_type, feed.content_hash)
     };
 
-    let client = create_client()?;
+    let client = state.http_client.clone();
 
     // Check if this is a website feed (or legacy feed without feed_type)
     let is_website = feed_type == "website" || feed_type.is_empty();
@@ -590,7 +583,7 @@ pub async fn add_feed(
     folder_id: Option<i64>,
     state: State<'_, AppState>,
 ) -> Result<i64, String> {
-    let client = create_client()?;
+    let client = state.http_client.clone();
     let response = client.get(&url).send().await.map_err(|e| e.to_string())?;
 
     let original_url = response.url().clone();
