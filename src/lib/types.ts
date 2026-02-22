@@ -34,4 +34,5 @@ export interface AppSettings {
     log_level: string;
     default_view_type: string;
     default_view_id: number;
+    auto_collapse_folders: boolean;
 }

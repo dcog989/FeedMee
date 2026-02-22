@@ -16,6 +16,7 @@
         log_level: 'info',
         default_view_type: 'latest',
         default_view_id: -1,
+        auto_collapse_folders: true,
     });
     let showShortcuts = $state(false);
 
@@ -110,6 +111,16 @@
         {/if}
 
         <div class="form-group">
+            <label for="auto-collapse">Auto Collapse Folders</label>
+            <div class="checkbox-wrap">
+                <input
+                    type="checkbox"
+                    id="auto-collapse"
+                    bind:checked={settings.auto_collapse_folders} />
+            </div>
+        </div>
+
+        <div class="form-group">
             <label for="log-level">Log Level</label>
             <select id="log-level" bind:value={settings.log_level}>
                 <option value="error">Error</option>
@@ -191,6 +202,20 @@
         font-size: 0.9rem;
         color: var(--text-secondary);
         margin-bottom: 0;
+    }
+
+    .checkbox-wrap {
+        flex: 1;
+        display: flex;
+        align-items: center;
+    }
+
+    .checkbox-wrap input[type='checkbox'] {
+        width: 16px;
+        height: 16px;
+        flex: 0 0 auto;
+        cursor: pointer;
+        accent-color: var(--bg-selected);
     }
 
     .form-group.indent {

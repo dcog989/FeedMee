@@ -48,6 +48,9 @@
         if (newSet.has(id)) {
             newSet.delete(id);
         } else {
+            if (appState.settings.auto_collapse_folders) {
+                newSet.clear();
+            }
             newSet.add(id);
         }
         appState.expandedFolders = newSet;

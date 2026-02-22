@@ -15,6 +15,8 @@ pub struct AppSettings {
     pub default_view_type: String,
     #[serde(default)]
     pub default_view_id: i64,
+    #[serde(default)]
+    pub auto_collapse_folders: bool,
 }
 
 impl Default for AppSettings {
@@ -27,6 +29,7 @@ impl Default for AppSettings {
             last_vacuum: 0,
             default_view_type: "latest".to_string(),
             default_view_id: -1,
+            auto_collapse_folders: true,
         }
     }
 }

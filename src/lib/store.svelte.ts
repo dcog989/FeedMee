@@ -31,6 +31,7 @@ class AppState {
         log_level: 'info',
         default_view_type: 'latest',
         default_view_id: -1,
+        auto_collapse_folders: true,
     });
 
     // UI States
