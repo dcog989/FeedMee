@@ -36,6 +36,10 @@
             appState.listWidth = newWidth;
         }
     }
+
+    function focusPane(pane: 'nav' | 'list' | 'reading') {
+        appState.focusedPane = pane;
+    }
 </script>
 
 <svelte:window onmouseup={stopResize} onmousemove={onMouseMove} />
@@ -49,7 +53,10 @@
     class="app-container"
     style="--nav-w: {appState.navWidth}px; --list-w: {appState.listWidth}px;">
     <!-- Navigation Pane -->
-    <div class="nav-area">
+    <div
+        class="nav-area"
+        class:pane-focused={appState.focusedPane === 'nav'}
+        onclick={() => focusPane('nav')}>
         <NavPane />
     </div>
 
@@ -58,7 +65,10 @@
     <div class="resizer nav-resizer" onmousedown={() => startResize('nav')}></div>
 
     <!-- Article List Pane -->
-    <div class="list-area">
+    <div
+        class="list-area"
+        class:pane-focused={appState.focusedPane === 'list'}
+        onclick={() => focusPane('list')}>
         <ArticleListPane />
     </div>
 
@@ -67,7 +77,10 @@
     <div class="resizer list-resizer" onmousedown={() => startResize('list')}></div>
 
     <!-- Reading Pane -->
-    <div class="reading-area">
+    <div
+        class="reading-area"
+        class:pane-focused={appState.focusedPane === 'reading'}
+        onclick={() => focusPane('reading')}>
         <ReadingPane />
     </div>
 </div>
@@ -111,6 +124,17 @@
     .resizer:hover,
     .resizer:active {
         background-color: var(--bg-selected);
+    }
+
+    .nav-area,
+    .list-area,
+    .reading-area {
+        border-top: 2px solid transparent;
+        box-sizing: border-box;
+    }
+
+    .pane-focused {
+        border-top-color: rgba(236, 72, 153, 0.5);
     }
 
     .nav-resizer {

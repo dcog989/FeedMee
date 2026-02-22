@@ -38,6 +38,7 @@ class AppState {
     showSettings = $state(false);
     showAddDialog = $state(false);
     expandedFolders = $state<Set<number>>(new Set());
+    focusedPane = $state<'nav' | 'list' | 'reading'>('nav');
 
     // Custom keyboard shortcuts
     customShortcuts = $state<Record<string, string>>({});
@@ -185,6 +186,48 @@ class AppState {
     private setupKeyHandler() {
         window.addEventListener('keydown', (e) => {
             if (this.showSettings) return;
+
+            const tag = (e.target as HTMLElement)?.tagName?.toLowerCase();
+            const isInput =
+                tag === 'input' ||
+                tag === 'textarea' ||
+                (e.target as HTMLElement)?.isContentEditable;
+            if (isInput) return;
+
+            switch (e.key) {
+                case 'ArrowLeft':
+                    e.preventDefault();
+                    if (this.focusedPane === 'reading') this.focusedPane = 'list';
+                    else if (this.focusedPane === 'list') this.focusedPane = 'nav';
+                    return;
+                case 'ArrowRight':
+                    e.preventDefault();
+                    if (this.focusedPane === 'nav') this.focusedPane = 'list';
+                    else if (this.focusedPane === 'list' && this.selectedArticle)
+                        this.focusedPane = 'reading';
+                    return;
+                case 'ArrowUp':
+                    e.preventDefault();
+                    if (this.focusedPane === 'nav') this.navUp();
+                    else if (this.focusedPane === 'list') this.articleUp();
+                    else if (this.focusedPane === 'reading') {
+                        document
+                            .querySelector<HTMLElement>('.reading-area .pane')
+                            ?.scrollBy({ top: -80, behavior: 'smooth' });
+                    }
+                    return;
+                case 'ArrowDown':
+                    e.preventDefault();
+                    if (this.focusedPane === 'nav') this.navDown();
+                    else if (this.focusedPane === 'list') this.articleDown();
+                    else if (this.focusedPane === 'reading') {
+                        document
+                            .querySelector<HTMLElement>('.reading-area .pane')
+                            ?.scrollBy({ top: 80, behavior: 'smooth' });
+                    }
+                    return;
+            }
+
             shortcutManager.handleKeyEvent(e);
         });
     }
@@ -529,6 +572,7 @@ class AppState {
 
     async selectFolder(folderId: number) {
         if (this.selectedFolderId === folderId && !this.selectedFeedId) return;
+        this.focusedPane = 'nav';
         this.searchQuery = '';
         this.selectedFolderId = folderId;
         this.selectedFeedId = null;
@@ -543,6 +587,7 @@ class AppState {
 
     async selectFeed(feedId: number) {
         if (this.selectedFeedId === feedId) return;
+        this.focusedPane = 'nav';
         this.searchQuery = '';
         this.selectedFeedId = feedId;
         this.selectedFolderId = null;
@@ -622,6 +667,7 @@ class AppState {
     }
 
     selectArticle(article: Article) {
+        this.focusedPane = 'list';
         this.selectedArticle = article;
         if (!article.is_read) {
             article.is_read = true;
@@ -734,6 +780,71 @@ class AppState {
         } catch (e) {
             console.error(e);
         }
+    }
+
+    // --- Keyboard Pane Navigation ---
+
+    private getFlatNavItems(): { type: 'feed' | 'folder'; id: number }[] {
+        const items: { type: 'feed' | 'folder'; id: number }[] = [];
+        for (const folder of this.folders) {
+            items.push({ type: 'folder', id: folder.id });
+            if (this.expandedFolders.has(folder.id)) {
+                for (const feed of folder.feeds) {
+                    items.push({ type: 'feed', id: feed.id });
+                }
+            }
+        }
+        return items;
+    }
+
+    navUp() {
+        const items = this.getFlatNavItems();
+        if (items.length === 0) return;
+        const currentIdx = items.findIndex(
+            (i) =>
+                (i.type === 'feed' && i.id === this.selectedFeedId) ||
+                (i.type === 'folder' && i.id === this.selectedFolderId && !this.selectedFeedId),
+        );
+        const nextIdx = currentIdx <= 0 ? items.length - 1 : currentIdx - 1;
+        const item = items[nextIdx];
+        if (item.type === 'feed') this.selectFeed(item.id);
+        else this.selectFolder(item.id);
+    }
+
+    navDown() {
+        const items = this.getFlatNavItems();
+        if (items.length === 0) return;
+        const currentIdx = items.findIndex(
+            (i) =>
+                (i.type === 'feed' && i.id === this.selectedFeedId) ||
+                (i.type === 'folder' && i.id === this.selectedFolderId && !this.selectedFeedId),
+        );
+        const nextIdx = currentIdx < 0 || currentIdx >= items.length - 1 ? 0 : currentIdx + 1;
+        const item = items[nextIdx];
+        if (item.type === 'feed') this.selectFeed(item.id);
+        else this.selectFolder(item.id);
+    }
+
+    articleUp() {
+        if (this.articles.length === 0) return;
+        const idx = this.articles.findIndex((a) => a.id === this.selectedArticle?.id);
+        const nextIdx = idx <= 0 ? 0 : idx - 1;
+        this.selectArticle(this.articles[nextIdx]);
+        this.scrollSelectedIntoView('.list-area .article-card.selected');
+    }
+
+    articleDown() {
+        if (this.articles.length === 0) return;
+        const idx = this.articles.findIndex((a) => a.id === this.selectedArticle?.id);
+        const nextIdx = idx < 0 ? 0 : Math.min(idx + 1, this.articles.length - 1);
+        this.selectArticle(this.articles[nextIdx]);
+        this.scrollSelectedIntoView('.list-area .article-card.selected');
+    }
+
+    private scrollSelectedIntoView(selector: string) {
+        requestAnimationFrame(() => {
+            document.querySelector<HTMLElement>(selector)?.scrollIntoView({ block: 'nearest' });
+        });
     }
 
     setTheme(newTheme: Theme) {
