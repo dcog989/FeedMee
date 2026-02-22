@@ -31,8 +31,8 @@
             appState.navWidth = newWidth;
         } else if (isResizing === 'list') {
             // Calculate width based on Nav width offset
-            // Min 200px, Max 600px
-            const newWidth = Math.max(200, Math.min(600, e.clientX - appState.navWidth));
+            // Min 200px, Max 900px
+            const newWidth = Math.max(200, Math.min(900, e.clientX - appState.navWidth));
             appState.listWidth = newWidth;
         }
     }
