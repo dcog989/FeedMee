@@ -314,6 +314,14 @@ pub fn mark_folder_read(conn: &Connection, folder_id: i64) -> Result<()> {
     Ok(())
 }
 
+pub fn mark_global_read(conn: &Connection) -> Result<()> {
+    conn.execute(
+        "UPDATE articles SET is_read = 1 WHERE is_saved = 0",
+        [],
+    )?;
+    Ok(())
+}
+
 pub fn update_article_saved(conn: &Connection, article_id: i64, is_saved: bool) -> Result<()> {
     conn.execute(
         "UPDATE articles SET is_saved = ?1 WHERE id = ?2",

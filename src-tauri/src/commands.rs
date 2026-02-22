@@ -186,6 +186,8 @@ pub fn mark_all_read(
         db::mark_feed_read(&conn, id).map_err(|e| e.to_string())
     } else if target_type == "folder" {
         db::mark_folder_read(&conn, id).map_err(|e| e.to_string())
+    } else if target_type == "global" {
+        db::mark_global_read(&conn).map_err(|e| e.to_string())
     } else {
         Err("Invalid type".to_string())
     }

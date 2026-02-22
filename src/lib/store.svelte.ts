@@ -468,7 +468,9 @@ class AppState {
 
     async markAllRead() {
         try {
-            if (this.selectedFeedId && this.selectedFeedId > 0) {
+            if (this.selectedFeedId === FEED_ID_LATEST) {
+                await invoke('mark_all_read', { targetType: 'global', id: 0 });
+            } else if (this.selectedFeedId && this.selectedFeedId > 0) {
                 await invoke('mark_all_read', { targetType: 'feed', id: this.selectedFeedId });
             } else if (this.selectedFolderId) {
                 await invoke('mark_all_read', { targetType: 'folder', id: this.selectedFolderId });
