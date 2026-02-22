@@ -2,7 +2,6 @@
     import { appState } from '$lib/store.svelte';
     import FolderGroup from './nav/FolderGroup.svelte';
     import NavToolbar from './nav/NavToolbar.svelte';
-    import SpecialFeeds from './nav/SpecialFeeds.svelte';
 
     let initialized = false;
     let dragExpandTimeout = $state<number | null>(null);
@@ -147,7 +146,6 @@
     class="pane"
     oncontextmenu={(e) => handleContextMenu(e, 'root', 0)}
     ondragleave={onDragLeavePane}>
-    <SpecialFeeds />
     <NavToolbar onExpandAll={expandAll} onCollapseAll={collapseAll} />
 
     <div class="folder-list" role="tree">

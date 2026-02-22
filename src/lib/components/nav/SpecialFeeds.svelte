@@ -1,30 +1,28 @@
-﻿<script lang="ts">
+<script lang="ts">
     import { appState, FEED_ID_LATEST, FEED_ID_SAVED } from '$lib/store.svelte';
     import { Clock, Bookmark } from 'lucide-svelte';
 </script>
 
 <div class="special-section">
-    <!-- svelte-ignore a11y_click_events_have_key_events -->
-    <!-- svelte-ignore a11y_no_static_element_interactions -->
-    <div
-        class="feed-item special"
-        class:selected={appState.selectedFeedId === FEED_ID_LATEST}
-        onclick={() => appState.selectFeed(FEED_ID_LATEST)}>
-        <span class="feed-name-wrap">
+    <div class="special-row">
+        <!-- svelte-ignore a11y_click_events_have_key_events -->
+        <!-- svelte-ignore a11y_no_static_element_interactions -->
+        <div
+            class="feed-item special"
+            class:selected={appState.selectedFeedId === FEED_ID_LATEST}
+            onclick={() => appState.selectFeed(FEED_ID_LATEST)}>
             <Clock size={16} class="feed-icon" />
             <span class="feed-name">Latest</span>
-        </span>
-    </div>
-    <!-- svelte-ignore a11y_click_events_have_key_events -->
-    <!-- svelte-ignore a11y_no_static_element_interactions -->
-    <div
-        class="feed-item special"
-        class:selected={appState.selectedFeedId === FEED_ID_SAVED}
-        onclick={() => appState.selectFeed(FEED_ID_SAVED)}>
-        <span class="feed-name-wrap">
+        </div>
+        <!-- svelte-ignore a11y_click_events_have_key_events -->
+        <!-- svelte-ignore a11y_no_static_element_interactions -->
+        <div
+            class="feed-item special"
+            class:selected={appState.selectedFeedId === FEED_ID_SAVED}
+            onclick={() => appState.selectFeed(FEED_ID_SAVED)}>
             <Bookmark size={16} class="feed-icon" />
             <span class="feed-name">Read Later</span>
-        </span>
+        </div>
     </div>
 </div>
 
@@ -33,8 +31,13 @@
         padding: 4px 12px;
     }
 
+    .special-row {
+        display: flex;
+        gap: 4px;
+    }
+
     .feed-item {
-        width: 100%;
+        flex: 1;
         padding: 0.4rem 0.6rem;
         background: transparent;
         text-align: left;
@@ -44,7 +47,7 @@
         color: var(--text-primary);
         display: flex;
         align-items: center;
-        justify-content: space-between;
+        justify-content: flex-start;
         gap: 8px;
         border-left: 3px solid transparent;
         box-sizing: border-box;

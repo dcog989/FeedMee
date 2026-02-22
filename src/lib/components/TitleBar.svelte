@@ -1,7 +1,7 @@
 <script lang="ts">
-    import { appState } from '$lib/store.svelte';
+    import { appState, FEED_ID_LATEST, FEED_ID_SAVED } from '$lib/store.svelte';
     import { getCurrentWindow } from '@tauri-apps/api/window';
-    import { Rss, Search, Settings } from 'lucide-svelte';
+    import { Rss, Search, Settings, Clock, Bookmark } from 'lucide-svelte';
     import AboutModal from './AboutModal.svelte';
 
     const appWindow = getCurrentWindow();
@@ -131,6 +131,24 @@
             title="Add Content"
             aria-label="Add Content">
             <Rss size={18} />
+        </button>
+
+        <button
+            class="tool-btn"
+            class:active={appState.selectedFeedId === FEED_ID_LATEST}
+            onclick={() => appState.selectFeed(FEED_ID_LATEST)}
+            title="Latest"
+            aria-label="Latest">
+            <Clock size={18} />
+        </button>
+
+        <button
+            class="tool-btn"
+            class:active={appState.selectedFeedId === FEED_ID_SAVED}
+            onclick={() => appState.selectFeed(FEED_ID_SAVED)}
+            title="Read Later"
+            aria-label="Read Later">
+            <Bookmark size={18} />
         </button>
     </div>
 
@@ -319,6 +337,11 @@
     .tool-btn:hover {
         background-color: var(--bg-hover);
         color: var(--text-primary);
+    }
+
+    .tool-btn.active {
+        color: var(--text-primary);
+        background-color: var(--bg-selected-muted);
     }
 
     .search-wrapper {
