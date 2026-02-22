@@ -1,4 +1,4 @@
-﻿<script lang="ts">
+<script lang="ts">
     import { tooltip } from '$lib/actions/tooltip.svelte';
     import { appState } from '$lib/store.svelte';
     import { openUrl } from '@tauri-apps/plugin-opener';
@@ -31,21 +31,6 @@
         if (appState.selectedArticle) {
             fullContent = null;
             loadError = false;
-        }
-    });
-
-    $effect(() => {
-        if (appState.selectedArticle && appState.selectedArticle.is_saved) {
-            const currentId = appState.selectedArticle.id;
-            const timer = setTimeout(() => {
-                if (
-                    appState.selectedArticle?.id === currentId &&
-                    appState.selectedArticle.is_saved
-                ) {
-                    appState.toggleSaved(appState.selectedArticle);
-                }
-            }, 5000);
-            return () => clearTimeout(timer);
         }
     });
 
