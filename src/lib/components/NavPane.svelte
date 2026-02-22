@@ -161,7 +161,11 @@
                     toggleFolder(folder.id);
                 }}
                 onContextMenu={handleContextMenu}
-                onExpandHover={handleExpandHover} />
+                onExpandHover={handleExpandHover}
+                onFeedsChange={(folderId, feeds) => {
+                    const f = appState.folders.find((x) => x.id === folderId);
+                    if (f) f.feeds = feeds;
+                }} />
         {/each}
     </div>
 

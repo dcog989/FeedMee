@@ -1,18 +1,19 @@
 <script lang="ts">
     import { tooltip } from '$lib/actions/tooltip.svelte';
     import { appState } from '$lib/store.svelte';
+    import { dndState } from '$lib/dndState.svelte';
     import type { Feed, Folder } from '$lib/types';
-    import { dndzone, type DndEvent, type Item } from 'svelte-dnd-action';
+    import { dndzone, TRIGGERS, type DndEvent, type Item } from 'svelte-dnd-action';
     import { flip } from 'svelte/animate';
-    import { slide } from 'svelte/transition';
     import { ChevronRight, X, RefreshCw } from 'lucide-svelte';
 
-    let { folder, isExpanded, onToggle, onContextMenu, onExpandHover } = $props<{
+    let { folder, isExpanded, onToggle, onContextMenu, onExpandHover, onFeedsChange } = $props<{
         folder: Folder;
         isExpanded: boolean;
         onToggle: (e: MouseEvent) => void;
         onContextMenu: (e: MouseEvent, type: 'folder' | 'feed', id: number, name?: string) => void;
         onExpandHover: (id: number) => void;
+        onFeedsChange: (folderId: number, feeds: Feed[]) => void;
     }>();
 
     const FLIP_DURATION = 200;
@@ -32,46 +33,23 @@
 
     // --- DnD List Handlers ---
     function handleDndConsider(e: CustomEvent<DndEvent<Item>>) {
-        folder.feeds = e.detail.items as Feed[];
+        const feeds = e.detail.items as Feed[];
+        onFeedsChange(folder.id, feeds);
+        dndState.isDragging = true;
+        if (!isExpanded && e.detail.info.trigger === TRIGGERS.DRAGGED_ENTERED) {
+            onExpandHover(folder.id);
+        }
     }
 
     function handleDndFinalize(e: CustomEvent<DndEvent<Item>>) {
-        folder.feeds = e.detail.items as Feed[];
+        dndState.isDragging = false;
         const items = e.detail.items as Feed[];
+        onFeedsChange(folder.id, items);
         items.forEach((feed) => {
             if (feed.folder_id !== folder.id) {
-                feed.folder_id = folder.id;
                 appState.moveFeed(feed.id, folder.id);
             }
         });
-    }
-
-    function onFeedDragStart(e: DragEvent, feedId: number) {
-        if (e.dataTransfer) {
-            e.dataTransfer.setData('text/plain', feedId.toString());
-            e.dataTransfer.effectAllowed = 'move';
-        }
-    }
-
-    function onHeaderDragOver(e: DragEvent) {
-        e.preventDefault();
-        e.stopPropagation();
-        if (e.dataTransfer) {
-            e.dataTransfer.dropEffect = 'move';
-        }
-        onExpandHover(folder.id);
-    }
-
-    function onHeaderDrop(e: DragEvent) {
-        e.preventDefault();
-        e.stopPropagation();
-        const data = e.dataTransfer?.getData('text/plain');
-        if (data) {
-            const feedId = parseInt(data);
-            if (!isNaN(feedId) && feedId > 0) {
-                appState.moveFeed(feedId, folder.id);
-            }
-        }
     }
 
     function onHeaderDblClick(e: MouseEvent) {
@@ -87,8 +65,6 @@
         class="folder-header"
         class:selected={appState.selectedFolderId === folder.id}
         oncontextmenu={(e) => onContextMenu(e, 'folder', folder.id, folder.name)}
-        ondragover={onHeaderDragOver}
-        ondrop={onHeaderDrop}
         ondblclick={onHeaderDblClick}>
         <span class="toggle-icon" onclick={onToggle}>
             <ChevronRight
@@ -122,18 +98,20 @@
         </span>
     </div>
 
-    {#if isExpanded}
-        <ul
-            class="feed-list"
-            transition:slide={{ duration: 200 }}
-            use:dndzone={{
-                items: folder.feeds,
-                flipDurationMs: FLIP_DURATION,
-                type: 'feed',
-                dropTargetStyle: { outline: '2px solid var(--bg-selected)', borderRadius: '4px' },
-            }}
-            onconsider={handleDndConsider}
-            onfinalize={handleDndFinalize}>
+    <ul
+        class="feed-list"
+        class:collapsed={!isExpanded}
+        use:dndzone={{
+            items: folder.feeds,
+            flipDurationMs: FLIP_DURATION,
+            type: 'feed',
+            dropTargetStyle: isExpanded
+                ? { outline: '2px solid var(--bg-selected)', borderRadius: '4px' }
+                : {},
+        }}
+        onconsider={handleDndConsider}
+        onfinalize={handleDndFinalize}>
+        {#if isExpanded}
             {#each folder.feeds as feed (feed.id)}
                 <li animate:flip={{ duration: FLIP_DURATION }}>
                     <!-- svelte-ignore a11y_no_static_element_interactions -->
@@ -154,9 +132,7 @@
                                 e.preventDefault();
                                 appState.selectFeed(feed.id);
                             }
-                        }}
-                        draggable="true"
-                        ondragstart={(e) => onFeedDragStart(e, feed.id)}>
+                        }}>
                         <span class="feed-name-wrap">
                             {#if feed.url}
                                 <img
@@ -204,8 +180,8 @@
                     </div>
                 </li>
             {/each}
-        </ul>
-    {/if}
+        {/if}
+    </ul>
 </div>
 
 <style>
@@ -213,6 +189,7 @@
     .folder {
         outline: none;
         margin-bottom: 2px;
+        position: relative;
     }
 
     .folder-header {
@@ -276,6 +253,19 @@
         padding: 0 0 0 20px;
         margin: 0;
         min-height: 10px;
+    }
+
+    .feed-list.collapsed {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 32px;
+        min-height: 0;
+        overflow: hidden;
+        padding: 0;
+        opacity: 0;
+        pointer-events: none;
     }
 
     .feed-item {
