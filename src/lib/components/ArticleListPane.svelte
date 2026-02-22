@@ -88,10 +88,10 @@
                     </li>
                 {/each}
             </ul>
-            {#if appState.isLoading}
+            {#if appState.isLoadingArticles}
                 <div class="loading-more">Loading more...</div>
             {/if}
-        {:else if appState.isLoading}
+        {:else if appState.isLoadingArticles}
             <div class="loading">Loading articles...</div>
         {:else if appState.selectedFeedId}
             <div class="empty-state">

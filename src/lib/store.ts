@@ -8,7 +8,7 @@ class AppState {
     articles = $state<Article[]>([]);
     selectedFeedId = $state<number | null>(null);
     selectedArticle = $state<Article | null>(null);
-    isLoading = $state(false);
+    isLoadingArticles = $state(false);
     theme = $state<Theme>('system');
 
     constructor() {
@@ -30,7 +30,7 @@ class AppState {
         this.selectedFeedId = feedId;
         this.selectedArticle = null;
         this.articles = [];
-        this.isLoading = true;
+        this.isLoadingArticles = true;
 
         try {
             const result = await invoke<Article[]>('get_articles_for_feed', { feedId });
@@ -43,7 +43,7 @@ class AppState {
             if (this.selectedFeedId === feedId) this.articles = [];
         } finally {
             if (this.selectedFeedId === feedId) {
-                this.isLoading = false;
+                this.isLoadingArticles = false;
             }
         }
     }

@@ -18,7 +18,8 @@ class AppState {
     selectedFeedId = $state<number | null>(null);
     selectedFolderId = $state<number | null>(null);
     selectedArticle = $state<Article | null>(null);
-    isLoading = $state(false);
+    isLoadingArticles = $state(false);
+    isRefreshingFeeds = $state(false);
     searchQuery = $state('');
     theme = $state<Theme>('system');
     sortOrder = $state<SortOrder>('desc');
@@ -334,7 +335,7 @@ class AppState {
             .filter((f) => !this.isFeedFresh(f.id));
         if (staleFeeds.length === 0) return;
 
-        this.isLoading = true;
+        this.isRefreshingFeeds = true;
 
         const newSet = new Set(this.updatingFeedIds);
         staleFeeds.forEach((f) => newSet.add(f.id));
@@ -365,7 +366,7 @@ class AppState {
             console.error('Failed to refresh all feeds:', e);
         } finally {
             this.updatingFeedIds = new Set();
-            this.isLoading = false;
+            this.isRefreshingFeeds = false;
         }
     }
 
@@ -482,14 +483,14 @@ class AppState {
     }
 
     async addFeed(url: string, folderId: number | null = null) {
-        this.isLoading = true;
+        this.isLoadingArticles = true;
         try {
             await invoke('add_feed', { url, folderId });
             await this.refreshFolders();
         } catch (e) {
             this.alert(`Error adding feed: ${e}`);
         } finally {
-            this.isLoading = false;
+            this.isLoadingArticles = false;
         }
     }
 
@@ -509,14 +510,14 @@ class AppState {
                 filters: [{ name: 'OPML Files', extensions: ['opml', 'xml'] }],
             });
             if (selected && typeof selected === 'string') {
-                this.isLoading = true;
+                this.isLoadingArticles = true;
                 await invoke('import_opml', { path: selected });
                 await this.refreshFolders();
             }
         } catch {
             this.alert('Failed to import OPML file.');
         } finally {
-            this.isLoading = false;
+            this.isLoadingArticles = false;
         }
     }
 
@@ -542,11 +543,11 @@ class AppState {
         this.selectedFolderId = folderId;
         this.selectedFeedId = null;
         this.selectedArticle = null;
-        this.isLoading = true;
+        this.isLoadingArticles = true;
         try {
             await this.reloadCurrentArticleList();
         } finally {
-            this.isLoading = false;
+            this.isLoadingArticles = false;
         }
     }
 
@@ -555,18 +556,22 @@ class AppState {
         this.selectedFeedId = feedId;
         this.selectedFolderId = null;
         this.selectedArticle = null;
-        this.isLoading = true;
+        this.isLoadingArticles = true;
         try {
             await this.reloadCurrentArticleList();
         } finally {
-            this.isLoading = false;
+            this.isLoadingArticles = false;
         }
     }
 
     async loadMore() {
-        if ((!this.selectedFeedId && !this.selectedFolderId) || !this.hasMore || this.isLoading)
+        if (
+            (!this.selectedFeedId && !this.selectedFolderId) ||
+            !this.hasMore ||
+            this.isLoadingArticles
+        )
             return;
-        this.isLoading = true;
+        this.isLoadingArticles = true;
         const nextPage = this.page + 1;
         try {
             const result = await this.fetchPage(nextPage);
@@ -580,7 +585,7 @@ class AppState {
         } catch (e) {
             console.error('Failed to load more articles:', e);
         } finally {
-            this.isLoading = false;
+            this.isLoadingArticles = false;
         }
     }
 
