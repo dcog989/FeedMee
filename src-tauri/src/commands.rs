@@ -301,7 +301,7 @@ pub async fn refresh_feed(feed_id: i64, state: State<'_, AppState>) -> Result<us
         let conn = state.db.lock().unwrap();
         let count = articles
             .into_iter()
-            .filter_map(|a| db::insert_article(&conn, &a).ok().map(|_| 1usize))
+            .filter_map(|a| db::insert_article(&conn, &a).ok())
             .sum();
         let _ = db::update_feed_error(&conn, feed_id, false);
         return Ok(count);
@@ -374,7 +374,7 @@ pub async fn refresh_feed(feed_id: i64, state: State<'_, AppState>) -> Result<us
                             is_saved: false,
                         };
                         match db::insert_article(&conn, &article) {
-                            Ok(_) => count += 1,
+                            Ok(inserted) => count += inserted,
                             Err(e) => error!(
                                 "refresh_feed: insert_article failed for url={}: {}",
                                 article.url, e

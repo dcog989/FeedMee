@@ -276,13 +276,13 @@ pub fn update_feed_content_hash(conn: &Connection, feed_id: i64, content_hash: &
     Ok(())
 }
 
-pub fn insert_article(conn: &Connection, article: &Article) -> Result<()> {
-    conn.execute(
+pub fn insert_article(conn: &Connection, article: &Article) -> Result<usize> {
+    let inserted = conn.execute(
         "INSERT OR IGNORE INTO articles (feed_id, title, author, summary, url, timestamp, is_read, is_saved)
          VALUES (?1, ?2, ?3, ?4, ?5, ?6, 0, 0)",
         params![article.feed_id, article.title, article.author, article.summary, article.url, article.timestamp],
     )?;
-    Ok(())
+    Ok(inserted)
 }
 
 pub fn set_article_read(conn: &Connection, article_id: i64, is_read: bool) -> Result<()> {
