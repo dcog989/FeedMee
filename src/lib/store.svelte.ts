@@ -663,6 +663,7 @@ class AppState {
 
         try {
             await invoke('mark_article_saved', { id: article.id, isSaved: newState });
+            await this.refreshFolders();
         } catch {
             article.is_saved = !newState;
         }
