@@ -2,6 +2,8 @@
 
 FeedMee is a desktop RSS / Atom news feed reader with a clean, minimal style. It aims for fast performance, minimal resource usage.
 
+You are on a Windows 11 desktop PC, use tools accordingly.
+
 ## Tech Stack
 
 - **Tauri** (v2.9) - Desktop framework wrapping the web frontend
