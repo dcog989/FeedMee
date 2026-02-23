@@ -280,11 +280,6 @@
         accent-color: var(--bg-selected);
     }
 
-    .checkbox-wrap span {
-        flex: 1;
-        min-width: 0;
-    }
-
     select {
         max-height: 300px;
         overflow-y: auto;
