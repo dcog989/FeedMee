@@ -71,7 +71,6 @@
         onclick={(e) => e.stopPropagation()}
         role="dialog"
         aria-modal="true"
-        aria-label="Settings"
         tabindex="-1">
         <div class="modal-header">
             <h3><Settings size={18} /> Settings</h3>
@@ -87,70 +86,72 @@
         </div>
 
         <div class="modal-content">
-            <div class="form-group">
-                <label for="auto-update">Auto Update Interval (min)</label>
-                <input
-                    type="number"
-                    id="auto-update"
-                    bind:value={settings.auto_update_interval_minutes}
-                    min="5"
-                    title="0 to disable" />
-            </div>
-
-            <div class="form-group">
-                <label for="default-view">Default View on Start</label>
-                <select id="default-view" bind:value={settings.default_view_type}>
-                    <option value="latest">Latest</option>
-                    <option value="saved">Read Later</option>
-                    <option value="folder">Folder</option>
-                    <option value="feed">Feed</option>
-                </select>
-            </div>
-
-            {#if settings.default_view_type === 'folder'}
-                <div class="form-group indent">
-                    <label for="default-folder">Folder</label>
-                    <select id="default-folder" bind:value={settings.default_view_id}>
-                        {#each appState.folders as folder (folder.id)}
-                            <option value={folder.id}>{folder.name}</option>
-                        {/each}
-                    </select>
-                </div>
-            {:else if settings.default_view_type === 'feed'}
-                <div class="form-group indent">
-                    <label for="default-feed">Feed</label>
-                    <select
-                        id="default-feed"
-                        class="default-feed"
-                        bind:value={settings.default_view_id}>
-                        {#each appState.folders as folder}
-                            {#each folder.feeds as feed (feed.id)}
-                                <option value={feed.id}>{folder.name} / {feed.name}</option>
-                            {/each}
-                        {/each}
-                    </select>
-                </div>
-            {/if}
-
-            <div class="form-group">
-                <label for="auto-collapse">Auto Collapse Folders</label>
-                <div class="checkbox-wrap">
+            <div class="form-container">
+                <div class="form-group">
+                    <label for="auto-update">Auto Update Interval (min)</label>
                     <input
-                        type="checkbox"
-                        id="auto-collapse"
-                        bind:checked={settings.auto_collapse_folders} />
+                        type="number"
+                        id="auto-update"
+                        bind:value={settings.auto_update_interval_minutes}
+                        min="5"
+                        title="0 to disable" />
                 </div>
-            </div>
 
-            <div class="form-group">
-                <label for="log-level">Log Level</label>
-                <select id="log-level" bind:value={settings.log_level}>
-                    <option value="error">Error</option>
-                    <option value="warn">Warn</option>
-                    <option value="info">Info</option>
-                    <option value="debug">Debug</option>
-                    <option value="trace">Trace</option>
-                </select>
+                <div class="form-group">
+                    <label for="default-view">Default View on Start</label>
+                    <select id="default-view" bind:value={settings.default_view_type}>
+                        <option value="latest">Latest</option>
+                        <option value="saved">Read Later</option>
+                        <option value="folder">Folder</option>
+                        <option value="feed">Feed</option>
+                    </select>
+                </div>
+
+                {#if settings.default_view_type === 'folder'}
+                    <div class="form-group indent">
+                        <label for="default-folder">Folder</label>
+                        <select id="default-folder" bind:value={settings.default_view_id}>
+                            {#each appState.folders as folder (folder.id)}
+                                <option value={folder.id}>{folder.name}</option>
+                            {/each}
+                        </select>
+                    </div>
+                {:else if settings.default_view_type === 'feed'}
+                    <div class="form-group indent">
+                        <label for="default-feed">Feed</label>
+                        <select
+                            id="default-feed"
+                            class="default-feed"
+                            bind:value={settings.default_view_id}>
+                            {#each appState.folders as folder}
+                                {#each folder.feeds as feed (feed.id)}
+                                    <option value={feed.id}>{folder.name} / {feed.name}</option>
+                                {/each}
+                            {/each}
+                        </select>
+                    </div>
+                {/if}
+
+                <div class="form-group">
+                    <label for="auto-collapse">Auto Collapse Folders</label>
+                    <div class="checkbox-wrap">
+                        <input
+                            type="checkbox"
+                            id="auto-collapse"
+                            bind:checked={settings.auto_collapse_folders} />
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="log-level">Log Level</label>
+                    <select id="log-level" bind:value={settings.log_level}>
+                        <option value="error">Error</option>
+                        <option value="warn">Warn</option>
+                        <option value="info">Info</option>
+                        <option value="debug">Debug</option>
+                        <option value="trace">Trace</option>
+                    </select>
+                </div>
             </div>
         </div>
     </div>
@@ -178,6 +179,7 @@
         border: 1px solid var(--border-color);
         border-radius: 10px;
         width: auto;
+        max-width: 500px;
         max-height: 80vh;
         overflow: hidden;
         box-shadow: 0 16px 40px rgba(0, 0, 0, 0.25);
@@ -225,34 +227,48 @@
         overflow-y: auto;
     }
 
+    .form-container {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+        min-width: 0;
+    }
+
     .form-group {
         display: flex;
         align-items: center;
-        flex: 1 1 auto;
         gap: 1rem;
         margin-bottom: 1rem;
     }
 
-    .form-group:last-child {
-        margin-bottom: 0;
-    }
-
     .form-group label {
-        flex: 1 1 auto;
+        flex: 0 0 180px;
         font-size: 0.9rem;
         color: var(--text-secondary);
+        text-align: right;
+    }
+
+    .form-group input,
+    .form-group select {
+        flex: 1;
+        padding: 8px;
+        border: 1px solid var(--border-color);
+        background: var(--bg-app);
+        color: var(--text-primary);
+        border-radius: 4px;
+        box-sizing: border-box;
+        max-width: 200px;
     }
 
     .form-group.indent {
-        padding-left: 160px;
+        padding-left: 20px;
     }
 
     .form-group.indent label {
-        flex: 0 0 auto;
+        flex: 0 0 160px;
     }
 
     .checkbox-wrap {
-        flex: 1;
         display: flex;
         align-items: center;
     }
@@ -263,18 +279,14 @@
         cursor: pointer;
         accent-color: var(--bg-selected);
     }
-    .default-feed {
-        max-width: 180px;
+
+    .checkbox-wrap span {
+        flex: 1;
+        min-width: 0;
     }
 
-    input,
     select {
-        flex: 1;
-        padding: 8px;
-        border: 1px solid var(--border-color);
-        background: var(--bg-app);
-        color: var(--text-primary);
-        border-radius: 4px;
-        box-sizing: border-box;
+        max-height: 300px;
+        overflow-y: auto;
     }
 </style>
