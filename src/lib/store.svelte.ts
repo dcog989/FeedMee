@@ -805,6 +805,13 @@ class AppState {
         return items;
     }
 
+    private expandFolder(folderId: number) {
+        const newSet = new Set(this.expandedFolders);
+        if (this.settings.auto_collapse_folders) newSet.clear();
+        newSet.add(folderId);
+        this.expandedFolders = newSet;
+    }
+
     navUp() {
         const items = this.getFlatNavItems();
         if (items.length === 0) return;
@@ -816,7 +823,10 @@ class AppState {
         const nextIdx = currentIdx <= 0 ? items.length - 1 : currentIdx - 1;
         const item = items[nextIdx];
         if (item.type === 'feed') this.selectFeed(item.id);
-        else this.selectFolder(item.id);
+        else {
+            this.expandFolder(item.id);
+            this.selectFolder(item.id);
+        }
     }
 
     navDown() {
@@ -830,7 +840,10 @@ class AppState {
         const nextIdx = currentIdx < 0 || currentIdx >= items.length - 1 ? 0 : currentIdx + 1;
         const item = items[nextIdx];
         if (item.type === 'feed') this.selectFeed(item.id);
-        else this.selectFolder(item.id);
+        else {
+            this.expandFolder(item.id);
+            this.selectFolder(item.id);
+        }
     }
 
     articleUp() {
