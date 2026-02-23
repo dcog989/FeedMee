@@ -35,4 +35,5 @@ export interface AppSettings {
     default_view_type: string;
     default_view_id: number;
     auto_collapse_folders: boolean;
+    mark_feed_read_on_exit: boolean;
 }

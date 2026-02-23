@@ -52,10 +52,12 @@ pub fn save_app_settings(
     app_handle: AppHandle,
     state: State<'_, AppState>,
 ) -> Result<(), String> {
+    info!("save_app_settings called: {:?}", new_settings);
     let mut settings_guard = state.settings.lock().unwrap();
     *settings_guard = new_settings.clone();
 
     if let Ok(app_data_dir) = app_handle.path().app_data_dir() {
+        info!("App data dir: {:?}", app_data_dir);
         settings::save_settings(&app_data_dir, &new_settings);
         info!("Settings saved to disk");
         Ok(())

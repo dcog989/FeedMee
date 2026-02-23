@@ -32,6 +32,7 @@ class AppState {
         default_view_type: 'latest',
         default_view_id: -1,
         auto_collapse_folders: true,
+        mark_feed_read_on_exit: false,
     });
 
     // UI States
@@ -595,6 +596,23 @@ class AppState {
 
     async selectFeed(feedId: number) {
         if (this.selectedFeedId === feedId) return;
+
+        const previousFeedId = this.selectedFeedId;
+
+        if (previousFeedId && previousFeedId > 0 && this.settings.mark_feed_read_on_exit) {
+            await invoke('mark_all_read', { targetType: 'feed', id: previousFeedId });
+            const unreadCount = await invoke<number>('get_feed_unread_count', {
+                feedId: previousFeedId,
+            });
+            for (const folder of this.folders) {
+                const feed = folder.feeds.find((f) => f.id === previousFeedId);
+                if (feed) {
+                    feed.unread_count = unreadCount;
+                    break;
+                }
+            }
+        }
+
         this.focusedPane = 'nav';
         this.searchQuery = '';
         this.selectedFeedId = feedId;

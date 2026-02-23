@@ -7,6 +7,7 @@
     interface SettingsWithDefault extends AppSettings {
         default_view_type: string;
         default_view_id: number;
+        mark_feed_read_on_exit: boolean;
     }
 
     let settings = $state<SettingsWithDefault>({
@@ -17,6 +18,7 @@
         default_view_type: 'latest',
         default_view_id: -1,
         auto_collapse_folders: true,
+        mark_feed_read_on_exit: false,
     });
     let showShortcuts = $state(false);
     let initialized = $state(false);
@@ -30,6 +32,7 @@
                 ...appState.settings,
                 default_view_type: (s.default_view_type as string) || 'latest',
                 default_view_id: (s.default_view_id as number) ?? -1,
+                mark_feed_read_on_exit: (s.mark_feed_read_on_exit as boolean) ?? false,
             };
             if (!initialized) {
                 initialized = true;
@@ -43,8 +46,6 @@
         if (JSON.stringify(settings) === JSON.stringify(prevSettings)) return;
         if (!isUserChange) {
             isUserChange = true;
-            prevSettings = { ...settings };
-            return;
         }
         prevSettings = { ...settings };
         appState.saveSettings(settings, false);
@@ -139,6 +140,16 @@
                             type="checkbox"
                             id="auto-collapse"
                             bind:checked={settings.auto_collapse_folders} />
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="mark-read-exit">Mark Feed Read on Exit</label>
+                    <div class="checkbox-wrap">
+                        <input
+                            type="checkbox"
+                            id="mark-read-exit"
+                            bind:checked={settings.mark_feed_read_on_exit} />
                     </div>
                 </div>
 
