@@ -5,7 +5,7 @@
     import type { Feed, Folder } from '$lib/types';
     import { dndzone, TRIGGERS, type DndEvent, type Item } from 'svelte-dnd-action';
     import { flip } from 'svelte/animate';
-    import { ChevronRight, X, RefreshCw } from 'lucide-svelte';
+    import { ChevronRight, X, RefreshCw, RefreshCcwDot } from 'lucide-svelte';
 
     let { folder, isExpanded, onToggle, onContextMenu, onExpandHover, onFeedsChange } = $props<{
         folder: Folder;
@@ -80,21 +80,32 @@
             }}>
             <span class="folder-name">{folder.name}</span>
 
-            {#if appState.isFolderUpdating(folder.id)}
-                <div class="mini-spinner"></div>
-            {:else if getFolderUnreadCount(folder.feeds) > 0}
-                <!-- svelte-ignore a11y_click_events_have_key_events -->
-                <!-- svelte-ignore a11y_no_static_element_interactions -->
-                <span
-                    class="badge folder-badge"
-                    onclick={(e) => {
-                        e.stopPropagation();
-                        appState.requestRefreshFolder(folder.id);
-                    }}
-                    use:tooltip={appState.isFolderFresh(folder.id)
-                        ? 'Already fresh!'
-                        : 'Click to refresh folder'}>{getFolderUnreadCount(folder.feeds)}</span>
-            {/if}
+            <!-- svelte-ignore a11y_click_events_have_key_events -->
+            <!-- svelte-ignore a11y_no_static_element_interactions -->
+            <div
+                class="folder-action-area"
+                onclick={(e) => {
+                    e.stopPropagation();
+                    appState.requestRefreshFolder(folder.id);
+                }}>
+                {#if appState.isFolderUpdating(folder.id)}
+                    <div class="mini-spinner"></div>
+                {:else if getFolderUnreadCount(folder.feeds) > 0}
+                    <span
+                        class="badge folder-badge"
+                        use:tooltip={appState.isFolderFresh(folder.id)
+                            ? 'Already fresh!'
+                            : 'Click to refresh folder'}>{getFolderUnreadCount(folder.feeds)}</span>
+                {:else}
+                    <span
+                        class="refresh-icon folder-refresh"
+                        use:tooltip={appState.isFolderFresh(folder.id)
+                            ? 'Already fresh!'
+                            : 'Click to refresh folder'}>
+                        <RefreshCcwDot size={16} />
+                    </span>
+                {/if}
+            </div>
         </span>
     </div>
 
@@ -173,7 +184,7 @@
                                     use:tooltip={appState.isFeedFresh(feed.id)
                                         ? 'Already fresh!'
                                         : 'Refresh'}>
-                                    <RefreshCw size={12} />
+                                    <RefreshCw size={16} />
                                 </span>
                             {/if}
                         </div>
@@ -195,7 +206,10 @@
     .folder-header {
         display: flex;
         align-items: center;
-        padding: 4px 4px;
+        padding: 4px 0.6rem 4px 4px;
+        border-left: 3px solid transparent;
+        box-sizing: border-box;
+        width: 100%;
         cursor: default;
         color: var(--text-secondary);
         border-radius: 4px;
@@ -366,6 +380,20 @@
         color: var(--text-primary);
     }
 
+    .folder-action-area {
+        display: flex;
+        align-items: center;
+        min-width: 24px;
+        margin-left: auto;
+        padding-left: 8px;
+        justify-content: center;
+        cursor: pointer;
+    }
+
+    .folder-refresh {
+        opacity: 0.5;
+    }
+
     .feed-item:hover {
         background-color: var(--bg-hover);
     }
@@ -387,8 +415,8 @@
     }
 
     .mini-spinner {
-        width: 12px;
-        height: 12px;
+        width: 14px;
+        height: 14px;
         border: 2px solid var(--text-secondary);
         border-top-color: transparent;
         border-radius: 50%;
