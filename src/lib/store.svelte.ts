@@ -888,12 +888,13 @@ class AppState {
         this.showSettings = false;
     }
 
-    async saveSettings(newSettings: AppSettings) {
+    async saveSettings(newSettings: AppSettings, closeModal = true) {
         try {
             await invoke('save_app_settings', { newSettings });
             this.settings = newSettings;
-            this.closeSettings();
-            // Optionally restart auto-update interval if changed
+            if (closeModal) {
+                this.closeSettings();
+            }
         } catch (e) {
             this.alert(`Failed to save settings: ${e}`);
         }

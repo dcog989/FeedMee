@@ -1,7 +1,7 @@
 <script lang="ts">
     import { appState } from '$lib/store.svelte';
     import type { AppSettings } from '$lib/types';
-    import { Keyboard } from 'lucide-svelte';
+    import { Keyboard, Settings, X } from 'lucide-svelte';
     import ShortcutsModal from './ShortcutsModal.svelte';
 
     interface SettingsWithDefault extends AppSettings {
@@ -19,6 +19,9 @@
         auto_collapse_folders: true,
     });
     let showShortcuts = $state(false);
+    let initialized = $state(false);
+    let isUserChange = $state(false);
+    let prevSettings = $state<SettingsWithDefault | null>(null);
 
     $effect(() => {
         const s = appState.settings as unknown as Record<string, unknown>;
@@ -28,12 +31,24 @@
                 default_view_type: (s.default_view_type as string) || 'latest',
                 default_view_id: (s.default_view_id as number) ?? -1,
             };
+            if (!initialized) {
+                initialized = true;
+                prevSettings = { ...settings };
+            }
         }
     });
 
-    function save() {
-        appState.saveSettings(settings);
-    }
+    $effect(() => {
+        if (!initialized || !prevSettings) return;
+        if (JSON.stringify(settings) === JSON.stringify(prevSettings)) return;
+        if (!isUserChange) {
+            isUserChange = true;
+            prevSettings = { ...settings };
+            return;
+        }
+        prevSettings = { ...settings };
+        appState.saveSettings(settings, false);
+    });
 
     function cancel() {
         (document.activeElement as HTMLElement)?.blur();
@@ -59,81 +74,84 @@
         aria-label="Settings"
         tabindex="-1">
         <div class="modal-header">
-            <h3>Settings</h3>
+            <h3><Settings size={18} /> Settings</h3>
             <button
                 class="shortcuts-btn"
                 onclick={() => (showShortcuts = true)}
                 title="Keyboard Shortcuts">
                 <Keyboard size={18} />
             </button>
+            <button class="close-btn" onclick={cancel} title="Close">
+                <X size={18} />
+            </button>
         </div>
 
-        <div class="form-group">
-            <label for="auto-update">Auto Update Interval (min)</label>
-            <input
-                type="number"
-                id="auto-update"
-                bind:value={settings.auto_update_interval_minutes}
-                min="5"
-                title="0 to disable" />
-        </div>
-
-        <div class="form-group">
-            <label for="default-view">Default View on Start</label>
-            <select id="default-view" bind:value={settings.default_view_type}>
-                <option value="latest">Latest</option>
-                <option value="saved">Read Later</option>
-                <option value="folder">Folder</option>
-                <option value="feed">Feed</option>
-            </select>
-        </div>
-
-        {#if settings.default_view_type === 'folder'}
-            <div class="form-group indent">
-                <label for="default-folder">Folder</label>
-                <select id="default-folder" bind:value={settings.default_view_id}>
-                    {#each appState.folders as folder (folder.id)}
-                        <option value={folder.id}>{folder.name}</option>
-                    {/each}
-                </select>
-            </div>
-        {:else if settings.default_view_type === 'feed'}
-            <div class="form-group indent">
-                <label for="default-feed">Feed</label>
-                <select id="default-feed" bind:value={settings.default_view_id}>
-                    {#each appState.folders as folder}
-                        {#each folder.feeds as feed (feed.id)}
-                            <option value={feed.id}>{folder.name} / {feed.name}</option>
-                        {/each}
-                    {/each}
-                </select>
-            </div>
-        {/if}
-
-        <div class="form-group">
-            <label for="auto-collapse">Auto Collapse Folders</label>
-            <div class="checkbox-wrap">
+        <div class="modal-content">
+            <div class="form-group">
+                <label for="auto-update">Auto Update Interval (min)</label>
                 <input
-                    type="checkbox"
-                    id="auto-collapse"
-                    bind:checked={settings.auto_collapse_folders} />
+                    type="number"
+                    id="auto-update"
+                    bind:value={settings.auto_update_interval_minutes}
+                    min="5"
+                    title="0 to disable" />
             </div>
-        </div>
 
-        <div class="form-group">
-            <label for="log-level">Log Level</label>
-            <select id="log-level" bind:value={settings.log_level}>
-                <option value="error">Error</option>
-                <option value="warn">Warn</option>
-                <option value="info">Info</option>
-                <option value="debug">Debug</option>
-                <option value="trace">Trace</option>
-            </select>
-        </div>
+            <div class="form-group">
+                <label for="default-view">Default View on Start</label>
+                <select id="default-view" bind:value={settings.default_view_type}>
+                    <option value="latest">Latest</option>
+                    <option value="saved">Read Later</option>
+                    <option value="folder">Folder</option>
+                    <option value="feed">Feed</option>
+                </select>
+            </div>
 
-        <div class="actions">
-            <button class="secondary" onclick={cancel}>Cancel</button>
-            <button class="primary" onclick={save}>Save</button>
+            {#if settings.default_view_type === 'folder'}
+                <div class="form-group indent">
+                    <label for="default-folder">Folder</label>
+                    <select id="default-folder" bind:value={settings.default_view_id}>
+                        {#each appState.folders as folder (folder.id)}
+                            <option value={folder.id}>{folder.name}</option>
+                        {/each}
+                    </select>
+                </div>
+            {:else if settings.default_view_type === 'feed'}
+                <div class="form-group indent">
+                    <label for="default-feed">Feed</label>
+                    <select
+                        id="default-feed"
+                        class="default-feed"
+                        bind:value={settings.default_view_id}>
+                        {#each appState.folders as folder}
+                            {#each folder.feeds as feed (feed.id)}
+                                <option value={feed.id}>{folder.name} / {feed.name}</option>
+                            {/each}
+                        {/each}
+                    </select>
+                </div>
+            {/if}
+
+            <div class="form-group">
+                <label for="auto-collapse">Auto Collapse Folders</label>
+                <div class="checkbox-wrap">
+                    <input
+                        type="checkbox"
+                        id="auto-collapse"
+                        bind:checked={settings.auto_collapse_folders} />
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="log-level">Log Level</label>
+                <select id="log-level" bind:value={settings.log_level}>
+                    <option value="error">Error</option>
+                    <option value="warn">Warn</option>
+                    <option value="info">Info</option>
+                    <option value="debug">Debug</option>
+                    <option value="trace">Trace</option>
+                </select>
+            </div>
         </div>
     </div>
 </div>
@@ -157,25 +175,36 @@
 
     .modal {
         background: var(--bg-pane);
-        padding: 2rem;
-        border-radius: 8px;
-        width: 400px;
         border: 1px solid var(--border-color);
-        color: var(--text-primary);
+        border-radius: 10px;
+        width: auto;
+        max-height: 80vh;
+        overflow: hidden;
+        box-shadow: 0 16px 40px rgba(0, 0, 0, 0.25);
+        display: flex;
+        flex-direction: column;
     }
 
     .modal-header {
         display: flex;
         align-items: center;
-        margin-bottom: 1.5rem;
+        gap: 10px;
+        padding: 1rem 1.25rem;
+        border-bottom: 1px solid var(--border-color);
+        flex-shrink: 0;
     }
 
-    h3 {
+    .modal-header h3 {
         margin: 0;
         flex: 1;
+        font-size: 1rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
     }
 
-    .shortcuts-btn {
+    .shortcuts-btn,
+    .close-btn {
         background: none;
         border: none;
         color: var(--text-secondary);
@@ -185,23 +214,41 @@
         display: flex;
     }
 
-    .shortcuts-btn:hover {
+    .shortcuts-btn:hover,
+    .close-btn:hover {
         color: var(--text-primary);
         background: var(--bg-hover);
     }
 
+    .modal-content {
+        padding: 1rem 1.25rem;
+        overflow-y: auto;
+    }
+
     .form-group {
-        margin-bottom: 1rem;
         display: flex;
         align-items: center;
+        flex: 1 1 auto;
         gap: 1rem;
+        margin-bottom: 1rem;
+    }
+
+    .form-group:last-child {
+        margin-bottom: 0;
     }
 
     .form-group label {
-        flex: 0 0 140px;
+        flex: 1 1 auto;
         font-size: 0.9rem;
         color: var(--text-secondary);
-        margin-bottom: 0;
+    }
+
+    .form-group.indent {
+        padding-left: 160px;
+    }
+
+    .form-group.indent label {
+        flex: 0 0 auto;
     }
 
     .checkbox-wrap {
@@ -213,17 +260,11 @@
     .checkbox-wrap input[type='checkbox'] {
         width: 16px;
         height: 16px;
-        flex: 0 0 auto;
         cursor: pointer;
         accent-color: var(--bg-selected);
     }
-
-    .form-group.indent {
-        padding-left: 140px;
-    }
-
-    .form-group.indent label {
-        flex: 0 0 auto;
+    .default-feed {
+        max-width: 180px;
     }
 
     input,
@@ -235,31 +276,5 @@
         color: var(--text-primary);
         border-radius: 4px;
         box-sizing: border-box;
-    }
-
-    .actions {
-        display: flex;
-        justify-content: flex-end;
-        gap: 10px;
-        margin-top: 2rem;
-    }
-
-    button {
-        padding: 8px 16px;
-        border-radius: 4px;
-        cursor: pointer;
-        border: none;
-        font-weight: 500;
-    }
-
-    .primary {
-        background-color: var(--bg-selected);
-        color: white;
-    }
-
-    .secondary {
-        background-color: transparent;
-        border: 1px solid var(--border-color);
-        color: var(--text-primary);
     }
 </style>
