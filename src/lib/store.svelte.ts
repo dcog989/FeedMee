@@ -1,18 +1,19 @@
 import { invoke } from '@tauri-apps/api/core';
-import { open, save } from '@tauri-apps/plugin-dialog';
-import { openUrl } from '@tauri-apps/plugin-opener';
-import type { AppSettings, Article, Feed, Folder } from './types';
+import type { AppSettings, Article, Folder } from './types';
 import { shortcutManager } from './utils/shortcuts';
+import { createFeedRefresher } from './feedRefresh.svelte';
+import { createFeedActions } from './feedActions.svelte';
+import { createArticleActions } from './articleActions.svelte';
+import { registerShortcuts, setupKeyHandler } from './keyboardNav.svelte';
+import type { AppState, Theme, SortOrder } from './storeTypes';
 
-export type Theme = 'light' | 'dark' | 'sepia' | 'system';
-export type SortOrder = 'desc' | 'asc';
-
+export type { AppState } from './storeTypes';
+export type { Theme, SortOrder };
+export type { Article };
 export const FEED_ID_LATEST = -1;
 export const FEED_ID_SAVED = -2;
 
-const REFRESH_CONCURRENCY = 5;
-
-class AppState {
+class AppStateImpl {
     folders = $state<Folder[]>([]);
     articles = $state<Article[]>([]);
     selectedFeedId = $state<number | null>(null);
@@ -35,15 +36,11 @@ class AppState {
         mark_feed_read_on_exit: false,
     });
 
-    // UI States
     showSettings = $state(false);
     showAddDialog = $state(false);
     expandedFolders = $state<Set<number>>(new Set());
     focusedPane = $state<'nav' | 'list' | 'reading'>('nav');
-
-    // Custom keyboard shortcuts
     customShortcuts = $state<Record<string, string>>({});
-
     navWidth = $state(280);
     listWidth = $state(320);
 
@@ -67,269 +64,21 @@ class AppState {
         onConfirm: () => {},
     });
 
+    private refresh: ReturnType<typeof createFeedRefresher>;
+    private feedOps: ReturnType<typeof createFeedActions>;
+    private articleOps: ReturnType<typeof createArticleActions>;
+
     constructor() {
+        this.refresh = createFeedRefresher(this);
+        this.feedOps = createFeedActions(this);
+        this.articleOps = createArticleActions(this);
+        registerShortcuts(this);
+        setupKeyHandler(this);
         this.initStore();
-        this.registerShortcuts();
-        this.setupKeyHandler();
     }
 
-    private registerShortcuts() {
-        shortcutManager.register({
-            id: 'settings',
-            command: 'settings',
-            defaultKey: ',',
-            description: 'Open settings',
-            category: 'General',
-            handler: () => this.openSettings(),
-        });
-
-        shortcutManager.register({
-            id: 'add-feed',
-            command: 'add-feed',
-            defaultKey: 'n',
-            description: 'Add new feed',
-            category: 'General',
-            handler: () => {
-                this.showAddDialog = true;
-            },
-        });
-
-        shortcutManager.register({
-            id: 'refresh-all',
-            command: 'refresh-all',
-            defaultKey: 'r',
-            description: 'Refresh all feeds',
-            category: 'Feeds',
-            handler: () => this.refreshAllFeeds(),
-        });
-
-        shortcutManager.register({
-            id: 'focus-search',
-            command: 'focus-search',
-            defaultKey: '/',
-            description: 'Focus search',
-            category: 'General',
-            handler: () => {
-                const searchInput = document.querySelector(
-                    '.search-wrapper input',
-                ) as HTMLInputElement;
-                searchInput?.focus();
-            },
-        });
-
-        shortcutManager.register({
-            id: 'toggle-save',
-            command: 'toggle-save',
-            defaultKey: 's',
-            description: 'Save/Read later',
-            category: 'Articles',
-            handler: () => {
-                if (this.selectedArticle) {
-                    this.toggleSaved(this.selectedArticle);
-                }
-            },
-        });
-
-        shortcutManager.register({
-            id: 'mark-read',
-            command: 'mark-read',
-            defaultKey: 'm',
-            description: 'Mark as read/unread',
-            category: 'Articles',
-            handler: async () => {
-                if (this.selectedArticle) {
-                    const article = this.selectedArticle;
-                    const newReadState = !article.is_read;
-                    article.is_read = newReadState;
-                    await invoke('mark_article_read', { id: article.id, read: newReadState });
-                }
-            },
-        });
-
-        shortcutManager.register({
-            id: 'expand-all',
-            command: 'expand-all',
-            defaultKey: 'x',
-            description: 'Expand all folders',
-            category: 'Feeds',
-            handler: () => {
-                const newSet = new Set<number>();
-                this.folders.forEach((f) => newSet.add(f.id));
-                this.expandedFolders = newSet;
-            },
-        });
-
-        shortcutManager.register({
-            id: 'collapse-all',
-            command: 'collapse-all',
-            defaultKey: 'c',
-            description: 'Collapse all folders',
-            category: 'Feeds',
-            handler: () => {
-                this.expandedFolders = new Set<number>();
-            },
-        });
-
-        shortcutManager.register({
-            id: 'open-article',
-            command: 'open-article',
-            defaultKey: 'enter',
-            description: 'Open article in browser',
-            category: 'Articles',
-            handler: () => {
-                if (this.selectedArticle) {
-                    openUrl(this.selectedArticle!.url);
-                }
-            },
-        });
-    }
-
-    private setupKeyHandler() {
-        window.addEventListener('keydown', (e) => {
-            if (this.showSettings) return;
-
-            const tag = (e.target as HTMLElement)?.tagName?.toLowerCase();
-            const isInput =
-                tag === 'input' ||
-                tag === 'textarea' ||
-                (e.target as HTMLElement)?.isContentEditable;
-            if (isInput) return;
-
-            switch (e.key) {
-                case 'ArrowLeft':
-                    e.preventDefault();
-                    if (this.focusedPane === 'reading') this.focusedPane = 'list';
-                    else if (this.focusedPane === 'list') this.focusedPane = 'nav';
-                    return;
-                case 'ArrowRight':
-                    e.preventDefault();
-                    if (this.focusedPane === 'nav') this.focusedPane = 'list';
-                    else if (this.focusedPane === 'list' && this.selectedArticle)
-                        this.focusedPane = 'reading';
-                    return;
-                case 'ArrowUp':
-                    e.preventDefault();
-                    if (this.focusedPane === 'nav') this.navUp();
-                    else if (this.focusedPane === 'list') this.articleUp();
-                    else if (this.focusedPane === 'reading') {
-                        document
-                            .querySelector<HTMLElement>('.reading-area .pane')
-                            ?.scrollBy({ top: -80, behavior: 'smooth' });
-                    }
-                    return;
-                case 'ArrowDown':
-                    e.preventDefault();
-                    if (this.focusedPane === 'nav') this.navDown();
-                    else if (this.focusedPane === 'list') this.articleDown();
-                    else if (this.focusedPane === 'reading') {
-                        document
-                            .querySelector<HTMLElement>('.reading-area .pane')
-                            ?.scrollBy({ top: 80, behavior: 'smooth' });
-                    }
-                    return;
-            }
-
-            shortcutManager.handleKeyEvent(e);
-        });
-    }
-
-    setShortcut(commandId: string, key: string) {
-        this.customShortcuts[commandId] = key;
-        shortcutManager.setCustomMappings(this.customShortcuts);
-        this.saveShortcutSettings();
-    }
-
-    resetShortcut(commandId: string) {
-        delete this.customShortcuts[commandId];
-        shortcutManager.setCustomMappings(this.customShortcuts);
-        this.saveShortcutSettings();
-    }
-
-    private async saveShortcutSettings() {
-        try {
-            await invoke('save_shortcuts', { shortcuts: this.customShortcuts });
-        } catch (e) {
-            console.error('Failed to save shortcuts:', e);
-        }
-    }
-
-    private async loadShortcutSettings() {
-        try {
-            const shortcuts = await invoke<Record<string, string>>('get_shortcuts');
-            this.customShortcuts = shortcuts || {};
-            shortcutManager.setCustomMappings(this.customShortcuts);
-        } catch (e) {
-            console.error('Failed to load shortcuts:', e);
-        }
-    }
-
-    private async initStore() {
-        const storedNav = localStorage.getItem('navWidth');
-        const storedList = localStorage.getItem('listWidth');
-        const storedSort = localStorage.getItem('sortOrder');
-        const storedLastRefreshed = localStorage.getItem('lastRefreshed');
-
-        if (storedNav) this.navWidth = parseInt(storedNav);
-        if (storedList) this.listWidth = parseInt(storedList);
-        if (storedSort === 'asc' || storedSort === 'desc') this.sortOrder = storedSort;
-
-        if (storedLastRefreshed) {
-            try {
-                const parsed = JSON.parse(storedLastRefreshed);
-                this.lastRefreshed = new Map(
-                    Object.entries(parsed).map(([k, v]) => [parseInt(k), v as number]),
-                );
-            } catch (e) {
-                console.error('Failed to parse lastRefreshed', e);
-            }
-        }
-
-        try {
-            const s = await invoke<AppSettings>('get_app_settings');
-            this.settings = s;
-
-            if (this.settings.auto_update_interval_minutes > 0) {
-                const intervalMs = this.settings.auto_update_interval_minutes * 60 * 1000;
-                setInterval(() => this.refreshAllFeeds(), intervalMs);
-            }
-        } catch (e) {
-            console.error('Failed to load settings', e);
-        }
-
-        await this.loadShortcutSettings();
-
-        await this.refreshFolders();
-        this.refreshAllFeeds();
-
-        const viewType = this.settings.default_view_type;
-        const viewId = this.settings.default_view_id;
-
-        if (viewType === 'saved') {
-            this.selectFeed(FEED_ID_SAVED);
-        } else if (viewType === 'latest') {
-            this.selectFeed(FEED_ID_LATEST);
-        } else if (viewType === 'folder' && viewId > 0) {
-            this.selectFolder(viewId);
-        } else if (viewType === 'feed' && viewId > 0) {
-            this.selectFeed(viewId);
-        }
-
-        $effect.root(() => {
-            $effect(() => {
-                localStorage.setItem('navWidth', this.navWidth.toString());
-                localStorage.setItem('listWidth', this.listWidth.toString());
-                localStorage.setItem('sortOrder', this.sortOrder);
-            });
-        });
-    }
-
-    async refreshFolders() {
-        try {
-            const result = await invoke<Folder[]>('get_folders_with_feeds');
-            this.folders = result || [];
-        } catch (e) {
-            console.error('Failed to load folders:', e);
-        }
+    get debounceMs() {
+        return this.settings.feed_refresh_debounce_minutes * 60 * 1000;
     }
 
     isFeedUpdating(feedId: number) {
@@ -340,10 +89,6 @@ class AppState {
         const folder = this.folders.find((f) => f.id === folderId);
         if (!folder) return false;
         return folder.feeds.some((feed) => this.updatingFeedIds.has(feed.id));
-    }
-
-    get debounceMs() {
-        return this.settings.feed_refresh_debounce_minutes * 60 * 1000;
     }
 
     isFeedFresh(feedId: number): boolean {
@@ -360,138 +105,35 @@ class AppState {
         return this.folders.flatMap((f) => f.feeds).every((f) => this.isFeedFresh(f.id));
     }
 
-    async refreshAllFeeds() {
-        const staleFeeds: Feed[] = this.folders
-            .flatMap((f) => f.feeds)
-            .filter((f) => !this.isFeedFresh(f.id));
-        if (staleFeeds.length === 0) return;
-
-        this.isRefreshingFeeds = true;
-
-        const newSet = new Set(this.updatingFeedIds);
-        staleFeeds.forEach((f) => newSet.add(f.id));
-        this.updatingFeedIds = newSet;
-
-        let index = 0;
-        const worker = async () => {
-            while (index < staleFeeds.length) {
-                const feed = staleFeeds[index++];
-                await this.performSingleFeedRefresh(feed.id);
-            }
-        };
-
-        const workers = Array(REFRESH_CONCURRENCY)
-            .fill(null)
-            .map(() => worker());
-
+    async refreshFolders() {
         try {
-            await Promise.all(workers);
-            await this.refreshFolders();
-
-            if (this.selectedFeedId) {
-                await this.reloadCurrentArticleList();
-            } else if (this.selectedFolderId) {
-                await this.reloadCurrentArticleList();
-            }
+            const result = await invoke<Folder[]>('get_folders_with_feeds');
+            this.folders = result || [];
         } catch (e) {
-            console.error('Failed to refresh all feeds:', e);
-        } finally {
-            this.updatingFeedIds = new Set();
-            this.isRefreshingFeeds = false;
+            console.error('Failed to load folders:', e);
         }
     }
 
-    async requestRefreshFeed(feedId: number) {
-        if (this.isFeedFresh(feedId)) return;
+    refreshAllFeeds = () => this.refresh.refreshAllFeeds();
+    requestRefreshFeed = (feedId: number) => this.refresh.requestRefreshFeed(feedId);
+    requestRefreshFolder = (folderId: number) => this.refresh.requestRefreshFolder(folderId);
 
-        const newSet = new Set(this.updatingFeedIds);
-        newSet.add(feedId);
-        this.updatingFeedIds = newSet;
+    reloadCurrentArticleList = () => this.articleOps.reloadCurrentArticleList();
+    loadMore = () => this.articleOps.loadMore();
+    selectArticle = (article: Article) => this.articleOps.selectArticle(article);
+    toggleSaved = (article: Article) => this.articleOps.toggleSaved(article);
+    fetchFullContent = (article: Article) => this.articleOps.fetchFullContent(article);
 
-        try {
-            await this.performSingleFeedRefresh(feedId);
-        } finally {
-            const endSet = new Set(this.updatingFeedIds);
-            endSet.delete(feedId);
-            this.updatingFeedIds = endSet;
-        }
-
-        if (this.selectedFeedId === feedId) {
-            await this.reloadCurrentArticleList();
-        }
-    }
-
-    async requestRefreshFolder(folderId: number) {
-        const folder = this.folders.find((f) => f.id === folderId);
-        if (!folder || folder.feeds.length === 0) return;
-
-        const staleFeeds = folder.feeds.filter((f) => !this.isFeedFresh(f.id));
-        if (staleFeeds.length === 0) return;
-
-        const newSet = new Set(this.updatingFeedIds);
-        staleFeeds.forEach((f) => newSet.add(f.id));
-        this.updatingFeedIds = newSet;
-
-        let index = 0;
-        const worker = async () => {
-            while (index < staleFeeds.length) {
-                const feed = staleFeeds[index++];
-                await this.performSingleFeedRefresh(feed.id);
-            }
-        };
-
-        const workers = Array(REFRESH_CONCURRENCY)
-            .fill(null)
-            .map(() => worker());
-
-        try {
-            await Promise.all(workers);
-            await this.refreshFolders();
-            if (
-                this.selectedFolderId === folderId ||
-                folder.feeds.some((f) => f.id === this.selectedFeedId)
-            ) {
-                await this.reloadCurrentArticleList();
-            }
-        } catch (e) {
-            console.error(`Failed to refresh folder ${folderId}:`, e);
-        }
-    }
-
-    private saveLastRefreshed() {
-        const obj = Object.fromEntries(this.lastRefreshed);
-        localStorage.setItem('lastRefreshed', JSON.stringify(obj));
-    }
-
-    private async performSingleFeedRefresh(feedId: number) {
-        try {
-            await invoke('refresh_feed', { feedId });
-            this.lastRefreshed.set(feedId, Date.now());
-            this.saveLastRefreshed();
-            const unreadCount = await invoke<number>('get_feed_unread_count', { feedId });
-            for (const folder of this.folders) {
-                const feed = folder.feeds.find((f) => f.id === feedId);
-                if (feed) {
-                    feed.unread_count = unreadCount;
-                    break;
-                }
-            }
-        } catch (e) {
-            console.error(`Failed to refresh feed ${feedId}:`, e);
-        } finally {
-            const newSet = new Set(this.updatingFeedIds);
-            newSet.delete(feedId);
-            this.updatingFeedIds = newSet;
-        }
-    }
-
-    async reloadCurrentArticleList() {
-        this.articles = [];
-        this.page = 0;
-        const result = await this.fetchPage(0);
-        this.articles = result || [];
-        this.hasMore = (result?.length || 0) === this.pageSize;
-    }
+    markAllRead = () => this.feedOps.markAllRead();
+    addFeed = (url: string, folderId?: number | null) => this.feedOps.addFeed(url, folderId);
+    createFolder = (name: string) => this.feedOps.createFolder(name);
+    importOpml = () => this.feedOps.importOpml();
+    exportOpml = () => this.feedOps.exportOpml();
+    renameFolder = (id: number, newName: string) => this.feedOps.renameFolder(id, newName);
+    renameFeed = (id: number, newName: string) => this.feedOps.renameFeed(id, newName);
+    deleteFeed = (id: number) => this.feedOps.deleteFeed(id);
+    deleteFolder = (id: number) => this.feedOps.deleteFolder(id);
+    moveFeed = (feedId: number, folderId: number) => this.feedOps.moveFeed(feedId, folderId);
 
     async setSortOrder(order: SortOrder) {
         if (this.sortOrder !== order) {
@@ -505,102 +147,28 @@ class AppState {
         await this.reloadCurrentArticleList();
     }
 
-    async markAllRead() {
+    private async markFeedReadOnExit(previousFeedId: number | null) {
+        if (!this.settings.mark_feed_read_on_exit || !previousFeedId || previousFeedId <= 0) return;
         try {
-            if (this.selectedFeedId === FEED_ID_LATEST) {
-                await invoke('mark_all_read', { targetType: 'global', id: 0 });
-            } else if (this.selectedFeedId && this.selectedFeedId > 0) {
-                await invoke('mark_all_read', { targetType: 'feed', id: this.selectedFeedId });
-            } else if (this.selectedFolderId) {
-                await invoke('mark_all_read', { targetType: 'folder', id: this.selectedFolderId });
-            } else {
-                return;
-            }
-            await this.refreshFolders();
-            this.articles = this.articles.map((a) => (a.is_saved ? a : { ...a, is_read: true }));
-        } catch (e) {
-            console.error('Mark all read failed:', e);
-        }
-    }
-
-    async addFeed(url: string, folderId: number | null = null) {
-        this.isLoadingArticles = true;
-        try {
-            await invoke('add_feed', { url, folderId });
-            await this.refreshFolders();
-        } catch (e) {
-            this.alert(`Error adding feed: ${e}`);
-        } finally {
-            this.isLoadingArticles = false;
-        }
-    }
-
-    async createFolder(name: string) {
-        try {
-            await invoke('create_folder', { name });
-            await this.refreshFolders();
-        } catch (e) {
-            console.error('Failed to create folder', e);
-        }
-    }
-
-    async importOpml() {
-        try {
-            const selected = await open({
-                multiple: false,
-                filters: [{ name: 'OPML Files', extensions: ['opml', 'xml'] }],
+            await invoke('mark_all_read', { targetType: 'feed', id: previousFeedId });
+            const unreadCount = await invoke<number>('get_feed_unread_count', {
+                feedId: previousFeedId,
             });
-            if (selected && typeof selected === 'string') {
-                this.isLoadingArticles = true;
-                await invoke('import_opml', { path: selected });
-                await this.refreshFolders();
-            }
-        } catch {
-            this.alert('Failed to import OPML file.');
-        } finally {
-            this.isLoadingArticles = false;
-        }
-    }
-
-    async exportOpml() {
-        try {
-            const opmlContent = await invoke<string>('export_opml');
-            if (!opmlContent) return;
-            const filePath = await save({
-                filters: [{ name: 'OPML File', extensions: ['opml'] }],
-                defaultPath: 'feeds.opml',
-            });
-            if (filePath) {
-                await invoke('write_file', { path: filePath, content: opmlContent });
-                this.alert('Export successful!');
+            for (const folder of this.folders) {
+                const feed = folder.feeds.find((f) => f.id === previousFeedId);
+                if (feed) {
+                    feed.unread_count = unreadCount;
+                    break;
+                }
             }
         } catch (e) {
-            this.alert(`Failed to export OPML: ${e}`);
+            console.error('mark_feed_read_on_exit failed:', e);
         }
     }
 
     async selectFolder(folderId: number) {
         if (this.selectedFolderId === folderId && !this.selectedFeedId) return;
-
-        const previousFeedId = this.selectedFeedId;
-        if (previousFeedId && previousFeedId > 0 && this.settings.mark_feed_read_on_exit) {
-            try {
-                await invoke('mark_all_read', { targetType: 'feed', id: previousFeedId });
-                const unreadCount = await invoke<number>('get_feed_unread_count', {
-                    feedId: previousFeedId,
-                });
-                for (const folder of this.folders) {
-                    const feed = folder.feeds.find((f) => f.id === previousFeedId);
-                    if (feed) {
-                        feed.unread_count = unreadCount;
-                        break;
-                    }
-                }
-            } catch (e) {
-                console.error('mark_feed_read_on_exit failed:', e);
-            }
-        }
-
+        await this.markFeedReadOnExit(this.selectedFeedId);
         this.focusedPane = 'nav';
         this.searchQuery = '';
         this.selectedFolderId = folderId;
@@ -616,26 +184,7 @@ class AppState {
 
     async selectFeed(feedId: number) {
         if (this.selectedFeedId === feedId) return;
-
-        const previousFeedId = this.selectedFeedId;
-        if (previousFeedId && previousFeedId > 0 && this.settings.mark_feed_read_on_exit) {
-            try {
-                await invoke('mark_all_read', { targetType: 'feed', id: previousFeedId });
-                const unreadCount = await invoke<number>('get_feed_unread_count', {
-                    feedId: previousFeedId,
-                });
-                for (const folder of this.folders) {
-                    const feed = folder.feeds.find((f) => f.id === previousFeedId);
-                    if (feed) {
-                        feed.unread_count = unreadCount;
-                        break;
-                    }
-                }
-            } catch (e) {
-                console.error('mark_feed_read_on_exit failed:', e);
-            }
-        }
-
+        await this.markFeedReadOnExit(this.selectedFeedId);
         this.focusedPane = 'nav';
         this.searchQuery = '';
         this.selectedFeedId = feedId;
@@ -648,190 +197,6 @@ class AppState {
             this.isLoadingArticles = false;
         }
     }
-
-    async loadMore() {
-        if (
-            (!this.selectedFeedId && !this.selectedFolderId) ||
-            !this.hasMore ||
-            this.isLoadingArticles
-        )
-            return;
-        this.isLoadingArticles = true;
-        const nextPage = this.page + 1;
-        try {
-            const result = await this.fetchPage(nextPage);
-            if (result && result.length > 0) {
-                this.articles = [...this.articles, ...result];
-                this.page = nextPage;
-                this.hasMore = result.length === this.pageSize;
-            } else {
-                this.hasMore = false;
-            }
-        } catch (e) {
-            console.error('Failed to load more articles:', e);
-        } finally {
-            this.isLoadingArticles = false;
-        }
-    }
-
-    private async fetchPage(page: number): Promise<Article[]> {
-        const offset = page * this.pageSize;
-        const sortDesc = this.sortOrder === 'desc';
-
-        if (this.searchQuery.trim()) {
-            return await invoke('search_articles', {
-                query: this.searchQuery.trim(),
-                limit: this.pageSize,
-                offset,
-                sortDesc,
-            });
-        }
-
-        if (this.selectedFeedId === FEED_ID_LATEST) {
-            const cutoff = Math.floor(Date.now() / 1000) - this.latestHours * 3600;
-            return await invoke('get_latest_articles', {
-                cutoffTimestamp: cutoff,
-                limit: this.pageSize,
-                offset,
-                sortDesc,
-            });
-        } else if (this.selectedFeedId === FEED_ID_SAVED) {
-            return await invoke('get_saved_articles', { limit: this.pageSize, offset, sortDesc });
-        } else if (this.selectedFeedId) {
-            return await invoke('get_articles_for_feed', {
-                feedId: this.selectedFeedId,
-                limit: this.pageSize,
-                offset,
-                sortDesc,
-            });
-        } else if (this.selectedFolderId) {
-            return await invoke('get_articles_for_folder', {
-                folderId: this.selectedFolderId,
-                limit: this.pageSize,
-                offset,
-                sortDesc,
-            });
-        }
-        return [];
-    }
-
-    selectArticle(article: Article) {
-        this.focusedPane = 'list';
-        this.selectedArticle = article;
-        if (!article.is_read) {
-            article.is_read = true;
-            invoke('mark_article_read', { id: article.id, read: true }).catch((_e) => {
-                article.is_read = false;
-            });
-            const feedId = article.feed_id;
-            for (const folder of this.folders) {
-                const feed = folder.feeds.find((f) => f.id === feedId);
-                if (feed && feed.unread_count > 0) {
-                    feed.unread_count--;
-                    break;
-                }
-            }
-        }
-    }
-
-    async toggleSaved(article: Article) {
-        const newState = !article.is_saved;
-        article.is_saved = newState;
-
-        if (newState) {
-            article.is_read = false;
-            invoke('mark_article_read', { id: article.id, read: false }).catch(() => {});
-        }
-
-        try {
-            await invoke('mark_article_saved', { id: article.id, isSaved: newState });
-            await this.refreshFolders();
-        } catch {
-            article.is_saved = !newState;
-        }
-    }
-
-    async renameFolder(id: number, newName: string) {
-        try {
-            await invoke('rename_folder', { id, newName });
-            await this.refreshFolders();
-        } catch (e) {
-            console.error(e);
-        }
-    }
-
-    async renameFeed(id: number, newName: string) {
-        try {
-            await invoke('rename_feed', { id, newName });
-            await this.refreshFolders();
-        } catch (e) {
-            console.error(e);
-        }
-    }
-
-    confirm(message: string, onConfirm: () => void) {
-        this.modalState = {
-            isOpen: true,
-            type: 'confirm',
-            message,
-            onConfirm: () => {
-                onConfirm();
-                this.modalState.isOpen = false;
-            },
-        };
-    }
-
-    alert(message: string) {
-        this.modalState = {
-            isOpen: true,
-            type: 'alert',
-            message,
-            onConfirm: () => {
-                this.modalState.isOpen = false;
-            },
-        };
-    }
-
-    closeModal() {
-        this.modalState.isOpen = false;
-    }
-
-    async deleteFeed(id: number) {
-        this.confirm('Delete feed?', async () => {
-            try {
-                await invoke('delete_feed', { id });
-                if (this.selectedFeedId === id) {
-                    this.selectedFeedId = null;
-                    this.articles = [];
-                }
-                await this.refreshFolders();
-            } catch (e) {
-                console.error(e);
-            }
-        });
-    }
-
-    async deleteFolder(id: number) {
-        this.confirm('Delete folder and feeds?', async () => {
-            try {
-                await invoke('delete_folder', { id });
-                await this.refreshFolders();
-            } catch (e) {
-                console.error(e);
-            }
-        });
-    }
-
-    async moveFeed(feedId: number, folderId: number) {
-        try {
-            await invoke('move_feed', { feedId, folderId });
-            await this.refreshFolders();
-        } catch (e) {
-            console.error(e);
-        }
-    }
-
-    // --- Keyboard Pane Navigation ---
 
     private getFlatNavItems(): { type: 'feed' | 'folder'; id: number }[] {
         const items: { type: 'feed' | 'folder'; id: number }[] = [];
@@ -912,19 +277,9 @@ class AppState {
     setTheme(newTheme: Theme) {
         this.theme = newTheme;
     }
-
-    async fetchFullContent(article: Article): Promise<string | null> {
-        try {
-            return await invoke<string>('get_article_content', { url: article.url });
-        } catch {
-            return null;
-        }
-    }
-
     openSettings() {
         this.showSettings = true;
     }
-
     closeSettings() {
         this.showSettings = false;
     }
@@ -933,13 +288,121 @@ class AppState {
         try {
             await invoke('save_app_settings', { newSettings });
             this.settings = newSettings;
-            if (closeModal) {
-                this.closeSettings();
-            }
+            if (closeModal) this.closeSettings();
         } catch (e) {
             this.alert(`Failed to save settings: ${e}`);
         }
     }
+
+    confirm(message: string, onConfirm: () => void) {
+        this.modalState = {
+            isOpen: true,
+            type: 'confirm',
+            message,
+            onConfirm: () => {
+                onConfirm();
+                this.modalState.isOpen = false;
+            },
+        };
+    }
+
+    alert(message: string) {
+        this.modalState = {
+            isOpen: true,
+            type: 'alert',
+            message,
+            onConfirm: () => {
+                this.modalState.isOpen = false;
+            },
+        };
+    }
+
+    closeModal() {
+        this.modalState.isOpen = false;
+    }
+
+    setShortcut(commandId: string, key: string) {
+        this.customShortcuts[commandId] = key;
+        shortcutManager.setCustomMappings(this.customShortcuts);
+        this.saveShortcutSettings();
+    }
+
+    resetShortcut(commandId: string) {
+        delete this.customShortcuts[commandId];
+        shortcutManager.setCustomMappings(this.customShortcuts);
+        this.saveShortcutSettings();
+    }
+
+    private async saveShortcutSettings() {
+        try {
+            await invoke('save_shortcuts', { shortcuts: this.customShortcuts });
+        } catch (e) {
+            console.error('Failed to save shortcuts:', e);
+        }
+    }
+
+    private async loadShortcutSettings() {
+        try {
+            const shortcuts = await invoke<Record<string, string>>('get_shortcuts');
+            this.customShortcuts = shortcuts || {};
+            shortcutManager.setCustomMappings(this.customShortcuts);
+        } catch (e) {
+            console.error('Failed to load shortcuts:', e);
+        }
+    }
+
+    private async initStore() {
+        const storedNav = localStorage.getItem('navWidth');
+        const storedList = localStorage.getItem('listWidth');
+        const storedSort = localStorage.getItem('sortOrder');
+        const storedLastRefreshed = localStorage.getItem('lastRefreshed');
+
+        if (storedNav) this.navWidth = parseInt(storedNav);
+        if (storedList) this.listWidth = parseInt(storedList);
+        if (storedSort === 'asc' || storedSort === 'desc') this.sortOrder = storedSort;
+
+        if (storedLastRefreshed) {
+            try {
+                const parsed = JSON.parse(storedLastRefreshed);
+                this.lastRefreshed = new Map(
+                    Object.entries(parsed).map(([k, v]) => [parseInt(k), v as number]),
+                );
+            } catch (e) {
+                console.error('Failed to parse lastRefreshed', e);
+            }
+        }
+
+        try {
+            const s = await invoke<AppSettings>('get_app_settings');
+            this.settings = s;
+            if (this.settings.auto_update_interval_minutes > 0) {
+                const intervalMs = this.settings.auto_update_interval_minutes * 60 * 1000;
+                setInterval(() => this.refreshAllFeeds(), intervalMs);
+            }
+        } catch (e) {
+            console.error('Failed to load settings', e);
+        }
+
+        await this.loadShortcutSettings();
+        await this.refreshFolders();
+        this.refreshAllFeeds();
+
+        const viewType = this.settings.default_view_type;
+        const viewId = this.settings.default_view_id;
+
+        if (viewType === 'saved') this.selectFeed(FEED_ID_SAVED);
+        else if (viewType === 'latest') this.selectFeed(FEED_ID_LATEST);
+        else if (viewType === 'folder' && viewId > 0) this.selectFolder(viewId);
+        else if (viewType === 'feed' && viewId > 0) this.selectFeed(viewId);
+
+        $effect.root(() => {
+            $effect(() => {
+                localStorage.setItem('navWidth', this.navWidth.toString());
+                localStorage.setItem('listWidth', this.listWidth.toString());
+                localStorage.setItem('sortOrder', this.sortOrder);
+            });
+        });
+    }
 }
 
-export const appState = new AppState();
+export const appState: AppState = new AppStateImpl();
