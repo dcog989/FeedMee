@@ -581,6 +581,22 @@ class AppState {
 
     async selectFolder(folderId: number) {
         if (this.selectedFolderId === folderId && !this.selectedFeedId) return;
+
+        const previousFeedId = this.selectedFeedId;
+        if (previousFeedId && previousFeedId > 0 && this.settings.mark_feed_read_on_exit) {
+            await invoke('mark_all_read', { targetType: 'feed', id: previousFeedId });
+            const unreadCount = await invoke<number>('get_feed_unread_count', {
+                feedId: previousFeedId,
+            });
+            for (const folder of this.folders) {
+                const feed = folder.feeds.find((f) => f.id === previousFeedId);
+                if (feed) {
+                    feed.unread_count = unreadCount;
+                    break;
+                }
+            }
+        }
+
         this.focusedPane = 'nav';
         this.searchQuery = '';
         this.selectedFolderId = folderId;

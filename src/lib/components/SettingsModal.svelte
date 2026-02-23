@@ -4,13 +4,7 @@
     import { Keyboard, Settings, X } from 'lucide-svelte';
     import ShortcutsModal from './ShortcutsModal.svelte';
 
-    interface SettingsWithDefault extends AppSettings {
-        default_view_type: string;
-        default_view_id: number;
-        mark_feed_read_on_exit: boolean;
-    }
-
-    let settings = $state<SettingsWithDefault>({
+    let settings = $state<AppSettings>({
         feed_refresh_debounce_minutes: 4,
         refresh_all_debounce_minutes: 0,
         auto_update_interval_minutes: 30,
@@ -22,18 +16,12 @@
     });
     let showShortcuts = $state(false);
     let initialized = $state(false);
-    let isUserChange = $state(false);
-    let prevSettings = $state<SettingsWithDefault | null>(null);
+    let prevSettings = $state<AppSettings | null>(null);
 
     $effect(() => {
-        const s = appState.settings as unknown as Record<string, unknown>;
+        const s = appState.settings;
         if (s && 'default_view_type' in s) {
-            settings = {
-                ...appState.settings,
-                default_view_type: (s.default_view_type as string) || 'latest',
-                default_view_id: (s.default_view_id as number) ?? -1,
-                mark_feed_read_on_exit: (s.mark_feed_read_on_exit as boolean) ?? false,
-            };
+            settings = { ...s };
             if (!initialized) {
                 initialized = true;
                 prevSettings = { ...settings };
@@ -44,9 +32,6 @@
     $effect(() => {
         if (!initialized || !prevSettings) return;
         if (JSON.stringify(settings) === JSON.stringify(prevSettings)) return;
-        if (!isUserChange) {
-            isUserChange = true;
-        }
         prevSettings = { ...settings };
         appState.saveSettings(settings, false);
     });

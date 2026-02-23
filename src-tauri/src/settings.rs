@@ -1,4 +1,3 @@
-use log::info;
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::Path;
@@ -40,17 +39,14 @@ impl Default for AppSettings {
 
 pub fn load_settings(app_dir: &Path) -> AppSettings {
     let settings_path = app_dir.join("settings.toml");
-    info!("load_settings path: {:?}", settings_path);
 
     if settings_path.exists() {
         let content = fs::read_to_string(&settings_path).unwrap_or_default();
-        info!("load_settings content: {}", content);
         if let Ok(settings) = toml::from_str(&content) {
             return settings;
         }
     }
 
-    // Write defaults if missing or invalid
     let settings = AppSettings::default();
     save_settings(app_dir, &settings);
 
@@ -59,9 +55,7 @@ pub fn load_settings(app_dir: &Path) -> AppSettings {
 
 pub fn save_settings(app_dir: &Path, settings: &AppSettings) {
     let settings_path = app_dir.join("settings.toml");
-    info!("save_settings path: {:?}", settings_path);
     if let Ok(toml_string) = toml::to_string_pretty(settings) {
-        info!("save_settings content: {}", toml_string);
         let _ = fs::write(settings_path, toml_string);
     }
 }
