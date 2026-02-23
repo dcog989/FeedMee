@@ -40,7 +40,6 @@ use std::io::Cursor;
 use tauri::{AppHandle, Manager, State};
 use url::Url;
 
-
 #[tauri::command]
 pub fn get_app_settings(state: State<'_, AppState>) -> Result<AppSettings, String> {
     let settings = state.settings.lock().unwrap();
@@ -103,6 +102,11 @@ pub fn get_folders_with_feeds(state: State<'_, AppState>) -> Result<Vec<Folder>,
     db::get_folders_with_feeds(&conn).map_err(|e| e.to_string())
 }
 
+#[tauri::command]
+pub fn get_feed_unread_count(feed_id: i64, state: State<'_, AppState>) -> Result<i64, String> {
+    let conn = state.db.lock().unwrap();
+    db::get_feed_unread_count(&conn, feed_id).map_err(|e| e.to_string())
+}
 #[tauri::command]
 pub fn get_articles_for_feed(
     feed_id: i64,
@@ -259,7 +263,10 @@ pub async fn write_file(path: String, content: String) -> Result<(), String> {
 }
 
 #[tauri::command]
-pub async fn get_article_content(url: String, state: State<'_, AppState>) -> Result<String, String> {
+pub async fn get_article_content(
+    url: String,
+    state: State<'_, AppState>,
+) -> Result<String, String> {
     let client = state.http_client.clone();
     let html = client
         .get(&url)

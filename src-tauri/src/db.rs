@@ -214,6 +214,13 @@ pub fn get_feed_url(conn: &Connection, feed_id: i64) -> Result<String> {
     )
 }
 
+pub fn get_feed_unread_count(conn: &Connection, feed_id: i64) -> Result<i64> {
+    conn.query_row(
+        "SELECT COUNT(*) FROM articles WHERE feed_id = ?1 AND is_read = 0",
+        params![feed_id],
+        |r| r.get(0),
+    )
+}
 pub fn get_feed(conn: &Connection, feed_id: i64) -> Result<Feed> {
     conn.query_row(
         "SELECT id, name, url, folder_id, has_error, feed_type, content_hash FROM feeds WHERE id = ?1",
@@ -315,10 +322,7 @@ pub fn mark_folder_read(conn: &Connection, folder_id: i64) -> Result<()> {
 }
 
 pub fn mark_global_read(conn: &Connection) -> Result<()> {
-    conn.execute(
-        "UPDATE articles SET is_read = 1 WHERE is_saved = 0",
-        [],
-    )?;
+    conn.execute("UPDATE articles SET is_read = 1 WHERE is_saved = 0", [])?;
     Ok(())
 }
 

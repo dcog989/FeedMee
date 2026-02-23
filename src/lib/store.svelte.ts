@@ -1,6 +1,6 @@
 import { invoke } from '@tauri-apps/api/core';
-import { openUrl } from '@tauri-apps/plugin-opener';
 import { open, save } from '@tauri-apps/plugin-dialog';
+import { openUrl } from '@tauri-apps/plugin-opener';
 import type { AppSettings, Article, Feed, Folder } from './types';
 import { shortcutManager } from './utils/shortcuts';
 
@@ -467,6 +467,14 @@ class AppState {
             await invoke('refresh_feed', { feedId });
             this.lastRefreshed.set(feedId, Date.now());
             this.saveLastRefreshed();
+            const unreadCount = await invoke<number>('get_feed_unread_count', { feedId });
+            for (const folder of this.folders) {
+                const feed = folder.feeds.find((f) => f.id === feedId);
+                if (feed) {
+                    feed.unread_count = unreadCount;
+                    break;
+                }
+            }
         } catch (e) {
             console.error(`Failed to refresh feed ${feedId}:`, e);
         } finally {

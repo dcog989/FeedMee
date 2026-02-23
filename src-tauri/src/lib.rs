@@ -166,6 +166,7 @@ pub fn run() {
             commands::delete_folder,
             commands::move_feed,
             commands::get_article_content,
+            commands::get_feed_unread_count,
             commands::search_articles
         ])
         .run(tauri::generate_context!())
