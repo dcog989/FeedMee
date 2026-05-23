@@ -1,4 +1,0 @@
-{
-  "*.{js,ts,svelte,css,json,md,yaml,yml}": "bunx prettier --write",
-  "*.{js,ts,svelte}": "bunx eslint --fix"
-}
