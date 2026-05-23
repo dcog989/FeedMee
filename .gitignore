@@ -5,6 +5,7 @@
 .git/
 .pkg/*.tar.zst
 .pkg/*.log
+.pkg/feedmee/
 .pkg/pkg/
 .pkg/src/
 .repomix/

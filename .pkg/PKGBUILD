@@ -10,23 +10,33 @@ depends=(
     'webkit2gtk-4.1'
     'gtk3'
     'libayatana-appindicator'
+    'sqlite'
 )
 makedepends=(
     'rust'
     'bun'
     'npm'  # bun needs this for some tauri tooling
+    'sqlite'
+    'cmake'
+    'nasm'
 )
-options=('!strip')
+options=('!strip' '!lto')
 source=("$pkgname::git+file://${PWD}/..")
 sha256sums=('SKIP')
 
 prepare() {
     cd "$pkgname"
+    git config --unset-all --local core.hooksPath || true
     bun install --frozen-lockfile
 }
 
 build() {
     cd "$pkgname"
+    export LIBSQLITE3_SYS_USE_PKG_CONFIG=1
+    export RUSTFLAGS="-C link-arg=-fuse-ld=bfd"
+    # Arch's CFLAGS include -flto=auto which breaks ring/aws-lc-sys archive linking
+    export CFLAGS="${CFLAGS/-flto=auto/}"
+    export CFLAGS="${CFLAGS/-flto/}"
     bunx tauri build --no-bundle
 }
 
@@ -34,7 +44,7 @@ package() {
     cd "$pkgname"
 
     # Binary
-    install -Dm755 "src-tauri/target/release/feedmee" "$pkgdir/usr/bin/feedmee"
+    install -Dm755 "src-tauri/target/release/FeedMee" "$pkgdir/usr/bin/feedmee"
 
     # Desktop entry
     install -Dm644 ".pkg/feedmee.desktop" "$pkgdir/usr/share/applications/feedmee.desktop"

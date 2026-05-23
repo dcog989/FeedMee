@@ -16,9 +16,9 @@ _FeedMee_ is an RSS/Atom news reader built for the desktop.
 - **Three-Pane Layout:** Classic, responsive interface (Navigation, Article List, Reading Pane).
 - **Reader Mode:** Extracts full article content using `Readability`, stripping clutter.
 - **Feed Management:**
-    - Auto-discovery of RSS/Atom links from URLs.
-    - Drag-and-drop folder organization.
-    - OPML Import/Export.
+  - Auto-discovery of RSS/Atom links from URLs.
+  - Drag-and-drop folder organization.
+  - OPML Import/Export.
 - **Smart Views:** "Latest" (24h) and "Read Later" (Saved) aggregation.
 - **Local Privacy:** All data is stored locally in SQLite. No tracking, no accounts.
 - **Customizable:** Dark/Light themes, configurable refresh intervals, and log rotation.
@@ -31,17 +31,35 @@ _FeedMee_ is an RSS/Atom news reader built for the desktop.
 
 ## Getting Started
 
-### Prerequisites
+### Install on Arch Linux
 
-1. **Rust:** [Install Rust](https://www.rust-lang.org/tools/install).
-2. **Node.js:** [Install Node.js](https://nodejs.org/).
-3. **OS Dependencies:** Follow the [Tauri Prerequisites guide](https://v2.tauri.app/start/prerequisites/).
+```bash
+bun run package:arch
+```
 
-### Installation
+This runs `makepkg -si` from `.pkg/`, which compiles and installs FeedMee to `/usr/bin/feedmee`.
+
+**Build dependencies:** `rust`, `bun`, `npm`, `sqlite`, `cmake`, `nasm`
+
+**Runtime dependencies:** `webkit2gtk-4.1`, `gtk3`, `libayatana-appindicator`, `sqlite`
+
+### Build from Source
+
+**Prerequisites:**
+
+1. **Rust:** [Install Rust](https://www.rust-lang.org/tools/install)
+2. **Bun:** [Install Bun](https://bun.sh)
+3. **OS Dependencies:** Follow the [Tauri Prerequisites guide](https://v2.tauri.app/start/prerequisites/)
 
 ```bash
 # Install dependencies
 bun install
+
+# Run in development
+bun run dev
+
+# Build release binary
+bun run tauri build
 ```
 
 ## Keyboard Shortcuts
