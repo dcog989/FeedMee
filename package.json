@@ -17,7 +17,6 @@
     "lint:types": "echo \"[Lint] Checking Frontend Types...\" && svelte-check --tsconfig ./tsconfig.json",
     "package": "bun scripts/package.js",
     "package:arch": "cd .pkg && makepkg -si --noconfirm",
-    "prepare": "lefthook install",
     "preview": "bunx vite preview",
     "repo:back": "repomix -c .repomix/repomix.src.back.json",
     "repo:front": "repomix -c .repomix/repomix.src.front.json",

@@ -1,11 +1,13 @@
 {
   "$schema": "https://biomejs.dev/schemas/2.4.15/schema.json",
+  "root": true,
   "files": {
     "includes": [
       "**",
       "!.assets",
       "!.context",
       "!.docs",
+      "!.pkg",
       "!.svelte-kit",
       "!build",
       "!dist",
