@@ -1,0 +1,9 @@
+[Desktop Entry]
+Name=FeedMee
+Comment=The seriously fast feed reader.
+Exec=feedmee
+Icon=feedmee
+Terminal=false
+Type=Application
+Categories=Network;Feed;News;
+StartupWMClass=feedmee

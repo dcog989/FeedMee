@@ -1,0 +1,67 @@
+{
+  "$schema": "https://biomejs.dev/schemas/2.4.15/schema.json",
+  "files": {
+    "includes": [
+      "**",
+      "!.assets",
+      "!.context",
+      "!.docs",
+      "!.svelte-kit",
+      "!build",
+      "!dist",
+      "!node_modules",
+      "!scripts",
+      "!src-tauri",
+      "!**/*.toml"
+    ]
+  },
+  "html": {
+    "experimentalFullSupportEnabled": true
+  },
+  "formatter": {
+    "enabled": true,
+    "lineWidth": 100,
+    "indentStyle": "space",
+    "indentWidth": 4,
+    "lineEnding": "lf"
+  },
+  "javascript": {
+    "formatter": {
+      "arrowParentheses": "always",
+      "bracketSameLine": true,
+      "quoteStyle": "single",
+      "semicolons": "always",
+      "trailingCommas": "all"
+    }
+  },
+  "json": {
+    "formatter": {
+      "indentWidth": 2
+    }
+  },
+  "linter": {
+    "enabled": true,
+    "rules": {
+      "recommended": true,
+      "suspicious": {
+        "noExplicitAny": "warn"
+      },
+      "correctness": {
+        "noUnusedVariables": "warn"
+      }
+    }
+  },
+  "overrides": [
+    {
+      "includes": ["*.svelte"],
+      "linter": {
+        "rules": {
+          "correctness": {
+            "noUnusedVariables": "off",
+            "noUndeclaredVariables": "off"
+          }
+        }
+      }
+    }
+  ]
+}

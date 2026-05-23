@@ -1,9 +1,12 @@
 .assets/
 .context/
 .docs/
-.DS_Store
 .feeds/
 .git/
+.pkg/*.tar.zst
+.pkg/*.log
+.pkg/pkg/
+.pkg/src/
 .repomix/
 .repomixignore
 .svelte-kit

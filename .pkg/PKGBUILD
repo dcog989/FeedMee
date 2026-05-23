@@ -1,0 +1,50 @@
+# Maintainer: dcog989
+pkgname=feedmee
+pkgver=0.6.0
+pkgrel=1
+pkgdesc="The seriously fast feed reader."
+arch=('x86_64')
+url="https://github.com/dcog989/feedmee"
+license=('MIT')
+depends=(
+    'webkit2gtk-4.1'
+    'gtk3'
+    'libayatana-appindicator'
+)
+makedepends=(
+    'rust'
+    'bun'
+    'npm'  # bun needs this for some tauri tooling
+)
+options=('!strip')
+source=("$pkgname::git+file://${PWD}/..")
+sha256sums=('SKIP')
+
+prepare() {
+    cd "$pkgname"
+    bun install --frozen-lockfile
+}
+
+build() {
+    cd "$pkgname"
+    bunx tauri build --no-bundle
+}
+
+package() {
+    cd "$pkgname"
+
+    # Binary
+    install -Dm755 "src-tauri/target/release/feedmee" "$pkgdir/usr/bin/feedmee"
+
+    # Desktop entry
+    install -Dm644 ".pkg/feedmee.desktop" "$pkgdir/usr/share/applications/feedmee.desktop"
+
+    # Icons
+    install -Dm644 "src-tauri/icons/32x32.png"      "$pkgdir/usr/share/icons/hicolor/32x32/apps/feedmee.png"
+    install -Dm644 "src-tauri/icons/64x64.png"      "$pkgdir/usr/share/icons/hicolor/64x64/apps/feedmee.png"
+    install -Dm644 "src-tauri/icons/128x128.png"    "$pkgdir/usr/share/icons/hicolor/128x128/apps/feedmee.png"
+    install -Dm644 "src-tauri/icons/icon.png"       "$pkgdir/usr/share/icons/hicolor/512x512/apps/feedmee.png"
+
+    # License
+    install -Dm644 "README.md" "$pkgdir/usr/share/doc/$pkgname/README.md"
+}

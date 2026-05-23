@@ -1,0 +1,11 @@
+pre-commit:
+  jobs:
+    - name: types
+      run: bun run lint:types
+      fail_text: "Type check failed. Commit aborted."
+
+    - name: biome
+      glob: "*.{js,ts,svelte,json,css}"
+      run: bunx biome check --write --no-errors-on-unmatched --files-ignore-unknown=true {staged_files}
+      stage_fixed: true
+      fail_text: "Biome check failed. Commit aborted."

@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "FeedMee",
-  "version": "0.5.0",
-  "identifier": "FeedMee",
+  "version": "0.6.0",
+  "identifier": "com.feedmee.app",
   "build": {
     "beforeDevCommand": "bunx vite dev",
     "devUrl": "http://localhost:1420",
@@ -26,14 +26,33 @@
     }
   },
   "bundle": {
-    "active": false,
-    "targets": [],
+    "active": true,
+    "targets": [
+      "appimage",
+      "deb"
+    ],
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",
       "icons/128x128@2x.png",
       "icons/icon.icns",
       "icons/icon.ico"
-    ]
+    ],
+    "linux": {
+      "appimage": {
+        "bundleMediaFramework": false
+      },
+      "deb": {
+        "depends": []
+      }
+    }
+  },
+  "plugins": {
+    "updater": {
+      "pubkey": "",
+      "endpoints": [
+        "https://github.com/dcog989/feedmee/releases/latest/download/latest.json"
+      ]
+    }
   }
 }
