@@ -1,6 +1,6 @@
 ﻿<script lang="ts">
+import AddDialog from '$lib/components/AddDialog.svelte';
 import SettingsModal from '$lib/components/SettingsModal.svelte';
-import TitleBar from '$lib/components/TitleBar.svelte';
 import Tooltip from '$lib/components/Tooltip.svelte';
 import { appState } from '$lib/store.svelte';
 import '../app.css';
@@ -59,7 +59,6 @@ $effect(() => {
 </script>
 
 <div class="layout-wrapper" role="application" oncontextmenu={disableContextMenu}>
-    <TitleBar />
     <div class="content-wrapper">
         {@render children()}
     </div>
@@ -67,6 +66,10 @@ $effect(() => {
 
     {#if appState.showSettings}
         <SettingsModal />
+    {/if}
+
+    {#if appState.showAddDialog}
+        <AddDialog />
     {/if}
 
     {#if appState.modalState.isOpen}

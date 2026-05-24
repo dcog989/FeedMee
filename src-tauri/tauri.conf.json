@@ -16,7 +16,7 @@
         "width": 1024,
         "height": 768,
         "resizable": true,
-        "decorations": false,
+        "decorations": true,
         "transparent": false,
         "visible": false
       }

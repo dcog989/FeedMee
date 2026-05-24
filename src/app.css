@@ -43,13 +43,13 @@
     color-scheme: dark;
 
     --bg-app: #1e1e1e;
-    --bg-pane: #252526;
+    --bg-pane: #252525;
     --bg-content: #1e1e1e;
     --bg-hover: #2a2d2e;
     --bg-selected: #ec4899;
     --bg-selected-muted: rgba(236, 72, 153, 0.2);
     --accent-muted: #d4619a; /* Accent, lightened for readability on dark bg */
-    --bg-reading: #252526; /* Reading pane - matches --bg-pane in dark */
+    --bg-reading: #252525; /* Reading pane - matches --bg-pane in dark */
 
     --text-primary: #cccccc;
     --text-secondary: #858585;

@@ -7,6 +7,10 @@ pub mod settings;
 use log::{error, info, warn};
 use std::sync::Mutex;
 use tauri::Manager;
+use tauri_plugin_window_state::StateFlags;
+
+#[cfg(target_os = "linux")]
+use gtk::prelude::GtkWindowExt;
 
 pub struct AppState {
     db: Mutex<rusqlite::Connection>,
@@ -133,13 +137,42 @@ pub fn run() {
                 http_client,
             });
 
+            let window = app.get_webview_window("main").unwrap();
+
+            #[cfg(target_os = "linux")]
+            {
+                if let Ok(gtk_window) = window.gtk_window() {
+                    gtk_window.set_titlebar(None::<&gtk::Widget>);
+
+                    const ICON_BYTES: &[u8] = include_bytes!("../icons/128x128@2x.png");
+                    if let Ok(img) = image::load_from_memory(ICON_BYTES) {
+                        let rgba = img.into_rgba8();
+                        let (w, h) = rgba.dimensions();
+                        let icon = tauri::image::Image::new_owned(rgba.into_raw(), w, h);
+                        let _ = window.set_icon(icon);
+
+                        if let Ok(pixbuf) = gtk::gdk_pixbuf::Pixbuf::from_read(ICON_BYTES) {
+                            gtk_window.set_icon(Some(&pixbuf));
+                        }
+                    }
+                }
+            }
+
+            #[cfg(not(target_os = "linux"))]
+            {
+                match window.set_icon(tauri::include_image!("icons/32x32.png")) {
+                    Ok(_) => info!("Window icon set successfully"),
+                    Err(e) => warn!("Failed to set window icon: {}", e),
+                }
+            }
+
             Ok(())
         })
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_fs::init())
-        .plugin(tauri_plugin_window_state::Builder::default().build())
+        .plugin(tauri_plugin_window_state::Builder::default().with_state_flags(StateFlags::all() - StateFlags::DECORATIONS).build())
         .invoke_handler(tauri::generate_handler![
             commands::get_app_info,
             commands::get_folders_with_feeds,

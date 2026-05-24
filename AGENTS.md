@@ -23,7 +23,7 @@ You are on a Windows 11 desktop PC, use tools accordingly. We are using bun pack
 - `src/lib/components/NavPane.svelte` - Folder/feed navigation
 - `src/lib/components/ArticleListPane.svelte` - Article list
 - `src/lib/components/ReadingPane.svelte` - Article content reader
-- `src/lib/components/TitleBar.svelte` - Custom window title bar
+
 - `src/lib/store.svelte.ts` - Central state management
 
 ### Build Output
