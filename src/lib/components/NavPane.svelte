@@ -141,10 +141,7 @@ function cmDelete() {
 }
 
 function cmCreateFolder() {
-    const name = prompt('New Folder Name:');
-    if (name?.trim()) {
-        appState.createFolder(name.trim());
-    }
+    appState.showNewFolderDialog = true;
     closeContextMenu();
 }
 </script>

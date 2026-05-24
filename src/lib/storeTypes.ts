@@ -18,6 +18,7 @@ export interface AppState {
     showSettings: boolean;
     showAddDialog: boolean;
     showAbout: boolean;
+    showNewFolderDialog: boolean;
     expandedFolders: Set<number>;
     focusedPane: 'nav' | 'list' | 'reading';
     customShortcuts: Record<string, string>;

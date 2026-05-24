@@ -43,6 +43,7 @@ class AppStateImpl {
     showSettings = $state(false);
     showAddDialog = $state(false);
     showAbout = $state(false);
+    showNewFolderDialog = $state(false);
     expandedFolders = $state<Set<number>>(new Set());
     focusedPane = $state<'nav' | 'list' | 'reading'>('nav');
     customShortcuts = $state<Record<string, string>>({});

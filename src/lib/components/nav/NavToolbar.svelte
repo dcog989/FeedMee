@@ -12,10 +12,7 @@ let isRefreshing = $derived(appState.isRefreshingFeeds);
 let refreshAllTooltip = $derived(appState.isAllFresh() ? 'Already fresh!' : 'Refresh All');
 
 function createFolder() {
-    const name = prompt('New Folder Name:');
-    if (name?.trim()) {
-        appState.createFolder(name.trim());
-    }
+    appState.showNewFolderDialog = true;
 }
 </script>
 
