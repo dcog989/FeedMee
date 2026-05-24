@@ -64,6 +64,57 @@ pub fn save_app_settings(
 }
 
 #[tauri::command]
+pub fn pick_system_font(app_handle: tauri::AppHandle) -> Result<String, String> {
+    let (tx, rx) = std::sync::mpsc::channel();
+
+    app_handle
+        .run_on_main_thread(move || {
+            let result = pick_font_platform();
+            let _ = tx.send(result);
+        })
+        .map_err(|e| format!("Failed to dispatch font picker: {}", e))?;
+
+    rx.recv().map_err(|_| "Font picker failed".to_string())?
+}
+
+#[cfg(target_os = "linux")]
+fn pick_font_platform() -> Result<String, String> {
+    use gtk::prelude::*;
+
+    let dialog = gtk::FontChooserDialog::new(Some("Select Font — FeedMee"), None::<&gtk::Window>);
+    let res = dialog.run();
+
+    let result = if res == gtk::ResponseType::Ok {
+        match dialog.font() {
+            Some(font_desc) => {
+                let name = font_desc
+                    .rsplitn(2, ' ')
+                    .last()
+                    .unwrap_or(&font_desc)
+                    .trim()
+                    .to_string();
+                if name.is_empty() {
+                    Err("No font selected".to_string())
+                } else {
+                    Ok(name)
+                }
+            }
+            None => Err("No font selected".to_string()),
+        }
+    } else {
+        Err("Font selection cancelled".to_string())
+    };
+
+    dialog.close();
+    result
+}
+
+#[cfg(not(target_os = "linux"))]
+fn pick_font_platform() -> Result<String, String> {
+    Err("Native font picker is not yet supported on this platform. You can type the font name directly in the input field.".to_string())
+}
+
+#[tauri::command]
 pub fn get_shortcuts(
     app: tauri::AppHandle,
 ) -> Result<std::collections::HashMap<String, String>, String> {

@@ -21,6 +21,41 @@ $effect(() => {
         root.setAttribute('data-theme', appState.theme);
     }
 });
+
+$effect(() => {
+    const s = appState.settings;
+    const root = document.documentElement;
+
+    if (s.article_title_font) {
+        root.style.setProperty('--font-title', s.article_title_font);
+    } else {
+        root.style.removeProperty('--font-title');
+    }
+
+    if (s.article_body_font) {
+        root.style.setProperty('--font-body-override', s.article_body_font);
+    } else {
+        root.style.removeProperty('--font-body-override');
+    }
+
+    if (s.article_title_color) {
+        root.style.setProperty('--color-title', s.article_title_color);
+    } else {
+        root.style.removeProperty('--color-title');
+    }
+
+    if (s.article_body_color) {
+        root.style.setProperty('--color-body', s.article_body_color);
+    } else {
+        root.style.removeProperty('--color-body');
+    }
+
+    if (s.article_bg_color) {
+        root.style.setProperty('--bg-article', s.article_bg_color);
+    } else {
+        root.style.removeProperty('--bg-article');
+    }
+});
 </script>
 
 <div class="layout-wrapper" role="application" oncontextmenu={disableContextMenu}>

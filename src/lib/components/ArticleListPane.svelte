@@ -1,10 +1,25 @@
 ﻿<script lang="ts">
-import { ArrowUpDown, Bookmark, CheckCheck } from 'lucide-svelte';
+import { ArrowUpDown, Bookmark, CheckCheck, Clock, Search } from 'lucide-svelte';
 import { tooltip } from '$lib/actions/tooltip.svelte';
-import { appState } from '$lib/store.svelte';
+import { appState, FEED_ID_LATEST, FEED_ID_SAVED } from '$lib/store.svelte';
 import type { Article } from '$lib/types';
 
 let listContainer: HTMLElement;
+
+let searchDebounce: ReturnType<typeof setTimeout> | null = null;
+
+function onSearchInput(e: Event) {
+    const query = (e.target as HTMLInputElement).value;
+    if (searchDebounce) clearTimeout(searchDebounce);
+    searchDebounce = setTimeout(() => appState.setSearch(query), 250);
+}
+
+function onSearchKeyDown(e: KeyboardEvent) {
+    if (e.key === 'Escape') {
+        appState.setSearch('');
+        (e.target as HTMLInputElement).blur();
+    }
+}
 
 function onScroll() {
     if (!listContainer) return;
@@ -23,28 +38,64 @@ function handleKeydown(e: KeyboardEvent, article: Article) {
 </script>
 
 <div class="pane-wrapper">
-    <div class="list-toolbar">
-        <button
-            type="button"
-            class="tool-btn"
-            onclick={() => appState.setSortOrder(appState.sortOrder === 'desc' ? 'asc' : 'desc')}
-            use:tooltip={appState.sortOrder === 'desc'
-                ? 'Sort: Newest First'
-                : 'Sort: Oldest First'}
-            aria-label={appState.sortOrder === 'desc' ? 'Sort Newest First' : 'Sort Oldest First'}
+    <div class="search-wrapper">
+        <Search class="search-icon" size={18} />
+        <input
+            type="text"
+            placeholder="Search..."
+            aria-label="Search articles"
+            oninput={onSearchInput}
+            onkeydown={onSearchKeyDown}
+            value={appState.searchQuery}
         >
-            <ArrowUpDown size={20} />
-        </button>
+    </div>
 
-        <button
-            type="button"
-            class="tool-btn"
-            onclick={() => appState.markAllRead()}
-            use:tooltip={'Mark All Read'}
-            aria-label="Mark All Read"
-        >
-            <CheckCheck size={20} />
-        </button>
+    <div class="list-toolbar">
+        <div class="toolbar-left">
+            <button
+                type="button"
+                class="tool-btn"
+                class:active={appState.selectedFeedId === FEED_ID_LATEST}
+                onclick={() => appState.selectFeed(FEED_ID_LATEST)}
+                use:tooltip={'Latest'}
+                aria-label="Latest"
+            >
+                <Clock size={18} />
+            </button>
+            <button
+                type="button"
+                class="tool-btn"
+                class:active={appState.selectedFeedId === FEED_ID_SAVED}
+                onclick={() => appState.selectFeed(FEED_ID_SAVED)}
+                use:tooltip={'Read Later'}
+                aria-label="Read Later"
+            >
+                <Bookmark size={18} />
+            </button>
+        </div>
+        <div class="toolbar-right">
+            <button
+                type="button"
+                class="tool-btn"
+                onclick={() => appState.setSortOrder(appState.sortOrder === 'desc' ? 'asc' : 'desc')}
+                use:tooltip={appState.sortOrder === 'desc'
+                    ? 'Sort: Newest First'
+                    : 'Sort: Oldest First'}
+                aria-label={appState.sortOrder === 'desc' ? 'Sort Newest First' : 'Sort Oldest First'}
+            >
+                <ArrowUpDown size={20} />
+            </button>
+
+            <button
+                type="button"
+                class="tool-btn"
+                onclick={() => appState.markAllRead()}
+                use:tooltip={'Mark All Read'}
+                aria-label="Mark All Read"
+            >
+                <CheckCheck size={20} />
+            </button>
+        </div>
     </div>
 
     <section class="pane" bind:this={listContainer} onscroll={onScroll}>
@@ -123,7 +174,7 @@ function handleKeydown(e: KeyboardEvent, article: Article) {
     display: flex;
     flex-direction: column;
     height: 100%;
-    background-color: var(--bg-content);
+    background-color: var(--bg-article, var(--bg-content));
     border-right: 1px solid var(--border-color);
 }
 
@@ -131,12 +182,19 @@ function handleKeydown(e: KeyboardEvent, article: Article) {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 4px 8px; /* Reduced */
+    padding: 4px 8px;
     border-bottom: 1px solid var(--border-color);
     background: var(--bg-pane);
     flex-shrink: 0;
     height: 32px;
     box-sizing: border-box;
+}
+
+.toolbar-left,
+.toolbar-right {
+    display: flex;
+    align-items: center;
+    gap: 4px;
 }
 
 .tool-btn {
@@ -217,7 +275,7 @@ function handleKeydown(e: KeyboardEvent, article: Article) {
 
 .title {
     display: block;
-    font-family: var(--font-serif);
+    font-family: var(--font-title, var(--font-serif));
     margin-bottom: 0.3rem;
     font-size: 0.95rem;
     font-weight: 300;
@@ -287,5 +345,38 @@ function handleKeydown(e: KeyboardEvent, article: Article) {
 .icon-btn.active {
     color: var(--bg-selected);
     opacity: 1;
+}
+
+.search-wrapper {
+    position: relative;
+    padding: 4px 8px;
+    flex-shrink: 0;
+    background: var(--bg-pane);
+    border-bottom: 1px solid var(--border-color);
+}
+
+.search-wrapper input {
+    background: var(--bg-app);
+    border: 1px solid var(--border-color);
+    color: var(--text-primary);
+    padding: 6px 12px 6px 32px;
+    border-radius: 4px;
+    font-size: 0.85rem;
+    width: 100%;
+    outline: none;
+    box-sizing: border-box;
+}
+
+.search-wrapper input:focus {
+    border-color: var(--bg-selected);
+}
+
+.search-wrapper :global(.search-icon) {
+    position: absolute;
+    left: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-secondary);
+    pointer-events: none;
 }
 </style>

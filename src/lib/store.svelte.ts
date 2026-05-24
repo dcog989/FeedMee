@@ -33,6 +33,11 @@ class AppStateImpl {
         default_view_id: -1,
         auto_collapse_folders: true,
         mark_feed_read_on_exit: false,
+        article_title_font: '',
+        article_body_font: '',
+        article_title_color: '',
+        article_body_color: '',
+        article_bg_color: '',
     });
 
     showSettings = $state(false);

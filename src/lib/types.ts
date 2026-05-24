@@ -36,4 +36,9 @@ export interface AppSettings {
     default_view_id: number;
     auto_collapse_folders: boolean;
     mark_feed_read_on_exit: boolean;
+    article_title_font: string;
+    article_body_font: string;
+    article_title_color: string;
+    article_body_color: string;
+    article_bg_color: string;
 }

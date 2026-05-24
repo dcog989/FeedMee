@@ -194,7 +194,7 @@ async function handleContentClick(e: MouseEvent) {
 
 <style>
 .pane {
-    background-color: var(--bg-reading);
+    background-color: var(--bg-article, var(--bg-reading));
     overflow-y: auto;
     height: 100%;
     padding: 2rem 3rem;
@@ -207,7 +207,7 @@ async function handleContentClick(e: MouseEvent) {
 }
 
 h1 {
-    font-family: var(--font-serif);
+    font-family: var(--font-title, var(--font-serif));
     font-weight: 700;
     font-size: 2.2rem;
     margin-bottom: 0.8rem;
@@ -215,7 +215,7 @@ h1 {
 }
 
 .title-link {
-    color: var(--accent-muted);
+    color: var(--color-title, var(--accent-muted));
     text-decoration: none;
 }
 
@@ -297,8 +297,8 @@ h1 {
 .summary {
     line-height: 1.8;
     font-size: 1.15rem;
-    font-family: var(--font-body);
-    color: var(--text-primary);
+    font-family: var(--font-body-override, var(--font-body));
+    color: var(--color-body, var(--text-primary));
 }
 
 .summary :global(p) {

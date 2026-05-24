@@ -19,6 +19,16 @@ pub struct AppSettings {
     pub auto_collapse_folders: bool,
     #[serde(default)]
     pub mark_feed_read_on_exit: bool,
+    #[serde(default)]
+    pub article_title_font: String,
+    #[serde(default)]
+    pub article_body_font: String,
+    #[serde(default)]
+    pub article_title_color: String,
+    #[serde(default)]
+    pub article_body_color: String,
+    #[serde(default)]
+    pub article_bg_color: String,
 }
 
 impl Default for AppSettings {
@@ -33,6 +43,11 @@ impl Default for AppSettings {
             default_view_id: -1,
             auto_collapse_folders: true,
             mark_feed_read_on_exit: false,
+            article_title_font: String::new(),
+            article_body_font: String::new(),
+            article_title_color: String::new(),
+            article_body_color: String::new(),
+            article_bg_color: String::new(),
         }
     }
 }

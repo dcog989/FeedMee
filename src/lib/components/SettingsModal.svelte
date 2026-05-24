@@ -1,4 +1,5 @@
 <script lang="ts">
+import { invoke } from '@tauri-apps/api/core';
 import { Keyboard, Settings, X } from 'lucide-svelte';
 import { appState } from '$lib/store.svelte';
 import type { AppSettings } from '$lib/types';
@@ -13,10 +14,28 @@ let settings = $state<AppSettings>({
     default_view_id: -1,
     auto_collapse_folders: true,
     mark_feed_read_on_exit: false,
+    article_title_font: '',
+    article_body_font: '',
+    article_title_color: '',
+    article_body_color: '',
+    article_bg_color: '',
 });
 let showShortcuts = $state(false);
 let initialized = $state(false);
 let prevSettings = $state<AppSettings | null>(null);
+
+async function pickFont(target: 'title' | 'body') {
+    try {
+        const font = await invoke<string>('pick_system_font');
+        if (target === 'title') settings.article_title_font = font;
+        else settings.article_body_font = font;
+    } catch (e) {
+        const msg = String(e);
+        if (msg !== 'Font selection cancelled') {
+            appState.alert(msg);
+        }
+    }
+}
 
 $effect(() => {
     const s = appState.settings;
@@ -145,6 +164,96 @@ function onKeyDown(e: KeyboardEvent) {
                     </div>
                 </div>
 
+                <h4 class="section-label">Typography</h4>
+
+                <div class="form-group">
+                    <label for="title-font">Article Title Font</label>
+                    <div class="font-input-wrap">
+                        <input
+                            type="text"
+                            id="title-font"
+                            bind:value={settings.article_title_font}
+                            placeholder="Default (Serif)"
+                        >
+                        <button
+                            type="button"
+                            class="font-pick-btn"
+                            onclick={() => pickFont('title')}
+                            title="Browse system fonts"
+                            aria-label="Browse system fonts"
+                        >
+                            ...
+                        </button>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="body-font">Article Body Font</label>
+                    <div class="font-input-wrap">
+                        <input
+                            type="text"
+                            id="body-font"
+                            bind:value={settings.article_body_font}
+                            placeholder="Default (Sans)"
+                        >
+                        <button
+                            type="button"
+                            class="font-pick-btn"
+                            onclick={() => pickFont('body')}
+                            title="Browse system fonts"
+                            aria-label="Browse system fonts"
+                        >
+                            ...
+                        </button>
+                    </div>
+                </div>
+
+                <h4 class="section-label">Colors</h4>
+
+                <div class="form-group">
+                    <label for="title-color">Article Title Color</label>
+                    <div class="color-input-wrap">
+                        <input
+                            type="color"
+                            id="title-color"
+                            bind:value={settings.article_title_color}
+                        >
+                        <input
+                            type="text"
+                            bind:value={settings.article_title_color}
+                            placeholder="#accent-muted"
+                        >
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="body-color">Article Body Color</label>
+                    <div class="color-input-wrap">
+                        <input
+                            type="color"
+                            id="body-color"
+                            bind:value={settings.article_body_color}
+                        >
+                        <input
+                            type="text"
+                            bind:value={settings.article_body_color}
+                            placeholder="#text-primary"
+                        >
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="bg-color">Article Background</label>
+                    <div class="color-input-wrap">
+                        <input type="color" id="bg-color" bind:value={settings.article_bg_color}>
+                        <input
+                            type="text"
+                            bind:value={settings.article_bg_color}
+                            placeholder="#bg-reading"
+                        >
+                    </div>
+                </div>
+
                 <div class="form-group">
                     <label for="log-level">Log Level</label>
                     <select id="log-level" bind:value={settings.log_level}>
@@ -182,9 +291,10 @@ function onKeyDown(e: KeyboardEvent) {
     border: 1px solid var(--border-color);
     border-radius: 10px;
     width: auto;
-    max-width: 500px;
+    min-width: 460px;
+    max-width: 640px;
     max-height: 80vh;
-    overflow: hidden;
+    overflow: auto;
     box-shadow: 0 16px 40px rgba(0, 0, 0, 0.25);
     display: flex;
     flex-direction: column;
@@ -256,7 +366,7 @@ select {
     overflow-y: auto;
 }
 
-.form-group input,
+.form-group input:not([type="color"]),
 .form-group select {
     flex: 1;
     padding: 8px;
@@ -265,7 +375,7 @@ select {
     color: var(--text-primary);
     border-radius: 4px;
     box-sizing: border-box;
-    max-width: 200px;
+    min-width: 160px;
 }
 
 .form-group.indent {
@@ -286,5 +396,85 @@ select {
     height: 16px;
     cursor: pointer;
     accent-color: var(--bg-selected);
+}
+
+.section-label {
+    margin: 0.5rem 0 0;
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 0.4rem;
+}
+
+.color-input-wrap {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 1;
+}
+
+.color-input-wrap input[type="color"] {
+    width: 32px;
+    height: 32px;
+    padding: 2px;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    background: var(--bg-app);
+    cursor: pointer;
+    flex: 0 0 auto;
+}
+
+.color-input-wrap input[type="text"] {
+    flex: 1;
+    padding: 8px;
+    border: 1px solid var(--border-color);
+    background: var(--bg-app);
+    color: var(--text-primary);
+    border-radius: 4px;
+    box-sizing: border-box;
+    font-family: monospace;
+    font-size: 0.8rem;
+}
+
+.font-input-wrap {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex: 1;
+}
+
+.font-input-wrap input {
+    flex: 1;
+    padding: 8px;
+    border: 1px solid var(--border-color);
+    background: var(--bg-app);
+    color: var(--text-primary);
+    border-radius: 4px;
+    box-sizing: border-box;
+    min-width: 120px;
+}
+
+.font-pick-btn {
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--border-color);
+    background: var(--bg-app);
+    color: var(--text-secondary);
+    border-radius: 4px;
+    cursor: pointer;
+    flex-shrink: 0;
+    font-size: 0.85rem;
+    font-weight: 700;
+    line-height: 1;
+}
+
+.font-pick-btn:hover {
+    background: var(--bg-hover);
+    color: var(--text-primary);
 }
 </style>

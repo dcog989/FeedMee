@@ -168,7 +168,8 @@ pub fn run() {
             commands::move_feed,
             commands::get_article_content,
             commands::get_feed_unread_count,
-            commands::search_articles
+            commands::search_articles,
+            commands::pick_system_font
         ])
         .run(tauri::generate_context!())
         .unwrap_or_else(|e| {

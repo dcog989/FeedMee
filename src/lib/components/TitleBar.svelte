@@ -1,14 +1,11 @@
 <script lang="ts">
 import { getCurrentWindow } from '@tauri-apps/api/window';
-import { Bookmark, Clock, Rss, Search, Settings } from 'lucide-svelte';
-import { appState, FEED_ID_LATEST, FEED_ID_SAVED } from '$lib/store.svelte';
+import { appState } from '$lib/store.svelte';
 import AboutModal from './AboutModal.svelte';
 
 const appWindow = getCurrentWindow();
 
 let showAbout = $state(false);
-let newFeedUrl = $state('');
-let selectedFolderId = $state<number | null>(null);
 
 function minimize() {
     appWindow.minimize();
@@ -37,68 +34,6 @@ async function maximize() {
 function close() {
     appWindow.close();
 }
-
-async function openAddDialog() {
-    newFeedUrl = '';
-    selectedFolderId = null;
-    try {
-        const text = await navigator.clipboard.readText();
-        if (/^https?:\/\/.+/.test(text.trim())) {
-            newFeedUrl = text.trim();
-        }
-    } catch {
-        /* clipboard access denied */
-    }
-    appState.showAddDialog = true;
-}
-
-function closeAddDialog() {
-    appState.showAddDialog = false;
-}
-
-function submitAddFeed() {
-    if (newFeedUrl.trim().length > 0) {
-        appState.addFeed(newFeedUrl.trim(), selectedFolderId);
-        appState.showAddDialog = false;
-    }
-}
-
-function handleImport() {
-    appState.importOpml();
-    appState.showAddDialog = false;
-}
-
-function handleExport() {
-    appState.exportOpml();
-    appState.showAddDialog = false;
-}
-
-function onKeyDown(e: KeyboardEvent) {
-    if (e.key === 'Enter') {
-        submitAddFeed();
-    } else if (e.key === 'Escape') {
-        closeAddDialog();
-    }
-}
-
-function focusOnMount(node: HTMLElement) {
-    node.focus();
-}
-
-let searchDebounce: ReturnType<typeof setTimeout> | null = null;
-
-function onSearchInput(e: Event) {
-    const query = (e.target as HTMLInputElement).value;
-    if (searchDebounce) clearTimeout(searchDebounce);
-    searchDebounce = setTimeout(() => appState.setSearch(query), 250);
-}
-
-function onSearchKeyDown(e: KeyboardEvent) {
-    if (e.key === 'Escape') {
-        appState.setSearch('');
-        (e.target as HTMLInputElement).blur();
-    }
-}
 </script>
 
 <header class="titlebar" data-tauri-drag-region>
@@ -117,62 +52,6 @@ function onSearchKeyDown(e: KeyboardEvent) {
             <img src="/feedmee.png" alt="" class="app-icon">
             <span class="app-title">FeedMee</span>
         </span>
-
-        <button
-            type="button"
-            class="tool-btn"
-            onclick={() => appState.openSettings()}
-            title="Settings"
-            aria-label="Settings"
-        >
-            <Settings size={18} />
-        </button>
-
-        <button
-            type="button"
-            class="tool-btn"
-            onclick={openAddDialog}
-            title="Add Content"
-            aria-label="Add Content"
-        >
-            <Rss size={18} />
-        </button>
-
-        <button
-            type="button"
-            class="tool-btn"
-            class:active={appState.selectedFeedId === FEED_ID_LATEST}
-            onclick={() => appState.selectFeed(FEED_ID_LATEST)}
-            title="Latest"
-            aria-label="Latest"
-        >
-            <Clock size={18} />
-        </button>
-
-        <button
-            type="button"
-            class="tool-btn"
-            class:active={appState.selectedFeedId === FEED_ID_SAVED}
-            onclick={() => appState.selectFeed(FEED_ID_SAVED)}
-            title="Read Later"
-            aria-label="Read Later"
-        >
-            <Bookmark size={18} />
-        </button>
-    </div>
-
-    <div class="toolbar">
-        <div class="search-wrapper">
-            <Search class="search-icon" size={18} />
-            <input
-                type="text"
-                placeholder="Search..."
-                aria-label="Search articles"
-                oninput={onSearchInput}
-                onkeydown={onSearchKeyDown}
-                value={appState.searchQuery}
-            >
-        </div>
     </div>
 
     <div class="right-section">
@@ -234,44 +113,6 @@ function onSearchKeyDown(e: KeyboardEvent) {
 
 <AboutModal bind:isOpen={showAbout} onClose={() => (showAbout = false)} />
 
-{#if appState.showAddDialog}
-    <!-- svelte-ignore a11y_click_events_have_key_events -->
-    <!-- svelte-ignore a11y_no_static_element_interactions -->
-    <div class="modal-overlay" onclick={closeAddDialog}>
-        <div class="modal" onclick={(e) => e.stopPropagation()}>
-            <h3>Add Content</h3>
-
-            <div class="input-group">
-                <input
-                    type="text"
-                    bind:value={newFeedUrl}
-                    placeholder="Enter RSS Feed URL"
-                    onkeydown={onKeyDown}
-                    use:focusOnMount
-                >
-                <button type="button" class="primary" onclick={submitAddFeed}>Add Feed</button>
-            </div>
-
-            <div class="form-group">
-                <label for="folder-select">Add to folder</label>
-                <select id="folder-select" bind:value={selectedFolderId}>
-                    <option value={null}>Uncategorized</option>
-                    {#each appState.folders as folder (folder.id)}
-                        <option value={folder.id}>{folder.name}</option>
-                    {/each}
-                </select>
-            </div>
-
-            <div class="divider">
-                <span>OR</span>
-            </div>
-
-            <button type="button" class="secondary" onclick={handleImport}>Import OPML File</button>
-            <button type="button" class="secondary" onclick={handleExport}>Export OPML File</button>
-        </div>
-    </div>
-{/if}
-
 <style>
 .app-brand {
     display: flex;
@@ -312,60 +153,11 @@ function onSearchKeyDown(e: KeyboardEvent) {
     -webkit-app-region: drag;
 }
 
-input {
-    background: var(--bg-app);
-    border: 1px solid var(--border-color);
-    color: var(--text-primary);
-    padding: 6px 12px;
-    border-radius: 4px;
-    font-size: 0.85rem;
-    width: 280px;
-    outline: none;
-}
-
 .titlebar button,
-.titlebar input,
-.window-controls,
-.toolbar {
+.window-controls {
     -webkit-app-region: no-drag;
     z-index: 20;
     position: relative;
-}
-
-.tool-btn {
-    width: 30px;
-    height: 30px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border: none;
-    background: transparent;
-    color: var(--text-secondary);
-    border-radius: 4px;
-    cursor: pointer;
-    flex-shrink: 0;
-}
-
-.tool-btn:hover {
-    background-color: var(--bg-hover);
-    color: var(--text-primary);
-}
-
-.tool-btn.active {
-    color: var(--text-primary);
-    background-color: var(--bg-selected-muted);
-}
-
-.search-wrapper {
-    position: relative;
-}
-
-:global(.search-icon) {
-    color: var(--text-secondary);
-}
-
-input:focus {
-    border-color: var(--bg-selected);
 }
 
 .right-section {
@@ -401,115 +193,5 @@ input:focus {
 .win-btn.close:hover {
     background-color: #e81123;
     color: white;
-}
-
-/* Modal Styles */
-.modal-overlay {
-    position: fixed;
-    inset: 0;
-    background: rgba(0, 0, 0, 0.5);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    z-index: 9999;
-    backdrop-filter: blur(2px);
-}
-
-.modal {
-    background: var(--bg-app);
-    padding: 1.5rem;
-    border-radius: 8px;
-    width: 400px;
-    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
-    border: 1px solid var(--border-color);
-}
-
-.modal h3 {
-    margin: 0 0 1rem 0;
-    font-size: 1.1rem;
-    color: var(--text-primary);
-}
-
-.input-group {
-    display: flex;
-    gap: 8px;
-    margin-bottom: 1rem;
-}
-
-.input-group input {
-    flex: 1;
-    padding: 8px 12px;
-    width: auto;
-}
-
-button.primary {
-    background-color: var(--bg-selected);
-    color: white;
-    border: none;
-    border-radius: 4px;
-    padding: 0 12px;
-    font-weight: 500;
-    cursor: pointer;
-}
-
-button.primary:hover {
-    opacity: 0.9;
-}
-
-button.secondary {
-    width: 100%;
-    padding: 8px;
-    background: transparent;
-    border: 1px solid var(--border-color);
-    color: var(--text-primary);
-    border-radius: 4px;
-    cursor: pointer;
-    margin-top: 8px;
-}
-
-button.secondary:hover {
-    background-color: var(--bg-hover);
-}
-
-.form-group {
-    margin-bottom: 1rem;
-}
-
-.form-group label {
-    display: block;
-    font-size: 0.8rem;
-    color: var(--text-secondary);
-    margin-bottom: 4px;
-}
-
-.form-group select {
-    width: 100%;
-    padding: 8px;
-    background: var(--bg-app);
-    border: 1px solid var(--border-color);
-    color: var(--text-primary);
-    border-radius: 4px;
-    font-size: 0.9rem;
-    cursor: pointer;
-}
-
-.divider {
-    display: flex;
-    align-items: center;
-    text-align: center;
-    margin: 1rem 0;
-    color: var(--text-secondary);
-    font-size: 0.8rem;
-}
-
-.divider::before,
-.divider::after {
-    content: "";
-    flex: 1;
-    border-bottom: 1px solid var(--border-color);
-}
-
-.divider span {
-    padding: 0 10px;
 }
 </style>

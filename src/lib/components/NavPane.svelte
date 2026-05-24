@@ -1,7 +1,12 @@
 <script lang="ts">
+import { Rss, Settings } from 'lucide-svelte';
 import { appState } from '$lib/store.svelte';
 import FolderGroup from './nav/FolderGroup.svelte';
 import NavToolbar from './nav/NavToolbar.svelte';
+
+function openAddDialog() {
+    appState.showAddDialog = true;
+}
 
 let initialized = false;
 let dragExpandTimeout = $state<number | null>(null);
@@ -186,6 +191,27 @@ function cmCreateFolder() {
             {/if}
         </div>
     {/if}
+
+    <div class="footer-bar">
+        <button
+            type="button"
+            class="footer-btn"
+            onclick={() => appState.openSettings()}
+            title="Settings"
+            aria-label="Settings"
+        >
+            <Settings size={18} />
+        </button>
+        <button
+            type="button"
+            class="footer-btn"
+            onclick={openAddDialog}
+            title="Add Content"
+            aria-label="Add Content"
+        >
+            <Rss size={18} />
+        </button>
+    </div>
 </nav>
 
 <style>
@@ -239,5 +265,33 @@ function cmCreateFolder() {
 }
 .context-menu button.danger:hover {
     background-color: #ffeef0;
+}
+
+.footer-bar {
+    display: flex;
+    align-items: center;
+    padding: 4px 8px;
+    gap: 4px;
+    border-top: 1px solid var(--border-color);
+    flex-shrink: 0;
+}
+
+.footer-btn {
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    background: transparent;
+    color: var(--text-secondary);
+    border-radius: 4px;
+    cursor: pointer;
+    flex-shrink: 0;
+}
+
+.footer-btn:hover {
+    background-color: var(--bg-hover);
+    color: var(--text-primary);
 }
 </style>
