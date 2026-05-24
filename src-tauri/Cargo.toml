@@ -15,11 +15,10 @@ tauri-build = { version = "2.6.2", features = [] }
 [dependencies]
 chrono = "0.4"
 feed-rs = "2.3"
-generic-array = "1.4"
 log = "0.4"
 opml = "1.1"
 readabilityrs = "0.1"
-reqwest = { version = "0.13", features = ["json", "rustls", "blocking"] }
+reqwest = { version = "0.13", features = ["json", "rustls"] }
 rusqlite = { version = "0.39", features = ["bundled"] }
 rusqlite_migration = "2.5"
 scraper = "0.27"

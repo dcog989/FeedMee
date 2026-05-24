@@ -36,7 +36,7 @@ You are on a Windows 11 desktop PC, use tools accordingly. We are using bun pack
 ### Performance Optimizations
 
 - Pagination (50 articles/page) with infinite scroll
-- Concurrent feed refresh (2 workers max)
+- Concurrent feed refresh (5 workers max)
 - Debounced refresh operations (configurable, default 5min/2min)
 - Virtualized rendering for large lists
 - Auto-vacuum every 24 hours
