@@ -3,7 +3,6 @@ import { ChevronRight, RefreshCcwDot, RefreshCw, X } from 'lucide-svelte';
 import { flip } from 'svelte/animate';
 import { type DndEvent, dndzone, type Item, TRIGGERS } from 'svelte-dnd-action';
 import { tooltip } from '$lib/actions/tooltip.svelte';
-import { dndState } from '$lib/dndState.svelte';
 import { appState } from '$lib/store.svelte';
 import type { Feed, Folder } from '$lib/types';
 
@@ -35,14 +34,12 @@ function getFolderUnreadCount(feeds: Feed[]): number {
 function handleDndConsider(e: CustomEvent<DndEvent<Item>>) {
     const feeds = e.detail.items as Feed[];
     onFeedsChange(folder.id, feeds);
-    dndState.isDragging = true;
     if (!isExpanded && e.detail.info.trigger === TRIGGERS.DRAGGED_ENTERED) {
         onExpandHover(folder.id);
     }
 }
 
 function handleDndFinalize(e: CustomEvent<DndEvent<Item>>) {
-    dndState.isDragging = false;
     const items = e.detail.items as Feed[];
     onFeedsChange(folder.id, items);
     items.forEach((feed) => {

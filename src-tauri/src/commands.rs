@@ -10,6 +10,9 @@ use scraper::{Html, Selector};
 use serde::Serialize;
 use std::fmt::Write;
 use std::fs;
+use std::io::Cursor;
+use tauri::{AppHandle, Manager, State};
+use url::Url;
 
 #[derive(Serialize)]
 pub struct AppInfo {
@@ -31,14 +34,11 @@ pub fn get_app_info(app: tauri::AppHandle) -> Result<AppInfo, String> {
         logs_path: app_data_dir.join("Logs").to_string_lossy().to_string(),
         db_path: app_data_dir
             .join("Database")
-            .join("feedmee.sqlite")
+            .join(db::DB_FILENAME)
             .to_string_lossy()
             .to_string(),
     })
 }
-use std::io::Cursor;
-use tauri::{AppHandle, Manager, State};
-use url::Url;
 
 #[tauri::command]
 pub fn get_app_settings(state: State<'_, AppState>) -> Result<AppSettings, String> {
@@ -287,29 +287,28 @@ pub async fn export_opml(state: State<'_, AppState>) -> Result<String, String> {
     };
 
     let mut opml = String::new();
-    writeln!(&mut opml, "<?xml version=\"1.0\" encoding=\"UTF-8\"?>").unwrap();
-    writeln!(&mut opml, "<opml version=\"2.0\">").unwrap();
-    writeln!(&mut opml, "  <head><title>FeedMee Export</title></head>").unwrap();
-    writeln!(&mut opml, "  <body>").unwrap();
+    let _ = writeln!(&mut opml, "<?xml version=\"1.0\" encoding=\"UTF-8\"?>");
+    let _ = writeln!(&mut opml, "<opml version=\"2.0\">");
+    let _ = writeln!(&mut opml, "  <head><title>FeedMee Export</title></head>");
+    let _ = writeln!(&mut opml, "  <body>");
 
     for folder in folders {
         if folder.feeds.is_empty() {
             continue;
         }
-        writeln!(&mut opml, "    <outline text=\"{}\">", xml_escape(&folder.name)).unwrap();
+        let _ = writeln!(&mut opml, "    <outline text=\"{}\">", xml_escape(&folder.name));
         for feed in &folder.feeds {
-            writeln!(
+            let _ = writeln!(
                 &mut opml,
                 "      <outline type=\"rss\" text=\"{}\" xmlUrl=\"{}\" />",
                 xml_escape(&feed.name),
                 xml_escape(&feed.url)
-            )
-            .unwrap();
+            );
         }
-        writeln!(&mut opml, "    </outline>").unwrap();
+        let _ = writeln!(&mut opml, "    </outline>");
     }
-    writeln!(&mut opml, "  </body>").unwrap();
-    writeln!(&mut opml, "</opml>").unwrap();
+    let _ = writeln!(&mut opml, "  </body>");
+    let _ = writeln!(&mut opml, "</opml>");
     Ok(opml)
 }
 
@@ -463,26 +462,6 @@ pub async fn refresh_feed(feed_id: i64, state: State<'_, AppState>) -> Result<us
     }
 }
 
-#[tauri::command]
-pub async fn refresh_all_feeds(state: State<'_, AppState>) -> Result<usize, String> {
-    let feeds = {
-        let conn = state.db.lock().unwrap();
-        let folders = db::get_folders_with_feeds(&conn).map_err(|e| e.to_string())?;
-        folders
-            .into_iter()
-            .flat_map(|f| f.feeds)
-            .collect::<Vec<_>>()
-    };
-
-    let mut total = 0;
-    for feed in feeds {
-        if let Ok(count) = refresh_feed(feed.id, state.clone()).await {
-            total += count;
-        }
-    }
-    Ok(total)
-}
-
 fn compute_content_hash(content: &str) -> String {
     use std::collections::hash_map::DefaultHasher;
     use std::hash::{Hash, Hasher};
@@ -617,7 +596,7 @@ async fn add_website_feed(
 
     let feed_id = {
         let conn = state.db.lock().unwrap();
-        let target = folder_id.unwrap_or(1);
+        let target = folder_id.unwrap_or_else(|| db::create_folder(&conn, "Uncategorized").unwrap_or(1));
         db::create_feed(&conn, &title, url, target, "website").map_err(|e| e.to_string())?;
         conn.query_row("SELECT id FROM feeds WHERE url = ?1", [url], |row| {
             row.get(0)
@@ -755,7 +734,7 @@ pub async fn add_feed(
 
     let id = {
         let conn = state.db.lock().unwrap();
-        let target = folder_id.unwrap_or(1);
+        let target = folder_id.unwrap_or_else(|| db::create_folder(&conn, "Uncategorized").unwrap_or(1));
         db::create_feed(&conn, &title, &final_url, target, &feed_type)
             .map_err(|e| e.to_string())?;
         conn.query_row("SELECT id FROM feeds WHERE url = ?1", [&final_url], |row| {

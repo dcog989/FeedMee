@@ -42,6 +42,7 @@ class AppStateImpl {
 
     showSettings = $state(false);
     showAddDialog = $state(false);
+    showAbout = $state(false);
     expandedFolders = $state<Set<number>>(new Set());
     focusedPane = $state<'nav' | 'list' | 'reading'>('nav');
     customShortcuts = $state<Record<string, string>>({});
@@ -71,15 +72,32 @@ class AppStateImpl {
     private refresh: ReturnType<typeof createFeedRefresher>;
     private feedOps: ReturnType<typeof createFeedActions>;
     private articleOps: ReturnType<typeof createArticleActions>;
-    private autoRefreshTimer: number | null = null;
+    private autoRefreshTimer: ReturnType<typeof setInterval> | null = null;
+    private cleanupKeyHandler: (() => void) | null = null;
+    private disposeEffectRoot: (() => void) | null = null;
 
     constructor() {
         this.refresh = createFeedRefresher(this);
         this.feedOps = createFeedActions(this);
         this.articleOps = createArticleActions(this);
         registerShortcuts(this);
-        setupKeyHandler(this);
+        this.cleanupKeyHandler = setupKeyHandler(this);
         this.initStore();
+    }
+
+    destroy() {
+        if (this.autoRefreshTimer !== null) {
+            clearInterval(this.autoRefreshTimer);
+            this.autoRefreshTimer = null;
+        }
+        if (this.cleanupKeyHandler) {
+            this.cleanupKeyHandler();
+            this.cleanupKeyHandler = null;
+        }
+        if (this.disposeEffectRoot) {
+            this.disposeEffectRoot();
+            this.disposeEffectRoot = null;
+        }
     }
 
     get debounceMs() {
@@ -288,6 +306,12 @@ class AppStateImpl {
     closeSettings() {
         this.showSettings = false;
     }
+    openAbout() {
+        this.showAbout = true;
+    }
+    closeAbout() {
+        this.showAbout = false;
+    }
 
     async saveSettings(newSettings: AppSettings, closeModal = true) {
         try {
@@ -410,7 +434,7 @@ class AppStateImpl {
         else if (viewType === 'folder' && viewId > 0) this.selectFolder(viewId);
         else if (viewType === 'feed' && viewId > 0) this.selectFeed(viewId);
 
-        $effect.root(() => {
+        this.disposeEffectRoot = $effect.root(() => {
             $effect(() => {
                 localStorage.setItem('navWidth', this.navWidth.toString());
                 localStorage.setItem('listWidth', this.listWidth.toString());

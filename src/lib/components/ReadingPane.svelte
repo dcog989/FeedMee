@@ -1,7 +1,7 @@
 <script lang="ts">
 import { openUrl } from '@tauri-apps/plugin-opener';
 import DOMPurify from 'dompurify';
-import { Bookmark, CircleAlert, ExternalLink, FileText, Tag } from 'lucide-svelte';
+import { Bookmark, CircleAlert, ExternalLink, FileText } from 'lucide-svelte';
 import { tooltip } from '$lib/actions/tooltip.svelte';
 import { appState } from '$lib/store.svelte';
 
@@ -20,6 +20,7 @@ DOMPurify.addHook('afterSanitizeAttributes', (node: Element) => {
 let fullContent = $state<string | null>(null);
 let isLoadingFull = $state(false);
 let loadError = $state(false);
+let loadGen = $state(0);
 
 let displayHtml = $derived(
     fullContent
@@ -33,15 +34,18 @@ let isSaved = $derived(appState.selectedArticle?.is_saved ?? false);
 $effect(() => {
     if (appState.selectedArticle) {
         fullContent = null;
+        isLoadingFull = false;
         loadError = false;
     }
 });
 
 async function loadFullContent() {
     if (!appState.selectedArticle) return;
+    const gen = ++loadGen;
     isLoadingFull = true;
     loadError = false;
     const content = await appState.fetchFullContent(appState.selectedArticle);
+    if (gen !== loadGen) return;
     if (content) {
         fullContent = stripDuplicateTitle(content, appState.selectedArticle.title);
     } else {
@@ -65,12 +69,12 @@ function stripDuplicateTitle(html: string, articleTitle: string): string {
 
 function formatDate(ts: number) {
     const d = new Date(ts * 1000);
-    const datePart = d.toLocaleDateString('en-GB', {
+    const datePart = d.toLocaleDateString(undefined, {
         day: 'numeric',
         month: 'long',
         year: 'numeric',
     });
-    const timePart = d.toLocaleTimeString('en-GB', {
+    const timePart = d.toLocaleTimeString(undefined, {
         hour: '2-digit',
         minute: '2-digit',
     });
@@ -125,15 +129,6 @@ async function handleContentClick(e: MouseEvent) {
                             aria-label="Read Later"
                         >
                             <Bookmark size={18} fill={isSaved ? 'currentColor' : 'none'} />
-                        </button>
-
-                        <button
-                            type="button"
-                            class="action-btn"
-                            use:tooltip={'Tag'}
-                            aria-label="Tag"
-                        >
-                            <Tag size={18} />
                         </button>
 
                         <button

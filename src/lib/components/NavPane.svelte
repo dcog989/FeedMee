@@ -1,5 +1,5 @@
 <script lang="ts">
-import { Rss, Settings } from 'lucide-svelte';
+import { Info, Rss, Settings } from 'lucide-svelte';
 import { appState } from '$lib/store.svelte';
 import FolderGroup from './nav/FolderGroup.svelte';
 import NavToolbar from './nav/NavToolbar.svelte';
@@ -9,7 +9,7 @@ function openAddDialog() {
 }
 
 let initialized = false;
-let dragExpandTimeout = $state<number | null>(null);
+let dragExpandTimeout: ReturnType<typeof setTimeout> | null = null;
 
 // Context Menu State
 let cmVisible = $state(false);
@@ -211,6 +211,16 @@ function cmCreateFolder() {
         >
             <Rss size={18} />
         </button>
+        <span class="footer-spacer"></span>
+        <button
+            type="button"
+            class="footer-btn"
+            onclick={() => appState.openAbout()}
+            title="About FeedMee"
+            aria-label="About FeedMee"
+        >
+            <Info size={18} />
+        </button>
     </div>
 </nav>
 
@@ -293,5 +303,9 @@ function cmCreateFolder() {
 .footer-btn:hover {
     background-color: var(--bg-hover);
     color: var(--text-primary);
+}
+
+.footer-spacer {
+    flex: 1;
 }
 </style>

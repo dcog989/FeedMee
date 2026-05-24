@@ -129,8 +129,8 @@ export function registerShortcuts(state: AppState) {
     });
 }
 
-export function setupKeyHandler(state: AppState) {
-    window.addEventListener('keydown', (e) => {
+export function setupKeyHandler(state: AppState): () => void {
+    const handler = (e: KeyboardEvent) => {
         if (state.showSettings) return;
 
         const tag = (e.target as HTMLElement)?.tagName?.toLowerCase();
@@ -173,5 +173,9 @@ export function setupKeyHandler(state: AppState) {
         }
 
         shortcutManager.handleKeyEvent(e);
-    });
+    };
+
+    window.addEventListener('keydown', handler);
+
+    return () => window.removeEventListener('keydown', handler);
 }

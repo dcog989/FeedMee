@@ -3,6 +3,8 @@ use log::{debug, info};
 use rusqlite::{Connection, Result, params};
 use rusqlite_migration::{M, Migrations};
 
+pub const DB_FILENAME: &str = "feedmee.sqlite";
+
 // Each entry is an immutable, append-only migration.
 // Never edit a past migration - add a new one instead.
 fn migrations() -> Migrations<'static> {
@@ -233,7 +235,9 @@ pub fn get_feed_unread_count(conn: &Connection, feed_id: i64) -> Result<i64> {
 }
 pub fn get_feed(conn: &Connection, feed_id: i64) -> Result<Feed> {
     conn.query_row(
-        "SELECT id, name, url, folder_id, has_error, feed_type, content_hash FROM feeds WHERE id = ?1",
+        "SELECT id, name, url, folder_id, has_error, feed_type, content_hash,
+                (SELECT COUNT(*) FROM articles a WHERE a.feed_id = feeds.id AND a.is_read = 0) AS unread_count
+         FROM feeds WHERE id = ?1",
         params![feed_id],
         |r| Ok(Feed {
             id: r.get(0)?,
@@ -243,7 +247,7 @@ pub fn get_feed(conn: &Connection, feed_id: i64) -> Result<Feed> {
             has_error: r.get::<_, bool>(4).unwrap_or(false),
             feed_type: r.get(5).unwrap_or_else(|_| "rss".to_string()),
             content_hash: r.get(6).unwrap_or_default(),
-            unread_count: 0,
+            unread_count: r.get(7)?,
         }),
     )
 }

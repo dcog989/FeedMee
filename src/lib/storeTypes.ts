@@ -17,6 +17,7 @@ export interface AppState {
     settings: AppSettings;
     showSettings: boolean;
     showAddDialog: boolean;
+    showAbout: boolean;
     expandedFolders: Set<number>;
     focusedPane: 'nav' | 'list' | 'reading';
     customShortcuts: Record<string, string>;
@@ -72,6 +73,8 @@ export interface AppState {
     setTheme(theme: Theme): void;
     openSettings(): void;
     closeSettings(): void;
+    openAbout(): void;
+    closeAbout(): void;
     saveSettings(newSettings: AppSettings, closeModal?: boolean): Promise<void>;
     confirm(message: string, onConfirm: () => void | Promise<void>): void;
     alert(message: string): void;

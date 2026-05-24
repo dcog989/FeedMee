@@ -1,4 +1,5 @@
 ﻿<script lang="ts">
+import AboutModal from '$lib/components/AboutModal.svelte';
 import AddDialog from '$lib/components/AddDialog.svelte';
 import SettingsModal from '$lib/components/SettingsModal.svelte';
 import Tooltip from '$lib/components/Tooltip.svelte';
@@ -74,6 +75,10 @@ $effect(() => {
 
     {#if appState.showAddDialog}
         <AddDialog />
+    {/if}
+
+    {#if appState.showAbout}
+        <AboutModal bind:isOpen={appState.showAbout} onClose={() => (appState.showAbout = false)} />
     {/if}
 
     {#if appState.modalState.isOpen}

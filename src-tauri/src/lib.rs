@@ -99,7 +99,7 @@ pub fn run() {
             info!("Starting FeedMee application");
             info!("Settings loaded: {:?}", app_settings);
 
-            let db_path = db_dir.join("feedmee.sqlite");
+            let db_path = db_dir.join(db::DB_FILENAME);
 
             let mut conn = rusqlite::Connection::open(&db_path).map_err(|e| {
                 error!("Failed to open database: {}", e);

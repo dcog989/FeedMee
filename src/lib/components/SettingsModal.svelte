@@ -23,6 +23,7 @@ let settings = $state<AppSettings>({
 let showShortcuts = $state(false);
 let initialized = $state(false);
 let prevSettings = $state<AppSettings | null>(null);
+let saveTimer: ReturnType<typeof setTimeout> | null = null;
 
 async function pickFont(target: 'title' | 'body') {
     try {
@@ -60,7 +61,8 @@ $effect(() => {
     if (!initialized || !prevSettings) return;
     if (JSON.stringify(settings) === JSON.stringify(prevSettings)) return;
     prevSettings = { ...settings };
-    appState.saveSettings(settings, false);
+    if (saveTimer) clearTimeout(saveTimer);
+    saveTimer = setTimeout(() => appState.saveSettings(settings, false), 500);
 });
 
 function cancel() {
