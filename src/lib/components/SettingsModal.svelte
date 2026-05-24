@@ -40,7 +40,15 @@ async function pickFont(target: 'title' | 'body') {
 $effect(() => {
     const s = appState.settings;
     if (s && 'default_view_type' in s) {
-        settings = { ...s };
+        const cs = getComputedStyle(document.documentElement);
+        settings = {
+            ...s,
+            article_title_color:
+                s.article_title_color || cs.getPropertyValue('--accent-muted').trim(),
+            article_body_color:
+                s.article_body_color || cs.getPropertyValue('--text-primary').trim(),
+            article_bg_color: s.article_bg_color || cs.getPropertyValue('--bg-reading').trim(),
+        };
         if (!initialized) {
             initialized = true;
             prevSettings = { ...settings };
@@ -168,91 +176,61 @@ function onKeyDown(e: KeyboardEvent) {
 
                 <div class="form-group">
                     <label for="title-font">Article Title Font</label>
-                    <div class="font-input-wrap">
-                        <input
-                            type="text"
-                            id="title-font"
-                            bind:value={settings.article_title_font}
-                            placeholder="Default (Serif)"
-                        >
-                        <button
-                            type="button"
-                            class="font-pick-btn"
-                            onclick={() => pickFont('title')}
-                            title="Browse system fonts"
-                            aria-label="Browse system fonts"
-                        >
-                            ...
-                        </button>
-                    </div>
+                    <input
+                        type="text"
+                        id="title-font"
+                        bind:value={settings.article_title_font}
+                        placeholder="Default (Serif)"
+                        onclick={() => pickFont('title')}
+                    >
                 </div>
 
                 <div class="form-group">
                     <label for="body-font">Article Body Font</label>
-                    <div class="font-input-wrap">
-                        <input
-                            type="text"
-                            id="body-font"
-                            bind:value={settings.article_body_font}
-                            placeholder="Default (Sans)"
-                        >
-                        <button
-                            type="button"
-                            class="font-pick-btn"
-                            onclick={() => pickFont('body')}
-                            title="Browse system fonts"
-                            aria-label="Browse system fonts"
-                        >
-                            ...
-                        </button>
-                    </div>
+                    <input
+                        type="text"
+                        id="body-font"
+                        bind:value={settings.article_body_font}
+                        placeholder="Default (Sans)"
+                        onclick={() => pickFont('body')}
+                    >
                 </div>
 
                 <h4 class="section-label">Colors</h4>
 
                 <div class="form-group">
-                    <label for="title-color">Article Title Color</label>
+                    <label for="title-color">Article Title FG</label>
                     <div class="color-input-wrap">
                         <input
                             type="color"
                             id="title-color"
                             bind:value={settings.article_title_color}
                         >
-                        <input
-                            type="text"
-                            bind:value={settings.article_title_color}
-                            placeholder="#accent-muted"
-                        >
+                        <input type="text" bind:value={settings.article_title_color}>
                     </div>
                 </div>
 
                 <div class="form-group">
-                    <label for="body-color">Article Body Color</label>
+                    <label for="body-color">Article Body FG</label>
                     <div class="color-input-wrap">
                         <input
                             type="color"
                             id="body-color"
                             bind:value={settings.article_body_color}
                         >
-                        <input
-                            type="text"
-                            bind:value={settings.article_body_color}
-                            placeholder="#text-primary"
-                        >
+                        <input type="text" bind:value={settings.article_body_color}>
                     </div>
                 </div>
 
                 <div class="form-group">
-                    <label for="bg-color">Article Background</label>
+                    <label for="bg-color">Article Body BG</label>
                     <div class="color-input-wrap">
                         <input type="color" id="bg-color" bind:value={settings.article_bg_color}>
-                        <input
-                            type="text"
-                            bind:value={settings.article_bg_color}
-                            placeholder="#bg-reading"
-                        >
+                        <input type="text" bind:value={settings.article_bg_color}>
                     </div>
                 </div>
+
+                <hr>
 
                 <div class="form-group">
                     <label for="log-level">Log Level</label>
@@ -391,6 +369,11 @@ select {
     align-items: center;
 }
 
+.form-group input[type="text"]#title-font,
+.form-group input[type="text"]#body-font {
+    cursor: pointer;
+}
+
 .checkbox-wrap input[type="checkbox"] {
     width: 16px;
     height: 16px;
@@ -426,6 +409,12 @@ select {
     flex: 0 0 auto;
 }
 
+hr {
+    border: none;
+    border-top: 1px solid var(--border-color);
+    margin: 0.5rem 0;
+}
+
 .color-input-wrap input[type="text"] {
     flex: 1;
     padding: 8px;
@@ -436,45 +425,5 @@ select {
     box-sizing: border-box;
     font-family: monospace;
     font-size: 0.8rem;
-}
-
-.font-input-wrap {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    flex: 1;
-}
-
-.font-input-wrap input {
-    flex: 1;
-    padding: 8px;
-    border: 1px solid var(--border-color);
-    background: var(--bg-app);
-    color: var(--text-primary);
-    border-radius: 4px;
-    box-sizing: border-box;
-    min-width: 120px;
-}
-
-.font-pick-btn {
-    width: 32px;
-    height: 32px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border: 1px solid var(--border-color);
-    background: var(--bg-app);
-    color: var(--text-secondary);
-    border-radius: 4px;
-    cursor: pointer;
-    flex-shrink: 0;
-    font-size: 0.85rem;
-    font-weight: 700;
-    line-height: 1;
-}
-
-.font-pick-btn:hover {
-    background: var(--bg-hover);
-    color: var(--text-primary);
 }
 </style>
