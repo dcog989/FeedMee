@@ -11,7 +11,7 @@ $effect(() => {
     selectedFolderId = null;
     try {
         navigator.clipboard.readText().then((text) => {
-            if (/^https?:\/\/.+/.test(text.trim())) {
+            if (newFeedUrl === '' && /^https?:\/\/.+/.test(text.trim())) {
                 newFeedUrl = text.trim();
             }
         });
@@ -25,10 +25,8 @@ function closeDialog() {
 }
 
 function submitAddFeed() {
-    if (newFeedUrl && newFeedUrl.trim().length > 0) {
-        appState.addFeed(newFeedUrl.trim(), selectedFolderId);
-        closeDialog();
-    }
+    appState.addFeed(newFeedUrl.trim(), selectedFolderId);
+    closeDialog();
 }
 
 function handleImport() {
@@ -37,7 +35,7 @@ function handleImport() {
 }
 
 function onKeyDown(e: KeyboardEvent) {
-    if (e.key === 'Enter') {
+    if (e.key === 'Enter' && hasContent) {
         submitAddFeed();
     } else if (e.key === 'Escape') {
         closeDialog();
