@@ -1,4 +1,4 @@
-# FeedMee Guidelines
+# AGENTS.md
 
 FeedMee is a desktop RSS / Atom news feed reader with a clean, minimal style. It aims for fast performance, minimal resource usage.
 
