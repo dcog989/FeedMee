@@ -3,8 +3,10 @@ import { appState } from '$lib/store.svelte';
 
 let newFeedUrl = $state('');
 let selectedFolderId = $state<number | null>(null);
+let hasContent = $derived(newFeedUrl.trim().length > 0);
 
 $effect(() => {
+    if (!appState.showAddDialog) return;
     newFeedUrl = '';
     selectedFolderId = null;
     try {
@@ -60,7 +62,9 @@ function focusOnMount(node: HTMLElement) {
                 onkeydown={onKeyDown}
                 use:focusOnMount
             >
-            <button type="button" class="primary" onclick={submitAddFeed}>Add Feed</button>
+            <button type="button" class="primary" disabled={!hasContent} onclick={submitAddFeed}>
+                Add Feed
+            </button>
         </div>
 
         <div class="form-group">
@@ -144,6 +148,13 @@ button.primary {
 
 button.primary:hover {
     opacity: 0.9;
+}
+
+button.primary:disabled {
+    background-color: var(--bg-hover, #555);
+    color: var(--text-secondary, #999);
+    cursor: not-allowed;
+    opacity: 0.6;
 }
 
 button.secondary {

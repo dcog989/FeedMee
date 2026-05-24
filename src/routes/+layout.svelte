@@ -14,12 +14,16 @@ function disableContextMenu(e: MouseEvent) {
 $effect(() => {
     const root = document.documentElement;
 
-    if (appState.theme === 'system') {
-        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-        root.setAttribute('data-theme', prefersDark ? 'dark' : 'light');
-    } else {
+    if (appState.theme !== 'system') {
         root.setAttribute('data-theme', appState.theme);
+        return;
     }
+
+    const mq = window.matchMedia('(prefers-color-scheme: dark)');
+    const apply = () => root.setAttribute('data-theme', mq.matches ? 'dark' : 'light');
+    apply();
+    mq.addEventListener('change', apply);
+    return () => mq.removeEventListener('change', apply);
 });
 
 $effect(() => {

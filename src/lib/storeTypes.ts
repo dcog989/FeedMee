@@ -73,7 +73,7 @@ export interface AppState {
     openSettings(): void;
     closeSettings(): void;
     saveSettings(newSettings: AppSettings, closeModal?: boolean): Promise<void>;
-    confirm(message: string, onConfirm: () => void): void;
+    confirm(message: string, onConfirm: () => void | Promise<void>): void;
     alert(message: string): void;
     closeModal(): void;
 }

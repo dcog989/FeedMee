@@ -37,6 +37,24 @@ fn migrations() -> Migrations<'static> {
             );
             INSERT OR IGNORE INTO folders (id, name) VALUES (1, 'Uncategorized');",
         ),
+        // v2: FTS5 index for fast full-text search across title, author, summary
+        M::up(
+            "CREATE VIRTUAL TABLE IF NOT EXISTS articles_fts USING fts5(
+                title, author, summary,
+                content='articles', content_rowid='id'
+            );
+            INSERT INTO articles_fts(rowid, title, author, summary)
+                SELECT id, title, COALESCE(author,''), COALESCE(summary,'')
+                FROM articles;
+            CREATE TRIGGER articles_ai AFTER INSERT ON articles BEGIN
+                INSERT INTO articles_fts(rowid, title, author, summary)
+                    VALUES (new.id, new.title, COALESCE(new.author,''), COALESCE(new.summary,''));
+            END;
+            CREATE TRIGGER articles_ad AFTER DELETE ON articles BEGIN
+                INSERT INTO articles_fts(articles_fts, rowid, title, author, summary)
+                    VALUES ('delete', old.id, old.title, COALESCE(old.author,''), COALESCE(old.summary,''));
+            END;",
+        ),
     ])
 }
 
@@ -206,14 +224,6 @@ fn map_articles(
     .collect::<Result<Vec<Article>>>()
 }
 
-pub fn get_feed_url(conn: &Connection, feed_id: i64) -> Result<String> {
-    conn.query_row(
-        "SELECT url FROM feeds WHERE id = ?1",
-        params![feed_id],
-        |r| r.get(0),
-    )
-}
-
 pub fn get_feed_unread_count(conn: &Connection, feed_id: i64) -> Result<i64> {
     conn.query_row(
         "SELECT COUNT(*) FROM articles WHERE feed_id = ?1 AND is_read = 0",
@@ -275,14 +285,6 @@ pub fn update_feed_error(conn: &Connection, feed_id: i64, has_error: bool) -> Re
     Ok(())
 }
 
-pub fn update_feed_content_hash(conn: &Connection, feed_id: i64, content_hash: &str) -> Result<()> {
-    conn.execute(
-        "UPDATE feeds SET content_hash = ?1 WHERE id = ?2",
-        params![content_hash, feed_id],
-    )?;
-    Ok(())
-}
-
 pub fn insert_article(conn: &Connection, article: &Article) -> Result<usize> {
     let inserted = conn.execute(
         "INSERT OR IGNORE INTO articles (feed_id, title, author, summary, url, timestamp, is_read, is_saved)
@@ -298,10 +300,6 @@ pub fn set_article_read(conn: &Connection, article_id: i64, is_read: bool) -> Re
         params![is_read, article_id],
     )?;
     Ok(())
-}
-
-pub fn mark_article_read(conn: &Connection, article_id: i64) -> Result<()> {
-    set_article_read(conn, article_id, true)
 }
 
 pub fn mark_feed_read(conn: &Connection, feed_id: i64) -> Result<()> {
@@ -386,13 +384,14 @@ pub fn search_articles(
     sort_asc: bool,
 ) -> Result<Vec<Article>> {
     let order = if sort_asc { "ASC" } else { "DESC" };
-    let pattern = format!("%{}%", query);
     let sql = format!(
-        "SELECT id, feed_id, title, author, summary, url, timestamp, is_read, is_saved
-         FROM articles WHERE title LIKE ?1
-         ORDER BY timestamp {} LIMIT ?2 OFFSET ?3",
+        "SELECT a.id, a.feed_id, a.title, a.author, a.summary, a.url, a.timestamp, a.is_read, a.is_saved
+         FROM articles_fts
+         JOIN articles a ON articles_fts.rowid = a.id
+         WHERE articles_fts MATCH ?1
+         ORDER BY a.timestamp {} LIMIT ?2 OFFSET ?3",
         order
     );
     let mut stmt = conn.prepare(&sql)?;
-    map_articles(&mut stmt, params![pattern, limit as i64, offset as i64])
+    map_articles(&mut stmt, params![query, limit as i64, offset as i64])
 }

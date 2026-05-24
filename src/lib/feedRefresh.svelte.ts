@@ -14,9 +14,7 @@ export function createFeedRefresher(state: AppState) {
             await invoke('refresh_feed', { feedId });
             state.lastRefreshed.set(feedId, Date.now());
             saveLastRefreshed();
-            const unreadCount = await invoke<number>('get_feed_unread_count', {
-                feedId,
-            });
+            const unreadCount = await invoke<number>('get_feed_unread_count', { feedId });
             for (const folder of state.folders) {
                 const feed = folder.feeds.find((f) => f.id === feedId);
                 if (feed) {
@@ -27,6 +25,7 @@ export function createFeedRefresher(state: AppState) {
         } catch (e) {
             console.error(`Failed to refresh feed ${feedId}:`, e);
         } finally {
+            // Remove from updating set — this is the single place that does it
             const newSet = new Set(state.updatingFeedIds);
             newSet.delete(feedId);
             state.updatingFeedIds = newSet;
@@ -41,9 +40,9 @@ export function createFeedRefresher(state: AppState) {
 
         state.isRefreshingFeeds = true;
 
-        const newSet = new Set(state.updatingFeedIds);
-        for (const f of staleFeeds) newSet.add(f.id);
-        state.updatingFeedIds = newSet;
+        const addSet = new Set(state.updatingFeedIds);
+        for (const f of staleFeeds) addSet.add(f.id);
+        state.updatingFeedIds = addSet;
 
         let index = 0;
         const worker = async () => {
@@ -60,7 +59,7 @@ export function createFeedRefresher(state: AppState) {
         try {
             await Promise.all(workers);
             await state.refreshFolders();
-            if (state.selectedFeedId || state.selectedFolderId) {
+            if (state.selectedFeedId !== null || state.selectedFolderId !== null) {
                 await state.reloadCurrentArticleList();
             }
         } catch (e) {
@@ -74,17 +73,13 @@ export function createFeedRefresher(state: AppState) {
     async function requestRefreshFeed(feedId: number) {
         if (state.isFeedFresh(feedId)) return;
 
-        const newSet = new Set(state.updatingFeedIds);
-        newSet.add(feedId);
-        state.updatingFeedIds = newSet;
+        // Mark as updating before kicking off the refresh.
+        // performSingleFeedRefresh's finally block is the single place that removes it.
+        const addSet = new Set(state.updatingFeedIds);
+        addSet.add(feedId);
+        state.updatingFeedIds = addSet;
 
-        try {
-            await performSingleFeedRefresh(feedId);
-        } finally {
-            const endSet = new Set(state.updatingFeedIds);
-            endSet.delete(feedId);
-            state.updatingFeedIds = endSet;
-        }
+        await performSingleFeedRefresh(feedId);
 
         if (state.selectedFeedId === feedId) {
             await state.reloadCurrentArticleList();
@@ -98,9 +93,9 @@ export function createFeedRefresher(state: AppState) {
         const staleFeeds = folder.feeds.filter((f) => !state.isFeedFresh(f.id));
         if (staleFeeds.length === 0) return;
 
-        const newSet = new Set(state.updatingFeedIds);
-        for (const f of staleFeeds) newSet.add(f.id);
-        state.updatingFeedIds = newSet;
+        const addSet = new Set(state.updatingFeedIds);
+        for (const f of staleFeeds) addSet.add(f.id);
+        state.updatingFeedIds = addSet;
 
         let index = 0;
         const worker = async () => {

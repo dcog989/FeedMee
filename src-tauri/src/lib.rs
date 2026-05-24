@@ -181,7 +181,7 @@ pub fn run() {
             commands::get_latest_articles,
             commands::get_saved_articles,
             commands::get_app_settings,
-            commands::save_app_settings, // Added
+            commands::save_app_settings,
             commands::get_shortcuts,
             commands::save_shortcuts,
             commands::create_folder,
@@ -192,7 +192,6 @@ pub fn run() {
             commands::export_opml,
             commands::write_file,
             commands::refresh_feed,
-            commands::refresh_all_feeds,
             commands::add_feed,
             commands::rename_folder,
             commands::rename_feed,

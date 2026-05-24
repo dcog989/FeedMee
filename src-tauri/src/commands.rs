@@ -271,6 +271,14 @@ pub async fn import_opml(path: String, state: State<'_, AppState>) -> Result<(),
     Ok(())
 }
 
+fn xml_escape(s: &str) -> String {
+    s.replace('&', "&amp;")
+        .replace('<', "&lt;")
+        .replace('>', "&gt;")
+        .replace('"', "&quot;")
+        .replace('\'', "&apos;")
+}
+
 #[tauri::command]
 pub async fn export_opml(state: State<'_, AppState>) -> Result<String, String> {
     let folders = {
@@ -288,15 +296,13 @@ pub async fn export_opml(state: State<'_, AppState>) -> Result<String, String> {
         if folder.feeds.is_empty() {
             continue;
         }
-        let escaped_name = folder.name.replace("\"", "&quot;");
-        writeln!(&mut opml, "    <outline text=\"{}\">", escaped_name).unwrap();
+        writeln!(&mut opml, "    <outline text=\"{}\">", xml_escape(&folder.name)).unwrap();
         for feed in &folder.feeds {
-            let escaped_feed_name = feed.name.replace("\"", "&quot;");
-            let escaped_url = feed.url.replace("\"", "&quot;");
             writeln!(
                 &mut opml,
                 "      <outline type=\"rss\" text=\"{}\" xmlUrl=\"{}\" />",
-                escaped_feed_name, escaped_url
+                xml_escape(&feed.name),
+                xml_escape(&feed.url)
             )
             .unwrap();
         }

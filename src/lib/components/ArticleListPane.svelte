@@ -153,13 +153,21 @@ function handleKeydown(e: KeyboardEvent, article: Article) {
             {/if}
         {:else if appState.isLoadingArticles}
             <div class="loading">Loading articles...</div>
-        {:else if appState.selectedFeedId}
+        {:else if appState.selectedFeedId === FEED_ID_LATEST}
+            <div class="empty-state">
+                <p>No recent articles.</p>
+            </div>
+        {:else if appState.selectedFeedId === FEED_ID_SAVED}
+            <div class="empty-state">
+                <p>No saved articles.</p>
+            </div>
+        {:else if appState.selectedFeedId !== null}
             <div class="empty-state">
                 <p>No articles in this feed.</p>
             </div>
-        {:else if appState.selectedFolderId}
+        {:else if appState.selectedFolderId !== null}
             <div class="empty-state">
-                <p>No unread articles in this folder.</p>
+                <p>No articles in this folder.</p>
             </div>
         {:else}
             <div class="empty-state">

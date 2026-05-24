@@ -71,6 +71,7 @@ class AppStateImpl {
     private refresh: ReturnType<typeof createFeedRefresher>;
     private feedOps: ReturnType<typeof createFeedActions>;
     private articleOps: ReturnType<typeof createArticleActions>;
+    private autoRefreshTimer: number | null = null;
 
     constructor() {
         this.refresh = createFeedRefresher(this);
@@ -292,20 +293,30 @@ class AppStateImpl {
         try {
             await invoke('save_app_settings', { newSettings });
             this.settings = newSettings;
+            if (this.autoRefreshTimer !== null) {
+                clearInterval(this.autoRefreshTimer);
+                this.autoRefreshTimer = null;
+            }
+            if (newSettings.auto_update_interval_minutes > 0) {
+                const intervalMs = newSettings.auto_update_interval_minutes * 60 * 1000;
+                this.autoRefreshTimer = setInterval(() => this.refreshAllFeeds(), intervalMs);
+            }
             if (closeModal) this.closeSettings();
         } catch (e) {
             this.alert(`Failed to save settings: ${e}`);
         }
     }
 
-    confirm(message: string, onConfirm: () => void) {
+    confirm(message: string, onConfirm: () => void | Promise<void>) {
         this.modalState = {
             isOpen: true,
             type: 'confirm',
             message,
             onConfirm: () => {
-                onConfirm();
                 this.modalState.isOpen = false;
+                Promise.resolve(onConfirm()).catch((e) =>
+                    console.error('confirm callback failed:', e),
+                );
             },
         };
     }
@@ -381,7 +392,7 @@ class AppStateImpl {
             this.settings = s;
             if (this.settings.auto_update_interval_minutes > 0) {
                 const intervalMs = this.settings.auto_update_interval_minutes * 60 * 1000;
-                setInterval(() => this.refreshAllFeeds(), intervalMs);
+                this.autoRefreshTimer = setInterval(() => this.refreshAllFeeds(), intervalMs);
             }
         } catch (e) {
             console.error('Failed to load settings', e);

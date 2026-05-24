@@ -58,7 +58,7 @@ export function createArticleActions(state: AppState) {
 
     async function loadMore() {
         if (
-            (!state.selectedFeedId && !state.selectedFolderId) ||
+            (state.selectedFeedId === null && state.selectedFolderId === null) ||
             !state.hasMore ||
             state.isLoadingArticles
         )
@@ -100,19 +100,22 @@ export function createArticleActions(state: AppState) {
     }
 
     async function toggleSaved(article: Article) {
-        const newState = !article.is_saved;
-        article.is_saved = newState;
-
-        if (newState) {
-            article.is_read = false;
-            invoke('mark_article_read', { id: article.id, read: false }).catch(() => {});
-        }
+        const newSaved = !article.is_saved;
+        const prevRead = article.is_read;
+        article.is_saved = newSaved;
 
         try {
-            await invoke('mark_article_saved', { id: article.id, isSaved: newState });
+            await invoke('mark_article_saved', { id: article.id, isSaved: newSaved });
+            if (newSaved) {
+                article.is_read = false;
+                invoke('mark_article_read', { id: article.id, read: false }).catch(() => {
+                    article.is_read = prevRead;
+                });
+            }
             await state.refreshFolders();
         } catch {
-            article.is_saved = !newState;
+            article.is_saved = !newSaved;
+            article.is_read = prevRead;
         }
     }
 
