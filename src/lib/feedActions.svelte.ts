@@ -8,9 +8,15 @@ export function createFeedActions(state: AppState) {
             if (state.selectedFeedId === -1) {
                 await invoke('mark_all_read', { targetType: 'global', id: 0 });
             } else if (state.selectedFeedId && state.selectedFeedId > 0) {
-                await invoke('mark_all_read', { targetType: 'feed', id: state.selectedFeedId });
+                await invoke('mark_all_read', {
+                    targetType: 'feed',
+                    id: state.selectedFeedId,
+                });
             } else if (state.selectedFolderId) {
-                await invoke('mark_all_read', { targetType: 'folder', id: state.selectedFolderId });
+                await invoke('mark_all_read', {
+                    targetType: 'folder',
+                    id: state.selectedFolderId,
+                });
             } else {
                 return;
             }

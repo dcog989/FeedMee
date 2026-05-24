@@ -1,104 +1,104 @@
 <script lang="ts">
-    import { appState, FEED_ID_LATEST, FEED_ID_SAVED } from '$lib/store.svelte';
-    import { getCurrentWindow } from '@tauri-apps/api/window';
-    import { Rss, Search, Settings, Clock, Bookmark } from 'lucide-svelte';
-    import AboutModal from './AboutModal.svelte';
+import { getCurrentWindow } from '@tauri-apps/api/window';
+import { Bookmark, Clock, Rss, Search, Settings } from 'lucide-svelte';
+import { appState, FEED_ID_LATEST, FEED_ID_SAVED } from '$lib/store.svelte';
+import AboutModal from './AboutModal.svelte';
 
-    const appWindow = getCurrentWindow();
+const appWindow = getCurrentWindow();
 
-    let showAbout = $state(false);
-    let newFeedUrl = $state('');
-    let selectedFolderId = $state<number | null>(null);
+let showAbout = $state(false);
+let newFeedUrl = $state('');
+let selectedFolderId = $state<number | null>(null);
 
-    function minimize() {
-        appWindow.minimize();
-    }
+function minimize() {
+    appWindow.minimize();
+}
 
-    let isMaximized = $state(false);
+let isMaximized = $state(false);
 
-    $effect(() => {
+$effect(() => {
+    appWindow.isMaximized().then((v) => (isMaximized = v));
+    const unlisten = appWindow.onResized(() => {
         appWindow.isMaximized().then((v) => (isMaximized = v));
-        const unlisten = appWindow.onResized(() => {
-            appWindow.isMaximized().then((v) => (isMaximized = v));
-        });
-        return () => {
-            unlisten.then((fn) => fn());
-        };
     });
+    return () => {
+        unlisten.then((fn) => fn());
+    };
+});
 
-    async function maximize() {
-        if (isMaximized) {
-            await appWindow.unmaximize();
-        } else {
-            await appWindow.maximize();
+async function maximize() {
+    if (isMaximized) {
+        await appWindow.unmaximize();
+    } else {
+        await appWindow.maximize();
+    }
+}
+
+function close() {
+    appWindow.close();
+}
+
+async function openAddDialog() {
+    newFeedUrl = '';
+    selectedFolderId = null;
+    try {
+        const text = await navigator.clipboard.readText();
+        if (/^https?:\/\/.+/.test(text.trim())) {
+            newFeedUrl = text.trim();
         }
+    } catch {
+        /* clipboard access denied */
     }
+    appState.showAddDialog = true;
+}
 
-    function close() {
-        appWindow.close();
-    }
+function closeAddDialog() {
+    appState.showAddDialog = false;
+}
 
-    async function openAddDialog() {
-        newFeedUrl = '';
-        selectedFolderId = null;
-        try {
-            const text = await navigator.clipboard.readText();
-            if (/^https?:\/\/.+/.test(text.trim())) {
-                newFeedUrl = text.trim();
-            }
-        } catch {
-            /* clipboard access denied */
-        }
-        appState.showAddDialog = true;
-    }
-
-    function closeAddDialog() {
+function submitAddFeed() {
+    if (newFeedUrl.trim().length > 0) {
+        appState.addFeed(newFeedUrl.trim(), selectedFolderId);
         appState.showAddDialog = false;
     }
+}
 
-    function submitAddFeed() {
-        if (newFeedUrl.trim().length > 0) {
-            appState.addFeed(newFeedUrl.trim(), selectedFolderId);
-            appState.showAddDialog = false;
-        }
+function handleImport() {
+    appState.importOpml();
+    appState.showAddDialog = false;
+}
+
+function handleExport() {
+    appState.exportOpml();
+    appState.showAddDialog = false;
+}
+
+function onKeyDown(e: KeyboardEvent) {
+    if (e.key === 'Enter') {
+        submitAddFeed();
+    } else if (e.key === 'Escape') {
+        closeAddDialog();
     }
+}
 
-    function handleImport() {
-        appState.importOpml();
-        appState.showAddDialog = false;
+function focusOnMount(node: HTMLElement) {
+    node.focus();
+}
+
+let searchDebounce: ReturnType<typeof setTimeout> | null = null;
+
+function onSearchInput(e: Event) {
+    const query = (e.target as HTMLInputElement).value;
+    if (searchDebounce) clearTimeout(searchDebounce);
+    searchDebounce = setTimeout(() => appState.setSearch(query), 250);
+}
+
+function onSearchKeyDown(e: KeyboardEvent) {
+    if (e.key === 'Escape') {
+        appState.setSearch('');
+        (e.target as HTMLInputElement).blur();
     }
-
-    function handleExport() {
-        appState.exportOpml();
-        appState.showAddDialog = false;
-    }
-
-    function onKeyDown(e: KeyboardEvent) {
-        if (e.key === 'Enter') {
-            submitAddFeed();
-        } else if (e.key === 'Escape') {
-            closeAddDialog();
-        }
-    }
-
-    function focusOnMount(node: HTMLElement) {
-        node.focus();
-    }
-
-    let searchDebounce: ReturnType<typeof setTimeout> | null = null;
-
-    function onSearchInput(e: Event) {
-        const query = (e.target as HTMLInputElement).value;
-        if (searchDebounce) clearTimeout(searchDebounce);
-        searchDebounce = setTimeout(() => appState.setSearch(query), 250);
-    }
-
-    function onSearchKeyDown(e: KeyboardEvent) {
-        if (e.key === 'Escape') {
-            appState.setSearch('');
-            (e.target as HTMLInputElement).blur();
-        }
-    }
+}
 </script>
 
 <header class="titlebar" data-tauri-drag-region>
@@ -112,42 +112,51 @@
             onclick={() => (showAbout = true)}
             role="button"
             tabindex="-1"
-            title="About FeedMee">
-            <img src="/feedmee.png" alt="" class="app-icon" />
+            title="About FeedMee"
+        >
+            <img src="/feedmee.png" alt="" class="app-icon">
             <span class="app-title">FeedMee</span>
         </span>
 
         <button
+            type="button"
             class="tool-btn"
             onclick={() => appState.openSettings()}
             title="Settings"
-            aria-label="Settings">
+            aria-label="Settings"
+        >
             <Settings size={18} />
         </button>
 
         <button
+            type="button"
             class="tool-btn"
             onclick={openAddDialog}
             title="Add Content"
-            aria-label="Add Content">
+            aria-label="Add Content"
+        >
             <Rss size={18} />
         </button>
 
         <button
+            type="button"
             class="tool-btn"
             class:active={appState.selectedFeedId === FEED_ID_LATEST}
             onclick={() => appState.selectFeed(FEED_ID_LATEST)}
             title="Latest"
-            aria-label="Latest">
+            aria-label="Latest"
+        >
             <Clock size={18} />
         </button>
 
         <button
+            type="button"
             class="tool-btn"
             class:active={appState.selectedFeedId === FEED_ID_SAVED}
             onclick={() => appState.selectFeed(FEED_ID_SAVED)}
             title="Read Later"
-            aria-label="Read Later">
+            aria-label="Read Later"
+        >
             <Bookmark size={18} />
         </button>
     </div>
@@ -161,22 +170,26 @@
                 aria-label="Search articles"
                 oninput={onSearchInput}
                 onkeydown={onSearchKeyDown}
-                value={appState.searchQuery} />
+                value={appState.searchQuery}
+            >
         </div>
     </div>
 
     <div class="right-section">
         <div class="window-controls">
-            <button class="win-btn" onclick={minimize} aria-label="Minimize">
-                <svg width="10" height="10" viewBox="0 0 10 10"
-                    ><path d="M1,5 L9,5" stroke="currentColor" stroke-width="1" /></svg>
+            <button type="button" class="win-btn" onclick={minimize} aria-label="Minimize">
+                <svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true">
+                    <path d="M1,5 L9,5" stroke="currentColor" stroke-width="1" />
+                </svg>
             </button>
             <button
+                type="button"
                 class="win-btn"
                 onclick={maximize}
-                aria-label={isMaximized ? 'Restore' : 'Maximize'}>
+                aria-label={isMaximized ? 'Restore' : 'Maximize'}
+            >
                 {#if isMaximized}
-                    <svg width="10" height="10" viewBox="0 0 10 10">
+                    <svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true">
                         <rect
                             x="3"
                             y="1"
@@ -184,7 +197,8 @@
                             height="6"
                             stroke="currentColor"
                             stroke-width="1"
-                            fill="none" />
+                            fill="none"
+                        />
                         <rect
                             x="1"
                             y="3"
@@ -192,23 +206,27 @@
                             height="6"
                             stroke="currentColor"
                             stroke-width="1"
-                            fill="var(--bg-pane)" />
+                            fill="var(--bg-pane)"
+                        />
                     </svg>
                 {:else}
-                    <svg width="10" height="10" viewBox="0 0 10 10"
-                        ><rect
+                    <svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true">
+                        <rect
                             x="2"
                             y="2"
                             width="6"
                             height="6"
                             stroke="currentColor"
                             stroke-width="1"
-                            fill="none" /></svg>
+                            fill="none"
+                        />
+                    </svg>
                 {/if}
             </button>
-            <button class="win-btn close" onclick={close} aria-label="Close">
-                <svg width="10" height="10" viewBox="0 0 10 10"
-                    ><path d="M2,2 L8,8 M8,2 L2,8" stroke="currentColor" stroke-width="1" /></svg>
+            <button type="button" class="win-btn close" onclick={close} aria-label="Close">
+                <svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true">
+                    <path d="M2,2 L8,8 M8,2 L2,8" stroke="currentColor" stroke-width="1" />
+                </svg>
             </button>
         </div>
     </div>
@@ -229,8 +247,9 @@
                     bind:value={newFeedUrl}
                     placeholder="Enter RSS Feed URL"
                     onkeydown={onKeyDown}
-                    use:focusOnMount />
-                <button class="primary" onclick={submitAddFeed}>Add Feed</button>
+                    use:focusOnMount
+                >
+                <button type="button" class="primary" onclick={submitAddFeed}>Add Feed</button>
             </div>
 
             <div class="form-group">
@@ -247,268 +266,250 @@
                 <span>OR</span>
             </div>
 
-            <button class="secondary" onclick={handleImport}>Import OPML File</button>
-            <button class="secondary" onclick={handleExport}>Export OPML File</button>
+            <button type="button" class="secondary" onclick={handleImport}>Import OPML File</button>
+            <button type="button" class="secondary" onclick={handleExport}>Export OPML File</button>
         </div>
     </div>
 {/if}
 
 <style>
-    .app-brand {
-        display: flex;
-        align-items: center;
-        cursor: pointer;
-        border-radius: 4px;
-        padding: 2px 4px;
-        -webkit-app-region: no-drag;
-    }
+.app-brand {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    border-radius: 4px;
+    padding: 2px 4px;
+    -webkit-app-region: no-drag;
+}
 
-    .app-brand:hover .app-title {
-        opacity: 1;
-    }
+.app-title {
+    font-weight: 700;
+    font-size: 0.9rem;
+    color: var(--text-primary);
+    opacity: 0.8;
+    margin-right: 4px;
+}
 
-    .app-icon {
-        width: 20px;
-        height: 20px;
-        margin-right: 8px;
-    }
+.app-brand:hover .app-title {
+    opacity: 1;
+}
 
-    .titlebar {
-        height: 40px;
-        background: var(--bg-pane);
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        padding: 0;
-        user-select: none;
-        border-bottom: 1px solid var(--border-color);
-        -webkit-app-region: drag;
-    }
+.app-icon {
+    width: 20px;
+    height: 20px;
+    margin-right: 8px;
+}
 
-    .titlebar button,
-    .titlebar input,
-    .window-controls,
-    .toolbar {
-        -webkit-app-region: no-drag;
-        z-index: 20;
-        position: relative;
-    }
+.titlebar {
+    height: 40px;
+    background: var(--bg-pane);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0;
+    user-select: none;
+    border-bottom: 1px solid var(--border-color);
+    -webkit-app-region: drag;
+}
 
-    .left-section,
-    .right-section,
-    .toolbar {
-        display: flex;
-        align-items: center;
-        height: 100%;
-    }
+input {
+    background: var(--bg-app);
+    border: 1px solid var(--border-color);
+    color: var(--text-primary);
+    padding: 6px 12px;
+    border-radius: 4px;
+    font-size: 0.85rem;
+    width: 280px;
+    outline: none;
+}
 
-    .left-section {
-        padding-left: 1rem;
-        gap: 2px;
-    }
+.titlebar button,
+.titlebar input,
+.window-controls,
+.toolbar {
+    -webkit-app-region: no-drag;
+    z-index: 20;
+    position: relative;
+}
 
-    .app-title {
-        font-weight: 700;
-        font-size: 0.9rem;
-        color: var(--text-primary);
-        opacity: 0.8;
-        margin-right: 4px;
-    }
+.tool-btn {
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    background: transparent;
+    color: var(--text-secondary);
+    border-radius: 4px;
+    cursor: pointer;
+    flex-shrink: 0;
+}
 
-    .toolbar {
-        flex: 1;
-        justify-content: center;
-    }
+.tool-btn:hover {
+    background-color: var(--bg-hover);
+    color: var(--text-primary);
+}
 
-    .tool-btn {
-        width: 30px;
-        height: 30px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        border: none;
-        background: transparent;
-        color: var(--text-secondary);
-        border-radius: 4px;
-        cursor: pointer;
-        flex-shrink: 0;
-    }
+.tool-btn.active {
+    color: var(--text-primary);
+    background-color: var(--bg-selected-muted);
+}
 
-    .tool-btn:hover {
-        background-color: var(--bg-hover);
-        color: var(--text-primary);
-    }
+.search-wrapper {
+    position: relative;
+}
 
-    .tool-btn.active {
-        color: var(--text-primary);
-        background-color: var(--bg-selected-muted);
-    }
+:global(.search-icon) {
+    color: var(--text-secondary);
+}
 
-    .search-wrapper {
-        position: relative;
-    }
+input:focus {
+    border-color: var(--bg-selected);
+}
 
-    :global(.search-icon) {
-        color: var(--text-secondary);
-    }
+.right-section {
+    padding-right: 0;
+}
 
-    input {
-        background: var(--bg-app);
-        border: 1px solid var(--border-color);
-        color: var(--text-primary);
-        padding: 6px 12px;
-        border-radius: 4px;
-        font-size: 0.85rem;
-        width: 280px;
-        outline: none;
-    }
+.window-controls {
+    display: flex;
+    height: 100%;
+}
 
-    input:focus {
-        border-color: var(--bg-selected);
-    }
+.win-btn {
+    width: 46px;
+    height: 100%;
+    border: none;
+    background: transparent;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: default;
+}
 
-    .right-section {
-        padding-right: 0;
-    }
+.win-btn svg {
+    width: 14px;
+    height: 14px;
+}
 
-    .window-controls {
-        display: flex;
-        height: 100%;
-    }
+.win-btn:hover {
+    background-color: var(--bg-hover);
+}
 
-    .win-btn {
-        width: 46px;
-        height: 100%;
-        border: none;
-        background: transparent;
-        color: var(--text-primary);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        cursor: default;
-    }
+.win-btn.close:hover {
+    background-color: #e81123;
+    color: white;
+}
 
-    .win-btn svg {
-        width: 14px;
-        height: 14px;
-    }
+/* Modal Styles */
+.modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+    backdrop-filter: blur(2px);
+}
 
-    .win-btn:hover {
-        background-color: var(--bg-hover);
-    }
+.modal {
+    background: var(--bg-app);
+    padding: 1.5rem;
+    border-radius: 8px;
+    width: 400px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+    border: 1px solid var(--border-color);
+}
 
-    .win-btn.close:hover {
-        background-color: #e81123;
-        color: white;
-    }
+.modal h3 {
+    margin: 0 0 1rem 0;
+    font-size: 1.1rem;
+    color: var(--text-primary);
+}
 
-    /* Modal Styles */
-    .modal-overlay {
-        position: fixed;
-        inset: 0;
-        background: rgba(0, 0, 0, 0.5);
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        z-index: 9999;
-        backdrop-filter: blur(2px);
-    }
+.input-group {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 1rem;
+}
 
-    .modal {
-        background: var(--bg-app);
-        padding: 1.5rem;
-        border-radius: 8px;
-        width: 400px;
-        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
-        border: 1px solid var(--border-color);
-    }
+.input-group input {
+    flex: 1;
+    padding: 8px 12px;
+    width: auto;
+}
 
-    .modal h3 {
-        margin: 0 0 1rem 0;
-        font-size: 1.1rem;
-        color: var(--text-primary);
-    }
+button.primary {
+    background-color: var(--bg-selected);
+    color: white;
+    border: none;
+    border-radius: 4px;
+    padding: 0 12px;
+    font-weight: 500;
+    cursor: pointer;
+}
 
-    .input-group {
-        display: flex;
-        gap: 8px;
-        margin-bottom: 1rem;
-    }
+button.primary:hover {
+    opacity: 0.9;
+}
 
-    .input-group input {
-        flex: 1;
-        padding: 8px 12px;
-        width: auto;
-    }
+button.secondary {
+    width: 100%;
+    padding: 8px;
+    background: transparent;
+    border: 1px solid var(--border-color);
+    color: var(--text-primary);
+    border-radius: 4px;
+    cursor: pointer;
+    margin-top: 8px;
+}
 
-    button.primary {
-        background-color: var(--bg-selected);
-        color: white;
-        border: none;
-        border-radius: 4px;
-        padding: 0 12px;
-        font-weight: 500;
-        cursor: pointer;
-    }
+button.secondary:hover {
+    background-color: var(--bg-hover);
+}
 
-    button.primary:hover {
-        opacity: 0.9;
-    }
+.form-group {
+    margin-bottom: 1rem;
+}
 
-    button.secondary {
-        width: 100%;
-        padding: 8px;
-        background: transparent;
-        border: 1px solid var(--border-color);
-        color: var(--text-primary);
-        border-radius: 4px;
-        cursor: pointer;
-        margin-top: 8px;
-    }
+.form-group label {
+    display: block;
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    margin-bottom: 4px;
+}
 
-    button.secondary:hover {
-        background-color: var(--bg-hover);
-    }
+.form-group select {
+    width: 100%;
+    padding: 8px;
+    background: var(--bg-app);
+    border: 1px solid var(--border-color);
+    color: var(--text-primary);
+    border-radius: 4px;
+    font-size: 0.9rem;
+    cursor: pointer;
+}
 
-    .form-group {
-        margin-bottom: 1rem;
-    }
+.divider {
+    display: flex;
+    align-items: center;
+    text-align: center;
+    margin: 1rem 0;
+    color: var(--text-secondary);
+    font-size: 0.8rem;
+}
 
-    .form-group label {
-        display: block;
-        font-size: 0.8rem;
-        color: var(--text-secondary);
-        margin-bottom: 4px;
-    }
+.divider::before,
+.divider::after {
+    content: "";
+    flex: 1;
+    border-bottom: 1px solid var(--border-color);
+}
 
-    .form-group select {
-        width: 100%;
-        padding: 8px;
-        background: var(--bg-app);
-        border: 1px solid var(--border-color);
-        color: var(--text-primary);
-        border-radius: 4px;
-        font-size: 0.9rem;
-        cursor: pointer;
-    }
-
-    .divider {
-        display: flex;
-        align-items: center;
-        text-align: center;
-        margin: 1rem 0;
-        color: var(--text-secondary);
-        font-size: 0.8rem;
-    }
-
-    .divider::before,
-    .divider::after {
-        content: '';
-        flex: 1;
-        border-bottom: 1px solid var(--border-color);
-    }
-
-    .divider span {
-        padding: 0 10px;
-    }
+.divider span {
+    padding: 0 10px;
+}
 </style>

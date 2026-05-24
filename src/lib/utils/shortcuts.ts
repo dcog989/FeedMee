@@ -83,7 +83,7 @@ export class KeyboardShortcutManager {
             if (!grouped.has(def.category)) {
                 grouped.set(def.category, []);
             }
-            grouped.get(def.category)!.push(def);
+            grouped.get(def.category)?.push(def);
         }
         return grouped;
     }

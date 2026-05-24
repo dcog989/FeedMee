@@ -1,6 +1,6 @@
-# FeedMee
+# README: FeedMee
 
-_FeedMee_ is an RSS/Atom news reader built for the desktop.
+_FeedMee_ is an RSS/Atom news reader built for the desktop, cross-platform and Linux-first.
 
 [Download from Latest Releases](https://github.com/dcog989/FeedMee/releases).
 
@@ -61,6 +61,19 @@ bun run dev
 # Build release binary
 bun run tauri build
 ```
+
+## Testing
+
+- `bun update` add / update Node libraries
+- `bun run tauri dev` - start Vite server and Rust backend Hot Module Replacement (HMR)
+- `bun run check` validate code
+- `bun run check:watch` - watch mode (keep running in a separate terminal)
+
+## Production Build
+
+Compile Rust, bundle Svelte, generate `.msi` / `.exe` installers in `src-tauri/target/release/bundle/nsis/`:
+
+- `bun run tauri build`
 
 ## Keyboard Shortcuts
 

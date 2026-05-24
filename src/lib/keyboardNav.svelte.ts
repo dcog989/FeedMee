@@ -67,7 +67,10 @@ export function registerShortcuts(state: AppState) {
                 const article = state.selectedArticle;
                 const newReadState = !article.is_read;
                 article.is_read = newReadState;
-                await invoke('mark_article_read', { id: article.id, read: newReadState });
+                await invoke('mark_article_read', {
+                    id: article.id,
+                    read: newReadState,
+                });
             }
         },
     });
@@ -80,7 +83,7 @@ export function registerShortcuts(state: AppState) {
         category: 'Feeds',
         handler: () => {
             const newSet = new Set<number>();
-            state.folders.forEach((f) => newSet.add(f.id));
+            for (const f of state.folders) newSet.add(f.id);
             state.expandedFolders = newSet;
         },
     });

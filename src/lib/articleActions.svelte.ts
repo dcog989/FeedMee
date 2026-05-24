@@ -25,7 +25,11 @@ export function createArticleActions(state: AppState) {
                 sortDesc,
             });
         } else if (state.selectedFeedId === -2) {
-            return await invoke('get_saved_articles', { limit: state.pageSize, offset, sortDesc });
+            return await invoke('get_saved_articles', {
+                limit: state.pageSize,
+                offset,
+                sortDesc,
+            });
         } else if (state.selectedFeedId) {
             return await invoke('get_articles_for_feed', {
                 feedId: state.selectedFeedId,
@@ -120,5 +124,11 @@ export function createArticleActions(state: AppState) {
         }
     }
 
-    return { reloadCurrentArticleList, loadMore, selectArticle, toggleSaved, fetchFullContent };
+    return {
+        reloadCurrentArticleList,
+        loadMore,
+        selectArticle,
+        toggleSaved,
+        fetchFullContent,
+    };
 }

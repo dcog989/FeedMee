@@ -1,15 +1,14 @@
 import { invoke } from '@tauri-apps/api/core';
+import { createArticleActions } from './articleActions.svelte';
+import { createFeedActions } from './feedActions.svelte';
+import { createFeedRefresher } from './feedRefresh.svelte';
+import { registerShortcuts, setupKeyHandler } from './keyboardNav.svelte';
+import type { AppState, SortOrder, Theme } from './storeTypes';
 import type { AppSettings, Article, Folder } from './types';
 import { shortcutManager } from './utils/shortcuts';
-import { createFeedRefresher } from './feedRefresh.svelte';
-import { createFeedActions } from './feedActions.svelte';
-import { createArticleActions } from './articleActions.svelte';
-import { registerShortcuts, setupKeyHandler } from './keyboardNav.svelte';
-import type { AppState, Theme, SortOrder } from './storeTypes';
 
 export type { AppState } from './storeTypes';
-export type { Theme, SortOrder };
-export type { Article };
+export type { Article, SortOrder, Theme };
 export const FEED_ID_LATEST = -1;
 export const FEED_ID_SAVED = -2;
 
@@ -357,15 +356,15 @@ class AppStateImpl {
         const storedSort = localStorage.getItem('sortOrder');
         const storedLastRefreshed = localStorage.getItem('lastRefreshed');
 
-        if (storedNav) this.navWidth = parseInt(storedNav);
-        if (storedList) this.listWidth = parseInt(storedList);
+        if (storedNav) this.navWidth = parseInt(storedNav, 10);
+        if (storedList) this.listWidth = parseInt(storedList, 10);
         if (storedSort === 'asc' || storedSort === 'desc') this.sortOrder = storedSort;
 
         if (storedLastRefreshed) {
             try {
                 const parsed = JSON.parse(storedLastRefreshed);
                 this.lastRefreshed = new Map(
-                    Object.entries(parsed).map(([k, v]) => [parseInt(k), v as number]),
+                    Object.entries(parsed).map(([k, v]) => [parseInt(k, 10), v as number]),
                 );
             } catch (e) {
                 console.error('Failed to parse lastRefreshed', e);

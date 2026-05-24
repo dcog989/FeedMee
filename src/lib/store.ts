@@ -33,7 +33,9 @@ class AppState {
         this.isLoadingArticles = true;
 
         try {
-            const result = await invoke<Article[]>('get_articles_for_feed', { feedId });
+            const result = await invoke<Article[]>('get_articles_for_feed', {
+                feedId,
+            });
 
             if (this.selectedFeedId === feedId) {
                 this.articles = result || [];

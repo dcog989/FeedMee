@@ -14,7 +14,9 @@ export function createFeedRefresher(state: AppState) {
             await invoke('refresh_feed', { feedId });
             state.lastRefreshed.set(feedId, Date.now());
             saveLastRefreshed();
-            const unreadCount = await invoke<number>('get_feed_unread_count', { feedId });
+            const unreadCount = await invoke<number>('get_feed_unread_count', {
+                feedId,
+            });
             for (const folder of state.folders) {
                 const feed = folder.feeds.find((f) => f.id === feedId);
                 if (feed) {
@@ -40,7 +42,7 @@ export function createFeedRefresher(state: AppState) {
         state.isRefreshingFeeds = true;
 
         const newSet = new Set(state.updatingFeedIds);
-        staleFeeds.forEach((f) => newSet.add(f.id));
+        for (const f of staleFeeds) newSet.add(f.id);
         state.updatingFeedIds = newSet;
 
         let index = 0;
@@ -97,7 +99,7 @@ export function createFeedRefresher(state: AppState) {
         if (staleFeeds.length === 0) return;
 
         const newSet = new Set(state.updatingFeedIds);
-        staleFeeds.forEach((f) => newSet.add(f.id));
+        for (const f of staleFeeds) newSet.add(f.id);
         state.updatingFeedIds = newSet;
 
         let index = 0;

@@ -1,88 +1,91 @@
 <script lang="ts">
-    import { tooltip } from '$lib/actions/tooltip.svelte';
-    import { appState } from '$lib/store.svelte';
-    import { openUrl } from '@tauri-apps/plugin-opener';
-    import DOMPurify from 'dompurify';
-    import { Bookmark, CircleAlert, ExternalLink, FileText, Tag } from 'lucide-svelte';
+import { openUrl } from '@tauri-apps/plugin-opener';
+import DOMPurify from 'dompurify';
+import { Bookmark, CircleAlert, ExternalLink, FileText, Tag } from 'lucide-svelte';
+import { tooltip } from '$lib/actions/tooltip.svelte';
+import { appState } from '$lib/store.svelte';
 
-    DOMPurify.addHook('afterSanitizeAttributes', (node: Element) => {
-        if (node.tagName === 'A' && node.hasAttribute('href')) {
-            const href = node.getAttribute('href') || '';
-            node.setAttribute('title', href);
-            node.setAttribute('target', '_blank');
-            node.setAttribute('rel', 'noopener noreferrer');
-        }
-        if (node.tagName === 'IMG') {
-            node.setAttribute('loading', 'lazy');
-        }
-    });
+DOMPurify.addHook('afterSanitizeAttributes', (node: Element) => {
+    if (node.tagName === 'A' && node.hasAttribute('href')) {
+        const href = node.getAttribute('href') || '';
+        node.setAttribute('title', href);
+        node.setAttribute('target', '_blank');
+        node.setAttribute('rel', 'noopener noreferrer');
+    }
+    if (node.tagName === 'IMG') {
+        node.setAttribute('loading', 'lazy');
+    }
+});
 
-    let fullContent = $state<string | null>(null);
-    let isLoadingFull = $state(false);
-    let loadError = $state(false);
+let fullContent = $state<string | null>(null);
+let isLoadingFull = $state(false);
+let loadError = $state(false);
 
-    let displayHtml = $derived(
-        fullContent
-            ? DOMPurify.sanitize(fullContent)
-            : appState.selectedArticle?.summary
-              ? DOMPurify.sanitize(appState.selectedArticle.summary)
-              : '',
-    );
-    let isSaved = $derived(appState.selectedArticle?.is_saved ?? false);
+let displayHtml = $derived(
+    fullContent
+        ? DOMPurify.sanitize(fullContent)
+        : appState.selectedArticle?.summary
+          ? DOMPurify.sanitize(appState.selectedArticle.summary)
+          : '',
+);
+let isSaved = $derived(appState.selectedArticle?.is_saved ?? false);
 
-    $effect(() => {
-        if (appState.selectedArticle) {
-            fullContent = null;
-            loadError = false;
-        }
-    });
-
-    async function loadFullContent() {
-        if (!appState.selectedArticle) return;
-        isLoadingFull = true;
+$effect(() => {
+    if (appState.selectedArticle) {
+        fullContent = null;
         loadError = false;
-        const content = await appState.fetchFullContent(appState.selectedArticle);
-        if (content) {
-            fullContent = stripDuplicateTitle(content, appState.selectedArticle.title);
-        } else {
-            loadError = true;
-        }
-        isLoadingFull = false;
     }
+});
 
-    function stripDuplicateTitle(html: string, articleTitle: string): string {
-        const doc = new DOMParser().parseFromString(html, 'text/html');
-        const normalize = (s: string) => s.toLowerCase().replace(/\s+/g, ' ').trim();
-        const normalizedTitle = normalize(articleTitle);
-        for (const el of doc.querySelectorAll('h1, h2')) {
-            if (normalize(el.textContent ?? '').includes(normalizedTitle.slice(0, 30))) {
-                el.remove();
-                break;
-            }
-        }
-        return doc.body.innerHTML;
+async function loadFullContent() {
+    if (!appState.selectedArticle) return;
+    isLoadingFull = true;
+    loadError = false;
+    const content = await appState.fetchFullContent(appState.selectedArticle);
+    if (content) {
+        fullContent = stripDuplicateTitle(content, appState.selectedArticle.title);
+    } else {
+        loadError = true;
     }
+    isLoadingFull = false;
+}
 
-    function formatDate(ts: number) {
-        const d = new Date(ts * 1000);
-        const datePart = d.toLocaleDateString('en-GB', {
-            day: 'numeric',
-            month: 'long',
-            year: 'numeric',
-        });
-        const timePart = d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
-        return `${datePart} / ${timePart}`;
-    }
-
-    // Intercept clicks on links
-    async function handleContentClick(e: MouseEvent) {
-        const target = e.target as HTMLElement;
-        const anchor = target.closest('a');
-        if (anchor && anchor.href) {
-            e.preventDefault();
-            await openUrl(anchor.href);
+function stripDuplicateTitle(html: string, articleTitle: string): string {
+    const doc = new DOMParser().parseFromString(html, 'text/html');
+    const normalize = (s: string) => s.toLowerCase().replace(/\s+/g, ' ').trim();
+    const normalizedTitle = normalize(articleTitle);
+    for (const el of doc.querySelectorAll('h1, h2')) {
+        if (normalize(el.textContent ?? '').includes(normalizedTitle.slice(0, 30))) {
+            el.remove();
+            break;
         }
     }
+    return doc.body.innerHTML;
+}
+
+function formatDate(ts: number) {
+    const d = new Date(ts * 1000);
+    const datePart = d.toLocaleDateString('en-GB', {
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric',
+    });
+    const timePart = d.toLocaleTimeString('en-GB', {
+        hour: '2-digit',
+        minute: '2-digit',
+    });
+    return `${datePart} / ${timePart}`;
+}
+
+// Intercept clicks on links
+async function handleContentClick(e: MouseEvent) {
+    const target = e.target as HTMLElement;
+    const anchor = target.closest('a');
+    if (anchor?.href) {
+        e.preventDefault();
+        await openUrl(anchor.href);
+    }
+}
 </script>
 
 <main class="pane">
@@ -94,11 +97,12 @@
                         href={appState.selectedArticle.url}
                         onclick={(e) => {
                             e.preventDefault();
-                            openUrl(appState.selectedArticle!.url);
+                            if (appState.selectedArticle) openUrl(appState.selectedArticle.url);
                         }}
                         rel="noopener noreferrer"
                         class="title-link"
-                        use:tooltip={appState.selectedArticle.url}>
+                        use:tooltip={appState.selectedArticle.url}
+                    >
                         {appState.selectedArticle.title}
                     </a>
                 </h1>
@@ -111,26 +115,35 @@
 
                     <div class="meta-actions">
                         <button
+                            type="button"
                             class="action-btn"
                             class:active={isSaved}
                             onclick={() =>
                                 appState.selectedArticle &&
                                 appState.toggleSaved(appState.selectedArticle)}
                             use:tooltip={'Read Later'}
-                            aria-label="Read Later">
+                            aria-label="Read Later"
+                        >
                             <Bookmark size={18} fill={isSaved ? 'currentColor' : 'none'} />
                         </button>
 
-                        <button class="action-btn" use:tooltip={'Tag'} aria-label="Tag">
+                        <button
+                            type="button"
+                            class="action-btn"
+                            use:tooltip={'Tag'}
+                            aria-label="Tag"
+                        >
                             <Tag size={18} />
                         </button>
 
                         <button
+                            type="button"
                             class="action-btn"
                             onclick={loadFullContent}
                             use:tooltip={'Load Full Content'}
                             disabled={isLoadingFull || !!fullContent}
-                            aria-label="Load Full Content">
+                            aria-label="Load Full Content"
+                        >
                             {#if isLoadingFull}
                                 <span class="spinner"></span>
                             {:else}
@@ -163,8 +176,9 @@
                     use:tooltip={appState.selectedArticle.url}
                     onclick={(e) => {
                         e.preventDefault();
-                        openUrl(appState.selectedArticle!.url);
-                    }}>
+                        if (appState.selectedArticle) openUrl(appState.selectedArticle.url);
+                    }}
+                >
                     Read original article
                     <ExternalLink size={12} />
                 </a>
@@ -173,209 +187,215 @@
     {:else}
         <div class="empty-state">
             <p class="empty-hint">Select an article to start reading</p>
-            <img src="/feedmee.png" alt="" class="empty-logo" />
+            <img src="/feedmee.png" alt="" class="empty-logo">
         </div>
     {/if}
 </main>
 
 <style>
-    .pane {
-        background-color: var(--bg-reading);
-        overflow-y: auto;
-        height: 100%;
-        padding: 2rem 3rem;
-        box-sizing: border-box;
-    }
+.pane {
+    background-color: var(--bg-reading);
+    overflow-y: auto;
+    height: 100%;
+    padding: 2rem 3rem;
+    box-sizing: border-box;
+}
 
-    .article-content {
-        max-width: 700px;
-        margin: 0 auto;
-    }
+.article-content {
+    max-width: 700px;
+    margin: 0 auto;
+}
 
-    h1 {
-        font-family: var(--font-serif);
-        font-weight: 700;
-        font-size: 2.2rem;
-        margin-bottom: 0.8rem;
-        line-height: 1.2;
-    }
+h1 {
+    font-family: var(--font-serif);
+    font-weight: 700;
+    font-size: 2.2rem;
+    margin-bottom: 0.8rem;
+    line-height: 1.2;
+}
 
-    .title-link {
-        color: var(--accent-muted);
-        text-decoration: none;
-    }
+.title-link {
+    color: var(--accent-muted);
+    text-decoration: none;
+}
 
-    .title-link:hover {
-        text-decoration: underline;
-        text-decoration-color: var(--accent-muted);
-    }
+.title-link:hover {
+    text-decoration: underline;
+    text-decoration-color: var(--accent-muted);
+}
 
-    .meta-row {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        border-bottom: 1px solid var(--border-color);
-        padding-bottom: 1rem;
-        margin-bottom: 2rem;
-        color: var(--text-secondary);
-        font-size: 0.9rem;
-    }
+.meta-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 1rem;
+    margin-bottom: 2rem;
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+}
 
-    .meta-left {
-        display: flex;
-        gap: 0.5rem;
-        align-items: center;
-    }
+.meta-left {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+}
 
-    .separator {
-        color: var(--border-color);
-    }
+.separator {
+    color: var(--border-color);
+}
 
-    .meta-actions {
-        display: flex;
-        gap: 0.5rem;
-    }
+.meta-actions {
+    display: flex;
+    gap: 0.5rem;
+}
 
-    .action-btn {
-        background: transparent;
-        border: none;
-        color: var(--text-secondary);
-        padding: 6px;
-        border-radius: 4px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        cursor: pointer;
-        transition: all 0.2s;
-    }
+.action-btn {
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    padding: 6px;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+}
 
-    .action-btn:hover {
-        background-color: var(--bg-hover);
-        color: var(--text-primary);
-    }
+.action-btn:hover {
+    background-color: var(--bg-hover);
+    color: var(--text-primary);
+}
 
-    .action-btn.active {
-        color: var(--bg-selected);
-    }
+.action-btn.active {
+    color: var(--bg-selected);
+}
 
-    .action-btn:disabled {
-        opacity: 0.5;
-        cursor: not-allowed;
-    }
+.action-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
 
-    .error-banner {
-        background-color: #ffeef0;
-        color: #d32f2f;
-        padding: 12px;
-        border-radius: 6px;
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        margin-bottom: 1.5rem;
-        font-size: 0.9rem;
-    }
+.error-banner {
+    background-color: #ffeef0;
+    color: #d32f2f;
+    padding: 12px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 1.5rem;
+    font-size: 0.9rem;
+}
 
-    :global([data-theme='dark']) .error-banner {
-        background-color: #3e1b1b;
-        color: #ff9999;
-    }
+:global([data-theme="dark"]) .error-banner {
+    background-color: #3e1b1b;
+    color: #ff9999;
+}
 
-    .summary {
-        line-height: 1.8;
-        font-size: 1.15rem;
-        font-family: var(--font-body);
-        color: var(--text-primary);
-    }
+.summary {
+    line-height: 1.8;
+    font-size: 1.15rem;
+    font-family: var(--font-body);
+    color: var(--text-primary);
+}
 
-    .summary :global(p) {
-        margin-bottom: 1.5rem;
-    }
+.summary :global(p) {
+    margin-bottom: 1.5rem;
+}
 
-    /* Force override for content that tries to set black text on dark bg */
-    .summary :global(*) {
-        color: inherit !important;
-        background-color: transparent !important;
-        max-width: 100% !important;
-    }
+/* Force override for content that tries to set black text on dark bg */
+.summary :global(*) {
+    /* biome-ignore lint/complexity/noImportantStyles: needed to override inline feed styles */
+    color: inherit !important;
+    /* biome-ignore lint/complexity/noImportantStyles: needed to override inline feed styles */
+    background-color: transparent !important;
+    /* biome-ignore lint/complexity/noImportantStyles: needed to override inline feed styles */
+    max-width: 100% !important;
+}
 
-    /* Restore link color */
-    .summary :global(a) {
-        color: #4899ec !important;
-        text-decoration: none;
-        cursor: pointer !important;
-    }
+/* Restore link color */
+.summary :global(a) {
+    /* biome-ignore lint/complexity/noImportantStyles: needed to override inline feed styles */
+    color: #4899ec !important;
+    text-decoration: none;
+    /* biome-ignore lint/complexity/noImportantStyles: needed to override inline feed styles */
+    cursor: pointer !important;
+}
 
-    .summary :global(a:hover) {
-        text-decoration: underline;
-    }
+.summary :global(a:hover) {
+    text-decoration: underline;
+}
 
-    .summary :global(img) {
-        max-width: 100%;
-        height: auto;
-        border-radius: 4px;
-        /* Don't force transparent background on images, some might need white */
-        background-color: initial !important;
-    }
+.summary :global(img) {
+    max-width: 100%;
+    height: auto;
+    border-radius: 4px;
+    /* Don't force transparent background on images, some might need white */
+    /* biome-ignore lint/complexity/noImportantStyles: needed to override inline feed styles */
+    background-color: initial !important;
+}
 
-    .article-footer {
-        margin-top: 3rem;
-        padding-top: 1.5rem;
-        border-top: 1px solid var(--border-color);
-    }
+.article-footer {
+    margin-top: 3rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--border-color);
+}
 
-    .original-link {
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-        color: var(--text-secondary);
-        text-decoration: none;
-        font-size: 0.9rem;
-        padding: 8px 12px;
-        border: 1px solid var(--border-color);
-        border-radius: 4px;
-        transition: background-color 0.2s;
-    }
+.original-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--text-secondary);
+    text-decoration: none;
+    font-size: 0.9rem;
+    padding: 8px 12px;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    transition: background-color 0.2s;
+}
 
-    .original-link:hover {
-        background-color: var(--bg-hover);
-        color: var(--text-primary);
-    }
+.original-link:hover {
+    background-color: var(--bg-hover);
+    color: var(--text-primary);
+}
 
-    .empty-state {
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        align-items: center;
-        height: 100%;
-        gap: 2rem;
-    }
+.empty-state {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    height: 100%;
+    gap: 2rem;
+}
 
-    .empty-hint {
-        color: var(--text-secondary);
-        font-size: 1rem;
-        margin: 0;
-        opacity: 0.6;
-    }
+.empty-hint {
+    color: var(--text-secondary);
+    font-size: 1rem;
+    margin: 0;
+    opacity: 0.6;
+}
 
-    .empty-logo {
-        width: min(60%, 320px);
-        opacity: 0.3;
-        user-select: none;
-        pointer-events: none;
-    }
+.empty-logo {
+    width: min(60%, 320px);
+    opacity: 0.3;
+    user-select: none;
+    pointer-events: none;
+}
 
-    .spinner {
-        width: 14px;
-        height: 14px;
-        border: 2px solid var(--text-secondary);
-        border-top-color: transparent;
-        border-radius: 50%;
-        animation: spin 1s linear infinite;
-    }
+.spinner {
+    width: 14px;
+    height: 14px;
+    border: 2px solid var(--text-secondary);
+    border-top-color: transparent;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
 
-    @keyframes spin {
-        to {
-            transform: rotate(360deg);
-        }
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
     }
+}
 </style>
