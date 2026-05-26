@@ -613,6 +613,9 @@ async fn add_website_feed(
     }
 
     if articles.is_empty() {
+        if let Ok(conn) = state.db.lock() {
+            let _ = db::delete_feed(&conn, feed_id);
+        }
         return Err(format!("No articles found on page: {}", url));
     }
 
@@ -746,7 +749,60 @@ pub async fn add_feed(
         .map_err(|e| e.to_string())?
     };
 
-    let _ = refresh_feed(id, state).await;
+    // Insert articles from the already-parsed feed data
+    let conn = state.db.lock().unwrap();
+    for entry in feed.entries {
+        let article_url = entry
+            .links
+            .iter()
+            .find(|l| l.rel.as_deref() == Some("alternate"))
+            .or(entry.links.first())
+            .map(|l| l.href.clone())
+            .unwrap_or_else(|| {
+                let key = if !entry.id.is_empty() {
+                    entry.id.clone()
+                } else {
+                    entry.title
+                        .as_ref()
+                        .map(|t| t.content.clone())
+                        .unwrap_or_default()
+                };
+                format!(
+                    "{}/#{}",
+                    final_url.trim_end_matches('/'),
+                    compute_content_hash(&key)
+                )
+            });
+
+        let article = Article {
+            id: 0,
+            feed_id: id,
+            title: entry
+                .title
+                .map(|t| t.content)
+                .unwrap_or_else(|| "No Title".to_string()),
+            author: entry
+                .authors
+                .first()
+                .map(|p| p.name.clone())
+                .unwrap_or_default(),
+            summary: entry
+                .summary
+                .map(|s| s.content)
+                .or(entry.content.map(|c| c.body.unwrap_or_default()))
+                .unwrap_or_default(),
+            url: article_url,
+            timestamp: entry
+                .published
+                .or(entry.updated)
+                .map(|d| d.timestamp())
+                .unwrap_or(0),
+            is_read: false,
+            is_saved: false,
+        };
+        let _ = db::insert_article(&conn, &article);
+    }
+    let _ = db::update_feed_error(&conn, id, false);
 
     Ok(id)
 }
