@@ -3,12 +3,20 @@ import { appState } from '$lib/store.svelte';
 
 let newFeedUrl = $state('');
 let selectedFolderId = $state<number | null>(null);
-let hasContent = $derived(newFeedUrl.trim().length > 0);
+let isSubmitting = $state(false);
+let errorMessage = $state('');
+let successMessage = $state('');
+
+let isValidUrl = $derived(/^https?:\/\/.+/.test(newFeedUrl.trim()));
+let canSubmit = $derived(isValidUrl && !isSubmitting);
 
 $effect(() => {
     if (!appState.showAddDialog) return;
     newFeedUrl = '';
     selectedFolderId = null;
+    isSubmitting = false;
+    errorMessage = '';
+    successMessage = '';
     try {
         navigator.clipboard.readText().then((text) => {
             if (newFeedUrl === '' && /^https?:\/\/.+/.test(text.trim())) {
@@ -24,9 +32,21 @@ function closeDialog() {
     appState.showAddDialog = false;
 }
 
-function submitAddFeed() {
-    appState.addFeed(newFeedUrl.trim(), selectedFolderId);
-    closeDialog();
+async function submitAddFeed() {
+    if (!canSubmit) return;
+    isSubmitting = true;
+    errorMessage = '';
+    successMessage = '';
+    try {
+        await appState.addFeed(newFeedUrl.trim(), selectedFolderId);
+        successMessage = 'Feed added successfully';
+        await new Promise((r) => setTimeout(r, 1200));
+        closeDialog();
+    } catch (e) {
+        errorMessage = String(e);
+    } finally {
+        isSubmitting = false;
+    }
 }
 
 function handleImport() {
@@ -35,7 +55,7 @@ function handleImport() {
 }
 
 function onKeyDown(e: KeyboardEvent) {
-    if (e.key === 'Enter' && hasContent) {
+    if (e.key === 'Enter' && canSubmit) {
         submitAddFeed();
     } else if (e.key === 'Escape') {
         closeDialog();
@@ -59,11 +79,24 @@ function focusOnMount(node: HTMLElement) {
                 placeholder="Enter RSS Feed URL"
                 onkeydown={onKeyDown}
                 use:focusOnMount
+                disabled={isSubmitting}
             >
-            <button type="button" class="primary" disabled={!hasContent} onclick={submitAddFeed}>
-                Add Feed
+            <button type="button" class="primary" disabled={!canSubmit} onclick={submitAddFeed}>
+                {#if successMessage}
+                    Added!
+                {:else if isSubmitting}
+                    Adding Feed...
+                {:else}
+                    Add Feed
+                {/if}
             </button>
         </div>
+
+        {#if successMessage}
+            <div class="success-message">{successMessage}</div>
+        {:else if errorMessage}
+            <div class="error-message">{errorMessage}</div>
+        {/if}
 
         <div class="form-group">
             <label for="folder-select">Add to folder</label>
@@ -189,6 +222,25 @@ button.secondary:hover {
     border-radius: 4px;
     font-size: 0.9rem;
     cursor: pointer;
+}
+
+.success-message {
+    color: #2ecc71;
+    font-size: 0.85rem;
+    margin-bottom: 0.75rem;
+    padding: 6px 10px;
+    background: rgba(46, 204, 113, 0.1);
+    border-radius: 4px;
+}
+
+.error-message {
+    color: var(--text-danger, #e74c3c);
+    font-size: 0.85rem;
+    margin-bottom: 0.75rem;
+    padding: 6px 10px;
+    background: rgba(231, 76, 60, 0.1);
+    border-radius: 4px;
+    word-break: break-word;
 }
 
 .divider {

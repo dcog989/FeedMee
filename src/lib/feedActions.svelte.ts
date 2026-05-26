@@ -32,8 +32,6 @@ export function createFeedActions(state: AppState) {
         try {
             await invoke('add_feed', { url, folderId });
             await state.refreshFolders();
-        } catch (e) {
-            state.alert(`Error adding feed: ${e}`);
         } finally {
             state.isLoadingArticles = false;
         }
