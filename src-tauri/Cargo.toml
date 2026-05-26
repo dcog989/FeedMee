@@ -13,7 +13,6 @@ crate-type = ["staticlib", "cdylib", "rlib"]
 tauri-build = { version = "2.6.2", features = [] }
 
 [dependencies]
-chrono = "0.4"
 feed-rs = "2.3"
 log = "0.4"
 opml = "1.1"
@@ -30,9 +29,9 @@ tauri-plugin-dialog = "2.7"
 tauri-plugin-fs = "2.5"
 tauri-plugin-opener = "2.5"
 tauri-plugin-updater = "2"
+tauri-plugin-window-state = "2.4"
 toml = "1.1"
 url = "2.5"
-tauri-plugin-window-state = "2.4"
 
 [target.'cfg(target_os = "linux")'.dependencies]
 gtk = "0.18"

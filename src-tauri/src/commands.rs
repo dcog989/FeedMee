@@ -487,7 +487,10 @@ fn scrape_articles_from_page(html: &str, page_url: &str) -> Vec<Article> {
         Err(_) => return vec![],
     };
 
-    let now = chrono::Utc::now().timestamp();
+    let now = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap()
+        .as_secs() as i64;
     let mut seen = std::collections::HashSet::new();
     let mut articles = Vec::new();
 
