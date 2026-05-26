@@ -9,7 +9,8 @@ function openAddDialog() {
 }
 
 let initialized = false;
-let dragExpandTimeout: ReturnType<typeof setTimeout> | null = null;
+let expandTimeout: ReturnType<typeof setTimeout> | null = null;
+let expandTargetId: number | null = null;
 
 // Context Menu State
 let cmVisible = $state(false);
@@ -74,21 +75,52 @@ function collapseAll() {
 }
 
 // --- Drag to Expand Logic ---
-function handleExpandHover(folderId: number) {
-    if (!appState.expandedFolders.has(folderId)) {
-        if (dragExpandTimeout) clearTimeout(dragExpandTimeout);
-        dragExpandTimeout = window.setTimeout(() => {
-            const newSet = new Set(appState.expandedFolders);
-            newSet.add(folderId);
-            appState.expandedFolders = newSet;
-        }, 600);
+function handleNavDragOver(e: DragEvent) {
+    e.preventDefault();
+
+    const el = document.elementFromPoint(e.clientX, e.clientY);
+    if (!el) return;
+
+    const folderEl = el.closest('[data-folder-id]') as HTMLElement | null;
+    if (folderEl) {
+        const folderId = parseInt(folderEl.dataset.folderId ?? '', 10);
+        if (Number.isNaN(folderId)) return;
+
+        if (expandTargetId !== folderId) {
+            if (expandTimeout) {
+                clearTimeout(expandTimeout);
+                expandTimeout = null;
+            }
+            expandTargetId = folderId;
+        }
+
+        if (!appState.expandedFolders.has(folderId) && !expandTimeout) {
+            expandTimeout = setTimeout(() => {
+                const newSet = new Set(appState.expandedFolders);
+                newSet.add(folderId);
+                appState.expandedFolders = newSet;
+                expandTimeout = null;
+                expandTargetId = null;
+            }, 600);
+        }
+    } else {
+        if (expandTimeout) {
+            clearTimeout(expandTimeout);
+            expandTimeout = null;
+        }
+        expandTargetId = null;
     }
 }
 
-function onDragLeavePane() {
-    if (dragExpandTimeout) {
-        clearTimeout(dragExpandTimeout);
-        dragExpandTimeout = null;
+function onDragLeavePane(e: DragEvent) {
+    const nav = e.currentTarget as HTMLElement;
+    const related = e.relatedTarget as Node;
+    if (!nav.contains(related)) {
+        if (expandTimeout) {
+            clearTimeout(expandTimeout);
+            expandTimeout = null;
+        }
+        expandTargetId = null;
     }
 }
 
@@ -152,6 +184,7 @@ function cmCreateFolder() {
 <nav
     class="pane"
     oncontextmenu={(e) => handleContextMenu(e, 'root', 0)}
+    ondragover={handleNavDragOver}
     ondragleave={onDragLeavePane}
 >
     <NavToolbar onExpandAll={expandAll} onCollapseAll={collapseAll} />
@@ -166,7 +199,6 @@ function cmCreateFolder() {
                     toggleFolder(folder.id);
                 }}
                 onContextMenu={handleContextMenu}
-                onExpandHover={handleExpandHover}
                 onFeedsChange={(folderId, feeds) => {
                     const f = appState.folders.find((x) => x.id === folderId);
                     if (f) f.feeds = feeds;

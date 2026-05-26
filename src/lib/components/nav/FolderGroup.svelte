@@ -1,21 +1,117 @@
 <script lang="ts">
 import { ChevronRight, RefreshCcwDot, RefreshCw, X } from 'lucide-svelte';
 import { flip } from 'svelte/animate';
-import { type DndEvent, dndzone, type Item, TRIGGERS } from 'svelte-dnd-action';
 import { tooltip } from '$lib/actions/tooltip.svelte';
 import { appState } from '$lib/store.svelte';
 import type { Feed, Folder } from '$lib/types';
 
-let { folder, isExpanded, onToggle, onContextMenu, onExpandHover, onFeedsChange } = $props<{
+let { folder, isExpanded, onToggle, onContextMenu, onFeedsChange } = $props<{
     folder: Folder;
     isExpanded: boolean;
     onToggle: (e: MouseEvent) => void;
     onContextMenu: (e: MouseEvent, type: 'folder' | 'feed', id: number, name?: string) => void;
-    onExpandHover: (id: number) => void;
     onFeedsChange: (folderId: number, feeds: Feed[]) => void;
 }>();
 
 const FLIP_DURATION = 200;
+
+// --- Native DnD State ---
+let dropIndex = $state<number | null>(null);
+
+// --- Native DnD Handlers ---
+function handleDragStart(e: DragEvent, feedId: number, feedName: string) {
+    const dt = e.dataTransfer;
+    if (!dt) return;
+    dt.effectAllowed = 'move';
+    dt.setData('text/plain', JSON.stringify({ feedId, folderId: folder.id }));
+
+    const root = document.documentElement;
+    const style = getComputedStyle(root);
+    const bg = style.getPropertyValue('--bg-content').trim() || '#333';
+    const text = style.getPropertyValue('--text-primary').trim() || '#fff';
+    const pink = style.getPropertyValue('--bg-selected').trim() || '#ec4899';
+
+    const img = document.createElement('div');
+    img.textContent = feedName;
+    img.style.cssText = `padding:2px 8px;background:${bg};color:${text};border:1px solid ${pink};border-radius:4px;font:8px/1.3 sans-serif;white-space:nowrap;position:absolute;top:-1000px;left:-1000px;pointer-events:none;`;
+    document.body.appendChild(img);
+    dt.setDragImage(img, 0, 0);
+    requestAnimationFrame(() => document.body.removeChild(img));
+}
+
+function handleDragOver(e: DragEvent) {
+    e.preventDefault();
+    if (!isExpanded) return;
+
+    const ul = e.currentTarget as HTMLUListElement;
+    const items = Array.from(ul.children as HTMLCollectionOf<HTMLLIElement>);
+    const mouseY = e.clientY;
+
+    let idx = items.length;
+    for (let i = 0; i < items.length; i++) {
+        const rect = items[i].getBoundingClientRect();
+        if (mouseY < rect.top + rect.height / 2) {
+            idx = i;
+            break;
+        }
+    }
+    dropIndex = idx;
+}
+
+function handleDragLeaveList(e: DragEvent) {
+    const ul = e.currentTarget as HTMLUListElement;
+    const related = e.relatedTarget as Node;
+    if (!ul.contains(related)) {
+        dropIndex = null;
+    }
+}
+
+function handleDrop(e: DragEvent) {
+    e.preventDefault();
+    const dt = e.dataTransfer;
+    if (!dt) return;
+    const data = dt.getData('text/plain');
+    if (!data) return;
+
+    const { feedId, folderId: sourceFolderId } = JSON.parse(data);
+
+    const feeds = [...folder.feeds];
+    const draggedIndex = feeds.findIndex((f) => f.id === feedId);
+
+    if (draggedIndex !== -1) {
+        const [item] = feeds.splice(draggedIndex, 1);
+        const idx =
+            dropIndex !== null
+                ? dropIndex > draggedIndex
+                    ? dropIndex - 1
+                    : dropIndex
+                : feeds.length;
+        feeds.splice(idx, 0, item);
+        onFeedsChange(folder.id, feeds);
+    } else {
+        const allFeeds = appState.folders.flatMap((f) => f.feeds);
+        const feed = allFeeds.find((f) => f.id === feedId);
+        if (!feed) return;
+        const idx = dropIndex ?? feeds.length;
+        feeds.splice(idx, 0, feed);
+        onFeedsChange(folder.id, feeds);
+    }
+
+    if (sourceFolderId !== folder.id) {
+        appState.moveFeed(feedId, folder.id);
+    }
+
+    dropIndex = null;
+}
+
+function handleDragEnd() {
+    dropIndex = null;
+}
+
+function onHeaderDblClick(e: MouseEvent) {
+    e.stopPropagation();
+    onToggle(e);
+}
 
 function getFavicon(url: string) {
     try {
@@ -29,33 +125,16 @@ function getFavicon(url: string) {
 function getFolderUnreadCount(feeds: Feed[]): number {
     return feeds.reduce((acc, feed) => acc + feed.unread_count, 0);
 }
-
-// --- DnD List Handlers ---
-function handleDndConsider(e: CustomEvent<DndEvent<Item>>) {
-    const feeds = e.detail.items as Feed[];
-    onFeedsChange(folder.id, feeds);
-    if (!isExpanded && e.detail.info.trigger === TRIGGERS.DRAGGED_ENTERED) {
-        onExpandHover(folder.id);
-    }
-}
-
-function handleDndFinalize(e: CustomEvent<DndEvent<Item>>) {
-    const items = e.detail.items as Feed[];
-    onFeedsChange(folder.id, items);
-    items.forEach((feed) => {
-        if (feed.folder_id !== folder.id) {
-            appState.moveFeed(feed.id, folder.id);
-        }
-    });
-}
-
-function onHeaderDblClick(e: MouseEvent) {
-    e.stopPropagation();
-    onToggle(e);
-}
 </script>
 
-<div class="folder" role="treeitem" aria-expanded={isExpanded} aria-selected="false" tabindex="-1">
+<div
+    class="folder"
+    role="treeitem"
+    aria-expanded={isExpanded}
+    aria-selected="false"
+    tabindex="-1"
+    data-folder-id={folder.id}
+>
     <!-- svelte-ignore a11y_click_events_have_key_events -->
     <!-- svelte-ignore a11y_no_static_element_interactions -->
     <div
@@ -116,20 +195,20 @@ function onHeaderDblClick(e: MouseEvent) {
     <ul
         class="feed-list"
         class:collapsed={!isExpanded}
-        use:dndzone={{
-            items: folder.feeds,
-            flipDurationMs: FLIP_DURATION,
-            type: 'feed',
-            dropTargetStyle: isExpanded
-                ? { outline: '2px solid var(--bg-selected)', borderRadius: '4px' }
-                : {},
-        }}
-        onconsider={handleDndConsider}
-        onfinalize={handleDndFinalize}
+        class:drag-over={dropIndex !== null && isExpanded}
+        ondragover={handleDragOver}
+        ondragleave={handleDragLeaveList}
+        ondrop={handleDrop}
     >
         {#if isExpanded}
-            {#each folder.feeds as feed (feed.id)}
-                <li animate:flip={{ duration: FLIP_DURATION }}>
+            {#each folder.feeds as feed, i (feed.id)}
+                <li
+                    animate:flip={{ duration: FLIP_DURATION }}
+                    draggable={true}
+                    ondragstart={(e) => handleDragStart(e, feed.id, feed.name)}
+                    ondragend={handleDragEnd}
+                    class:drop-before={dropIndex === i}
+                >
                     <!-- svelte-ignore a11y_no_static_element_interactions -->
                     <!-- svelte-ignore a11y_click_events_have_key_events -->
                     <div
@@ -281,16 +360,33 @@ function onHeaderDblClick(e: MouseEvent) {
 }
 
 .feed-list.collapsed {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 32px;
+    height: 0;
     min-height: 0;
     overflow: hidden;
     padding: 0;
+    margin: 0;
     opacity: 0;
+}
+
+.feed-list.drag-over {
+    outline: 2px solid var(--bg-selected);
+    border-radius: 4px;
+}
+
+li.drop-before::before {
+    content: "";
+    position: absolute;
+    top: -1px;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: var(--bg-selected);
+    z-index: 5;
     pointer-events: none;
+}
+
+.feed-list li {
+    position: relative;
 }
 
 .feed-item {
