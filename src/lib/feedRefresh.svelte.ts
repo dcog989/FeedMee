@@ -4,9 +4,15 @@ import type { AppState } from './storeTypes';
 const REFRESH_CONCURRENCY = 5;
 
 export function createFeedRefresher(state: AppState) {
+    let saveTimer: ReturnType<typeof setTimeout> | null = null;
+
     function saveLastRefreshed() {
-        const obj = Object.fromEntries(state.lastRefreshed);
-        localStorage.setItem('lastRefreshed', JSON.stringify(obj));
+        if (saveTimer) clearTimeout(saveTimer);
+        saveTimer = setTimeout(() => {
+            const obj = Object.fromEntries(state.lastRefreshed);
+            localStorage.setItem('lastRefreshed', JSON.stringify(obj));
+            saveTimer = null;
+        }, 50);
     }
 
     async function performSingleFeedRefresh(feedId: number) {
