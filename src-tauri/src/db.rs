@@ -104,8 +104,14 @@ pub fn get_folders_with_feeds(conn: &Connection) -> Result<Vec<Folder>> {
 
     let mut feed_stmt = conn.prepare(
         "SELECT f.id, f.name, f.url, f.folder_id, f.has_error, f.feed_type,
-                (SELECT COUNT(*) FROM articles a WHERE a.feed_id = f.id AND a.is_read = 0) AS unread_count
+                COALESCE(uc.unread_count, 0) AS unread_count
          FROM feeds f
+         LEFT JOIN (
+             SELECT feed_id, COUNT(*) AS unread_count
+             FROM articles
+             WHERE is_read = 0
+             GROUP BY feed_id
+         ) uc ON f.id = uc.feed_id
          WHERE f.folder_id = ?1
          ORDER BY f.name COLLATE NOCASE",
     )?;
