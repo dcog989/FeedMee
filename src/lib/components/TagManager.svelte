@@ -28,10 +28,12 @@ async function loadAll() {
 
 function syncHasTags() {
     const has = activeTagIds.size > 0;
-    const article = appState.articles.find((a) => a.id === articleId);
-    if (article) article.has_tags = has;
+    const idx = appState.articles.findIndex((a) => a.id === articleId);
+    if (idx !== -1) {
+        appState.articles[idx] = { ...appState.articles[idx], has_tags: has };
+    }
     if (appState.selectedArticle?.id === articleId) {
-        appState.selectedArticle.has_tags = has;
+        appState.selectedArticle = { ...appState.selectedArticle, has_tags: has };
     }
 }
 
