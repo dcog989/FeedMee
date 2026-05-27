@@ -22,13 +22,8 @@ let isLoadingFull = $state(false);
 let loadError = $state(false);
 let loadGen = $state(0);
 
-let displayHtml = $derived(
-    fullContent
-        ? DOMPurify.sanitize(fullContent)
-        : appState.selectedArticle?.summary
-          ? DOMPurify.sanitize(appState.selectedArticle.summary)
-          : '',
-);
+let rawHtml = $derived(fullContent ?? appState.selectedArticle?.summary ?? '');
+let displayHtml = $derived(rawHtml ? DOMPurify.sanitize(rawHtml) : '');
 let isSaved = $derived(appState.selectedArticle?.is_saved ?? false);
 
 $effect(() => {
