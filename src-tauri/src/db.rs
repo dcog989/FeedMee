@@ -503,3 +503,9 @@ pub fn remove_tag_from_article(conn: &Connection, article_id: i64, tag_id: i64) 
     )?;
     Ok(())
 }
+
+pub fn delete_tag(conn: &Connection, tag_id: i64) -> Result<()> {
+    conn.execute("DELETE FROM article_tags WHERE tag_id = ?1", params![tag_id])?;
+    conn.execute("DELETE FROM tags WHERE id = ?1", params![tag_id])?;
+    Ok(())
+}

@@ -1,49 +1,91 @@
 <script lang="ts">
-import { Tags, X } from 'lucide-svelte';
+import { Check, Plus, Tags, Trash2, X } from 'lucide-svelte';
+import { tooltip } from '$lib/actions/tooltip.svelte';
 import { appState } from '$lib/store.svelte';
 import type { Tag } from '$lib/types';
 
 let { articleId, onClose }: { articleId: number; onClose: () => void } = $props();
 
-let tags = $state<Tag[]>([]);
+let allTags = $state<Tag[]>([]);
+let activeTagIds = $state<Set<number>>(new Set());
 let inputValue = $state('');
 let loading = $state(true);
 
 $effect(() => {
-    loadTags();
+    loadAll();
 });
 
-async function loadTags() {
+async function loadAll() {
     loading = true;
-    tags = await appState.getArticleTags(articleId);
+    const [tags, articleTags] = await Promise.all([
+        appState.getAllTags(),
+        appState.getArticleTags(articleId),
+    ]);
+    allTags = tags;
+    activeTagIds = new Set(articleTags.map((t) => t.id));
     loading = false;
 }
 
-async function addTag() {
+function syncHasTags() {
+    const has = activeTagIds.size > 0;
+    const article = appState.articles.find((a) => a.id === articleId);
+    if (article) article.has_tags = has;
+    if (appState.selectedArticle?.id === articleId) {
+        appState.selectedArticle.has_tags = has;
+    }
+}
+
+async function toggleTag(tag: Tag) {
+    if (activeTagIds.has(tag.id)) {
+        try {
+            await appState.removeTag(articleId, tag.id);
+            activeTagIds = new Set([...activeTagIds].filter((id) => id !== tag.id));
+            syncHasTags();
+        } catch (e) {
+            console.error('Failed to remove tag:', e);
+        }
+    } else {
+        try {
+            await appState.addTag(articleId, tag.name);
+            activeTagIds = new Set([...activeTagIds, tag.id]);
+            syncHasTags();
+        } catch (e) {
+            console.error('Failed to add tag:', e);
+        }
+    }
+}
+
+async function addNewTag() {
     const name = inputValue.trim();
     if (!name) return;
     try {
         const tag = await appState.addTag(articleId, name);
-        tags = [...tags, tag];
+        allTags = [...allTags, tag];
+        activeTagIds = new Set([...activeTagIds, tag.id]);
         inputValue = '';
+        syncHasTags();
     } catch (e) {
         console.error('Failed to add tag:', e);
     }
 }
 
-async function removeTag(tagId: number) {
+async function deleteTagPermanently(tag: Tag) {
+    const confirmed = confirm(`Delete tag "${tag.name}" from all articles?`);
+    if (!confirmed) return;
     try {
-        await appState.removeTag(articleId, tagId);
-        tags = tags.filter((t) => t.id !== tagId);
+        await appState.deleteTag(tag.id);
+        activeTagIds = new Set([...activeTagIds].filter((id) => id !== tag.id));
+        allTags = allTags.filter((t) => t.id !== tag.id);
+        syncHasTags();
     } catch (e) {
-        console.error('Failed to remove tag:', e);
+        console.error('Failed to delete tag:', e);
     }
 }
 
 function onInputKeydown(e: KeyboardEvent) {
     if (e.key === 'Enter') {
         e.preventDefault();
-        addTag();
+        addNewTag();
     } else if (e.key === 'Escape') {
         onClose();
     }
@@ -61,36 +103,50 @@ function onInputKeydown(e: KeyboardEvent) {
     <div class="tag-body">
         {#if loading}
             <span class="loading-text">Loading...</span>
-        {:else if tags.length === 0}
-            <span class="empty-text">No tags</span>
+        {:else if allTags.length === 0}
+            <span class="empty-text">No tags yet — create one below</span>
         {:else}
             <div class="tag-list">
-                {#each tags as tag (tag.id)}
-                    <span class="tag-chip" style="--tag-color: {tag.color}">
+                {#each allTags as tag (tag.id)}
+                    <button
+                        type="button"
+                        class="tag-row"
+                        class:active={activeTagIds.has(tag.id)}
+                        onclick={() => toggleTag(tag)}
+                        aria-label="{activeTagIds.has(tag.id) ? 'Remove' : 'Add'} tag {tag.name}"
+                    >
+                        <span class="tag-check">
+                            {#if activeTagIds.has(tag.id)}
+                                <Check size={12} />
+                            {/if}
+                        </span>
                         <span class="tag-dot" style="background: {tag.color}"></span>
                         <span class="tag-name">{tag.name}</span>
-                        <button
-                            type="button"
-                            class="tag-remove"
-                            onclick={() => removeTag(tag.id)}
-                            aria-label="Remove {tag.name}"
+                        <span
+                            class="tag-delete"
+                            role="button"
+                            tabindex="-1"
+                            onclick={(e) => { e.stopPropagation(); deleteTagPermanently(tag); }}
+                            onkeydown={() => {}}
+                            use:tooltip={'Delete tag'}
+                            aria-label="Delete tag {tag.name}"
                         >
-                            <X size={10} />
-                        </button>
-                    </span>
+                            <Trash2 size={11} />
+                        </span>
+                    </button>
                 {/each}
             </div>
         {/if}
         <div class="tag-input-row">
             <input
                 type="text"
-                placeholder="Add tag..."
+                placeholder="New tag name..."
                 bind:value={inputValue}
                 onkeydown={onInputKeydown}
                 aria-label="New tag name"
             >
-            <button type="button" class="add-btn" onclick={addTag} disabled={!inputValue.trim()}>
-                Add
+            <button type="button" class="add-btn" onclick={addNewTag} disabled={!inputValue.trim()}>
+                <Plus size={14} />
             </button>
         </div>
     </div>
@@ -136,61 +192,98 @@ function onInputKeydown(e: KeyboardEvent) {
 }
 
 .tag-body {
-    padding: 8px 10px;
+    padding: 4px 6px;
+    max-height: 240px;
+    overflow-y: auto;
 }
 
 .tag-list {
     display: flex;
-    flex-wrap: wrap;
-    gap: 4px;
-    margin-bottom: 8px;
+    flex-direction: column;
+    gap: 1px;
+    margin-bottom: 6px;
 }
 
-.tag-chip {
-    display: inline-flex;
+.tag-row {
+    display: flex;
     align-items: center;
-    gap: 4px;
-    background: color-mix(in srgb, var(--tag-color) 15%, var(--bg-app));
-    border: 1px solid color-mix(in srgb, var(--tag-color) 30%, var(--border-color));
+    gap: 6px;
+    width: 100%;
+    background: transparent;
+    border: none;
+    color: var(--text-primary);
+    padding: 5px 6px;
     border-radius: 4px;
-    padding: 2px 6px;
-    font-size: 0.75rem;
+    cursor: pointer;
+    text-align: left;
+    font-size: 0.8rem;
+}
+
+.tag-row:hover {
+    background: var(--bg-hover);
+}
+
+.tag-row.active {
+    background: color-mix(in srgb, var(--bg-selected) 12%, transparent);
+}
+
+.tag-check {
+    width: 16px;
+    height: 16px;
+    border-radius: 3px;
+    border: 1.5px solid var(--border-color);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    color: var(--bg-selected);
+}
+
+.tag-row.active .tag-check {
+    background: var(--bg-selected);
+    border-color: var(--bg-selected);
+    color: white;
 }
 
 .tag-dot {
-    width: 6px;
-    height: 6px;
+    width: 7px;
+    height: 7px;
     border-radius: 50%;
     flex-shrink: 0;
 }
 
 .tag-name {
-    color: var(--text-primary);
-    max-width: 120px;
+    flex: 1;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
 }
 
-.tag-remove {
-    background: transparent;
-    border: none;
-    color: var(--text-secondary);
-    cursor: pointer;
-    padding: 0;
+.tag-delete {
     display: flex;
-    opacity: 0.5;
-    transition: opacity 0.15s;
+    align-items: center;
+    color: var(--text-secondary);
+    opacity: 0;
+    transition: opacity 0.12s;
+    padding: 2px;
+    border-radius: 3px;
 }
 
-.tag-remove:hover {
+.tag-row:hover .tag-delete {
+    opacity: 0.5;
+}
+
+.tag-row:hover .tag-delete:hover {
     opacity: 1;
-    color: var(--text-primary);
+    background: var(--bg-hover);
+    color: #e74c3c;
 }
 
 .tag-input-row {
     display: flex;
     gap: 4px;
+    border-top: 1px solid var(--border-color);
+    padding-top: 6px;
 }
 
 .tag-input-row input {
@@ -210,14 +303,16 @@ function onInputKeydown(e: KeyboardEvent) {
 }
 
 .add-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
     background: transparent;
     border: 1px solid var(--border-color);
     color: var(--text-primary);
-    padding: 4px 8px;
+    padding: 4px;
     border-radius: 4px;
-    font-size: 0.8rem;
     cursor: pointer;
-    white-space: nowrap;
+    width: 28px;
 }
 
 .add-btn:hover:not(:disabled) {
@@ -234,6 +329,7 @@ function onInputKeydown(e: KeyboardEvent) {
     font-size: 0.8rem;
     color: var(--text-secondary);
     display: block;
-    margin-bottom: 8px;
+    margin-bottom: 6px;
+    padding: 4px 2px;
 }
 </style>

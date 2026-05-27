@@ -19,6 +19,8 @@ DOMPurify.addHook('afterSanitizeAttributes', (node: Element) => {
 });
 
 let showTagManager = $state(false);
+let tagX = $state(0);
+let tagY = $state(0);
 let fullContent = $state<string | null>(null);
 let isLoadingFull = $state(false);
 let loadError = $state(false);
@@ -119,7 +121,12 @@ async function handleContentClick(e: MouseEvent) {
                             type="button"
                             class="action-btn"
                             class:active={appState.selectedArticle?.has_tags || showTagManager}
-                            onclick={() => (showTagManager = !showTagManager)}
+                            onclick={(e) => {
+                                const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+                                tagX = rect.left;
+                                tagY = rect.bottom + 4;
+                                showTagManager = !showTagManager;
+                            }}
                             use:tooltip={'Tags'}
                             aria-label="Tags"
                         >
@@ -160,7 +167,12 @@ async function handleContentClick(e: MouseEvent) {
                 </div>
 
                 {#if showTagManager && appState.selectedArticle}
-                    <div class="tag-manager-wrap">
+                    <div
+                        class="tag-backdrop"
+                        onclick={() => { showTagManager = false; }}
+                        role="presentation"
+                    ></div>
+                    <div class="tag-popover" style="top: {tagY}px; left: {tagX}px">
                         <TagManager
                             articleId={appState.selectedArticle.id}
                             onClose={() => { showTagManager = false; }}
@@ -399,15 +411,15 @@ h1 {
     pointer-events: none;
 }
 
-.tag-manager-wrap {
-    position: relative;
+.tag-backdrop {
+    position: fixed;
+    inset: 0;
     z-index: 999;
-    margin-top: 8px;
-    margin-bottom: 8px;
 }
 
-.tag-manager-wrap :global(.tag-manager) {
-    display: inline-block;
+.tag-popover {
+    position: fixed;
+    z-index: 1000;
 }
 
 .spinner {

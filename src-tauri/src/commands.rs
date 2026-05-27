@@ -940,3 +940,9 @@ pub fn remove_tag(article_id: i64, tag_id: i64, state: State<'_, AppState>) -> R
     let conn = state.db.lock().unwrap();
     db::remove_tag_from_article(&conn, article_id, tag_id).map_err(|e| e.to_string())
 }
+
+#[tauri::command]
+pub fn delete_tag(tag_id: i64, state: State<'_, AppState>) -> Result<(), String> {
+    let conn = state.db.lock().unwrap();
+    db::delete_tag(&conn, tag_id).map_err(|e| e.to_string())
+}
