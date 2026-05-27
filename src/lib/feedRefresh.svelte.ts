@@ -65,7 +65,6 @@ export function createFeedRefresher(state: AppState) {
         } catch (e) {
             console.error('Failed to refresh all feeds:', e);
         } finally {
-            state.updatingFeedIds = new Set();
             state.isRefreshingFeeds = false;
         }
     }
