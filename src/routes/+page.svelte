@@ -112,11 +112,14 @@ function focusPane(pane: 'nav' | 'list' | 'reading') {
     background-color: var(--bg-app);
 
     /*
-		   Desktop: Use dynamic variables with Fallbacks.
-		   The fallbacks (280px, 320px) ensure the layout works immediately on load,
-		   fixing the issue where panes were not resizable until window resize.
+		   Define the default column layout in CSS so it applies immediately on
+		   first paint, before JS has mounted and set the inline --nav-w/--list-w
+		   variables. Without this, Vite dev's first-run timing gap leaves the
+		   grid with no column definition and the panes stack vertically.
 		*/
-    grid-template-columns: var(--nav-w, 280px) 4px var(--list-w, 320px) 4px 1fr;
+    --nav-w: 280px;
+    --list-w: 320px;
+    grid-template-columns: var(--nav-w) 4px var(--list-w) 4px 1fr;
     grid-template-areas: "nav resizer1 list resizer2 reading";
 }
 

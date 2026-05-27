@@ -29,4 +29,11 @@ export default defineConfig(async () => ({
             ignored: ['**/src-tauri/**'],
         },
     },
+    // 4. Force dep pre-bundling to complete before the server accepts requests.
+    //    Without this, Tauri opens the webview before Vite has finished optimizing
+    //    dependencies on a cold first run, causing stylesheets to arrive late or
+    //    empty and the three-pane layout to collapse on first `bun run dev`.
+    optimizeDeps: {
+        include: ['dompurify', 'lucide-svelte'],
+    },
 }));
