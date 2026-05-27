@@ -17,10 +17,9 @@ export function createFeedRefresher(state: AppState) {
 
     async function performSingleFeedRefresh(feedId: number) {
         try {
-            await invoke('refresh_feed', { feedId });
+            const unreadCount = await invoke<number>('refresh_feed', { feedId });
             state.lastRefreshed = new Map(state.lastRefreshed).set(feedId, Date.now());
             saveLastRefreshed();
-            const unreadCount = await invoke<number>('get_feed_unread_count', { feedId });
             for (const folder of state.folders) {
                 const feed = folder.feeds.find((f) => f.id === feedId);
                 if (feed) {

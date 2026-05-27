@@ -348,7 +348,7 @@ pub async fn get_article_content(
 }
 
 #[tauri::command]
-pub async fn refresh_feed(feed_id: i64, state: State<'_, AppState>) -> Result<usize, String> {
+pub async fn refresh_feed(feed_id: i64, state: State<'_, AppState>) -> Result<i64, String> {
     let (url, feed_type) = {
         let conn = state.db.lock().unwrap();
         let feed = db::get_feed(&conn, feed_id).map_err(|e| e.to_string())?;
@@ -369,12 +369,12 @@ pub async fn refresh_feed(feed_id: i64, state: State<'_, AppState>) -> Result<us
         let html = response.text().await.map_err(|e| e.to_string())?;
         let articles = scrape_articles_from_page(&html, &url);
         let conn = state.db.lock().unwrap();
-        let count = articles
+        let _: usize = articles
             .into_iter()
             .filter_map(|a| db::insert_article(&conn, &a).ok())
             .sum();
         let _ = db::update_feed_error(&conn, feed_id, false);
-        return Ok(count);
+        return Ok(db::get_feed_unread_count(&conn, feed_id).unwrap_or(0));
     }
 
     // Default: RSS/Atom feed handling
@@ -390,7 +390,6 @@ pub async fn refresh_feed(feed_id: i64, state: State<'_, AppState>) -> Result<us
                         feed.entries.len()
                     );
                     let conn = state.db.lock().unwrap();
-                    let mut count = 0;
                     for entry in feed.entries {
                         let article_url = entry
                             .links
@@ -443,16 +442,11 @@ pub async fn refresh_feed(feed_id: i64, state: State<'_, AppState>) -> Result<us
                             is_read: false,
                             is_saved: false,
                         };
-                        match db::insert_article(&conn, &article) {
-                            Ok(inserted) => count += inserted,
-                            Err(e) => error!(
-                                "refresh_feed: insert_article failed for url={}: {}",
-                                article.url, e
-                            ),
-                        }
+                        let _ = db::insert_article(&conn, &article);
                     }
                     let _ = db::update_feed_error(&conn, feed_id, false);
-                    Ok(count)
+                    let unread = db::get_feed_unread_count(&conn, feed_id).unwrap_or(0);
+                    return Ok(unread);
                 },
                 Err(e) => {
                     error!("refresh_feed: feed_rs parse error for {}: {}", url, e);
