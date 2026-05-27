@@ -57,6 +57,15 @@ fn migrations() -> Migrations<'static> {
                     VALUES ('delete', old.id, old.title, COALESCE(old.author,''), COALESCE(old.summary,''));
             END;",
         ),
+        // v3: Add UPDATE trigger to keep FTS5 index in sync when articles are re-fetched
+        M::up(
+            "CREATE TRIGGER articles_au AFTER UPDATE ON articles BEGIN
+                INSERT INTO articles_fts(articles_fts, rowid, title, author, summary)
+                    VALUES ('delete', old.id, old.title, COALESCE(old.author,''), COALESCE(old.summary,''));
+                INSERT INTO articles_fts(rowid, title, author, summary)
+                    VALUES (new.id, new.title, COALESCE(new.author,''), COALESCE(new.summary,''));
+            END;",
+        ),
     ])
 }
 
