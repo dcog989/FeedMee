@@ -4,7 +4,7 @@ import { createFeedActions } from './feedActions.svelte';
 import { createFeedRefresher } from './feedRefresh.svelte';
 import { registerShortcuts, setupKeyHandler } from './keyboardNav.svelte';
 import type { AppState, SortOrder, Theme } from './storeTypes';
-import type { AppSettings, Article, Folder } from './types';
+import type { AppSettings, Article, Folder, Tag } from './types';
 import { shortcutManager } from './utils/shortcuts';
 
 export type { AppState } from './storeTypes';
@@ -141,6 +141,23 @@ class AppStateImpl {
     selectArticle = (article: Article) => this.articleOps.selectArticle(article);
     toggleSaved = (article: Article) => this.articleOps.toggleSaved(article);
     fetchFullContent = (article: Article) => this.articleOps.fetchFullContent(article);
+
+    async getArticleTags(articleId: number): Promise<Tag[]> {
+        try {
+            return await invoke<Tag[]>('get_tags_for_article', { articleId });
+        } catch (e) {
+            console.error('Failed to get tags:', e);
+            return [];
+        }
+    }
+
+    async addTag(articleId: number, name: string, color = '#4899ec'): Promise<Tag> {
+        return await invoke<Tag>('add_tag', { articleId, name, color });
+    }
+
+    async removeTag(articleId: number, tagId: number): Promise<void> {
+        await invoke('remove_tag', { articleId, tagId });
+    }
 
     markAllRead = () => this.feedOps.markAllRead();
     addFeed = (url: string, folderId?: number | null) => this.feedOps.addFeed(url, folderId);

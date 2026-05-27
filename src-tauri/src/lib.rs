@@ -202,7 +202,11 @@ pub fn run() {
             commands::get_article_content,
             commands::get_feed_unread_count,
             commands::search_articles,
-            commands::pick_system_font
+            commands::pick_system_font,
+            commands::get_tags_for_article,
+            commands::get_all_tags,
+            commands::add_tag,
+            commands::remove_tag
         ])
         .run(tauri::generate_context!())
         .unwrap_or_else(|e| {

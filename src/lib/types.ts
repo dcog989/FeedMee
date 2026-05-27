@@ -23,6 +23,13 @@ export interface Article {
     timestamp: number;
     is_read: boolean;
     is_saved: boolean;
+    has_tags: boolean;
+}
+
+export interface Tag {
+    id: number;
+    name: string;
+    color: string;
 }
 
 export interface AppSettings {

@@ -1,9 +1,10 @@
 <script lang="ts">
 import { openUrl } from '@tauri-apps/plugin-opener';
 import DOMPurify from 'dompurify';
-import { Bookmark, CircleAlert, ExternalLink, FileText } from 'lucide-svelte';
+import { Bookmark, CircleAlert, ExternalLink, FileText, Tags } from 'lucide-svelte';
 import { tooltip } from '$lib/actions/tooltip.svelte';
 import { appState } from '$lib/store.svelte';
+import TagManager from './TagManager.svelte';
 
 DOMPurify.addHook('afterSanitizeAttributes', (node: Element) => {
     if (node.tagName === 'A' && node.hasAttribute('href')) {
@@ -17,6 +18,7 @@ DOMPurify.addHook('afterSanitizeAttributes', (node: Element) => {
     }
 });
 
+let showTagManager = $state(false);
 let fullContent = $state<string | null>(null);
 let isLoadingFull = $state(false);
 let loadError = $state(false);
@@ -116,6 +118,20 @@ async function handleContentClick(e: MouseEvent) {
                         <button
                             type="button"
                             class="action-btn"
+                            class:active={appState.selectedArticle?.has_tags || showTagManager}
+                            onclick={() => (showTagManager = !showTagManager)}
+                            use:tooltip={'Tags'}
+                            aria-label="Tags"
+                        >
+                            <Tags
+                                size={18}
+                                fill={appState.selectedArticle?.has_tags ? 'currentColor' : 'none'}
+                            />
+                        </button>
+
+                        <button
+                            type="button"
+                            class="action-btn"
                             class:active={isSaved}
                             onclick={() =>
                                 appState.selectedArticle &&
@@ -142,6 +158,15 @@ async function handleContentClick(e: MouseEvent) {
                         </button>
                     </div>
                 </div>
+
+                {#if showTagManager && appState.selectedArticle}
+                    <div class="tag-manager-wrap">
+                        <TagManager
+                            articleId={appState.selectedArticle.id}
+                            onClose={() => { showTagManager = false; }}
+                        />
+                    </div>
+                {/if}
             </header>
 
             {#if loadError}
@@ -372,6 +397,17 @@ h1 {
     opacity: 0.3;
     user-select: none;
     pointer-events: none;
+}
+
+.tag-manager-wrap {
+    position: relative;
+    z-index: 999;
+    margin-top: 8px;
+    margin-bottom: 8px;
+}
+
+.tag-manager-wrap :global(.tag-manager) {
+    display: inline-block;
 }
 
 .spinner {

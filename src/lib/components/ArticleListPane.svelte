@@ -1,9 +1,10 @@
 ﻿<script lang="ts">
 import { invoke } from '@tauri-apps/api/core';
-import { ArrowUpDown, Bookmark, CheckCheck, Clock, Search } from 'lucide-svelte';
+import { ArrowUpDown, Bookmark, CheckCheck, Clock, Search, Tags } from 'lucide-svelte';
 import { tooltip } from '$lib/actions/tooltip.svelte';
 import { appState, FEED_ID_LATEST, FEED_ID_SAVED } from '$lib/store.svelte';
 import type { Article } from '$lib/types';
+import TagManager from './TagManager.svelte';
 
 let listContainer: HTMLElement;
 
@@ -37,6 +38,23 @@ function handleKeydown(e: KeyboardEvent, article: Article) {
     }
 }
 
+// --- Tag Manager ---
+let tagArticleId = $state<number | null>(null);
+let tagX = $state(0);
+let tagY = $state(0);
+
+function toggleTagManager(e: MouseEvent, article: Article) {
+    e.stopPropagation();
+    if (tagArticleId === article.id) {
+        tagArticleId = null;
+    } else {
+        tagArticleId = article.id;
+        const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+        tagX = rect.left;
+        tagY = rect.bottom + 4;
+    }
+}
+
 // --- Article Context Menu ---
 let cmVisible = $state(false);
 let cmX = $state(0);
@@ -55,6 +73,10 @@ function openContextMenu(e: MouseEvent, article: Article) {
 function closeContextMenu() {
     cmVisible = false;
     cmArticle = null;
+}
+
+function closeTagManager() {
+    tagArticleId = null;
 }
 
 function cmOpenInBrowser() {
@@ -80,8 +102,7 @@ function cmToggleSaved() {
 </script>
 
 <svelte:window
-    onclick={closeContextMenu}
-    onkeydown={(e) => e.key === 'Escape' && closeContextMenu()}
+    onkeydown={(e) => { if (e.key === 'Escape') { closeContextMenu(); closeTagManager(); } }}
 />
 
 <div class="pane-wrapper">
@@ -181,6 +202,20 @@ function cmToggleSaved() {
                                     <button
                                         type="button"
                                         class="icon-btn"
+                                        class:active={article.has_tags || tagArticleId === article.id}
+                                        onclick={(e) => toggleTagManager(e, article)}
+                                        use:tooltip={'Tags'}
+                                        aria-label="Tags"
+                                    >
+                                        <Tags
+                                            size={14}
+                                            fill={article.has_tags ? 'currentColor' : 'none'}
+                                        />
+                                    </button>
+
+                                    <button
+                                        type="button"
+                                        class="icon-btn"
                                         class:active={article.is_saved}
                                         onclick={(e) => {
                                         e.stopPropagation();
@@ -228,6 +263,13 @@ function cmToggleSaved() {
         {/if}
     </section>
 </div>
+
+{#if tagArticleId !== null}
+    <div class="tag-backdrop" onclick={() => { tagArticleId = null; }} role="presentation"></div>
+    <div class="tag-popover" style="top: {tagY}px; left: {tagX}px">
+        <TagManager articleId={tagArticleId} onClose={() => { tagArticleId = null; }} />
+    </div>
+{/if}
 
 {#if cmVisible}
     <div class="context-menu" style="top: {cmY}px; left: {cmX}px" role="menu">
@@ -417,6 +459,17 @@ function cmToggleSaved() {
 .icon-btn.active {
     color: var(--bg-selected);
     opacity: 1;
+}
+
+.tag-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 999;
+}
+
+.tag-popover {
+    position: fixed;
+    z-index: 1000;
 }
 
 .search-wrapper {

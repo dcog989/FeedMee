@@ -42,11 +42,10 @@ struct Actor {
 pub fn extract_handle(url: &str) -> Option<String> {
     let url = url.trim_end_matches('/');
     let prefix = "https://bsky.app/profile/";
-    if url.starts_with(prefix) {
-        let handle = &url[prefix.len()..];
-        if !handle.is_empty() && !handle.contains('/') {
-            return Some(handle.to_string());
-        }
+    if let Some(handle) = url.strip_prefix(prefix)
+        && !handle.is_empty() && !handle.contains('/')
+    {
+        return Some(handle.to_string());
     }
     None
 }
@@ -237,6 +236,7 @@ pub async fn fetch_posts(
                 timestamp,
                 is_read: false,
                 is_saved: false,
+                has_tags: false,
             });
         }
 

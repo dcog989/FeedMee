@@ -1,4 +1,4 @@
-use crate::models::{Article, Feed, Folder};
+use crate::models::{Article, Feed, Folder, Tag};
 use log::{debug, info};
 use rusqlite::{Connection, Result, params};
 use rusqlite_migration::{M, Migrations};
@@ -65,6 +65,21 @@ fn migrations() -> Migrations<'static> {
                 INSERT INTO articles_fts(rowid, title, author, summary)
                     VALUES (new.id, new.title, COALESCE(new.author,''), COALESCE(new.summary,''));
             END;",
+        ),
+        // v4: Tags system
+        M::up(
+            "CREATE TABLE IF NOT EXISTS tags (
+                id    INTEGER PRIMARY KEY,
+                name  TEXT NOT NULL UNIQUE,
+                color TEXT NOT NULL DEFAULT '#4899ec'
+            );
+            CREATE TABLE IF NOT EXISTS article_tags (
+                article_id INTEGER NOT NULL,
+                tag_id     INTEGER NOT NULL,
+                PRIMARY KEY (article_id, tag_id),
+                FOREIGN KEY (article_id) REFERENCES articles(id) ON DELETE CASCADE,
+                FOREIGN KEY (tag_id) REFERENCES tags(id) ON DELETE CASCADE
+            );",
         ),
     ])
 }
@@ -153,7 +168,8 @@ pub fn get_articles_for_feed(
 ) -> Result<Vec<Article>> {
     let order = if sort_desc { "DESC" } else { "ASC" };
     let sql = format!(
-        "SELECT id, feed_id, title, author, summary, url, timestamp, is_read, is_saved
+        "SELECT id, feed_id, title, author, summary, url, timestamp, is_read, is_saved,
+                EXISTS (SELECT 1 FROM article_tags WHERE article_id = articles.id) AS has_tags
          FROM articles WHERE feed_id = ?1
          ORDER BY timestamp {} LIMIT ?2 OFFSET ?3",
         order
@@ -171,7 +187,8 @@ pub fn get_articles_for_folder(
 ) -> Result<Vec<Article>> {
     let order = if sort_desc { "DESC" } else { "ASC" };
     let sql = format!(
-        "SELECT a.id, a.feed_id, a.title, a.author, a.summary, a.url, a.timestamp, a.is_read, a.is_saved
+        "SELECT a.id, a.feed_id, a.title, a.author, a.summary, a.url, a.timestamp, a.is_read, a.is_saved,
+                EXISTS (SELECT 1 FROM article_tags WHERE article_id = a.id) AS has_tags
          FROM articles a
          JOIN feeds f ON a.feed_id = f.id
          WHERE f.folder_id = ?1
@@ -191,7 +208,8 @@ pub fn get_latest_articles(
 ) -> Result<Vec<Article>> {
     let order = if sort_desc { "DESC" } else { "ASC" };
     let sql = format!(
-        "SELECT id, feed_id, title, author, summary, url, timestamp, is_read, is_saved
+        "SELECT id, feed_id, title, author, summary, url, timestamp, is_read, is_saved,
+                EXISTS (SELECT 1 FROM article_tags WHERE article_id = articles.id) AS has_tags
          FROM articles WHERE timestamp > ?1
          ORDER BY timestamp {} LIMIT ?2 OFFSET ?3",
         order
@@ -211,7 +229,8 @@ pub fn get_saved_articles(
 ) -> Result<Vec<Article>> {
     let order = if sort_desc { "DESC" } else { "ASC" };
     let sql = format!(
-        "SELECT id, feed_id, title, author, summary, url, timestamp, is_read, is_saved
+        "SELECT id, feed_id, title, author, summary, url, timestamp, is_read, is_saved,
+                EXISTS (SELECT 1 FROM article_tags WHERE article_id = articles.id) AS has_tags
          FROM articles WHERE is_saved = 1
          ORDER BY timestamp {} LIMIT ?1 OFFSET ?2",
         order
@@ -235,6 +254,7 @@ fn map_articles(
             timestamp: row.get(6)?,
             is_read: row.get(7)?,
             is_saved: row.get(8)?,
+            has_tags: row.get::<_, i64>(9).unwrap_or(0) != 0,
         })
     })?
     .collect::<Result<Vec<Article>>>()
@@ -321,7 +341,7 @@ pub fn set_article_read(conn: &Connection, article_id: i64, is_read: bool) -> Re
 
 pub fn mark_feed_read(conn: &Connection, feed_id: i64) -> Result<()> {
     conn.execute(
-        "UPDATE articles SET is_read = 1 WHERE feed_id = ?1 AND is_saved = 0",
+        "UPDATE articles SET is_read = 1 WHERE feed_id = ?1 AND is_saved = 0 AND id NOT IN (SELECT article_id FROM article_tags)",
         params![feed_id],
     )?;
     Ok(())
@@ -330,14 +350,14 @@ pub fn mark_feed_read(conn: &Connection, feed_id: i64) -> Result<()> {
 pub fn mark_folder_read(conn: &Connection, folder_id: i64) -> Result<()> {
     conn.execute(
         "UPDATE articles SET is_read = 1
-         WHERE feed_id IN (SELECT id FROM feeds WHERE folder_id = ?1) AND is_saved = 0",
+         WHERE feed_id IN (SELECT id FROM feeds WHERE folder_id = ?1) AND is_saved = 0 AND id NOT IN (SELECT article_id FROM article_tags)",
         params![folder_id],
     )?;
     Ok(())
 }
 
 pub fn mark_global_read(conn: &Connection) -> Result<()> {
-    conn.execute("UPDATE articles SET is_read = 1 WHERE is_saved = 0", [])?;
+    conn.execute("UPDATE articles SET is_read = 1 WHERE is_saved = 0 AND id NOT IN (SELECT article_id FROM article_tags)", [])?;
     Ok(())
 }
 
@@ -368,7 +388,10 @@ pub fn rename_feed(conn: &Connection, id: i64, new_name: &str) -> Result<()> {
 }
 
 pub fn delete_feed(conn: &Connection, id: i64) -> Result<()> {
-    conn.execute("DELETE FROM articles WHERE feed_id = ?1", params![id])?;
+    conn.execute(
+        "DELETE FROM articles WHERE feed_id = ?1 AND id NOT IN (SELECT article_id FROM article_tags)",
+        params![id],
+    )?;
     conn.execute("DELETE FROM feeds WHERE id = ?1", params![id])?;
     Ok(())
 }
@@ -402,7 +425,8 @@ pub fn search_articles(
 ) -> Result<Vec<Article>> {
     let order = if sort_asc { "ASC" } else { "DESC" };
     let sql = format!(
-        "SELECT a.id, a.feed_id, a.title, a.author, a.summary, a.url, a.timestamp, a.is_read, a.is_saved
+        "SELECT a.id, a.feed_id, a.title, a.author, a.summary, a.url, a.timestamp, a.is_read, a.is_saved,
+                EXISTS (SELECT 1 FROM article_tags WHERE article_id = a.id) AS has_tags
          FROM articles_fts
          JOIN articles a ON articles_fts.rowid = a.id
          WHERE articles_fts MATCH ?1
@@ -411,4 +435,71 @@ pub fn search_articles(
     );
     let mut stmt = conn.prepare(&sql)?;
     map_articles(&mut stmt, params![query, limit as i64, offset as i64])
+}
+
+// --- Tag Operations ---
+
+pub fn get_tags_for_article(conn: &Connection, article_id: i64) -> Result<Vec<Tag>> {
+    let mut stmt = conn.prepare(
+        "SELECT t.id, t.name, t.color
+         FROM tags t
+         JOIN article_tags at ON t.id = at.tag_id
+         WHERE at.article_id = ?1
+         ORDER BY t.name COLLATE NOCASE",
+    )?;
+    let tags = stmt
+        .query_map(params![article_id], |row| {
+            Ok(Tag {
+                id: row.get(0)?,
+                name: row.get(1)?,
+                color: row.get(2)?,
+            })
+        })?
+        .collect::<Result<Vec<Tag>>>()?;
+    Ok(tags)
+}
+
+pub fn get_all_tags(conn: &Connection) -> Result<Vec<Tag>> {
+    let mut stmt = conn.prepare(
+        "SELECT id, name, color FROM tags ORDER BY name COLLATE NOCASE",
+    )?;
+    let tags = stmt
+        .query_map([], |row| {
+            Ok(Tag {
+                id: row.get(0)?,
+                name: row.get(1)?,
+                color: row.get(2)?,
+            })
+        })?
+        .collect::<Result<Vec<Tag>>>()?;
+    Ok(tags)
+}
+
+pub fn add_tag_to_article(conn: &Connection, article_id: i64, name: &str, color: &str) -> Result<Tag> {
+    conn.execute(
+        "INSERT OR IGNORE INTO tags (name, color) VALUES (?1, ?2)",
+        params![name, color],
+    )?;
+    let tag_id: i64 = conn.query_row(
+        "SELECT id FROM tags WHERE name = ?1",
+        params![name],
+        |r| r.get(0),
+    )?;
+    conn.execute(
+        "INSERT OR IGNORE INTO article_tags (article_id, tag_id) VALUES (?1, ?2)",
+        params![article_id, tag_id],
+    )?;
+    Ok(Tag {
+        id: tag_id,
+        name: name.to_string(),
+        color: color.to_string(),
+    })
+}
+
+pub fn remove_tag_from_article(conn: &Connection, article_id: i64, tag_id: i64) -> Result<()> {
+    conn.execute(
+        "DELETE FROM article_tags WHERE article_id = ?1 AND tag_id = ?2",
+        params![article_id, tag_id],
+    )?;
+    Ok(())
 }

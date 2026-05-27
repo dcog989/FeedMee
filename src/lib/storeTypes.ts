@@ -1,4 +1,4 @@
-import type { AppSettings, Article, Folder } from './types';
+import type { AppSettings, Article, Folder, Tag } from './types';
 
 export type Theme = 'light' | 'dark' | 'sepia' | 'system';
 export type SortOrder = 'desc' | 'asc';
@@ -80,4 +80,7 @@ export interface AppState {
     confirm(message: string, onConfirm: () => void | Promise<void>): void;
     alert(message: string): void;
     closeModal(): void;
+    getArticleTags(articleId: number): Promise<Tag[]>;
+    addTag(articleId: number, name: string, color?: string): Promise<Tag>;
+    removeTag(articleId: number, tagId: number): Promise<void>;
 }

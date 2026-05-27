@@ -1,6 +1,6 @@
 use crate::{
     AppState, db,
-    models::{Article, Folder},
+    models::{Article, Folder, Tag},
     settings::{self, AppSettings},
 };
 #[allow(unused_imports)]
@@ -269,11 +269,11 @@ pub async fn import_opml(path: String, state: State<'_, AppState>) -> Result<(),
         }
     }
 
-    if !flat_feeds.is_empty() {
-        if let Ok(default_folder_id) = db::create_folder(&conn, "Uncategorized") {
-            for (name, url) in flat_feeds {
-                let _ = db::create_feed(&conn, &name, &url, default_folder_id, "rss");
-            }
+    if !flat_feeds.is_empty()
+        && let Ok(default_folder_id) = db::create_folder(&conn, "Uncategorized")
+    {
+        for (name, url) in flat_feeds {
+            let _ = db::create_feed(&conn, &name, &url, default_folder_id, "rss");
         }
     }
     Ok(())
@@ -455,12 +455,13 @@ pub async fn refresh_feed(feed_id: i64, state: State<'_, AppState>) -> Result<i6
                                 .unwrap_or(0),
                             is_read: false,
                             is_saved: false,
+                            has_tags: false,
                         };
                         let _ = db::insert_article(&conn, &article);
                     }
                     let _ = db::update_feed_error(&conn, feed_id, false);
                     let unread = db::get_feed_unread_count(&conn, feed_id).unwrap_or(0);
-                    return Ok(unread);
+                    Ok(unread)
                 },
                 Err(e) => {
                     error!("refresh_feed: feed_rs parse error for {}: {}", url, e);
@@ -595,6 +596,7 @@ fn scrape_articles_from_page(html: &str, page_url: &str) -> Vec<Article> {
             timestamp: now,
             is_read: false,
             is_saved: false,
+            has_tags: false,
         });
     }
 
@@ -857,6 +859,7 @@ pub async fn add_feed(
                 .unwrap_or(0),
             is_read: false,
             is_saved: false,
+            has_tags: false,
         };
         let _ = db::insert_article(&conn, &article);
     }
@@ -905,4 +908,35 @@ pub fn search_articles(
 ) -> Result<Vec<crate::models::Article>, String> {
     let conn = state.db.lock().unwrap();
     db::search_articles(&conn, &query, limit, offset, sort_desc).map_err(|e| e.to_string())
+}
+
+// --- Tag Commands ---
+
+#[tauri::command]
+pub fn get_tags_for_article(article_id: i64, state: State<'_, AppState>) -> Result<Vec<Tag>, String> {
+    let conn = state.db.lock().unwrap();
+    db::get_tags_for_article(&conn, article_id).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub fn get_all_tags(state: State<'_, AppState>) -> Result<Vec<Tag>, String> {
+    let conn = state.db.lock().unwrap();
+    db::get_all_tags(&conn).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub fn add_tag(
+    article_id: i64,
+    name: String,
+    color: String,
+    state: State<'_, AppState>,
+) -> Result<Tag, String> {
+    let conn = state.db.lock().unwrap();
+    db::add_tag_to_article(&conn, article_id, &name, &color).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub fn remove_tag(article_id: i64, tag_id: i64, state: State<'_, AppState>) -> Result<(), String> {
+    let conn = state.db.lock().unwrap();
+    db::remove_tag_from_article(&conn, article_id, tag_id).map_err(|e| e.to_string())
 }
