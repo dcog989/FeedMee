@@ -178,7 +178,10 @@ function cmCreateFolder() {
 }
 </script>
 
-<svelte:window onclick={closeContextMenu} />
+<svelte:window
+    onclick={closeContextMenu}
+    onkeydown={(e) => e.key === 'Escape' && closeContextMenu()}
+/>
 
 <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
 <nav
@@ -189,7 +192,7 @@ function cmCreateFolder() {
 >
     <NavToolbar onExpandAll={expandAll} onCollapseAll={collapseAll} />
 
-    <div class="folder-list" role="tree">
+    <div class="folder-list" role="tree" onscroll={closeContextMenu}>
         {#each appState.folders as folder (folder.id)}
             <FolderGroup
                 {folder}
