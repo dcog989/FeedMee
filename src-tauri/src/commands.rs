@@ -377,6 +377,20 @@ pub async fn refresh_feed(feed_id: i64, state: State<'_, AppState>) -> Result<i6
         return Ok(db::get_feed_unread_count(&conn, feed_id).unwrap_or(0));
     }
 
+    // Bluesky feed
+    if feed_type == "bluesky" {
+        let actor = url.strip_prefix("bsky:").unwrap_or(&url);
+        let articles =
+            crate::connectors::bluesky::fetch_posts(&client, actor, feed_id).await?;
+        let conn = state.db.lock().unwrap();
+        let _: usize = articles
+            .iter()
+            .filter_map(|a| db::insert_article(&conn, a).ok())
+            .sum();
+        let _ = db::update_feed_error(&conn, feed_id, false);
+        return Ok(db::get_feed_unread_count(&conn, feed_id).unwrap_or(0));
+    }
+
     // Default: RSS/Atom feed handling
     let result = client.get(&url).send().await;
 
@@ -640,6 +654,43 @@ pub async fn add_feed(
     folder_id: Option<i64>,
     state: State<'_, AppState>,
 ) -> Result<i64, String> {
+    // Detect Bluesky profile URL
+    if let Some(handle) = crate::connectors::bluesky::extract_handle(&url) {
+        let (did, display_name) = crate::connectors::bluesky::resolve_author_info(
+            &state.http_client,
+            &handle,
+        )
+        .await?;
+
+        let feed_url = format!("bsky:{}", did);
+
+        let feed_id = {
+            let conn = state.db.lock().unwrap();
+            let target =
+                folder_id.unwrap_or_else(|| db::create_folder(&conn, "Uncategorized").unwrap_or(1));
+            db::create_feed(&conn, &display_name, &feed_url, target, "bluesky")
+                .map_err(|e| e.to_string())?;
+            conn.query_row(
+                "SELECT id FROM feeds WHERE url = ?1",
+                [&feed_url],
+                |row| row.get(0),
+            )
+            .map_err(|e| e.to_string())?
+        };
+
+        let articles =
+            crate::connectors::bluesky::fetch_posts(&state.http_client, &did, feed_id).await?;
+
+        let conn = state.db.lock().unwrap();
+        for article in &articles {
+            let _ = db::insert_article(&conn, article);
+        }
+        let _ = db::update_feed_error(&conn, feed_id, false);
+        info!("add_feed: bluesky feed_id={}, articles={}", feed_id, articles.len());
+
+        return Ok(feed_id);
+    }
+
     let client = state.http_client.clone();
     let response = client.get(&url).send().await.map_err(|e| e.to_string())?;
 

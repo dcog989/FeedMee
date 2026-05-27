@@ -81,7 +81,7 @@ function focusOnMount(node: HTMLElement) {
             <input
                 type="text"
                 bind:value={newFeedUrl}
-                placeholder="Enter RSS Feed URL"
+                placeholder="Feed URL or Bluesky profile URL"
                 onkeydown={onKeyDown}
                 use:focusOnMount
                 disabled={isSubmitting}
@@ -96,6 +96,8 @@ function focusOnMount(node: HTMLElement) {
                 {/if}
             </button>
         </div>
+
+        <div class="hint">Supports RSS/Atom feeds, websites, and Bluesky profiles</div>
 
         {#if successMessage}
             <div class="success-message">{successMessage}</div>
@@ -238,6 +240,13 @@ button.secondary:hover {
     border-radius: 4px;
     font-size: 0.9rem;
     cursor: pointer;
+}
+
+.hint {
+    font-size: 0.75rem;
+    color: var(--text-secondary, #888);
+    margin-bottom: 0.75rem;
+    padding: 0 2px;
 }
 
 .success-message {

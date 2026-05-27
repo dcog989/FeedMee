@@ -1,4 +1,5 @@
 pub mod commands;
+pub mod connectors;
 pub mod db;
 pub mod models;
 pub mod settings;
