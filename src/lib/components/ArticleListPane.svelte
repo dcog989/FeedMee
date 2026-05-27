@@ -1,4 +1,5 @@
 ﻿<script lang="ts">
+import { invoke } from '@tauri-apps/api/core';
 import { ArrowUpDown, Bookmark, CheckCheck, Clock, Search } from 'lucide-svelte';
 import { tooltip } from '$lib/actions/tooltip.svelte';
 import { appState, FEED_ID_LATEST, FEED_ID_SAVED } from '$lib/store.svelte';
@@ -35,7 +36,53 @@ function handleKeydown(e: KeyboardEvent, article: Article) {
         appState.selectArticle(article);
     }
 }
+
+// --- Article Context Menu ---
+let cmVisible = $state(false);
+let cmX = $state(0);
+let cmY = $state(0);
+let cmArticle = $state<Article | null>(null);
+
+function openContextMenu(e: MouseEvent, article: Article) {
+    e.preventDefault();
+    e.stopPropagation();
+    cmArticle = article;
+    cmX = e.clientX;
+    cmY = e.clientY;
+    cmVisible = true;
+}
+
+function closeContextMenu() {
+    cmVisible = false;
+    cmArticle = null;
+}
+
+function cmOpenInBrowser() {
+    if (cmArticle?.url) window.open(cmArticle.url, '_blank');
+    closeContextMenu();
+}
+
+function cmToggleRead() {
+    if (!cmArticle) return;
+    const newRead = !cmArticle.is_read;
+    cmArticle.is_read = newRead;
+    invoke('mark_article_read', { id: cmArticle.id, read: newRead }).catch(() => {
+        if (cmArticle) cmArticle.is_read = !newRead;
+    });
+    closeContextMenu();
+}
+
+function cmToggleSaved() {
+    if (!cmArticle) return;
+    appState.toggleSaved(cmArticle);
+    closeContextMenu();
+}
 </script>
+
+<svelte:window
+    onclick={closeContextMenu}
+    onkeydown={(e) => e.key === 'Escape' && closeContextMenu()}
+/>
 
 <div class="pane-wrapper">
     <div class="search-wrapper">
@@ -98,7 +145,11 @@ function handleKeydown(e: KeyboardEvent, article: Article) {
         </div>
     </div>
 
-    <section class="pane" bind:this={listContainer} onscroll={onScroll}>
+    <section
+        class="pane"
+        bind:this={listContainer}
+        onscroll={() => { onScroll(); closeContextMenu(); }}
+    >
         {#if appState.articles.length > 0}
             <ul class="article-list">
                 {#each appState.articles as article (article.id)}
@@ -108,6 +159,7 @@ function handleKeydown(e: KeyboardEvent, article: Article) {
                             class:selected={appState.selectedArticle?.id === article.id}
                             class:unread={!article.is_read}
                             onclick={() => appState.selectArticle(article)}
+                            oncontextmenu={(e) => openContextMenu(e, article)}
                             onkeydown={(e) => handleKeydown(e, article)}
                             role="button"
                             tabindex="0"
@@ -176,6 +228,18 @@ function handleKeydown(e: KeyboardEvent, article: Article) {
         {/if}
     </section>
 </div>
+
+{#if cmVisible}
+    <div class="context-menu" style="top: {cmY}px; left: {cmX}px" role="menu">
+        <button type="button" onclick={cmOpenInBrowser}>Open in Browser</button>
+        <button type="button" onclick={cmToggleRead}>
+            {cmArticle?.is_read ? 'Mark Unread' : 'Mark Read'}
+        </button>
+        <button type="button" onclick={cmToggleSaved}>
+            {cmArticle?.is_saved ? 'Remove Bookmark' : 'Bookmark'}
+        </button>
+    </div>
+{/if}
 
 <style>
 .pane-wrapper {
@@ -386,5 +450,33 @@ function handleKeydown(e: KeyboardEvent, article: Article) {
     transform: translateY(-50%);
     color: var(--text-secondary);
     pointer-events: none;
+}
+
+.context-menu {
+    position: fixed;
+    background: var(--bg-app);
+    border: 1px solid var(--border-color);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    border-radius: 6px;
+    padding: 4px;
+    z-index: 1000;
+    min-width: 150px;
+}
+
+.context-menu button {
+    display: block;
+    width: 100%;
+    text-align: left;
+    background: none;
+    border: none;
+    padding: 8px 12px;
+    cursor: pointer;
+    color: var(--text-primary);
+    border-radius: 4px;
+    font-size: 0.9rem;
+}
+
+.context-menu button:hover {
+    background-color: var(--bg-hover);
 }
 </style>
