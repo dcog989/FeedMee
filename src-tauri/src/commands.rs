@@ -166,7 +166,7 @@ pub fn get_articles_for_feed(
     state: State<'_, AppState>,
 ) -> Result<Vec<Article>, String> {
     let conn = state.db.lock().unwrap();
-    db::get_articles_for_feed(&conn, feed_id, limit, offset, !sort_desc).map_err(|e| e.to_string())
+    db::get_articles_for_feed(&conn, feed_id, limit, offset, sort_desc).map_err(|e| e.to_string())
 }
 
 #[tauri::command]
@@ -178,7 +178,7 @@ pub fn get_articles_for_folder(
     state: State<'_, AppState>,
 ) -> Result<Vec<Article>, String> {
     let conn = state.db.lock().unwrap();
-    db::get_articles_for_folder(&conn, folder_id, limit, offset, !sort_desc)
+    db::get_articles_for_folder(&conn, folder_id, limit, offset, sort_desc)
         .map_err(|e| e.to_string())
 }
 
@@ -191,7 +191,7 @@ pub fn get_latest_articles(
     state: State<'_, AppState>,
 ) -> Result<Vec<Article>, String> {
     let conn = state.db.lock().unwrap();
-    db::get_latest_articles(&conn, cutoff_timestamp, limit, offset, !sort_desc)
+    db::get_latest_articles(&conn, cutoff_timestamp, limit, offset, sort_desc)
         .map_err(|e| e.to_string())
 }
 
@@ -203,7 +203,7 @@ pub fn get_saved_articles(
     state: State<'_, AppState>,
 ) -> Result<Vec<Article>, String> {
     let conn = state.db.lock().unwrap();
-    db::get_saved_articles(&conn, limit, offset, !sort_desc).map_err(|e| e.to_string())
+    db::get_saved_articles(&conn, limit, offset, sort_desc).map_err(|e| e.to_string())
 }
 
 #[tauri::command]
@@ -854,5 +854,5 @@ pub fn search_articles(
     state: State<'_, AppState>,
 ) -> Result<Vec<crate::models::Article>, String> {
     let conn = state.db.lock().unwrap();
-    db::search_articles(&conn, &query, limit, offset, !sort_desc).map_err(|e| e.to_string())
+    db::search_articles(&conn, &query, limit, offset, sort_desc).map_err(|e| e.to_string())
 }

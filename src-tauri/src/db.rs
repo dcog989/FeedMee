@@ -143,9 +143,9 @@ pub fn get_articles_for_feed(
     feed_id: i64,
     limit: usize,
     offset: usize,
-    sort_asc: bool,
+    sort_desc: bool,
 ) -> Result<Vec<Article>> {
-    let order = if sort_asc { "ASC" } else { "DESC" };
+    let order = if sort_desc { "DESC" } else { "ASC" };
     let sql = format!(
         "SELECT id, feed_id, title, author, summary, url, timestamp, is_read, is_saved
          FROM articles WHERE feed_id = ?1
@@ -161,9 +161,9 @@ pub fn get_articles_for_folder(
     folder_id: i64,
     limit: usize,
     offset: usize,
-    sort_asc: bool,
+    sort_desc: bool,
 ) -> Result<Vec<Article>> {
-    let order = if sort_asc { "ASC" } else { "DESC" };
+    let order = if sort_desc { "DESC" } else { "ASC" };
     let sql = format!(
         "SELECT a.id, a.feed_id, a.title, a.author, a.summary, a.url, a.timestamp, a.is_read, a.is_saved
          FROM articles a
@@ -181,9 +181,9 @@ pub fn get_latest_articles(
     cutoff_timestamp: i64,
     limit: usize,
     offset: usize,
-    sort_asc: bool,
+    sort_desc: bool,
 ) -> Result<Vec<Article>> {
-    let order = if sort_asc { "ASC" } else { "DESC" };
+    let order = if sort_desc { "DESC" } else { "ASC" };
     let sql = format!(
         "SELECT id, feed_id, title, author, summary, url, timestamp, is_read, is_saved
          FROM articles WHERE timestamp > ?1
@@ -201,9 +201,9 @@ pub fn get_saved_articles(
     conn: &Connection,
     limit: usize,
     offset: usize,
-    sort_asc: bool,
+    sort_desc: bool,
 ) -> Result<Vec<Article>> {
-    let order = if sort_asc { "ASC" } else { "DESC" };
+    let order = if sort_desc { "DESC" } else { "ASC" };
     let sql = format!(
         "SELECT id, feed_id, title, author, summary, url, timestamp, is_read, is_saved
          FROM articles WHERE is_saved = 1
