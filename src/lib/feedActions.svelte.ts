@@ -47,16 +47,18 @@ export function createFeedActions(state: AppState) {
     }
 
     async function importOpml() {
+        const selected = await open({
+            multiple: false,
+            filters: [{ name: 'OPML Files', extensions: ['opml', 'xml'] }],
+        }).catch(() => null);
+
+        if (!selected || typeof selected !== 'string') return;
+
+        state.isLoadingArticles = true;
         try {
-            const selected = await open({
-                multiple: false,
-                filters: [{ name: 'OPML Files', extensions: ['opml', 'xml'] }],
-            });
-            if (selected && typeof selected === 'string') {
-                state.isLoadingArticles = true;
-                await invoke('import_opml', { path: selected });
-                await state.refreshFolders();
-            }
+            await invoke('import_opml', { path: selected });
+            await state.refreshFolders();
+            await state.reloadCurrentArticleList();
         } catch {
             state.alert('Failed to import OPML file.');
         } finally {
