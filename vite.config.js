@@ -33,7 +33,15 @@ export default defineConfig(async () => ({
     //    Without this, Tauri opens the webview before Vite has finished optimizing
     //    dependencies on a cold first run, causing stylesheets to arrive late or
     //    empty and the three-pane layout to collapse on first `bun run dev`.
+    //    Keep this list in sync with all bare-specifier imports on the
+    //    initial-render module graph (trace via `+page.svelte`).
     optimizeDeps: {
-        include: ['dompurify', 'lucide-svelte'],
+        include: [
+            'dompurify',
+            'lucide-svelte',
+            '@tauri-apps/api/core',
+            '@tauri-apps/plugin-opener',
+            '@tauri-apps/plugin-dialog',
+        ],
     },
 }));
