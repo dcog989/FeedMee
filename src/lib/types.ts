@@ -11,8 +11,6 @@ export interface Feed {
     folder_id: number;
     unread_count: number;
     has_error: boolean;
-    feed_type?: string;
-    content_hash?: string | null;
 }
 
 export interface Article {
@@ -29,7 +27,6 @@ export interface Article {
 
 export interface AppSettings {
     feed_refresh_debounce_minutes: number;
-    refresh_all_debounce_minutes: number;
     auto_update_interval_minutes: number;
     log_level: string;
     default_view_type: string;

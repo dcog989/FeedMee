@@ -26,7 +26,6 @@ class AppStateImpl {
 
     settings = $state<AppSettings>({
         feed_refresh_debounce_minutes: 4,
-        refresh_all_debounce_minutes: 0,
         auto_update_interval_minutes: 30,
         log_level: 'info',
         default_view_type: 'latest',
@@ -75,7 +74,6 @@ class AppStateImpl {
     private articleOps: ReturnType<typeof createArticleActions>;
     private autoRefreshTimer: ReturnType<typeof setInterval> | null = null;
     private cleanupKeyHandler: (() => void) | null = null;
-    private disposeEffectRoot: (() => void) | null = null;
 
     constructor() {
         this.refresh = createFeedRefresher(this);
@@ -94,10 +92,6 @@ class AppStateImpl {
         if (this.cleanupKeyHandler) {
             this.cleanupKeyHandler();
             this.cleanupKeyHandler = null;
-        }
-        if (this.disposeEffectRoot) {
-            this.disposeEffectRoot();
-            this.disposeEffectRoot = null;
         }
     }
 
@@ -435,12 +429,10 @@ class AppStateImpl {
         else if (viewType === 'folder' && viewId > 0) this.selectFolder(viewId);
         else if (viewType === 'feed' && viewId > 0) this.selectFeed(viewId);
 
-        this.disposeEffectRoot = $effect.root(() => {
-            $effect(() => {
-                localStorage.setItem('navWidth', this.navWidth.toString());
-                localStorage.setItem('listWidth', this.listWidth.toString());
-                localStorage.setItem('sortOrder', this.sortOrder);
-            });
+        $effect(() => {
+            localStorage.setItem('navWidth', this.navWidth.toString());
+            localStorage.setItem('listWidth', this.listWidth.toString());
+            localStorage.setItem('sortOrder', this.sortOrder);
         });
     }
 }

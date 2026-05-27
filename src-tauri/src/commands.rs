@@ -341,10 +341,10 @@ pub async fn get_article_content(
 
 #[tauri::command]
 pub async fn refresh_feed(feed_id: i64, state: State<'_, AppState>) -> Result<usize, String> {
-    let (url, feed_type, _stored_hash) = {
+    let (url, feed_type) = {
         let conn = state.db.lock().unwrap();
         let feed = db::get_feed(&conn, feed_id).map_err(|e| e.to_string())?;
-        (feed.url, feed.feed_type, feed.content_hash)
+        (feed.url, feed.feed_type)
     };
 
     let client = state.http_client.clone();

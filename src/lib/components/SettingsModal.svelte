@@ -7,7 +7,6 @@ import ShortcutsModal from './ShortcutsModal.svelte';
 
 let settings = $state<AppSettings>({
     feed_refresh_debounce_minutes: 4,
-    refresh_all_debounce_minutes: 0,
     auto_update_interval_minutes: 30,
     log_level: 'info',
     default_view_type: 'latest',

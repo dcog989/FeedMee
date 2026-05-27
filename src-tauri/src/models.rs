@@ -22,7 +22,6 @@ pub struct Feed {
     pub unread_count: i64,
     pub has_error: bool,
     pub feed_type: String,
-    pub content_hash: Option<String>,
 }
 
 #[derive(Serialize, Clone, Debug)]

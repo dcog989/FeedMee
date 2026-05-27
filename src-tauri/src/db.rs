@@ -94,7 +94,7 @@ pub fn get_folders_with_feeds(conn: &Connection) -> Result<Vec<Folder>> {
         conn.prepare("SELECT id, name FROM folders ORDER BY name COLLATE NOCASE")?;
 
     let mut feed_stmt = conn.prepare(
-        "SELECT f.id, f.name, f.url, f.folder_id, f.has_error, f.feed_type, f.content_hash,
+        "SELECT f.id, f.name, f.url, f.folder_id, f.has_error, f.feed_type,
                 (SELECT COUNT(*) FROM articles a WHERE a.feed_id = f.id AND a.is_read = 0) AS unread_count
          FROM feeds f
          WHERE f.folder_id = ?1
@@ -114,8 +114,7 @@ pub fn get_folders_with_feeds(conn: &Connection) -> Result<Vec<Folder>> {
                         folder_id: r.get(3)?,
                         has_error: r.get::<_, bool>(4).unwrap_or(false),
                         feed_type: r.get(5).unwrap_or_else(|_| "rss".to_string()),
-                        content_hash: r.get(6).unwrap_or_default(),
-                        unread_count: r.get(7)?,
+                        unread_count: r.get(6)?,
                     })
                 })
                 .and_then(|rows| rows.collect());
@@ -235,7 +234,7 @@ pub fn get_feed_unread_count(conn: &Connection, feed_id: i64) -> Result<i64> {
 }
 pub fn get_feed(conn: &Connection, feed_id: i64) -> Result<Feed> {
     conn.query_row(
-        "SELECT id, name, url, folder_id, has_error, feed_type, content_hash,
+        "SELECT id, name, url, folder_id, has_error, feed_type,
                 (SELECT COUNT(*) FROM articles a WHERE a.feed_id = feeds.id AND a.is_read = 0) AS unread_count
          FROM feeds WHERE id = ?1",
         params![feed_id],
@@ -246,8 +245,7 @@ pub fn get_feed(conn: &Connection, feed_id: i64) -> Result<Feed> {
             folder_id: r.get(3)?,
             has_error: r.get::<_, bool>(4).unwrap_or(false),
             feed_type: r.get(5).unwrap_or_else(|_| "rss".to_string()),
-            content_hash: r.get(6).unwrap_or_default(),
-            unread_count: r.get(7)?,
+            unread_count: r.get(6)?,
         }),
     )
 }
