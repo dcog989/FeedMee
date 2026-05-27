@@ -101,21 +101,13 @@ export function createArticleActions(state: AppState) {
 
     async function toggleSaved(article: Article) {
         const newSaved = !article.is_saved;
-        const prevRead = article.is_read;
         article.is_saved = newSaved;
 
         try {
             await invoke('mark_article_saved', { id: article.id, isSaved: newSaved });
-            if (newSaved) {
-                article.is_read = false;
-                invoke('mark_article_read', { id: article.id, read: false }).catch(() => {
-                    article.is_read = prevRead;
-                });
-            }
             await state.refreshFolders();
         } catch {
             article.is_saved = !newSaved;
-            article.is_read = prevRead;
         }
     }
 
