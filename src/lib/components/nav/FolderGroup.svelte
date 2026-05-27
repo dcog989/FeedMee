@@ -17,6 +17,7 @@ const FLIP_DURATION = 200;
 
 // --- Native DnD State ---
 let dropIndex = $state<number | null>(null);
+let unreadCount = $derived(getFolderUnreadCount(folder.feeds));
 
 // --- Native DnD Handlers ---
 function handleDragStart(e: DragEvent, feedId: number, feedName: string) {
@@ -170,13 +171,13 @@ function getFolderUnreadCount(feeds: Feed[]): number {
             >
                 {#if appState.isFolderUpdating(folder.id)}
                     <div class="mini-spinner"></div>
-                {:else if getFolderUnreadCount(folder.feeds) > 0}
+                {:else if unreadCount > 0}
                     <span
                         class="badge folder-badge"
                         use:tooltip={appState.isFolderFresh(folder.id)
                             ? 'Already fresh!'
                             : 'Click to refresh folder'}
-                        >{getFolderUnreadCount(folder.feeds)}</span
+                        >{unreadCount}</span
                     >
                 {:else}
                     <span
