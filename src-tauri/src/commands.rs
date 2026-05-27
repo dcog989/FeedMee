@@ -252,7 +252,7 @@ pub async fn import_opml(path: String, state: State<'_, AppState>) -> Result<(),
     let xml_content = std::fs::read_to_string(&path).map_err(|e| e.to_string())?;
     let document = opml::OPML::from_str(&xml_content).map_err(|e| e.to_string())?;
     let conn = state.db.lock().unwrap();
-    let default_folder_id = db::create_folder(&conn, "Uncategorized").map_err(|e| e.to_string())?;
+    let mut flat_feeds: Vec<(String, String)> = Vec::new();
 
     for outline in document.body.outlines {
         if !outline.outlines.is_empty() {
@@ -265,7 +265,15 @@ pub async fn import_opml(path: String, state: State<'_, AppState>) -> Result<(),
                 }
             }
         } else if let Some(url) = outline.xml_url {
-            let _ = db::create_feed(&conn, &outline.text, &url, default_folder_id, "rss");
+            flat_feeds.push((outline.text, url));
+        }
+    }
+
+    if !flat_feeds.is_empty() {
+        if let Ok(default_folder_id) = db::create_folder(&conn, "Uncategorized") {
+            for (name, url) in flat_feeds {
+                let _ = db::create_feed(&conn, &name, &url, default_folder_id, "rss");
+            }
         }
     }
     Ok(())
