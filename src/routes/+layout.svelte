@@ -1,6 +1,6 @@
 ﻿<script lang="ts">
 import AboutModal from '$lib/components/AboutModal.svelte';
-import AddDialog from '$lib/components/AddDialog.svelte';
+import ManageDialog from '$lib/components/ManageDialog.svelte';
 import NewFolderDialog from '$lib/components/NewFolderDialog.svelte';
 import SettingsModal from '$lib/components/SettingsModal.svelte';
 import Tooltip from '$lib/components/Tooltip.svelte';
@@ -75,7 +75,7 @@ $effect(() => {
     {/if}
 
     {#if appState.showAddDialog}
-        <AddDialog />
+        <ManageDialog />
     {/if}
 
     {#if appState.showAbout}

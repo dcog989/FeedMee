@@ -54,6 +54,11 @@ function handleImport() {
     closeDialog();
 }
 
+async function handleExport() {
+    await appState.exportOpml();
+    closeDialog();
+}
+
 function onKeyDown(e: KeyboardEvent) {
     if (e.key === 'Enter' && canSubmit) {
         submitAddFeed();
@@ -71,7 +76,7 @@ function focusOnMount(node: HTMLElement) {
 <!-- svelte-ignore a11y_no_static_element_interactions -->
 <div class="modal-overlay" onclick={closeDialog}>
     <div class="modal" onclick={(e) => e.stopPropagation()}>
-        <h3>Add Content</h3>
+        <h3>Manage Content</h3>
         <div class="input-group">
             <input
                 type="text"
@@ -112,7 +117,10 @@ function focusOnMount(node: HTMLElement) {
             <span>OR</span>
         </div>
 
-        <button type="button" class="secondary" onclick={handleImport}>Import OPML File</button>
+        <div class="opml-row">
+            <button type="button" class="secondary" onclick={handleImport}>Import OPML File</button>
+            <button type="button" class="secondary" onclick={handleExport}>Export OPML File</button>
+        </div>
     </div>
 </div>
 
@@ -188,8 +196,16 @@ button.primary:disabled {
     opacity: 0.6;
 }
 
+.opml-row {
+    display: flex;
+    gap: 8px;
+}
+
+.opml-row button {
+    flex: 1;
+}
+
 button.secondary {
-    width: 100%;
     padding: 8px;
     background: transparent;
     border: 1px solid var(--border-color);

@@ -238,8 +238,8 @@ function cmCreateFolder() {
             type="button"
             class="footer-btn"
             onclick={openAddDialog}
-            title="Add Content"
-            aria-label="Add Content"
+            title="Manage Content"
+            aria-label="Manage Content"
         >
             <Rss size={18} />
         </button>
