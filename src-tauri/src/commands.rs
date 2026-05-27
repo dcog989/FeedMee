@@ -471,11 +471,16 @@ pub async fn refresh_feed(feed_id: i64, state: State<'_, AppState>) -> Result<us
 }
 
 fn compute_content_hash(content: &str) -> String {
-    use std::collections::hash_map::DefaultHasher;
-    use std::hash::{Hash, Hasher};
-    let mut hasher = DefaultHasher::new();
-    content.hash(&mut hasher);
-    format!("{:x}", hasher.finish())
+    fn fnv1a_64(bytes: &[u8]) -> u64 {
+        let prime: u64 = 0x100000001b3;
+        let mut hash: u64 = 0xcbf29ce484222325;
+        for &b in bytes {
+            hash ^= b as u64;
+            hash = hash.wrapping_mul(prime);
+        }
+        hash
+    }
+    format!("{:x}", fnv1a_64(content.as_bytes()))
 }
 
 /// Scrape a listing page for article links. Returns Article structs with empty
