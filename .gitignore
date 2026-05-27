@@ -6,6 +6,7 @@
 .pkg/*.tar.zst
 .pkg/*.log
 .pkg/feedmee/
+.pkg/feedmee-*.zst
 .pkg/pkg/
 .pkg/src/
 .repomix/
