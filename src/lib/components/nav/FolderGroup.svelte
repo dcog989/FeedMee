@@ -114,13 +114,29 @@ function onHeaderDblClick(e: MouseEvent) {
     onToggle(e);
 }
 
-function getFavicon(url: string) {
+const FAVICON_TTL = 48 * 60 * 60 * 1000;
+const faviconCache = new Map<string, { url: string; time: number }>();
+
+function getFavicon(url: string): string {
     try {
         const domain = new URL(url).hostname;
-        return `https://www.google.com/s2/favicons?domain=${domain}&sz=32`;
+        const cached = faviconCache.get(domain);
+        if (cached && Date.now() - cached.time < FAVICON_TTL) {
+            return cached.url;
+        }
+        const result = `https://icons.duckduckgo.com/ip3/${domain}.ico`;
+        faviconCache.set(domain, { url: result, time: Date.now() });
+        return result;
     } catch {
         return '';
     }
+}
+
+function handleFaviconError(e: Event) {
+    const img = e.currentTarget as HTMLImageElement;
+    img.style.display = 'none';
+    const fallback = img.nextElementSibling;
+    if (fallback) fallback.classList.remove('favicon-fallback-hidden');
 }
 
 function getFolderUnreadCount(feeds: Feed[]): number {
@@ -237,7 +253,9 @@ function getFolderUnreadCount(feeds: Feed[]): number {
                                     alt=""
                                     class="feed-favicon"
                                     loading="lazy"
+                                    onerror={handleFaviconError}
                                 >
+                                <span class="feed-icon favicon-fallback-hidden">#</span>
                             {:else}
                                 <span class="feed-icon">#</span>
                             {/if}
@@ -431,6 +449,10 @@ li.drop-before::before {
     width: 16px;
     height: 16px;
     border-radius: 2px;
+}
+
+.favicon-fallback-hidden {
+    display: none;
 }
 
 .feed-action-area {
