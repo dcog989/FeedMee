@@ -6,6 +6,7 @@
   "type": "module",
   "scripts": {
     "build": "bunx tauri build",
+    "build:frontend": "bunx vite build",
     "check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
     "check": "svelte-kit sync ; bun run lint:types ; bun run lint:frontend ; bun run lint:backend",
     "clean": "rm -rf build .context .svelte-kit node_modules bun.lock releases src-tauri/gen src-tauri/target src-tauri/Cargo.lock .pkg/src .pkg/pkg .pkg/feedmee .pkg/*.pkg.tar.zst .pkg/*.gz",
