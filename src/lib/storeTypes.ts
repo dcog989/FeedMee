@@ -19,6 +19,8 @@ export interface AppState {
     showAddDialog: boolean;
     showAbout: boolean;
     showNewFolderDialog: boolean;
+    showEditFeedDialog: boolean;
+    editFeedTarget: { id: number; name: string; url: string } | null;
     expandedFolders: Set<number>;
     focusedPane: 'nav' | 'list' | 'reading';
     customShortcuts: Record<string, string>;
@@ -59,7 +61,7 @@ export interface AppState {
     importOpml(): Promise<void>;
     exportOpml(): Promise<void>;
     renameFolder(id: number, newName: string): Promise<void>;
-    renameFeed(id: number, newName: string): Promise<void>;
+    renameFeed(id: number, newName: string, newUrl: string): Promise<void>;
     deleteFeed(id: number): Promise<void>;
     deleteFolder(id: number): Promise<void>;
     moveFeed(feedId: number, folderId: number): Promise<void>;

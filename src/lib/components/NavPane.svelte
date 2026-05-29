@@ -154,11 +154,14 @@ function cmRename() {
 }
 
 function cmRenameFeed() {
-    if (!cmTarget || cmTarget.type !== 'feed') return;
-    const newName = prompt('Rename Feed:', cmTarget.name);
-    if (newName && newName.trim() !== '') {
-        appState.renameFeed(cmTarget.id, newName.trim());
-    }
+    if (cmTarget?.type !== 'feed') return;
+    const feed = appState.folders.flatMap((f) => f.feeds).find((f) => f.id === cmTarget!.id);
+    appState.editFeedTarget = {
+        id: cmTarget!.id,
+        name: cmTarget!.name ?? '',
+        url: feed?.url ?? '',
+    };
+    appState.showEditFeedDialog = true;
     closeContextMenu();
 }
 
@@ -218,7 +221,7 @@ function cmCreateFolder() {
                 <button type="button" onclick={cmRename}>Rename Folder</button>
                 <button type="button" class="danger" onclick={cmDelete}>Delete Folder</button>
             {:else if cmTarget?.type === 'feed'}
-                <button type="button" onclick={cmRenameFeed}>Rename Feed</button>
+                <button type="button" onclick={cmRenameFeed}>Edit Feed</button>
                 <button type="button" class="danger" onclick={cmDelete}>Delete Feed</button>
             {/if}
         </div>

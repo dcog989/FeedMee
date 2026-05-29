@@ -93,9 +93,9 @@ export function createFeedActions(state: AppState) {
         }
     }
 
-    async function renameFeed(id: number, newName: string) {
+    async function renameFeed(id: number, newName: string, newUrl: string) {
         try {
-            await invoke('rename_feed', { id, newName });
+            await invoke('rename_feed', { id, newName, newUrl });
             await state.refreshFolders();
         } catch (e) {
             console.error(e);

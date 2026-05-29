@@ -366,10 +366,10 @@ pub fn rename_folder(conn: &Connection, id: i64, new_name: &str) -> Result<()> {
     Ok(())
 }
 
-pub fn rename_feed(conn: &Connection, id: i64, new_name: &str) -> Result<()> {
+pub fn rename_feed(conn: &Connection, id: i64, new_name: &str, new_url: &str) -> Result<()> {
     conn.execute(
-        "UPDATE feeds SET name = ?1 WHERE id = ?2",
-        params![new_name, id],
+        "UPDATE feeds SET name = ?1, url = ?2 WHERE id = ?3",
+        params![new_name, new_url, id],
     )?;
     Ok(())
 }

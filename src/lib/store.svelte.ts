@@ -43,6 +43,8 @@ class AppStateImpl {
     showAddDialog = $state(false);
     showAbout = $state(false);
     showNewFolderDialog = $state(false);
+    showEditFeedDialog = $state(false);
+    editFeedTarget = $state<{ id: number; name: string; url: string } | null>(null);
     expandedFolders = $state<Set<number>>(new Set());
     focusedPane = $state<'nav' | 'list' | 'reading'>('nav');
     customShortcuts = $state<Record<string, string>>({});
@@ -178,7 +180,8 @@ class AppStateImpl {
     importOpml = () => this.feedOps.importOpml();
     exportOpml = () => this.feedOps.exportOpml();
     renameFolder = (id: number, newName: string) => this.feedOps.renameFolder(id, newName);
-    renameFeed = (id: number, newName: string) => this.feedOps.renameFeed(id, newName);
+    renameFeed = (id: number, newName: string, newUrl: string) =>
+        this.feedOps.renameFeed(id, newName, newUrl);
     deleteFeed = (id: number) => this.feedOps.deleteFeed(id);
     deleteFolder = (id: number) => this.feedOps.deleteFolder(id);
     moveFeed = (feedId: number, folderId: number) => this.feedOps.moveFeed(feedId, folderId);

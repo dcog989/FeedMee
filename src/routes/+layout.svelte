@@ -1,5 +1,6 @@
 ﻿<script lang="ts">
 import AboutModal from '$lib/components/AboutModal.svelte';
+import EditFeedDialog from '$lib/components/EditFeedDialog.svelte';
 import ManageDialog from '$lib/components/ManageDialog.svelte';
 import NewFolderDialog from '$lib/components/NewFolderDialog.svelte';
 import SettingsModal from '$lib/components/SettingsModal.svelte';
@@ -84,6 +85,10 @@ $effect(() => {
 
     {#if appState.showNewFolderDialog}
         <NewFolderDialog />
+    {/if}
+
+    {#if appState.showEditFeedDialog}
+        <EditFeedDialog />
     {/if}
 
     {#if appState.modalState.isOpen}
