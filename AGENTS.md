@@ -2,15 +2,17 @@
 
 FeedMee is a desktop RSS / Atom news feed reader with a clean, minimal style. It aims for fast performance, minimal resource usage.
 
-You are on a Windows 11 desktop PC, use tools accordingly. We are using bun package manager.
+## Dev Environment
+
+Linux CachyOS, Limine boot loader, KDE Plasma 6, Wayland, Btrfs. Firefox, Kate text editor, Zed code editor, fish shell with Ghostty + Fresh editor. paru and bun package managers. All software is updated as of today.
 
 ## Tech Stack
 
 - **Tauri** (v2.9) - Desktop framework wrapping the web frontend
-- **Rust** (2024 / v1.93) - Backend logic, Markdown processing, file I/O
-- **Svelte** (v5.53) - Frontend framework with Svelte 5 runes (`.svelte.ts` files)
-- **TypeScript** (v5.9) - Type-safe frontend code
-- **SQLite** (v3.51) - Local database for metadata/bookmarks
+- **Rust** (2024 / v1.95) - Backend logic, Markdown processing, file I/O
+- **Svelte** (v5.55) - Frontend framework with Svelte 5 runes (`.svelte.ts` files)
+- **TypeScript** (v6.0) - Type-safe frontend code
+- **SQLite** (v3.53) - Local database for metadata/bookmarks
 
 ## Entry Points
 
