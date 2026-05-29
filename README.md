@@ -31,49 +31,51 @@ _FeedMee_ is an RSS/Atom news reader built for the desktop, cross-platform and L
 
 ## Getting Started
 
-### Install on Arch Linux
-
-```bash
-bun run package:arch
-```
-
-This runs `makepkg -si` from `.pkg/`, which compiles and installs FeedMee to `/usr/bin/feedmee`.
-
-**Build dependencies:** `rust`, `bun`, `npm`, `sqlite`, `cmake`, `nasm`
-
-**Runtime dependencies:** `webkit2gtk-4.1`, `gtk3`, `libayatana-appindicator`, `sqlite`
-
-### Build from Source
-
-**Prerequisites:**
+### Prerequisites
 
 1. **Rust:** [Install Rust](https://www.rust-lang.org/tools/install)
 2. **Bun:** [Install Bun](https://bun.sh)
 3. **OS Dependencies:** Follow the [Tauri Prerequisites guide](https://v2.tauri.app/start/prerequisites/)
 
 ```bash
-# Install dependencies
 bun install
-
-# Run in development
-bun run dev
-
-# Build release binary
-bun run tauri build
 ```
 
-## Testing
+### Development
 
-- `bun update` add / update Node libraries
-- `bun run tauri dev` - start Vite server and Rust backend Hot Module Replacement (HMR)
-- `bun run check` validate code
-- `bun run check:watch` - watch mode (keep running in a separate terminal)
+```bash
+bun run dev
+```
 
-## Production Build
+Starts the Vite dev server and Tauri with HMR.
 
-Compile Rust, bundle Svelte, generate `.msi` / `.exe` installers in `src-tauri/target/release/bundle/nsis/`:
+### Install on Arch / CachyOS
 
-- `bun run tauri build`
+```bash
+bun run package
+```
+
+Runs `makepkg -si` from `.pkg/`, compiling from source and installing FeedMee to `/usr/bin/feedmee`.
+
+**Build dependencies:** `rust`, `bun`, `npm`, `sqlite`, `cmake`, `nasm`
+
+**Runtime dependencies:** `webkit2gtk-4.1`, `gtk3`, `libayatana-appindicator`, `sqlite`
+
+### Build Release Binary
+
+```bash
+bun run build
+```
+
+Compiles the Rust backend and Svelte frontend. Output binary at `src-tauri/target/release/FeedMee`. No installer is produced locally — AppImage and Windows installer are built via GitHub Actions on tag push.
+
+### Validate
+
+```bash
+bun run check
+```
+
+Runs TypeScript, Svelte, and Rust lint checks. Use `bun run check:watch` to keep running in a separate terminal during development.
 
 ## Keyboard Shortcuts
 
