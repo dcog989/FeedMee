@@ -58,6 +58,7 @@ export function createFeedActions(state: AppState) {
         try {
             await invoke('import_opml', { path: selected });
             await state.refreshFolders();
+            await state.refreshAllFeeds();
             await state.reloadCurrentArticleList();
         } catch {
             state.alert('Failed to import OPML file.');
