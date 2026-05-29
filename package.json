@@ -5,7 +5,7 @@
   "license": "MIT",
   "type": "module",
   "scripts": {
-    "build": "bunx tauri build",
+    "build": "bunx tauri build --no-bundle",
     "build:frontend": "bunx vite build",
     "check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
     "check": "svelte-kit sync ; bun run lint:types ; bun run lint:frontend ; bun run lint:backend",
