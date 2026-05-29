@@ -39,6 +39,8 @@ export default defineConfig(async () => ({
         include: [
             'dompurify',
             'lucide-svelte',
+            'svelte/animate',
+            'svelte/transition',
             '@tauri-apps/api/core',
             '@tauri-apps/plugin-opener',
             '@tauri-apps/plugin-dialog',

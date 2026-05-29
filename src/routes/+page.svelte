@@ -119,7 +119,7 @@ function focusPane(pane: 'nav' | 'list' | 'reading') {
 		*/
     --nav-w: 280px;
     --list-w: 320px;
-    grid-template-columns: var(--nav-w) 4px var(--list-w) 4px 1fr;
+    grid-template-columns: var(--nav-w, 280px) 4px var(--list-w, 320px) 4px 1fr;
     grid-template-areas: "nav resizer1 list resizer2 reading";
 }
 
