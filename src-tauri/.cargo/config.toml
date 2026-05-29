@@ -4,3 +4,8 @@ rustflags = ["-C", "link-arg=-fuse-ld=mold"]
 
 [build]
 rustflags = ["-C", "link-arg=-fuse-ld=mold"]
+
+[profile.dev]
+opt-level = 0
+debug = 1
+split-debuginfo = "unpacked"
