@@ -16,6 +16,7 @@ makedepends=(
     'rust'
     'bun'
     'npm'  # bun needs this for some tauri tooling
+    'mold'
     'sqlite'
     'cmake'
     'nasm'
@@ -33,7 +34,7 @@ prepare() {
 build() {
     cd "$pkgname"
     export LIBSQLITE3_SYS_USE_PKG_CONFIG=1
-    export RUSTFLAGS="-C link-arg=-fuse-ld=bfd"
+    export RUSTFLAGS="-C link-arg=-fuse-ld=mold"
     # Arch's CFLAGS include -flto=auto which breaks ring/aws-lc-sys archive linking
     export CFLAGS="${CFLAGS/-flto=auto/}"
     export CFLAGS="${CFLAGS/-flto/}"
