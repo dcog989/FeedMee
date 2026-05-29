@@ -6,30 +6,15 @@
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <title>FeedMee</title>
 
-        <!-- Critical CSS: Paints background immediately based on system theme -->
-        <style>
-        html,
-        body {
-            background-color: #ffffff;
-            height: 100%;
-            margin: 0;
-        }
-
-        @media (prefers-color-scheme: dark) {
-            html,
-            body {
-                background-color: #1e1e1e;
-            }
-        }
-        </style>
-
-        <!-- Theme Initialization Script -->
+        <!-- Theme Initialization: set data-theme and bg before first paint to prevent FOUC -->
         <script>
         (() => {
+            const saved = localStorage.getItem('theme');
             const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-            if (prefersDark) {
-                document.documentElement.setAttribute('data-theme', 'dark');
-            }
+            const dark = saved === 'dark' || (saved !== 'light' && prefersDark);
+            document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
+            document.documentElement.style.background = dark ? '#1e1e1e' : '#ffffff';
+            document.documentElement.style.colorScheme = dark ? 'dark' : 'light';
         })();
         </script>
         %sveltekit.head%

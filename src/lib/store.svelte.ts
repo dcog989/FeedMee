@@ -334,6 +334,7 @@ class AppStateImpl {
 
     setTheme(newTheme: Theme) {
         this.theme = newTheme;
+        localStorage.setItem('theme', newTheme);
     }
     openSettings() {
         this.showSettings = true;
@@ -429,11 +430,14 @@ class AppStateImpl {
         const storedNav = localStorage.getItem('navWidth');
         const storedList = localStorage.getItem('listWidth');
         const storedSort = localStorage.getItem('sortOrder');
+        const storedTheme = localStorage.getItem('theme');
         const storedLastRefreshed = localStorage.getItem('lastRefreshed');
 
         if (storedNav) this.navWidth = parseInt(storedNav, 10);
         if (storedList) this.listWidth = parseInt(storedList, 10);
         if (storedSort === 'asc' || storedSort === 'desc') this.sortOrder = storedSort;
+        if (storedTheme === 'light' || storedTheme === 'dark' || storedTheme === 'system')
+            this.theme = storedTheme;
 
         if (storedLastRefreshed) {
             try {

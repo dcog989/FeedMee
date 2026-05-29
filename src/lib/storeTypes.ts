@@ -1,6 +1,6 @@
 import type { AppSettings, Article, Folder, Tag } from './types';
 
-export type Theme = 'light' | 'dark' | 'sepia' | 'system';
+export type Theme = 'light' | 'dark' | 'system';
 export type SortOrder = 'desc' | 'asc';
 
 export interface AppState {
