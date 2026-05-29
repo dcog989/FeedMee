@@ -18,8 +18,8 @@ log = "0.4"
 opml = "1.1"
 readabilityrs = "0.1"
 reqwest = { version = "0.13", features = ["json", "rustls"] }
-rusqlite = { version = "0.39", features = ["bundled"] }
-rusqlite_migration = "2.5"
+rusqlite = { version = "0.40", features = ["bundled"] }
+rusqlite_migration = "2.6"
 scraper = "0.27"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
