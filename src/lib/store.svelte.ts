@@ -183,9 +183,16 @@ class AppStateImpl {
     deleteFolder = (id: number) => this.feedOps.deleteFolder(id);
     moveFeed = (feedId: number, folderId: number) => this.feedOps.moveFeed(feedId, folderId);
 
+    persistLayoutSettings() {
+        localStorage.setItem('navWidth', this.navWidth.toString());
+        localStorage.setItem('listWidth', this.listWidth.toString());
+        localStorage.setItem('sortOrder', this.sortOrder);
+    }
+
     async setSortOrder(order: SortOrder) {
         if (this.sortOrder !== order) {
             this.sortOrder = order;
+            this.persistLayoutSettings();
             await this.reloadCurrentArticleList();
         }
     }
@@ -458,12 +465,6 @@ class AppStateImpl {
         else if (viewType === 'latest') this.selectFeed(FEED_ID_LATEST);
         else if (viewType === 'folder' && viewId > 0) this.selectFolder(viewId);
         else if (viewType === 'feed' && viewId > 0) this.selectFeed(viewId);
-
-        $effect(() => {
-            localStorage.setItem('navWidth', this.navWidth.toString());
-            localStorage.setItem('listWidth', this.listWidth.toString());
-            localStorage.setItem('sortOrder', this.sortOrder);
-        });
     }
 }
 

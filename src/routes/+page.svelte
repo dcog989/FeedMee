@@ -19,6 +19,7 @@ function stopResize() {
         isResizing = null;
         document.body.style.cursor = '';
         document.body.style.userSelect = '';
+        appState.persistLayoutSettings();
     }
 }
 

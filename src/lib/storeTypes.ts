@@ -69,6 +69,7 @@ export interface AppState {
     articleDown(): void;
     setShortcut(commandId: string, key: string): void;
     resetShortcut(commandId: string): void;
+    persistLayoutSettings(): void;
     setSortOrder(order: SortOrder): Promise<void>;
     setSearch(query: string): Promise<void>;
     setTheme(theme: Theme): void;
