@@ -1,4 +1,5 @@
 name: Release
+
 on:
   push:
     tags:
@@ -6,31 +7,26 @@ on:
   workflow_dispatch:
 
 jobs:
-  release:
+  build-linux:
+    name: Build (Linux AppImage)
+    runs-on: ubuntu-22.04
     permissions:
       contents: write
-    runs-on: ubuntu-26.04
 
     steps:
       - uses: actions/checkout@v4
 
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v2
+      - uses: oven-sh/setup-bun@v2
         with:
           bun-version: latest
 
-      - name: Install Node dependencies
-        run: bun install
+      - uses: dtolnay/rust-toolchain@stable
 
-      - name: Install Rust
-        uses: dtolnay/rust-toolchain@stable
-
-      - name: Cache Rust dependencies
-        uses: Swatinem/rust-cache@v2
+      - uses: Swatinem/rust-cache@v2
         with:
           workspaces: src-tauri
 
-      - name: Install Linux system dependencies
+      - name: Install system dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y \
@@ -40,49 +36,86 @@ jobs:
             librsvg2-dev \
             patchelf
 
-      - name: Build and bundle
-        run: bunx tauri build
+      - run: bun install
+
+      - name: Build AppImage
+        run: bunx tauri build --bundles appimage
         env:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
 
-      - name: Collect artifacts
-        run: |
-          mkdir -p releases
-          find src-tauri/target/release/bundle -type f \( \
-            -name "*.AppImage" \
-            -o -name "*.AppImage.tar.gz" \
-            -o -name "*.AppImage.tar.gz.sig" \
-            -o -name "*.deb" \
-          \) -exec cp {} releases/ \;
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-appimage
+          path: |
+            src-tauri/target/release/bundle/appimage/*.AppImage
+            src-tauri/target/release/bundle/appimage/*.AppImage.tar.gz
+            src-tauri/target/release/bundle/appimage/*.AppImage.tar.gz.sig
 
-      - name: Generate latest.json
-        run: |
-          VERSION="${GITHUB_REF_NAME}"
-          APPIMAGE_SIG=$(cat releases/*.AppImage.tar.gz.sig 2>/dev/null || echo "")
-          APPIMAGE_URL="https://github.com/${{ github.repository }}/releases/download/${VERSION}/$(ls releases/*.AppImage.tar.gz | xargs basename)"
+  build-windows:
+    name: Build (Windows)
+    runs-on: windows-latest
+    permissions:
+      contents: write
 
-          cat > releases/latest.json <<EOF
-          {
-            "version": "${VERSION#v}",
-            "notes": "See release notes on GitHub.",
-            "pub_date": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
-            "platforms": {
-              "linux-x86_64": {
-                "signature": "${APPIMAGE_SIG}",
-                "url": "${APPIMAGE_URL}"
-              }
-            }
-          }
-          EOF
+    steps:
+      - uses: actions/checkout@v4
 
-      - name: Upload release assets
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+
+      - run: bun install
+
+      - name: Build NSIS installer
+        run: bunx tauri build --bundles nsis
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-nsis
+          path: |
+            src-tauri/target/release/bundle/nsis/*.exe
+            src-tauri/target/release/bundle/nsis/*.exe.zip
+            src-tauri/target/release/bundle/nsis/*.exe.zip.sig
+
+  release:
+    name: Publish Release
+    needs: [build-linux, build-windows]
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: write
+    if: startsWith(github.ref, 'refs/tags/')
+
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: linux-appimage
+          path: artifacts/linux
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: windows-nsis
+          path: artifacts/windows
+
+      - name: Publish GitHub release
         uses: softprops/action-gh-release@v2
-        if: startsWith(github.ref, 'refs/tags/')
         with:
           files: |
-            releases/*.AppImage
-            releases/*.AppImage.tar.gz
-            releases/*.AppImage.tar.gz.sig
-            releases/*.deb
-            releases/latest.json
+            artifacts/linux/*.AppImage
+            artifacts/linux/*.AppImage.tar.gz
+            artifacts/linux/*.AppImage.tar.gz.sig
+            artifacts/windows/*.exe
+            artifacts/windows/*.exe.zip
+            artifacts/windows/*.exe.zip.sig
+          generate_release_notes: true

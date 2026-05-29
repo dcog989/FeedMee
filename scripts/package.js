@@ -25,7 +25,6 @@ fs.mkdirSync(outDir, { recursive: true });
 
 const artifactDirs = {
     appimage: path.join(bundleDir, 'appimage'),
-    deb: path.join(bundleDir, 'deb'),
 };
 
 let copied = 0;
