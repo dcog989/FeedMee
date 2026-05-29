@@ -623,11 +623,7 @@ async fn add_website_feed(
     let feed_id = {
         let conn = state.db.lock().unwrap();
         let target = folder_id.unwrap_or_else(|| db::create_folder(&conn, "Uncategorized").unwrap_or(1));
-        db::create_feed(&conn, &title, url, target, "website").map_err(|e| e.to_string())?;
-        conn.query_row("SELECT id FROM feeds WHERE url = ?1", [url], |row| {
-            row.get(0)
-        })
-        .map_err(|e| e.to_string())?
+        db::create_feed(&conn, &title, url, target, "website").map_err(|e| e.to_string())?
     };
 
     let mut articles = scrape_articles_from_page(&html, url);
@@ -671,13 +667,7 @@ pub async fn add_feed(
             let target =
                 folder_id.unwrap_or_else(|| db::create_folder(&conn, "Uncategorized").unwrap_or(1));
             db::create_feed(&conn, &display_name, &feed_url, target, "bluesky")
-                .map_err(|e| e.to_string())?;
-            conn.query_row(
-                "SELECT id FROM feeds WHERE url = ?1",
-                [&feed_url],
-                |row| row.get(0),
-            )
-            .map_err(|e| e.to_string())?
+                .map_err(|e| e.to_string())?
         };
 
         let articles =
@@ -727,32 +717,33 @@ pub async fn add_feed(
                 "application/atom+xml",
                 "application/feed+json",
             ];
-            let found = Selector::parse("link").ok().and_then(|sel| {
-                let all_links: Vec<_> = document.select(&sel).collect();
-                debug!("add_feed: found {} <link> tags", all_links.len());
-                for el in &all_links {
-                    let t = el.value().attr("type").unwrap_or("");
-                    let h = el.value().attr("href").unwrap_or("");
-                    if !t.is_empty() {
-                        debug!("add_feed: <link type={:?} href={:?}>", t, h);
-                    }
-                }
-                all_links.into_iter().find_map(|el| {
-                    let t = el.value().attr("type").unwrap_or("");
-                    if feed_types.iter().any(|ft| t.contains(ft)) {
-                        el.value().attr("href").map(|h| h.to_string())
-                    } else {
-                        None
-                    }
+            let base_url = Url::parse(original_url.as_str()).ok();
+            let discovered_urls: Vec<String> = Selector::parse("link").ok()
+                .map(|sel| {
+                    document.select(&sel)
+                        .filter_map(|el| {
+                            let t = el.value().attr("type").unwrap_or("");
+                            if feed_types.iter().any(|ft| t.contains(ft)) {
+                                el.value().attr("href").and_then(|href| {
+                                    base_url.as_ref()
+                                        .and_then(|base| base.join(href).ok())
+                                        .map(|u| u.to_string())
+                                })
+                            } else {
+                                None
+                            }
+                        })
+                        .collect()
                 })
-            });
+                .unwrap_or_default();
 
-            found.and_then(|href| {
-                Url::parse(original_url.as_str())
-                    .and_then(|base| base.join(&href))
-                    .ok()
-                    .map(|u| u.to_string())
-            })
+            debug!("add_feed: discovered {} RSS feed URLs", discovered_urls.len());
+            for u in &discovered_urls {
+                debug!("add_feed:   RSS candidate: {}", u);
+            }
+
+            // Pick the most specific feed (longest URL) when multiple are found
+            discovered_urls.into_iter().max_by_key(|u| u.len())
         };
 
         if let Some(new_url) = discovered_url_str {
@@ -802,11 +793,7 @@ pub async fn add_feed(
         let conn = state.db.lock().unwrap();
         let target = folder_id.unwrap_or_else(|| db::create_folder(&conn, "Uncategorized").unwrap_or(1));
         db::create_feed(&conn, &title, &final_url, target, &feed_type)
-            .map_err(|e| e.to_string())?;
-        conn.query_row("SELECT id FROM feeds WHERE url = ?1", [&final_url], |row| {
-            row.get(0)
-        })
-        .map_err(|e| e.to_string())?
+            .map_err(|e| e.to_string())?
     };
 
     // Insert articles from the already-parsed feed data

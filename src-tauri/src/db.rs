@@ -81,6 +81,58 @@ fn migrations() -> Migrations<'static> {
                 FOREIGN KEY (tag_id) REFERENCES tags(id) ON DELETE CASCADE
             );",
         ),
+        // v5: Remove UNIQUE on feeds.url, add composite UNIQUE on articles(feed_id, url)
+        // to allow multiple feeds sharing the same RSS feed URL (e.g. different sections of a site).
+        M::up(
+            "CREATE TABLE IF NOT EXISTS _bak_feeds AS SELECT * FROM feeds;
+             CREATE TABLE IF NOT EXISTS _bak_articles AS SELECT * FROM articles;
+             DROP TABLE articles;
+             DROP TABLE feeds;
+             CREATE TABLE feeds (
+                 id           INTEGER PRIMARY KEY,
+                 name         TEXT NOT NULL,
+                 url          TEXT NOT NULL,
+                 folder_id    INTEGER NOT NULL,
+                 has_error    BOOLEAN NOT NULL DEFAULT 0,
+                 feed_type    TEXT NOT NULL DEFAULT 'rss',
+                 content_hash TEXT,
+                 FOREIGN KEY (folder_id) REFERENCES folders (id)
+             );
+             INSERT INTO feeds SELECT * FROM _bak_feeds;
+             CREATE TABLE articles (
+                 id        INTEGER PRIMARY KEY,
+                 feed_id   INTEGER NOT NULL,
+                 title     TEXT NOT NULL,
+                 author    TEXT,
+                 summary   TEXT,
+                 url       TEXT NOT NULL,
+                 timestamp INTEGER,
+                 is_read   BOOLEAN NOT NULL DEFAULT 0,
+                 is_saved  BOOLEAN NOT NULL DEFAULT 0,
+                 FOREIGN KEY (feed_id) REFERENCES feeds (id),
+                 UNIQUE(feed_id, url)
+             );
+             INSERT INTO articles SELECT * FROM _bak_articles;
+             CREATE TRIGGER articles_ai AFTER INSERT ON articles BEGIN
+                 INSERT INTO articles_fts(rowid, title, author, summary)
+                     VALUES (new.id, new.title, COALESCE(new.author,''), COALESCE(new.summary,''));
+             END;
+             CREATE TRIGGER articles_ad AFTER DELETE ON articles BEGIN
+                 INSERT INTO articles_fts(articles_fts, rowid, title, author, summary)
+                     VALUES ('delete', old.id, old.title, COALESCE(old.author,''), COALESCE(old.summary,''));
+             END;
+             CREATE TRIGGER articles_au AFTER UPDATE ON articles BEGIN
+                 INSERT INTO articles_fts(articles_fts, rowid, title, author, summary)
+                     VALUES ('delete', old.id, old.title, COALESCE(old.author,''), COALESCE(old.summary,''));
+                 INSERT INTO articles_fts(rowid, title, author, summary)
+                     VALUES (new.id, new.title, COALESCE(new.author,''), COALESCE(new.summary,''));
+             END;
+             DELETE FROM articles_fts;
+             INSERT INTO articles_fts(rowid, title, author, summary)
+                 SELECT id, title, COALESCE(author,''), COALESCE(summary,'') FROM articles;
+             DROP TABLE _bak_feeds;
+             DROP TABLE _bak_articles;",
+        ),
     ])
 }
 
@@ -305,13 +357,12 @@ pub fn create_feed(
     url: &str,
     folder_id: i64,
     feed_type: &str,
-) -> Result<()> {
+) -> Result<i64> {
     conn.execute(
-        "INSERT INTO feeds (name, url, folder_id, has_error, feed_type) VALUES (?1, ?2, ?3, 0, ?4)
-         ON CONFLICT(url) DO UPDATE SET feed_type = excluded.feed_type",
+        "INSERT INTO feeds (name, url, folder_id, has_error, feed_type) VALUES (?1, ?2, ?3, 0, ?4)",
         params![name, url, folder_id, feed_type],
     )?;
-    Ok(())
+    Ok(conn.last_insert_rowid())
 }
 
 pub fn update_feed_error(conn: &Connection, feed_id: i64, has_error: bool) -> Result<()> {
