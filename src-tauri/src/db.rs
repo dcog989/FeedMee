@@ -447,9 +447,7 @@ pub fn get_tags_for_article(conn: &Connection, article_id: i64) -> Result<Vec<Ta
 }
 
 pub fn get_all_tags(conn: &Connection) -> Result<Vec<Tag>> {
-    let mut stmt = conn.prepare(
-        "SELECT id, name, color FROM tags ORDER BY name COLLATE NOCASE",
-    )?;
+    let mut stmt = conn.prepare("SELECT id, name, color FROM tags ORDER BY name COLLATE NOCASE")?;
     let tags = stmt
         .query_map([], |row| {
             Ok(Tag {
@@ -462,16 +460,20 @@ pub fn get_all_tags(conn: &Connection) -> Result<Vec<Tag>> {
     Ok(tags)
 }
 
-pub fn add_tag_to_article(conn: &Connection, article_id: i64, name: &str, color: &str) -> Result<Tag> {
+pub fn add_tag_to_article(
+    conn: &Connection,
+    article_id: i64,
+    name: &str,
+    color: &str,
+) -> Result<Tag> {
     conn.execute(
         "INSERT OR IGNORE INTO tags (name, color) VALUES (?1, ?2)",
         params![name, color],
     )?;
-    let tag_id: i64 = conn.query_row(
-        "SELECT id FROM tags WHERE name = ?1",
-        params![name],
-        |r| r.get(0),
-    )?;
+    let tag_id: i64 =
+        conn.query_row("SELECT id FROM tags WHERE name = ?1", params![name], |r| {
+            r.get(0)
+        })?;
     conn.execute(
         "INSERT OR IGNORE INTO article_tags (article_id, tag_id) VALUES (?1, ?2)",
         params![article_id, tag_id],
@@ -492,7 +494,10 @@ pub fn remove_tag_from_article(conn: &Connection, article_id: i64, tag_id: i64) 
 }
 
 pub fn delete_tag(conn: &Connection, tag_id: i64) -> Result<()> {
-    conn.execute("DELETE FROM article_tags WHERE tag_id = ?1", params![tag_id])?;
+    conn.execute(
+        "DELETE FROM article_tags WHERE tag_id = ?1",
+        params![tag_id],
+    )?;
     conn.execute("DELETE FROM tags WHERE id = ?1", params![tag_id])?;
     Ok(())
 }

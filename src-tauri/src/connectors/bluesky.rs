@@ -43,7 +43,8 @@ pub fn extract_handle(url: &str) -> Option<String> {
     let url = url.trim_end_matches('/');
     let prefix = "https://bsky.app/profile/";
     if let Some(handle) = url.strip_prefix(prefix)
-        && !handle.is_empty() && !handle.contains('/')
+        && !handle.is_empty()
+        && !handle.contains('/')
     {
         return Some(handle.to_string());
     }
@@ -64,7 +65,10 @@ pub async fn resolve_handle(client: &reqwest::Client, handle: &str) -> Result<St
     if !resp.status().is_success() {
         let status = resp.status();
         let body = resp.text().await.unwrap_or_default();
-        return Err(format!("Bluesky resolve handle failed ({}): {}", status, body));
+        return Err(format!(
+            "Bluesky resolve handle failed ({}): {}",
+            status, body
+        ));
     }
     let data: ResolveHandleResponse = resp
         .json()

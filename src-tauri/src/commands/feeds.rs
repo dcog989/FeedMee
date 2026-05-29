@@ -5,7 +5,7 @@ use std::io::Cursor;
 use tauri::State;
 use url::Url;
 
-use super::scraper::{scrape_articles_from_page, compute_content_hash};
+use super::scraper::{compute_content_hash, scrape_articles_from_page};
 
 async fn add_website_feed(
     url: &str,
@@ -25,7 +25,8 @@ async fn add_website_feed(
 
     let feed_id = {
         let conn = state.db.lock().unwrap();
-        let target = folder_id.unwrap_or_else(|| db::create_folder(&conn, "Uncategorized").unwrap_or(1));
+        let target =
+            folder_id.unwrap_or_else(|| db::create_folder(&conn, "Uncategorized").unwrap_or(1));
         db::create_feed(&conn, &title, url, target, "website").map_err(|e| e.to_string())?
     };
 
@@ -42,7 +43,8 @@ async fn add_website_feed(
     }
 
     let conn = state.db.lock().unwrap();
-    conn.execute_batch("BEGIN TRANSACTION").map_err(|e| e.to_string())?;
+    conn.execute_batch("BEGIN TRANSACTION")
+        .map_err(|e| e.to_string())?;
     for article in articles {
         let _ = db::insert_article(&conn, &article);
     }
@@ -58,11 +60,8 @@ pub async fn add_feed(
     state: State<'_, AppState>,
 ) -> Result<i64, String> {
     if let Some(handle) = crate::connectors::bluesky::extract_handle(&url) {
-        let (did, display_name) = crate::connectors::bluesky::resolve_author_info(
-            &state.http_client,
-            &handle,
-        )
-        .await?;
+        let (did, display_name) =
+            crate::connectors::bluesky::resolve_author_info(&state.http_client, &handle).await?;
 
         let feed_url = format!("bsky:{}", did);
 
@@ -78,13 +77,18 @@ pub async fn add_feed(
             crate::connectors::bluesky::fetch_posts(&state.http_client, &did, feed_id).await?;
 
         let conn = state.db.lock().unwrap();
-        conn.execute_batch("BEGIN TRANSACTION").map_err(|e| e.to_string())?;
+        conn.execute_batch("BEGIN TRANSACTION")
+            .map_err(|e| e.to_string())?;
         for article in &articles {
             let _ = db::insert_article(&conn, article);
         }
         conn.execute_batch("COMMIT").map_err(|e| e.to_string())?;
         let _ = db::update_feed_error(&conn, feed_id, false);
-        info!("add_feed: bluesky feed_id={}, articles={}", feed_id, articles.len());
+        info!(
+            "add_feed: bluesky feed_id={}, articles={}",
+            feed_id,
+            articles.len()
+        );
 
         return Ok(feed_id);
     }
@@ -122,14 +126,17 @@ pub async fn add_feed(
                 "application/feed+json",
             ];
             let base_url = Url::parse(original_url.as_str()).ok();
-            let discovered_urls: Vec<String> = Selector::parse("link").ok()
+            let discovered_urls: Vec<String> = Selector::parse("link")
+                .ok()
                 .map(|sel| {
-                    document.select(&sel)
+                    document
+                        .select(&sel)
                         .filter_map(|el| {
                             let t = el.value().attr("type").unwrap_or("");
                             if feed_types.iter().any(|ft| t.contains(ft)) {
                                 el.value().attr("href").and_then(|href| {
-                                    base_url.as_ref()
+                                    base_url
+                                        .as_ref()
                                         .and_then(|base| base.join(href).ok())
                                         .map(|u| u.to_string())
                                 })
@@ -141,7 +148,10 @@ pub async fn add_feed(
                 })
                 .unwrap_or_default();
 
-            debug!("add_feed: discovered {} RSS feed URLs", discovered_urls.len());
+            debug!(
+                "add_feed: discovered {} RSS feed URLs",
+                discovered_urls.len()
+            );
             for u in &discovered_urls {
                 debug!("add_feed:   RSS candidate: {}", u);
             }
@@ -193,13 +203,14 @@ pub async fn add_feed(
 
     let id = {
         let conn = state.db.lock().unwrap();
-        let target = folder_id.unwrap_or_else(|| db::create_folder(&conn, "Uncategorized").unwrap_or(1));
-        db::create_feed(&conn, &title, &final_url, target, &feed_type)
-            .map_err(|e| e.to_string())?
+        let target =
+            folder_id.unwrap_or_else(|| db::create_folder(&conn, "Uncategorized").unwrap_or(1));
+        db::create_feed(&conn, &title, &final_url, target, &feed_type).map_err(|e| e.to_string())?
     };
 
     let conn = state.db.lock().unwrap();
-    conn.execute_batch("BEGIN TRANSACTION").map_err(|e| e.to_string())?;
+    conn.execute_batch("BEGIN TRANSACTION")
+        .map_err(|e| e.to_string())?;
     for entry in feed.entries {
         let article_url = entry
             .links
@@ -211,7 +222,8 @@ pub async fn add_feed(
                 let key = if !entry.id.is_empty() {
                     entry.id.clone()
                 } else {
-                    entry.title
+                    entry
+                        .title
                         .as_ref()
                         .map(|t| t.content.clone())
                         .unwrap_or_default()

@@ -4,7 +4,7 @@ use readabilityrs::{Readability, ReadabilityOptions};
 use std::io::Cursor;
 use tauri::State;
 
-use super::scraper::{scrape_articles_from_page, compute_content_hash};
+use super::scraper::{compute_content_hash, scrape_articles_from_page};
 
 #[tauri::command]
 pub async fn get_article_content(
@@ -49,7 +49,8 @@ pub async fn refresh_feed(feed_id: i64, state: State<'_, AppState>) -> Result<i6
         let html = response.text().await.map_err(|e| e.to_string())?;
         let articles = scrape_articles_from_page(&html, &url);
         let conn = state.db.lock().unwrap();
-        conn.execute_batch("BEGIN TRANSACTION").map_err(|e| e.to_string())?;
+        conn.execute_batch("BEGIN TRANSACTION")
+            .map_err(|e| e.to_string())?;
         let _: usize = articles
             .into_iter()
             .filter_map(|a| db::insert_article(&conn, &a).ok())
@@ -61,10 +62,10 @@ pub async fn refresh_feed(feed_id: i64, state: State<'_, AppState>) -> Result<i6
 
     if feed_type == "bluesky" {
         let actor = url.strip_prefix("bsky:").unwrap_or(&url);
-        let articles =
-            crate::connectors::bluesky::fetch_posts(&client, actor, feed_id).await?;
+        let articles = crate::connectors::bluesky::fetch_posts(&client, actor, feed_id).await?;
         let conn = state.db.lock().unwrap();
-        conn.execute_batch("BEGIN TRANSACTION").map_err(|e| e.to_string())?;
+        conn.execute_batch("BEGIN TRANSACTION")
+            .map_err(|e| e.to_string())?;
         let _: usize = articles
             .iter()
             .filter_map(|a| db::insert_article(&conn, a).ok())
@@ -86,7 +87,8 @@ pub async fn refresh_feed(feed_id: i64, state: State<'_, AppState>) -> Result<i6
                         feed.entries.len()
                     );
                     let conn = state.db.lock().unwrap();
-                    conn.execute_batch("BEGIN TRANSACTION").map_err(|e| e.to_string())?;
+                    conn.execute_batch("BEGIN TRANSACTION")
+                        .map_err(|e| e.to_string())?;
                     for entry in feed.entries {
                         let article_url = entry
                             .links
@@ -98,7 +100,8 @@ pub async fn refresh_feed(feed_id: i64, state: State<'_, AppState>) -> Result<i6
                                 let key = if !entry.id.is_empty() {
                                     entry.id.clone()
                                 } else {
-                                    entry.title
+                                    entry
+                                        .title
                                         .as_ref()
                                         .map(|t| t.content.clone())
                                         .unwrap_or_default()

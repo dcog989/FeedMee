@@ -145,7 +145,7 @@ function closeContextMenu() {
 }
 
 function cmRename() {
-    if (!cmTarget || cmTarget.type !== 'folder') return;
+    if (cmTarget?.type !== 'folder') return;
     const newName = prompt('Rename Folder:', cmTarget.name);
     if (newName && newName.trim() !== '') {
         appState.renameFolder(cmTarget.id, newName.trim());
@@ -155,10 +155,10 @@ function cmRename() {
 
 function cmRenameFeed() {
     if (cmTarget?.type !== 'feed') return;
-    const feed = appState.folders.flatMap((f) => f.feeds).find((f) => f.id === cmTarget!.id);
+    const feed = appState.folders.flatMap((f) => f.feeds).find((f) => f.id === cmTarget?.id);
     appState.editFeedTarget = {
-        id: cmTarget!.id,
-        name: cmTarget!.name ?? '',
+        id: cmTarget?.id,
+        name: cmTarget?.name ?? '',
         url: feed?.url ?? '',
     };
     appState.showEditFeedDialog = true;

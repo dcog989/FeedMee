@@ -17,7 +17,7 @@
         "@sveltejs/kit": "^2.61.1",
         "@sveltejs/vite-plugin-svelte": "^7.1.2",
         "@tauri-apps/cli": "^2.11.2",
-        "lefthook": "^2.1.8",
+        "lefthook": "^2.1.9",
         "svelte": "^5.55.10",
         "svelte-check": "^4.4.8",
         "typescript": "^6.0.3",

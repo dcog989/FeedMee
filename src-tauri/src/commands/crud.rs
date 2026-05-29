@@ -1,4 +1,7 @@
-use crate::{AppState, db, models::{Article, Folder, Tag}};
+use crate::{
+    AppState, db,
+    models::{Article, Folder, Tag},
+};
 use log::info;
 use std::fmt::Write;
 use tauri::State;
@@ -162,7 +165,11 @@ pub async fn export_opml(state: State<'_, AppState>) -> Result<String, String> {
         if folder.feeds.is_empty() {
             continue;
         }
-        let _ = writeln!(&mut opml, "    <outline text=\"{}\">", xml_escape(&folder.name));
+        let _ = writeln!(
+            &mut opml,
+            "    <outline text=\"{}\">",
+            xml_escape(&folder.name)
+        );
         for feed in &folder.feeds {
             let _ = writeln!(
                 &mut opml,
@@ -190,7 +197,12 @@ pub fn rename_folder(id: i64, new_name: String, state: State<'_, AppState>) -> R
 }
 
 #[tauri::command]
-pub fn rename_feed(id: i64, new_name: String, new_url: String, state: State<'_, AppState>) -> Result<(), String> {
+pub fn rename_feed(
+    id: i64,
+    new_name: String,
+    new_url: String,
+    state: State<'_, AppState>,
+) -> Result<(), String> {
     let conn = state.db.lock().unwrap();
     db::rename_feed(&conn, id, &new_name, &new_url).map_err(|e| e.to_string())
 }
@@ -226,7 +238,10 @@ pub fn search_articles(
 }
 
 #[tauri::command]
-pub fn get_tags_for_article(article_id: i64, state: State<'_, AppState>) -> Result<Vec<Tag>, String> {
+pub fn get_tags_for_article(
+    article_id: i64,
+    state: State<'_, AppState>,
+) -> Result<Vec<Tag>, String> {
     let conn = state.db.lock().unwrap();
     db::get_tags_for_article(&conn, article_id).map_err(|e| e.to_string())
 }

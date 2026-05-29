@@ -1,4 +1,7 @@
-use crate::{AppState, db, settings::{self, AppSettings}};
+use crate::{
+    AppState, db,
+    settings::{self, AppSettings},
+};
 use log::info;
 use serde::Serialize;
 use std::fs;
@@ -88,7 +91,7 @@ fn pick_font_platform() -> Result<String, String> {
                 } else {
                     Ok(name)
                 }
-            }
+            },
             None => Err("No font selected".to_string()),
         }
     } else {
