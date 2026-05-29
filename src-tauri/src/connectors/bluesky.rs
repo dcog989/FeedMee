@@ -237,6 +237,7 @@ pub async fn fetch_posts(
                 author: display_name.to_string(),
                 summary,
                 url: post_url,
+                image_url: String::new(),
                 timestamp,
                 is_read: false,
                 is_saved: false,

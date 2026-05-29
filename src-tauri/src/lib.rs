@@ -207,7 +207,8 @@ pub fn run() {
             commands::get_all_tags,
             commands::add_tag,
             commands::remove_tag,
-            commands::delete_tag
+            commands::delete_tag,
+            commands::get_thumbnail
         ])
         .run(tauri::generate_context!())
         .unwrap_or_else(|e| {

@@ -37,6 +37,7 @@ class AppStateImpl {
         article_title_color: '',
         article_body_color: '',
         article_bg_color: '',
+        show_thumbnails: false,
     });
 
     showSettings = $state(false);

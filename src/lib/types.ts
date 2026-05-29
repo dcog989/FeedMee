@@ -20,6 +20,7 @@ export interface Article {
     summary: string;
     author: string;
     url: string;
+    image_url: string;
     timestamp: number;
     is_read: boolean;
     is_saved: boolean;
@@ -45,4 +46,5 @@ export interface AppSettings {
     article_title_color: string;
     article_body_color: string;
     article_bg_color: string;
+    show_thumbnails: boolean;
 }

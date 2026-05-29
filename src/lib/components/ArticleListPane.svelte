@@ -1,6 +1,6 @@
 ﻿<script lang="ts">
 import { invoke } from '@tauri-apps/api/core';
-import { ArrowUpDown, Bookmark, CheckCheck, Clock, Search, Tags } from 'lucide-svelte';
+import { ArrowUpDown, Bookmark, CheckCheck, Clock, Image, Search, Tags } from 'lucide-svelte';
 import { tooltip } from '$lib/actions/tooltip.svelte';
 import { appState, FEED_ID_LATEST, FEED_ID_SAVED } from '$lib/store.svelte';
 import type { Article } from '$lib/types';
@@ -9,6 +9,39 @@ import TagManager from './TagManager.svelte';
 let listContainer: HTMLElement;
 
 let searchDebounce: ReturnType<typeof setTimeout> | null = null;
+
+let thumbnailCache = $state<Map<string, string>>(new Map());
+let thumbnailLoadings = $state<Set<string>>(new Set());
+let thumbnailFailed = $state<Set<string>>(new Set());
+
+async function loadThumbnail(url: string) {
+    if (thumbnailCache.has(url) || thumbnailLoadings.has(url)) return;
+    thumbnailLoadings.add(url);
+    try {
+        const dataUrl = await invoke<string>('get_thumbnail', { url });
+        thumbnailCache.set(url, dataUrl);
+    } catch (e) {
+        console.error('Failed to load thumbnail:', e);
+    } finally {
+        thumbnailLoadings.delete(url);
+    }
+}
+
+function onThumbnailError(url: string) {
+    thumbnailFailed.add(url);
+}
+
+$effect(() => {
+    const show = appState.settings.show_thumbnails;
+    const articles = appState.articles;
+    if (show) {
+        for (const article of articles) {
+            if (article.image_url) {
+                loadThumbnail(article.image_url);
+            }
+        }
+    }
+});
 
 function onSearchInput(e: Event) {
     const query = (e.target as HTMLInputElement).value;
@@ -179,56 +212,75 @@ function cmToggleSaved() {
                             class="article-card"
                             class:selected={appState.selectedArticle?.id === article.id}
                             class:unread={!article.is_read}
+                            class:has-thumbnail={appState.settings.show_thumbnails}
                             onclick={() => appState.selectArticle(article)}
                             oncontextmenu={(e) => openContextMenu(e, article)}
                             onkeydown={(e) => handleKeydown(e, article)}
                             role="button"
                             tabindex="0"
                         >
-                            <span class="title" title={article.title}>{article.title}</span>
-
-                            <div class="meta-line">
-                                <div class="meta-left">
-                                    <span class="date"
-                                        >{new Date(
-                                            article.timestamp * 1000,
-                                        ).toLocaleDateString()}</span
-                                    >
-                                    <span class="separator">•</span>
-                                    <span class="author">{article.author}</span>
+                            {#if appState.settings.show_thumbnails}
+                                <div class="thumbnail-wrap">
+                                    {#if thumbnailCache.has(article.image_url) && !thumbnailFailed.has(article.image_url)}
+                                        <img
+                                            src={thumbnailCache.get(article.image_url)}
+                                            alt=""
+                                            onerror={() => onThumbnailError(article.image_url)}
+                                        >
+                                    {:else}
+                                        <div class="thumb-fallback">
+                                            <Image size={22} />
+                                        </div>
+                                    {/if}
                                 </div>
+                            {/if}
 
-                                <div class="actions">
-                                    <button
-                                        type="button"
-                                        class="icon-btn"
-                                        class:active={article.has_tags || tagArticleId === article.id}
-                                        onclick={(e) => toggleTagManager(e, article)}
-                                        use:tooltip={'Tags'}
-                                        aria-label="Tags"
-                                    >
-                                        <Tags
-                                            size={14}
-                                            fill={article.has_tags ? 'currentColor' : 'none'}
-                                        />
-                                    </button>
+                            <div class="card-body">
+                                <span class="title" title={article.title}>{article.title}</span>
 
-                                    <button
-                                        type="button"
-                                        class="icon-btn"
-                                        class:active={article.is_saved}
-                                        onclick={(e) => {
-                                        e.stopPropagation();
-                                        appState.toggleSaved(article);
-                                    }}
-                                        use:tooltip={'Read Later'}
-                                        aria-label="Read Later"
-                                    >
-                                        <Bookmark
-                                            size={14}
-                                            fill={article.is_saved ? 'currentColor' : 'none'}
-                                        />
-                                    </button>
+                                <div class="meta-line">
+                                    <div class="meta-left">
+                                        <span class="date"
+                                            >{new Date(
+                                                article.timestamp * 1000,
+                                            ).toLocaleDateString()}</span
+                                        >
+                                        <span class="separator">•</span>
+                                        <span class="author">{article.author}</span>
+                                    </div>
+
+                                    <div class="actions">
+                                        <button
+                                            type="button"
+                                            class="icon-btn"
+                                            class:active={article.has_tags || tagArticleId === article.id}
+                                            onclick={(e) => toggleTagManager(e, article)}
+                                            use:tooltip={'Tags'}
+                                            aria-label="Tags"
+                                        >
+                                            <Tags
+                                                size={14}
+                                                fill={article.has_tags ? 'currentColor' : 'none'}
+                                            />
+                                        </button>
+
+                                        <button
+                                            type="button"
+                                            class="icon-btn"
+                                            class:active={article.is_saved}
+                                            onclick={(e) => {
+                                            e.stopPropagation();
+                                            appState.toggleSaved(article);
+                                        }}
+                                            use:tooltip={'Read Later'}
+                                            aria-label="Read Later"
+                                        >
+                                            <Bookmark
+                                                size={14}
+                                                fill={article.is_saved ? 'currentColor' : 'none'}
+                                            />
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -366,6 +418,12 @@ function cmToggleSaved() {
     box-sizing: border-box;
 }
 
+.article-card.has-thumbnail {
+    display: flex;
+    gap: 0.75rem;
+    align-items: flex-start;
+}
+
 .article-card.unread {
     color: var(--text-primary);
     font-weight: 400;
@@ -385,6 +443,39 @@ function cmToggleSaved() {
     border-left: 4px solid var(--bg-selected);
     padding-left: calc(1rem - 4px);
     color: var(--text-primary);
+}
+
+.thumbnail-wrap {
+    width: 56px;
+    height: 56px;
+    flex-shrink: 0;
+    border-radius: 6px;
+    overflow: hidden;
+    background: var(--bg-hover);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.thumbnail-wrap img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.thumb-fallback {
+    color: var(--text-secondary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+}
+
+.card-body {
+    flex: 1;
+    min-width: 0;
 }
 
 .title {

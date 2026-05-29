@@ -113,6 +113,26 @@ pub async fn refresh_feed(feed_id: i64, state: State<'_, AppState>) -> Result<i6
                                 )
                             });
 
+                        let image_url = (|| -> Option<String> {
+                            if let Some(obj) = entry.media.iter().find_map(|m| m.content.first())
+                                && let Some(url) = &obj.url
+                            {
+                                return Some(url.as_str().to_string());
+                            }
+                            for link in &entry.links {
+                                if link.rel.as_deref() == Some("enclosure")
+                                    && link
+                                        .media_type
+                                        .as_deref()
+                                        .is_some_and(|m| m.starts_with("image/"))
+                                {
+                                    return Some(link.href.clone());
+                                }
+                            }
+                            None
+                        })()
+                        .unwrap_or_default();
+
                         let article = Article {
                             id: 0,
                             feed_id,
@@ -131,6 +151,7 @@ pub async fn refresh_feed(feed_id: i64, state: State<'_, AppState>) -> Result<i6
                                 .or(entry.content.map(|c| c.body.unwrap_or_default()))
                                 .unwrap_or_default(),
                             url: article_url,
+                            image_url,
                             timestamp: entry
                                 .published
                                 .or(entry.updated)

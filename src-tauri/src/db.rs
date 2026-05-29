@@ -6,70 +6,73 @@ use rusqlite_migration::{M, Migrations};
 pub const DB_FILENAME: &str = "feedmee.sqlite";
 
 fn migrations() -> Migrations<'static> {
-    Migrations::new(vec![M::up(
-        "CREATE TABLE IF NOT EXISTS folders (
-            id   INTEGER PRIMARY KEY,
-            name TEXT NOT NULL UNIQUE
-        );
-        INSERT OR IGNORE INTO folders (id, name) VALUES (1, 'Uncategorized');
-        CREATE TABLE IF NOT EXISTS feeds (
-            id           INTEGER PRIMARY KEY,
-            name         TEXT NOT NULL,
-            url          TEXT NOT NULL,
-            folder_id    INTEGER NOT NULL,
-            has_error    BOOLEAN NOT NULL DEFAULT 0,
-            feed_type    TEXT NOT NULL DEFAULT 'rss',
-            content_hash TEXT,
-            FOREIGN KEY (folder_id) REFERENCES folders (id)
-        );
-        CREATE TABLE IF NOT EXISTS articles (
-            id        INTEGER PRIMARY KEY,
-            feed_id   INTEGER NOT NULL,
-            title     TEXT NOT NULL,
-            author    TEXT,
-            summary   TEXT,
-            url       TEXT NOT NULL,
-            timestamp INTEGER,
-            is_read   BOOLEAN NOT NULL DEFAULT 0,
-            is_saved  BOOLEAN NOT NULL DEFAULT 0,
-            FOREIGN KEY (feed_id) REFERENCES feeds (id),
-            UNIQUE(feed_id, url)
-        );
-        CREATE TABLE IF NOT EXISTS tags (
-            id    INTEGER PRIMARY KEY,
-            name  TEXT NOT NULL UNIQUE,
-            color TEXT NOT NULL DEFAULT '#4899ec'
-        );
-        CREATE TABLE IF NOT EXISTS article_tags (
-            article_id INTEGER NOT NULL,
-            tag_id     INTEGER NOT NULL,
-            PRIMARY KEY (article_id, tag_id),
-            FOREIGN KEY (article_id) REFERENCES articles(id) ON DELETE CASCADE,
-            FOREIGN KEY (tag_id) REFERENCES tags(id) ON DELETE CASCADE
-        );
-        CREATE VIRTUAL TABLE IF NOT EXISTS articles_fts USING fts5(
-            title, author, summary,
-            content='articles', content_rowid='id'
-        );
-        INSERT INTO articles_fts(rowid, title, author, summary)
-            SELECT id, title, COALESCE(author,''), COALESCE(summary,'')
-            FROM articles;
-        CREATE TRIGGER IF NOT EXISTS articles_ai AFTER INSERT ON articles BEGIN
+    Migrations::new(vec![
+        M::up(
+            "CREATE TABLE IF NOT EXISTS folders (
+                id   INTEGER PRIMARY KEY,
+                name TEXT NOT NULL UNIQUE
+            );
+            INSERT OR IGNORE INTO folders (id, name) VALUES (1, 'Uncategorized');
+            CREATE TABLE IF NOT EXISTS feeds (
+                id           INTEGER PRIMARY KEY,
+                name         TEXT NOT NULL,
+                url          TEXT NOT NULL,
+                folder_id    INTEGER NOT NULL,
+                has_error    BOOLEAN NOT NULL DEFAULT 0,
+                feed_type    TEXT NOT NULL DEFAULT 'rss',
+                content_hash TEXT,
+                FOREIGN KEY (folder_id) REFERENCES folders (id)
+            );
+            CREATE TABLE IF NOT EXISTS articles (
+                id        INTEGER PRIMARY KEY,
+                feed_id   INTEGER NOT NULL,
+                title     TEXT NOT NULL,
+                author    TEXT,
+                summary   TEXT,
+                url       TEXT NOT NULL,
+                timestamp INTEGER,
+                is_read   BOOLEAN NOT NULL DEFAULT 0,
+                is_saved  BOOLEAN NOT NULL DEFAULT 0,
+                FOREIGN KEY (feed_id) REFERENCES feeds (id),
+                UNIQUE(feed_id, url)
+            );
+            CREATE TABLE IF NOT EXISTS tags (
+                id    INTEGER PRIMARY KEY,
+                name  TEXT NOT NULL UNIQUE,
+                color TEXT NOT NULL DEFAULT '#4899ec'
+            );
+            CREATE TABLE IF NOT EXISTS article_tags (
+                article_id INTEGER NOT NULL,
+                tag_id     INTEGER NOT NULL,
+                PRIMARY KEY (article_id, tag_id),
+                FOREIGN KEY (article_id) REFERENCES articles(id) ON DELETE CASCADE,
+                FOREIGN KEY (tag_id) REFERENCES tags(id) ON DELETE CASCADE
+            );
+            CREATE VIRTUAL TABLE IF NOT EXISTS articles_fts USING fts5(
+                title, author, summary,
+                content='articles', content_rowid='id'
+            );
             INSERT INTO articles_fts(rowid, title, author, summary)
-                VALUES (new.id, new.title, COALESCE(new.author,''), COALESCE(new.summary,''));
-        END;
-        CREATE TRIGGER IF NOT EXISTS articles_ad AFTER DELETE ON articles BEGIN
-            INSERT INTO articles_fts(articles_fts, rowid, title, author, summary)
-                VALUES ('delete', old.id, old.title, COALESCE(old.author,''), COALESCE(old.summary,''));
-        END;
-        CREATE TRIGGER IF NOT EXISTS articles_au AFTER UPDATE ON articles BEGIN
-            INSERT INTO articles_fts(articles_fts, rowid, title, author, summary)
-                VALUES ('delete', old.id, old.title, COALESCE(old.author,''), COALESCE(old.summary,''));
-            INSERT INTO articles_fts(rowid, title, author, summary)
-                VALUES (new.id, new.title, COALESCE(new.author,''), COALESCE(new.summary,''));
-        END;
-        CREATE INDEX IF NOT EXISTS idx_articles_feed_timestamp ON articles(feed_id, timestamp);",
-    )])
+                SELECT id, title, COALESCE(author,''), COALESCE(summary,'')
+                FROM articles;
+            CREATE TRIGGER IF NOT EXISTS articles_ai AFTER INSERT ON articles BEGIN
+                INSERT INTO articles_fts(rowid, title, author, summary)
+                    VALUES (new.id, new.title, COALESCE(new.author,''), COALESCE(new.summary,''));
+            END;
+            CREATE TRIGGER IF NOT EXISTS articles_ad AFTER DELETE ON articles BEGIN
+                INSERT INTO articles_fts(articles_fts, rowid, title, author, summary)
+                    VALUES ('delete', old.id, old.title, COALESCE(old.author,''), COALESCE(old.summary,''));
+            END;
+            CREATE TRIGGER IF NOT EXISTS articles_au AFTER UPDATE ON articles BEGIN
+                INSERT INTO articles_fts(articles_fts, rowid, title, author, summary)
+                    VALUES ('delete', old.id, old.title, COALESCE(old.author,''), COALESCE(old.summary,''));
+                INSERT INTO articles_fts(rowid, title, author, summary)
+                    VALUES (new.id, new.title, COALESCE(new.author,''), COALESCE(new.summary,''));
+            END;
+            CREATE INDEX IF NOT EXISTS idx_articles_feed_timestamp ON articles(feed_id, timestamp);",
+        ),
+        M::up("ALTER TABLE articles ADD COLUMN image_url TEXT NOT NULL DEFAULT '';"),
+    ])
 }
 
 pub fn init_db(conn: &mut Connection) -> Result<(), Box<dyn std::error::Error>> {
@@ -156,7 +159,7 @@ pub fn get_articles_for_feed(
 ) -> Result<Vec<Article>> {
     let order = if sort_desc { "DESC" } else { "ASC" };
     let sql = format!(
-        "SELECT id, feed_id, title, author, summary, url, timestamp, is_read, is_saved,
+        "SELECT id, feed_id, title, author, summary, url, image_url, timestamp, is_read, is_saved,
                 EXISTS (SELECT 1 FROM article_tags WHERE article_id = articles.id) AS has_tags
          FROM articles WHERE feed_id = ?1
          ORDER BY timestamp {} LIMIT ?2 OFFSET ?3",
@@ -175,7 +178,7 @@ pub fn get_articles_for_folder(
 ) -> Result<Vec<Article>> {
     let order = if sort_desc { "DESC" } else { "ASC" };
     let sql = format!(
-        "SELECT a.id, a.feed_id, a.title, a.author, a.summary, a.url, a.timestamp, a.is_read, a.is_saved,
+        "SELECT a.id, a.feed_id, a.title, a.author, a.summary, a.url, a.image_url, a.timestamp, a.is_read, a.is_saved,
                 EXISTS (SELECT 1 FROM article_tags WHERE article_id = a.id) AS has_tags
          FROM articles a
          JOIN feeds f ON a.feed_id = f.id
@@ -196,7 +199,7 @@ pub fn get_latest_articles(
 ) -> Result<Vec<Article>> {
     let order = if sort_desc { "DESC" } else { "ASC" };
     let sql = format!(
-        "SELECT id, feed_id, title, author, summary, url, timestamp, is_read, is_saved,
+        "SELECT id, feed_id, title, author, summary, url, image_url, timestamp, is_read, is_saved,
                 EXISTS (SELECT 1 FROM article_tags WHERE article_id = articles.id) AS has_tags
          FROM articles WHERE timestamp > ?1
          ORDER BY timestamp {} LIMIT ?2 OFFSET ?3",
@@ -217,7 +220,7 @@ pub fn get_saved_articles(
 ) -> Result<Vec<Article>> {
     let order = if sort_desc { "DESC" } else { "ASC" };
     let sql = format!(
-        "SELECT id, feed_id, title, author, summary, url, timestamp, is_read, is_saved,
+        "SELECT id, feed_id, title, author, summary, url, image_url, timestamp, is_read, is_saved,
                 EXISTS (SELECT 1 FROM article_tags WHERE article_id = articles.id) AS has_tags
          FROM articles WHERE is_saved = 1
          ORDER BY timestamp {} LIMIT ?1 OFFSET ?2",
@@ -239,10 +242,11 @@ fn map_articles(
             author: row.get(3).unwrap_or_default(),
             summary: row.get(4).unwrap_or_default(),
             url: row.get(5)?,
-            timestamp: row.get(6)?,
-            is_read: row.get(7)?,
-            is_saved: row.get(8)?,
-            has_tags: row.get::<_, i64>(9).unwrap_or(0) != 0,
+            image_url: row.get(6).unwrap_or_default(),
+            timestamp: row.get(7)?,
+            is_read: row.get(8)?,
+            is_saved: row.get(9)?,
+            has_tags: row.get::<_, i64>(10).unwrap_or(0) != 0,
         })
     })?
     .collect::<Result<Vec<Article>>>()
@@ -311,9 +315,9 @@ pub fn update_feed_error(conn: &Connection, feed_id: i64, has_error: bool) -> Re
 
 pub fn insert_article(conn: &Connection, article: &Article) -> Result<usize> {
     let inserted = conn.execute(
-        "INSERT OR IGNORE INTO articles (feed_id, title, author, summary, url, timestamp, is_read, is_saved)
-         VALUES (?1, ?2, ?3, ?4, ?5, ?6, 0, 0)",
-        params![article.feed_id, article.title, article.author, article.summary, article.url, article.timestamp],
+        "INSERT OR IGNORE INTO articles (feed_id, title, author, summary, url, image_url, timestamp, is_read, is_saved)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, 0, 0)",
+        params![article.feed_id, article.title, article.author, article.summary, article.url, article.image_url, article.timestamp],
     )?;
     Ok(inserted)
 }
@@ -412,7 +416,7 @@ pub fn search_articles(
 ) -> Result<Vec<Article>> {
     let order = if sort_asc { "ASC" } else { "DESC" };
     let sql = format!(
-        "SELECT a.id, a.feed_id, a.title, a.author, a.summary, a.url, a.timestamp, a.is_read, a.is_saved,
+        "SELECT a.id, a.feed_id, a.title, a.author, a.summary, a.url, a.image_url, a.timestamp, a.is_read, a.is_saved,
                 EXISTS (SELECT 1 FROM article_tags WHERE article_id = a.id) AS has_tags
          FROM articles_fts
          JOIN articles a ON articles_fts.rowid = a.id

@@ -8,6 +8,7 @@ pub struct Article {
     pub summary: String,
     pub author: String,
     pub url: String,
+    pub image_url: String,
     pub timestamp: i64,
     pub is_read: bool,
     pub is_saved: bool,

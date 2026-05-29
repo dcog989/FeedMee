@@ -27,6 +27,8 @@ pub struct AppSettings {
     pub article_body_color: String,
     #[serde(default)]
     pub article_bg_color: String,
+    #[serde(default)]
+    pub show_thumbnails: bool,
 }
 
 impl Default for AppSettings {
@@ -45,6 +47,7 @@ impl Default for AppSettings {
             article_title_color: String::new(),
             article_body_color: String::new(),
             article_bg_color: String::new(),
+            show_thumbnails: false,
         }
     }
 }

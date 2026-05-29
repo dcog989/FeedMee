@@ -18,6 +18,7 @@ let settings = $state<AppSettings>({
     article_title_color: '',
     article_body_color: '',
     article_bg_color: '',
+    show_thumbnails: false,
 });
 let showShortcuts = $state(false);
 let initialized = $state(false);
@@ -228,6 +229,19 @@ function onKeyDown(e: KeyboardEvent) {
                     <div class="color-input-wrap">
                         <input type="color" id="bg-color" bind:value={settings.article_bg_color}>
                         <input type="text" bind:value={settings.article_bg_color}>
+                    </div>
+                </div>
+
+                <h4 class="section-label">Display</h4>
+
+                <div class="form-group">
+                    <label for="show-thumbnails">Show Thumbnails in Article List</label>
+                    <div class="checkbox-wrap">
+                        <input
+                            type="checkbox"
+                            id="show-thumbnails"
+                            bind:checked={settings.show_thumbnails}
+                        >
                     </div>
                 </div>
 

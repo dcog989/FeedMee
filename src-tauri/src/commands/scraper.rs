@@ -108,6 +108,7 @@ pub fn scrape_articles_from_page(html: &str, page_url: &str) -> Vec<Article> {
             author: String::new(),
             summary: String::new(),
             url: url_str,
+            image_url: String::new(),
             timestamp: now,
             is_read: false,
             is_saved: false,
