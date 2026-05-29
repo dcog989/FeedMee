@@ -369,10 +369,12 @@ pub async fn refresh_feed(feed_id: i64, state: State<'_, AppState>) -> Result<i6
         let html = response.text().await.map_err(|e| e.to_string())?;
         let articles = scrape_articles_from_page(&html, &url);
         let conn = state.db.lock().unwrap();
+        conn.execute_batch("BEGIN TRANSACTION").map_err(|e| e.to_string())?;
         let _: usize = articles
             .into_iter()
             .filter_map(|a| db::insert_article(&conn, &a).ok())
             .sum();
+        conn.execute_batch("COMMIT").map_err(|e| e.to_string())?;
         let _ = db::update_feed_error(&conn, feed_id, false);
         return Ok(db::get_feed_unread_count(&conn, feed_id).unwrap_or(0));
     }
@@ -383,10 +385,12 @@ pub async fn refresh_feed(feed_id: i64, state: State<'_, AppState>) -> Result<i6
         let articles =
             crate::connectors::bluesky::fetch_posts(&client, actor, feed_id).await?;
         let conn = state.db.lock().unwrap();
+        conn.execute_batch("BEGIN TRANSACTION").map_err(|e| e.to_string())?;
         let _: usize = articles
             .iter()
             .filter_map(|a| db::insert_article(&conn, a).ok())
             .sum();
+        conn.execute_batch("COMMIT").map_err(|e| e.to_string())?;
         let _ = db::update_feed_error(&conn, feed_id, false);
         return Ok(db::get_feed_unread_count(&conn, feed_id).unwrap_or(0));
     }
@@ -404,6 +408,7 @@ pub async fn refresh_feed(feed_id: i64, state: State<'_, AppState>) -> Result<i6
                         feed.entries.len()
                     );
                     let conn = state.db.lock().unwrap();
+                    conn.execute_batch("BEGIN TRANSACTION").map_err(|e| e.to_string())?;
                     for entry in feed.entries {
                         let article_url = entry
                             .links
@@ -417,8 +422,7 @@ pub async fn refresh_feed(feed_id: i64, state: State<'_, AppState>) -> Result<i6
                                 let key = if !entry.id.is_empty() {
                                     entry.id.clone()
                                 } else {
-                                    entry
-                                        .title
+                                    entry.title
                                         .as_ref()
                                         .map(|t| t.content.clone())
                                         .unwrap_or_default()
@@ -459,6 +463,7 @@ pub async fn refresh_feed(feed_id: i64, state: State<'_, AppState>) -> Result<i6
                         };
                         let _ = db::insert_article(&conn, &article);
                     }
+                    conn.execute_batch("COMMIT").map_err(|e| e.to_string())?;
                     let _ = db::update_feed_error(&conn, feed_id, false);
                     let unread = db::get_feed_unread_count(&conn, feed_id).unwrap_or(0);
                     Ok(unread)
@@ -639,9 +644,11 @@ async fn add_website_feed(
     }
 
     let conn = state.db.lock().unwrap();
+    conn.execute_batch("BEGIN TRANSACTION").map_err(|e| e.to_string())?;
     for article in articles {
         let _ = db::insert_article(&conn, &article);
     }
+    conn.execute_batch("COMMIT").map_err(|e| e.to_string())?;
 
     Ok(feed_id)
 }
@@ -674,9 +681,11 @@ pub async fn add_feed(
             crate::connectors::bluesky::fetch_posts(&state.http_client, &did, feed_id).await?;
 
         let conn = state.db.lock().unwrap();
+        conn.execute_batch("BEGIN TRANSACTION").map_err(|e| e.to_string())?;
         for article in &articles {
             let _ = db::insert_article(&conn, article);
         }
+        conn.execute_batch("COMMIT").map_err(|e| e.to_string())?;
         let _ = db::update_feed_error(&conn, feed_id, false);
         info!("add_feed: bluesky feed_id={}, articles={}", feed_id, articles.len());
 
@@ -798,6 +807,7 @@ pub async fn add_feed(
 
     // Insert articles from the already-parsed feed data
     let conn = state.db.lock().unwrap();
+    conn.execute_batch("BEGIN TRANSACTION").map_err(|e| e.to_string())?;
     for entry in feed.entries {
         let article_url = entry
             .links
@@ -850,6 +860,7 @@ pub async fn add_feed(
         };
         let _ = db::insert_article(&conn, &article);
     }
+    conn.execute_batch("COMMIT").map_err(|e| e.to_string())?;
     let _ = db::update_feed_error(&conn, id, false);
 
     Ok(id)

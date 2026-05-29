@@ -130,8 +130,71 @@ fn migrations() -> Migrations<'static> {
              DELETE FROM articles_fts;
              INSERT INTO articles_fts(rowid, title, author, summary)
                  SELECT id, title, COALESCE(author,''), COALESCE(summary,'') FROM articles;
-             DROP TABLE _bak_feeds;
-             DROP TABLE _bak_articles;",
+              DROP TABLE _bak_feeds;
+              DROP TABLE _bak_articles;",
+        ),
+        // v6: Fix v5's missing article_tags FK handling, add performance index
+        M::up(
+            "CREATE TABLE IF NOT EXISTS _bak_v6_article_tags AS SELECT * FROM article_tags;
+             DROP TABLE article_tags;
+             CREATE TABLE IF NOT EXISTS _bak_v6_articles AS SELECT * FROM articles;
+             DROP TABLE articles;
+             CREATE TABLE IF NOT EXISTS _bak_v6_feeds AS SELECT * FROM feeds;
+             DROP TABLE feeds;
+             CREATE TABLE feeds (
+                 id           INTEGER PRIMARY KEY,
+                 name         TEXT NOT NULL,
+                 url          TEXT NOT NULL,
+                 folder_id    INTEGER NOT NULL,
+                 has_error    BOOLEAN NOT NULL DEFAULT 0,
+                 feed_type    TEXT NOT NULL DEFAULT 'rss',
+                 content_hash TEXT,
+                 FOREIGN KEY (folder_id) REFERENCES folders (id)
+             );
+             INSERT INTO feeds SELECT * FROM _bak_v6_feeds;
+             CREATE TABLE articles (
+                 id        INTEGER PRIMARY KEY,
+                 feed_id   INTEGER NOT NULL,
+                 title     TEXT NOT NULL,
+                 author    TEXT,
+                 summary   TEXT,
+                 url       TEXT NOT NULL,
+                 timestamp INTEGER,
+                 is_read   BOOLEAN NOT NULL DEFAULT 0,
+                 is_saved  BOOLEAN NOT NULL DEFAULT 0,
+                 FOREIGN KEY (feed_id) REFERENCES feeds (id),
+                 UNIQUE(feed_id, url)
+             );
+             INSERT INTO articles SELECT * FROM _bak_v6_articles;
+             CREATE TABLE article_tags (
+                 article_id INTEGER NOT NULL,
+                 tag_id     INTEGER NOT NULL,
+                 PRIMARY KEY (article_id, tag_id),
+                 FOREIGN KEY (article_id) REFERENCES articles(id) ON DELETE CASCADE,
+                 FOREIGN KEY (tag_id) REFERENCES tags(id) ON DELETE CASCADE
+             );
+             INSERT INTO article_tags SELECT * FROM _bak_v6_article_tags;
+             CREATE TRIGGER IF NOT EXISTS articles_ai AFTER INSERT ON articles BEGIN
+                 INSERT INTO articles_fts(rowid, title, author, summary)
+                     VALUES (new.id, new.title, COALESCE(new.author,''), COALESCE(new.summary,''));
+             END;
+             CREATE TRIGGER IF NOT EXISTS articles_ad AFTER DELETE ON articles BEGIN
+                 INSERT INTO articles_fts(articles_fts, rowid, title, author, summary)
+                     VALUES ('delete', old.id, old.title, COALESCE(old.author,''), COALESCE(old.summary,''));
+             END;
+             CREATE TRIGGER IF NOT EXISTS articles_au AFTER UPDATE ON articles BEGIN
+                 INSERT INTO articles_fts(articles_fts, rowid, title, author, summary)
+                     VALUES ('delete', old.id, old.title, COALESCE(old.author,''), COALESCE(old.summary,''));
+                 INSERT INTO articles_fts(rowid, title, author, summary)
+                     VALUES (new.id, new.title, COALESCE(new.author,''), COALESCE(new.summary,''));
+             END;
+             DELETE FROM articles_fts;
+             INSERT INTO articles_fts(rowid, title, author, summary)
+                 SELECT id, title, COALESCE(author,''), COALESCE(summary,'') FROM articles;
+             CREATE INDEX IF NOT EXISTS idx_articles_feed_timestamp ON articles(feed_id, timestamp);
+             DROP TABLE _bak_v6_feeds;
+             DROP TABLE _bak_v6_articles;
+             DROP TABLE _bak_v6_article_tags;",
         ),
     ])
 }
