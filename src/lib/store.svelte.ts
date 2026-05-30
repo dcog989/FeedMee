@@ -37,8 +37,7 @@ class AppStateImpl {
         article_title_color: '',
         article_body_color: '',
         article_bg_color: '',
-        show_thumbnails: false,
-        thumbnail_size: 56,
+        thumbnail_size: 0,
         article_retention_days: 90,
     });
 

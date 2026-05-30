@@ -18,8 +18,7 @@ let settings = $state<AppSettings>({
     article_title_color: '',
     article_body_color: '',
     article_bg_color: '',
-    show_thumbnails: false,
-    thumbnail_size: 56,
+    thumbnail_size: 0,
     article_retention_days: 90,
 });
 let showShortcuts = $state(false);
@@ -210,28 +209,19 @@ function onKeyDown(e: KeyboardEvent) {
                 <h4 class="section-label">Display</h4>
 
                 <div class="form-group">
-                    <label for="show-thumbnails">Show Thumbnails in Article List</label>
-                    <div class="checkbox-wrap">
-                        <input
-                            type="checkbox"
-                            id="show-thumbnails"
-                            bind:checked={settings.show_thumbnails}
-                        >
-                    </div>
-                </div>
-
-                <div class="form-group">
                     <label for="thumb-size">Thumbnail Size</label>
                     <div class="range-wrap">
                         <input
                             type="range"
                             id="thumb-size"
-                            min="32"
-                            max="128"
-                            step="8"
+                            min="0"
+                            max="156"
+                            step="12"
                             bind:value={settings.thumbnail_size}
                         >
-                        <span class="range-value">{settings.thumbnail_size}px</span>
+                        <span class="range-value"
+                            >{settings.thumbnail_size > 0 ? `${settings.thumbnail_size}px` : 'Off'}</span
+                        >
                     </div>
                 </div>
 

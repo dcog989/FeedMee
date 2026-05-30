@@ -29,7 +29,7 @@ async function loadThumbnail(articleUrl: string, imageUrl: string) {
 }
 
 $effect(() => {
-    if (!appState.settings.show_thumbnails) return;
+    if (!(appState.settings.thumbnail_size > 0)) return;
     for (const article of appState.articles) {
         loadThumbnail(article.url, article.image_url);
     }
@@ -205,15 +205,15 @@ function cmToggleSaved() {
                             class="article-card"
                             class:selected={appState.selectedArticle?.id === article.id}
                             class:unread={!article.is_read}
-                            class:has-thumbnail={appState.settings.show_thumbnails}
+                            class:has-thumbnail={appState.settings.thumbnail_size > 0}
                             onclick={() => appState.selectArticle(article)}
                             oncontextmenu={(e) => openContextMenu(e, article)}
                             onkeydown={(e) => handleKeydown(e, article)}
                             role="button"
                             tabindex="0"
                         >
-                            {#if appState.settings.show_thumbnails}
-                                {@const ts = appState.settings.thumbnail_size || 56}
+                            {#if appState.settings.thumbnail_size > 0}
+                                {@const ts = appState.settings.thumbnail_size}
                                 <div class="thumbnail-wrap" style="width:{ts}px;height:{ts}px">
                                     {#if thumbnailCache[`${article.image_url || article.url}_${ts}`]}
                                         <img
