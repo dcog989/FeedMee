@@ -22,6 +22,7 @@ export interface AppState {
     showEditFeedDialog: boolean;
     editFeedTarget: { id: number; name: string; url: string } | null;
     expandedFolders: Set<number>;
+    blockedPhrases: string[];
     focusedPane: 'nav' | 'list' | 'reading';
     customShortcuts: Record<string, string>;
     navWidth: number;
@@ -72,6 +73,7 @@ export interface AppState {
     setShortcut(commandId: string, key: string): void;
     resetShortcut(commandId: string): void;
     persistLayoutSettings(): void;
+    setBlockedPhrases(phrases: string[]): Promise<void>;
     setSortOrder(order: SortOrder): Promise<void>;
     setSearch(query: string): Promise<void>;
     setTheme(theme: Theme): void;

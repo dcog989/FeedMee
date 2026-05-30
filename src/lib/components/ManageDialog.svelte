@@ -7,6 +7,8 @@ let isSubmitting = $state(false);
 let errorMessage = $state('');
 let successMessage = $state('');
 
+let blockedText = $state('');
+
 let isValidUrl = $derived(/^https?:\/\/.+/.test(newFeedUrl.trim()));
 let canSubmit = $derived(isValidUrl && !isSubmitting);
 
@@ -17,6 +19,7 @@ $effect(() => {
     isSubmitting = false;
     errorMessage = '';
     successMessage = '';
+    blockedText = appState.blockedPhrases.join('\n');
     try {
         navigator.clipboard.readText().then((text) => {
             if (newFeedUrl === '' && /^https?:\/\/.+/.test(text.trim())) {
@@ -29,6 +32,12 @@ $effect(() => {
 });
 
 function closeDialog() {
+    appState.setBlockedPhrases(
+        blockedText
+            .split('\n')
+            .map((s) => s.trim())
+            .filter((s) => s.length > 0),
+    );
     appState.showAddDialog = false;
 }
 
@@ -122,6 +131,22 @@ function focusOnMount(node: HTMLElement) {
         <div class="opml-row">
             <button type="button" class="secondary" onclick={handleImport}>Import OPML File</button>
             <button type="button" class="secondary" onclick={handleExport}>Export OPML File</button>
+        </div>
+
+        <div class="divider">
+            <span>Blocked Phrases</span>
+        </div>
+
+        <div class="form-group">
+            <label for="blocked-phrases"
+                >One phrase per line — articles matching any will be hidden</label
+            >
+            <textarea
+                id="blocked-phrases"
+                bind:value={blockedText}
+                placeholder="Bad Content"
+                rows="4"
+            ></textarea>
         </div>
     </div>
 </div>
@@ -286,5 +311,23 @@ button.secondary:hover {
 
 .divider span {
     padding: 0 10px;
+}
+
+textarea {
+    width: 100%;
+    padding: 8px;
+    background: var(--bg-app);
+    border: 1px solid var(--border-color);
+    color: var(--text-primary);
+    border-radius: 4px;
+    font-size: 0.9rem;
+    font-family: inherit;
+    resize: vertical;
+    outline: none;
+    box-sizing: border-box;
+}
+
+textarea:focus {
+    border-color: var(--bg-selected);
 }
 </style>

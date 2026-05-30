@@ -48,6 +48,7 @@ class AppStateImpl {
     editFeedTarget = $state<{ id: number; name: string; url: string } | null>(null);
     expandedFolders = $state<Set<number>>(new Set());
     focusedPane = $state<'nav' | 'list' | 'reading'>('nav');
+    blockedPhrases = $state<string[]>([]);
     customShortcuts = $state<Record<string, string>>({});
     navWidth = $state(280);
     listWidth = $state(320);
@@ -138,6 +139,12 @@ class AppStateImpl {
     refreshAllFeeds = () => this.refresh.refreshAllFeeds();
     requestRefreshFeed = (feedId: number) => this.refresh.requestRefreshFeed(feedId);
     requestRefreshFolder = (folderId: number) => this.refresh.requestRefreshFolder(folderId);
+
+    async setBlockedPhrases(phrases: string[]) {
+        this.blockedPhrases = phrases;
+        localStorage.setItem('blockedPhrases', JSON.stringify(phrases));
+        await this.reloadCurrentArticleList();
+    }
 
     reloadCurrentArticleList = () => this.articleOps.reloadCurrentArticleList();
     loadMore = () => this.articleOps.loadMore();
@@ -439,6 +446,15 @@ class AppStateImpl {
         if (storedSort === 'asc' || storedSort === 'desc') this.sortOrder = storedSort;
         if (storedTheme === 'light' || storedTheme === 'dark' || storedTheme === 'system')
             this.theme = storedTheme;
+
+        const storedBlocked = localStorage.getItem('blockedPhrases');
+        if (storedBlocked) {
+            try {
+                this.blockedPhrases = JSON.parse(storedBlocked);
+            } catch {
+                /* ignore */
+            }
+        }
 
         if (storedLastRefreshed) {
             try {

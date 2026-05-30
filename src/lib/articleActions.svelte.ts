@@ -2,6 +2,12 @@ import { invoke } from '@tauri-apps/api/core';
 import type { AppState } from './storeTypes';
 import type { Article } from './types';
 
+function matchesBlockedPhrases(article: Article, phrases: string[]): boolean {
+    if (phrases.length === 0) return false;
+    const text = `${article.title} ${article.summary} ${article.author}`.toLowerCase();
+    return phrases.some((phrase) => phrase && text.includes(phrase.toLowerCase()));
+}
+
 export function createArticleActions(state: AppState) {
     async function fetchPage(page: number): Promise<Article[]> {
         const offset = page * state.pageSize;
@@ -48,11 +54,16 @@ export function createArticleActions(state: AppState) {
         return [];
     }
 
+    function filterBlocked(articles: Article[]): Article[] {
+        if (state.blockedPhrases.length === 0) return articles;
+        return articles.filter((a) => !matchesBlockedPhrases(a, state.blockedPhrases));
+    }
+
     async function reloadCurrentArticleList() {
         state.articles = [];
         state.page = 0;
         const result = await fetchPage(0);
-        state.articles = result || [];
+        state.articles = filterBlocked(result || []);
         state.hasMore = (result?.length || 0) === state.pageSize;
     }
 
@@ -68,7 +79,8 @@ export function createArticleActions(state: AppState) {
         try {
             const result = await fetchPage(nextPage);
             if (result && result.length > 0) {
-                state.articles = [...state.articles, ...result];
+                const filtered = filterBlocked(result);
+                state.articles = [...state.articles, ...filtered];
                 state.page = nextPage;
                 state.hasMore = result.length === state.pageSize;
             } else {
