@@ -421,7 +421,7 @@ function cmToggleSaved() {
 .article-card.has-thumbnail {
     display: flex;
     gap: 0.75rem;
-    align-items: flex-start;
+    align-items: center;
 }
 
 .article-card.unread {
@@ -472,18 +472,21 @@ function cmToggleSaved() {
 .card-body {
     flex: 1;
     min-width: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
 }
 
 .title {
-    display: block;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
     font-family: var(--font-title, var(--font-serif));
-    margin-bottom: 0.3rem;
+    margin-bottom: 0.2rem;
     font-size: 0.95rem;
     font-weight: 300;
     line-height: 1.3;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
     /* Strikethrough for read articles (which are NOT .unread) */
     text-decoration: line-through;
     opacity: 0.7;
