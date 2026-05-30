@@ -126,6 +126,7 @@ function cmToggleSaved() {
 </script>
 
 <svelte:window
+    onclick={closeContextMenu}
     onkeydown={(e) => { if (e.key === 'Escape') { closeContextMenu(); closeTagManager(); } }}
 />
 
