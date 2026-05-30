@@ -322,6 +322,14 @@ pub fn insert_article(conn: &Connection, article: &Article) -> Result<usize> {
     Ok(inserted)
 }
 
+pub fn update_article_image(conn: &Connection, feed_id: i64, url: &str, image_url: &str) -> Result<()> {
+    conn.execute(
+        "UPDATE articles SET image_url = ?1 WHERE feed_id = ?2 AND url = ?3 AND image_url = ''",
+        params![image_url, feed_id, url],
+    )?;
+    Ok(())
+}
+
 pub fn set_article_read(conn: &Connection, article_id: i64, is_read: bool) -> Result<()> {
     conn.execute(
         "UPDATE articles SET is_read = ?1 WHERE id = ?2",

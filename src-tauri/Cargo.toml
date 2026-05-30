@@ -37,5 +37,5 @@ url = "2.5"
 [target.'cfg(target_os = "linux")'.dependencies]
 gtk = "0.18"
 
-image = { version = "0.25", default-features = false, features = ["png", "webp"] }
+image = { version = "0.25", default-features = false, features = ["jpeg", "png", "webp"] }
 base64 = "0.22"

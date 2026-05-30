@@ -11,6 +11,8 @@ use std::path::PathBuf;
 use tauri::Manager;
 use tauri::State;
 
+use super::scraper::scrape_og_image;
+
 fn thumbnail_cache_dir(app: &tauri::AppHandle) -> Result<PathBuf, String> {
     let dir = app
         .path()
@@ -30,11 +32,20 @@ fn hash_url(url: &str) -> String {
 #[tauri::command]
 pub async fn get_thumbnail(
     url: String,
+    image_url: String,
     app: tauri::AppHandle,
     state: State<'_, AppState>,
 ) -> Result<String, String> {
+    let resolved = if !image_url.is_empty() {
+        image_url
+    } else {
+        scrape_og_image(&state.http_client, &url)
+            .await
+            .ok_or_else(|| "No og:image found".to_string())?
+    };
+
     let cache_dir = thumbnail_cache_dir(&app)?;
-    let hash = hash_url(&url);
+    let hash = hash_url(&resolved);
     let cache_path = cache_dir.join(format!("{}.webp", hash));
 
     if cache_path.exists() {
@@ -45,14 +56,14 @@ pub async fn get_thumbnail(
 
     let response = state
         .http_client
-        .get(&url)
+        .get(&resolved)
         .send()
         .await
         .map_err(|e| format!("Failed to download thumbnail: {}", e))?;
 
     let bytes = response.bytes().await.map_err(|e| e.to_string())?;
 
-    if bytes.len() > 500_000 {
+    if bytes.len() > 2_000_000 {
         return Err("Image too large (>500KB)".to_string());
     }
 

@@ -10,36 +10,27 @@ let listContainer: HTMLElement;
 
 let searchDebounce: ReturnType<typeof setTimeout> | null = null;
 
-let thumbnailCache = $state<Map<string, string>>(new Map());
-let thumbnailLoadings = $state<Set<string>>(new Set());
-let thumbnailFailed = $state<Set<string>>(new Set());
+let thumbnailCache = $state<Record<string, string>>({});
+let thumbnailPending = new Set<string>();
 
-async function loadThumbnail(url: string) {
-    if (thumbnailCache.has(url) || thumbnailLoadings.has(url)) return;
-    thumbnailLoadings.add(url);
+async function loadThumbnail(articleUrl: string, imageUrl: string) {
+    const cacheKey = imageUrl || articleUrl;
+    if (cacheKey in thumbnailCache || thumbnailPending.has(cacheKey)) return;
+    thumbnailPending.add(cacheKey);
     try {
-        const dataUrl = await invoke<string>('get_thumbnail', { url });
-        thumbnailCache.set(url, dataUrl);
-    } catch (e) {
-        console.error('Failed to load thumbnail:', e);
+        const dataUrl = await invoke<string>('get_thumbnail', { url: articleUrl, imageUrl });
+        thumbnailCache[cacheKey] = dataUrl;
+    } catch {
+        // leave absent from cache — fallback icon shows
     } finally {
-        thumbnailLoadings.delete(url);
+        thumbnailPending.delete(cacheKey);
     }
 }
 
-function onThumbnailError(url: string) {
-    thumbnailFailed.add(url);
-}
-
 $effect(() => {
-    const show = appState.settings.show_thumbnails;
-    const articles = appState.articles;
-    if (show) {
-        for (const article of articles) {
-            if (article.image_url) {
-                loadThumbnail(article.image_url);
-            }
-        }
+    if (!appState.settings.show_thumbnails) return;
+    for (const article of appState.articles) {
+        loadThumbnail(article.url, article.image_url);
     }
 });
 
@@ -221,11 +212,10 @@ function cmToggleSaved() {
                         >
                             {#if appState.settings.show_thumbnails}
                                 <div class="thumbnail-wrap">
-                                    {#if thumbnailCache.has(article.image_url) && !thumbnailFailed.has(article.image_url)}
+                                    {#if thumbnailCache[article.image_url || article.url]}
                                         <img
-                                            src={thumbnailCache.get(article.image_url)}
+                                            src={thumbnailCache[article.image_url || article.url]}
                                             alt=""
-                                            onerror={() => onThumbnailError(article.image_url)}
                                         >
                                     {:else}
                                         <div class="thumb-fallback">

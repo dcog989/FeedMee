@@ -4,7 +4,7 @@ use readabilityrs::{Readability, ReadabilityOptions};
 use std::io::Cursor;
 use tauri::State;
 
-use super::scraper::{compute_content_hash, scrape_articles_from_page};
+use super::scraper::{compute_content_hash, scrape_articles_from_page, scrape_og_image};
 
 #[tauri::command]
 pub async fn get_article_content(
@@ -86,10 +86,8 @@ pub async fn refresh_feed(feed_id: i64, state: State<'_, AppState>) -> Result<i6
                         "refresh_feed: parsed feed ok, {} entries",
                         feed.entries.len()
                     );
-                    let conn = state.db.lock().unwrap();
-                    conn.execute_batch("BEGIN TRANSACTION")
-                        .map_err(|e| e.to_string())?;
-                    for entry in feed.entries {
+
+                    let mut articles: Vec<Article> = feed.entries.into_iter().map(|entry| {
                         let article_url = entry
                             .links
                             .iter()
@@ -133,7 +131,7 @@ pub async fn refresh_feed(feed_id: i64, state: State<'_, AppState>) -> Result<i6
                         })()
                         .unwrap_or_default();
 
-                        let article = Article {
+                        Article {
                             id: 0,
                             feed_id,
                             title: entry
@@ -160,8 +158,42 @@ pub async fn refresh_feed(feed_id: i64, state: State<'_, AppState>) -> Result<i6
                             is_read: false,
                             is_saved: false,
                             has_tags: false,
-                        };
-                        let _ = db::insert_article(&conn, &article);
+                        }
+                    }).collect();
+
+                    // Eagerly fetch og:image for articles that the feed didn't provide one for.
+                    // Spawn all fetches concurrently; the HTTP client's connection pool limits
+                    // actual parallelism naturally.
+                    let handles: Vec<(usize, tauri::async_runtime::JoinHandle<Option<String>>)> =
+                        articles
+                            .iter()
+                            .enumerate()
+                            .filter(|(_, a)| a.image_url.is_empty())
+                            .map(|(idx, a)| {
+                                let client = client.clone();
+                                let article_url = a.url.clone();
+                                let handle = tauri::async_runtime::spawn(async move {
+                                    scrape_og_image(&client, &article_url).await
+                                });
+                                (idx, handle)
+                            })
+                            .collect();
+
+                    for (idx, handle) in handles {
+                        if let Ok(Some(img)) = handle.await {
+                            articles[idx].image_url = img;
+                        }
+                    }
+
+                    let conn = state.db.lock().unwrap();
+                    conn.execute_batch("BEGIN TRANSACTION")
+                        .map_err(|e| e.to_string())?;
+                    for article in &articles {
+                        let inserted = db::insert_article(&conn, article).unwrap_or(0);
+                        // Article already existed with no image — patch it now that we have one.
+                        if inserted == 0 && !article.image_url.is_empty() {
+                            let _ = db::update_article_image(&conn, feed_id, &article.url, &article.image_url);
+                        }
                     }
                     conn.execute_batch("COMMIT").map_err(|e| e.to_string())?;
                     let _ = db::update_feed_error(&conn, feed_id, false);

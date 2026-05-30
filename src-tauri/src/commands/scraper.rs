@@ -3,6 +3,40 @@ use log::debug;
 use scraper::{Html, Selector};
 use url::Url;
 
+pub async fn scrape_og_image(client: &reqwest::Client, article_url: &str) -> Option<String> {
+    let html = client
+        .get(article_url)
+        .timeout(std::time::Duration::from_secs(15))
+        .send()
+        .await
+        .ok()?
+        .text()
+        .await
+        .ok()?;
+
+    let document = Html::parse_document(&html);
+    let meta_sel = Selector::parse("meta").ok()?;
+
+    let raw = document.select(&meta_sel).find_map(|el| {
+        let prop = el.value().attr("property").unwrap_or("");
+        let name = el.value().attr("name").unwrap_or("");
+        if prop == "og:image" || name == "twitter:image" || name == "twitter:image:src" {
+            el.value().attr("content").map(str::to_string)
+        } else {
+            None
+        }
+    })?;
+
+    if raw.starts_with("http://") || raw.starts_with("https://") {
+        Some(raw)
+    } else {
+        Url::parse(article_url)
+            .ok()
+            .and_then(|base| base.join(&raw).ok())
+            .map(|u| u.to_string())
+    }
+}
+
 pub fn compute_content_hash(content: &str) -> String {
     fn fnv1a_64(bytes: &[u8]) -> u64 {
         let prime: u64 = 0x100000001b3;
