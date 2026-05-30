@@ -127,6 +127,27 @@ pub async fn refresh_feed(feed_id: i64, state: State<'_, AppState>) -> Result<i6
                                     return Some(link.href.clone());
                                 }
                             }
+                            // Fallback: extract first image from content:encoded HTML
+                            if let Some(body) = entry.content.as_ref().and_then(|c| c.body.as_ref()) {
+                                use scraper::{Html, Selector};
+                                if let Ok(sel) = Selector::parse("img[src]") {
+                                    let doc = Html::parse_fragment(body);
+                                    if let Some(el) = doc.select(&sel).next() {
+                                        if let Some(src) = el.value().attr("src") {
+                                            let src = src.to_string();
+                                            if src.starts_with("http://") || src.starts_with("https://") {
+                                                return Some(src);
+                                            }
+                                            // resolve relative URL
+                                            if let Ok(base) = url::Url::parse(&article_url) {
+                                                if let Ok(abs) = base.join(&src) {
+                                                    return Some(abs.to_string());
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
                             None
                         })()
                         .unwrap_or_default();
@@ -144,9 +165,9 @@ pub async fn refresh_feed(feed_id: i64, state: State<'_, AppState>) -> Result<i6
                                 .map(|p| p.name.clone())
                                 .unwrap_or_default(),
                             summary: entry
-                                .summary
-                                .map(|s| s.content)
-                                .or(entry.content.map(|c| c.body.unwrap_or_default()))
+                                .content
+                                .and_then(|c| c.body)
+                                .or_else(|| entry.summary.map(|s| s.content))
                                 .unwrap_or_default(),
                             url: article_url,
                             image_url,
@@ -190,9 +211,14 @@ pub async fn refresh_feed(feed_id: i64, state: State<'_, AppState>) -> Result<i6
                         .map_err(|e| e.to_string())?;
                     for article in &articles {
                         let inserted = db::insert_article(&conn, article).unwrap_or(0);
-                        // Article already existed with no image — patch it now that we have one.
-                        if inserted == 0 && !article.image_url.is_empty() {
-                            let _ = db::update_article_image(&conn, feed_id, &article.url, &article.image_url);
+                        // Article already existed — patch image and summary with newly available data.
+                        if inserted == 0 {
+                            if !article.image_url.is_empty() {
+                                let _ = db::update_article_image(&conn, feed_id, &article.url, &article.image_url);
+                            }
+                            if !article.summary.is_empty() {
+                                let _ = db::update_article_summary(&conn, feed_id, &article.url, &article.summary);
+                            }
                         }
                     }
                     conn.execute_batch("COMMIT").map_err(|e| e.to_string())?;
