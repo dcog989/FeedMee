@@ -19,6 +19,7 @@ let settings = $state<AppSettings>({
     article_body_color: '',
     article_bg_color: '',
     show_thumbnails: false,
+    thumbnail_size: 56,
 });
 let showShortcuts = $state(false);
 let initialized = $state(false);
@@ -218,6 +219,21 @@ function onKeyDown(e: KeyboardEvent) {
                     </div>
                 </div>
 
+                <div class="form-group">
+                    <label for="thumb-size">Thumbnail Size</label>
+                    <div class="range-wrap">
+                        <input
+                            type="range"
+                            id="thumb-size"
+                            min="32"
+                            max="128"
+                            step="8"
+                            bind:value={settings.thumbnail_size}
+                        >
+                        <span class="range-value">{settings.thumbnail_size}px</span>
+                    </div>
+                </div>
+
                 <hr>
 
                 <div class="form-group">
@@ -359,6 +375,26 @@ select {
     height: 16px;
     cursor: pointer;
     accent-color: var(--bg-selected);
+}
+
+.range-wrap {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 1;
+}
+
+.range-wrap input[type="range"] {
+    flex: 1;
+    accent-color: var(--bg-selected);
+    cursor: pointer;
+}
+
+.range-value {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    min-width: 36px;
+    text-align: right;
 }
 
 .section-label {

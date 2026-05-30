@@ -38,6 +38,7 @@ class AppStateImpl {
         article_body_color: '',
         article_bg_color: '',
         show_thumbnails: false,
+        thumbnail_size: 56,
     });
 
     showSettings = $state(false);

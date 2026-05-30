@@ -47,4 +47,5 @@ export interface AppSettings {
     article_body_color: string;
     article_bg_color: string;
     show_thumbnails: boolean;
+    thumbnail_size: number;
 }

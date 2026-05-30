@@ -29,7 +29,11 @@ pub struct AppSettings {
     pub article_bg_color: String,
     #[serde(default)]
     pub show_thumbnails: bool,
+    #[serde(default = "default_thumbnail_size")]
+    pub thumbnail_size: u64,
 }
+
+fn default_thumbnail_size() -> u64 { 56 }
 
 impl Default for AppSettings {
     fn default() -> Self {
@@ -48,6 +52,7 @@ impl Default for AppSettings {
             article_body_color: String::new(),
             article_bg_color: String::new(),
             show_thumbnails: false,
+            thumbnail_size: 56,
         }
     }
 }

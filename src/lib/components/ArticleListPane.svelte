@@ -14,11 +14,12 @@ let thumbnailCache = $state<Record<string, string>>({});
 let thumbnailPending = new Set<string>();
 
 async function loadThumbnail(articleUrl: string, imageUrl: string) {
-    const cacheKey = imageUrl || articleUrl;
+    const size = appState.settings.thumbnail_size || 56;
+    const cacheKey = `${imageUrl || articleUrl}_${size}`;
     if (cacheKey in thumbnailCache || thumbnailPending.has(cacheKey)) return;
     thumbnailPending.add(cacheKey);
     try {
-        const dataUrl = await invoke<string>('get_thumbnail', { url: articleUrl, imageUrl });
+        const dataUrl = await invoke<string>('get_thumbnail', { url: articleUrl, imageUrl, size });
         thumbnailCache[cacheKey] = dataUrl;
     } catch {
         // leave absent from cache — fallback icon shows
@@ -212,15 +213,19 @@ function cmToggleSaved() {
                             tabindex="0"
                         >
                             {#if appState.settings.show_thumbnails}
-                                <div class="thumbnail-wrap">
-                                    {#if thumbnailCache[article.image_url || article.url]}
+                                {@const ts = appState.settings.thumbnail_size || 56}
+                                <div class="thumbnail-wrap" style="width:{ts}px;height:{ts}px">
+                                    {#if thumbnailCache[`${article.image_url || article.url}_${ts}`]}
                                         <img
-                                            src={thumbnailCache[article.image_url || article.url]}
+                                            src={thumbnailCache[`${article.image_url || article.url}_${ts}`]}
                                             alt=""
                                         >
                                     {:else}
-                                        <div class="thumb-fallback">
-                                            <Image size={22} />
+                                        <div
+                                            class="thumb-fallback"
+                                            style="width:{ts}px;height:{ts}px"
+                                        >
+                                            <Image size={Math.round(ts * 0.4)} />
                                         </div>
                                     {/if}
                                 </div>
@@ -441,8 +446,6 @@ function cmToggleSaved() {
 }
 
 .thumbnail-wrap {
-    width: 56px;
-    height: 56px;
     flex-shrink: 0;
     border-radius: 6px;
     overflow: hidden;
@@ -464,8 +467,6 @@ function cmToggleSaved() {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 100%;
-    height: 100%;
 }
 
 .card-body {

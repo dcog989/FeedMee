@@ -33,9 +33,11 @@ fn hash_url(url: &str) -> String {
 pub async fn get_thumbnail(
     url: String,
     image_url: String,
+    size: u32,
     app: tauri::AppHandle,
     state: State<'_, AppState>,
 ) -> Result<String, String> {
+    let size = size.clamp(16, 256);
     let resolved = if !image_url.is_empty() {
         image_url
     } else {
@@ -46,7 +48,7 @@ pub async fn get_thumbnail(
 
     let cache_dir = thumbnail_cache_dir(&app)?;
     let hash = hash_url(&resolved);
-    let cache_path = cache_dir.join(format!("{}.webp", hash));
+    let cache_path = cache_dir.join(format!("{}_{}.webp", hash, size));
 
     if cache_path.exists() {
         let bytes = fs::read(&cache_path).map_err(|e| e.to_string())?;
@@ -74,27 +76,26 @@ pub async fn get_thumbnail(
 
     let (w, h) = img.dimensions();
 
+    let size_f = size as f64;
     let (nw, nh) = if w > h {
-        (56u32, (56_f64 * h as f64 / w as f64).round() as u32)
+        (size, (size_f * h as f64 / w as f64).round() as u32)
     } else {
-        ((56_f64 * w as f64 / h as f64).round() as u32, 56u32)
+        ((size_f * w as f64 / h as f64).round() as u32, size)
     };
 
     let resized =
         image::imageops::resize(&img.to_rgba8(), nw.max(1), nh.max(1), FilterType::Lanczos3);
 
-    let mut canvas = image::RgbaImage::new(56, 56);
-    let x = (56 - nw) / 2;
-    let y = (56 - nh) / 2;
+    let mut canvas = image::RgbaImage::new(size, size);
+    let x = (size - nw) / 2;
+    let y = (size - nh) / 2;
     image::imageops::overlay(&mut canvas, &resized, x as i64, y as i64);
-
-    let (rw, rh) = (56u32, 56u32);
 
     let mut webp_buf = Vec::new();
     {
         let encoder = WebPEncoder::new_lossless(BufWriter::new(&mut webp_buf));
         encoder
-            .encode(canvas.as_raw(), rw, rh, ExtendedColorType::Rgba8)
+            .encode(canvas.as_raw(), size, size, ExtendedColorType::Rgba8)
             .map_err(|e| format!("WebP encoding failed: {}", e))?;
     }
 
