@@ -1,15 +1,14 @@
 use crate::AppState;
 use base64::Engine;
-use image::ExtendedColorType;
 use image::GenericImageView;
-use image::codecs::webp::WebPEncoder;
 use image::imageops::FilterType;
+use log::info;
 use std::fs;
 use std::hash::{Hash, Hasher};
-use std::io::BufWriter;
 use std::path::PathBuf;
 use tauri::Manager;
 use tauri::State;
+use webp::Encoder;
 
 use super::scraper::scrape_og_image;
 
@@ -65,7 +64,7 @@ pub async fn get_thumbnail(
 
     let bytes = response.bytes().await.map_err(|e| e.to_string())?;
 
-    if bytes.len() > 2_000_000 {
+    if bytes.len() > 500_000 {
         return Err("Image too large (>500KB)".to_string());
     }
 
@@ -91,16 +90,39 @@ pub async fn get_thumbnail(
     let y = (size - nh) / 2;
     image::imageops::overlay(&mut canvas, &resized, x as i64, y as i64);
 
-    let mut webp_buf = Vec::new();
-    {
-        let encoder = WebPEncoder::new_lossless(BufWriter::new(&mut webp_buf));
-        encoder
-            .encode(canvas.as_raw(), size, size, ExtendedColorType::Rgba8)
-            .map_err(|e| format!("WebP encoding failed: {}", e))?;
-    }
+    let img = image::DynamicImage::ImageRgba8(canvas);
+    let webp = Encoder::from_image(&img)
+        .map_err(|e| format!("WebP encoder init failed: {}", e))?
+        .encode(50.0);
 
-    fs::write(&cache_path, &webp_buf).ok();
+    fs::write(&cache_path, &*webp).ok();
 
-    let encoded = base64::engine::general_purpose::STANDARD.encode(&webp_buf);
+    let encoded = base64::engine::general_purpose::STANDARD.encode(&*webp);
     Ok(format!("data:image/webp;base64,{}", encoded))
+}
+
+pub fn cleanup_thumbnail_cache(app: &tauri::AppHandle, max_age_days: u64) -> Result<usize, String> {
+    let cache_dir = thumbnail_cache_dir(app)?;
+    let cutoff =
+        std::time::SystemTime::now() - std::time::Duration::from_secs(max_age_days * 86400);
+    let mut count = 0;
+    if let Ok(entries) = fs::read_dir(&cache_dir) {
+        for entry in entries.flatten() {
+            if let Ok(metadata) = entry.metadata()
+                && metadata.is_file()
+                && let Ok(modified) = metadata.modified()
+                && modified < cutoff
+            {
+                let _ = fs::remove_file(entry.path());
+                count += 1;
+            }
+        }
+    }
+    if count > 0 {
+        info!(
+            "Cleaned up {} stale thumbnail files (max age: {} days)",
+            count, max_age_days
+        );
+    }
+    Ok(count)
 }

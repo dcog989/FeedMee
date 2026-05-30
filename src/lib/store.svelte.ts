@@ -39,6 +39,7 @@ class AppStateImpl {
         article_bg_color: '',
         show_thumbnails: false,
         thumbnail_size: 56,
+        article_retention_days: 90,
     });
 
     showSettings = $state(false);

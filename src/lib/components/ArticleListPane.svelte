@@ -481,6 +481,7 @@ function cmToggleSaved() {
     display: -webkit-box;
     -webkit-line-clamp: 3;
     -webkit-box-orient: vertical;
+    line-clamp: 3;
     overflow: hidden;
     font-family: var(--font-title, var(--font-serif));
     margin-bottom: 0.2rem;

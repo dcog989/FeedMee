@@ -72,6 +72,17 @@ fn migrations() -> Migrations<'static> {
             CREATE INDEX IF NOT EXISTS idx_articles_feed_timestamp ON articles(feed_id, timestamp);",
         ),
         M::up("ALTER TABLE articles ADD COLUMN image_url TEXT NOT NULL DEFAULT '';"),
+        M::up(
+            "DROP TRIGGER IF EXISTS articles_au;
+             CREATE TRIGGER IF NOT EXISTS articles_au AFTER UPDATE ON articles
+             WHEN old.title IS NOT new.title OR old.author IS NOT new.author OR old.summary IS NOT new.summary
+             BEGIN
+                 INSERT INTO articles_fts(articles_fts, rowid, title, author, summary)
+                     VALUES ('delete', old.id, old.title, COALESCE(old.author,''), COALESCE(old.summary,''));
+                 INSERT INTO articles_fts(rowid, title, author, summary)
+                     VALUES (new.id, new.title, COALESCE(new.author,''), COALESCE(new.summary,''));
+             END;",
+        ),
     ])
 }
 
@@ -81,7 +92,10 @@ pub fn init_db(conn: &mut Connection) -> Result<(), Box<dyn std::error::Error>> 
     conn.execute_batch(
         "PRAGMA journal_mode = WAL;
          PRAGMA synchronous = NORMAL;
-         PRAGMA foreign_keys = ON;",
+         PRAGMA foreign_keys = ON;
+         PRAGMA cache_size = -64000;
+         PRAGMA mmap_size = 268435456;
+         PRAGMA journal_size_limit = 67108864;",
     )?;
 
     let m = migrations();
@@ -98,6 +112,25 @@ pub fn run_vacuum(conn: &Connection) -> Result<()> {
     conn.execute("VACUUM", [])?;
     info!("Database VACUUM completed");
     Ok(())
+}
+
+pub fn purge_old_articles(conn: &Connection, retention_days: u64) -> Result<usize> {
+    let cutoff = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap()
+        .as_secs() as i64
+        - (retention_days as i64 * 86400);
+    let count = conn.execute(
+        "DELETE FROM articles WHERE timestamp < ?1 AND timestamp > 0 AND is_saved = 0 AND NOT EXISTS (SELECT 1 FROM article_tags WHERE article_id = articles.id)",
+        params![cutoff],
+    )?;
+    if count > 0 {
+        info!(
+            "Purged {} old articles (retention: {} days)",
+            count, retention_days
+        );
+    }
+    Ok(count)
 }
 
 // --- Read Operations ---
@@ -358,7 +391,7 @@ pub fn set_article_read(conn: &Connection, article_id: i64, is_read: bool) -> Re
 
 pub fn mark_feed_read(conn: &Connection, feed_id: i64) -> Result<()> {
     conn.execute(
-        "UPDATE articles SET is_read = 1 WHERE feed_id = ?1 AND is_saved = 0 AND id NOT IN (SELECT article_id FROM article_tags)",
+        "UPDATE articles SET is_read = 1 WHERE feed_id = ?1 AND is_saved = 0 AND NOT EXISTS (SELECT 1 FROM article_tags WHERE article_id = articles.id)",
         params![feed_id],
     )?;
     Ok(())
@@ -367,14 +400,14 @@ pub fn mark_feed_read(conn: &Connection, feed_id: i64) -> Result<()> {
 pub fn mark_folder_read(conn: &Connection, folder_id: i64) -> Result<()> {
     conn.execute(
         "UPDATE articles SET is_read = 1
-         WHERE feed_id IN (SELECT id FROM feeds WHERE folder_id = ?1) AND is_saved = 0 AND id NOT IN (SELECT article_id FROM article_tags)",
+         WHERE feed_id IN (SELECT id FROM feeds WHERE folder_id = ?1) AND is_saved = 0 AND NOT EXISTS (SELECT 1 FROM article_tags WHERE article_id = articles.id)",
         params![folder_id],
     )?;
     Ok(())
 }
 
 pub fn mark_global_read(conn: &Connection) -> Result<()> {
-    conn.execute("UPDATE articles SET is_read = 1 WHERE is_saved = 0 AND id NOT IN (SELECT article_id FROM article_tags)", [])?;
+    conn.execute("UPDATE articles SET is_read = 1 WHERE is_saved = 0 AND NOT EXISTS (SELECT 1 FROM article_tags WHERE article_id = articles.id)", [])?;
     Ok(())
 }
 
@@ -405,10 +438,7 @@ pub fn rename_feed(conn: &Connection, id: i64, new_name: &str, new_url: &str) ->
 }
 
 pub fn delete_feed(conn: &Connection, id: i64) -> Result<()> {
-    conn.execute(
-        "DELETE FROM articles WHERE feed_id = ?1 AND id NOT IN (SELECT article_id FROM article_tags)",
-        params![id],
-    )?;
+    conn.execute("DELETE FROM articles WHERE feed_id = ?1", params![id])?;
     conn.execute("DELETE FROM feeds WHERE id = ?1", params![id])?;
     Ok(())
 }

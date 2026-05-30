@@ -20,6 +20,7 @@ let settings = $state<AppSettings>({
     article_bg_color: '',
     show_thumbnails: false,
     thumbnail_size: 56,
+    article_retention_days: 90,
 });
 let showShortcuts = $state(false);
 let initialized = $state(false);
@@ -234,6 +235,25 @@ function onKeyDown(e: KeyboardEvent) {
                     </div>
                 </div>
 
+                <h4 class="section-label">Maintenance</h4>
+
+                <div class="form-group">
+                    <label for="retention-days">Auto-delete articles</label>
+                    <div class="range-wrap">
+                        <input
+                            type="range"
+                            id="retention-days"
+                            min="0"
+                            max="365"
+                            step="1"
+                            bind:value={settings.article_retention_days}
+                        >
+                        <span class="range-value"
+                            >{settings.article_retention_days > 0 ? `${settings.article_retention_days} days` : 'Never'}</span
+                        >
+                    </div>
+                </div>
+
                 <hr>
 
                 <div class="form-group">
@@ -318,22 +338,22 @@ function onKeyDown(e: KeyboardEvent) {
 }
 
 .modal-content {
-    padding: 1rem 1.25rem;
+    padding: 0.75rem 1rem;
     overflow-y: auto;
 }
 
 .form-container {
     display: flex;
     flex-direction: column;
-    gap: 1rem;
+    gap: 0.25rem;
     min-width: 0;
 }
 
 .form-group {
     display: flex;
     align-items: center;
-    gap: 1rem;
-    margin-bottom: 1rem;
+    gap: 0.75rem;
+    margin-bottom: 0.25rem;
 }
 
 .form-group label {
@@ -398,13 +418,13 @@ select {
 }
 
 .section-label {
-    margin: 0.5rem 0 0;
-    font-size: 0.85rem;
+    margin: 0.35rem 0 0;
+    font-size: 0.8rem;
     color: var(--text-secondary);
     text-transform: uppercase;
     letter-spacing: 0.05em;
     border-bottom: 1px solid var(--border-color);
-    padding-bottom: 0.4rem;
+    padding-bottom: 0.25rem;
 }
 
 .color-input-wrap {

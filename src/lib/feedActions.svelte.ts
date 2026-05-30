@@ -102,10 +102,17 @@ export function createFeedActions(state: AppState) {
         }
     }
 
+    function removeStaleRefreshEntries(feedId: number) {
+        state.lastRefreshed.delete(feedId);
+        const obj = Object.fromEntries(state.lastRefreshed);
+        localStorage.setItem('lastRefreshed', JSON.stringify(obj));
+    }
+
     async function deleteFeed(id: number) {
         state.confirm('Delete feed?', async () => {
             try {
                 await invoke('delete_feed', { id });
+                removeStaleRefreshEntries(id);
                 if (state.selectedFeedId === id) {
                     state.selectedFeedId = null;
                     state.articles = [];
@@ -121,6 +128,12 @@ export function createFeedActions(state: AppState) {
         state.confirm('Delete folder and feeds?', async () => {
             try {
                 await invoke('delete_folder', { id });
+                const folder = state.folders.find((f) => f.id === id);
+                if (folder) {
+                    for (const feed of folder.feeds) {
+                        removeStaleRefreshEntries(feed.id);
+                    }
+                }
                 await state.refreshFolders();
             } catch (e) {
                 console.error(e);

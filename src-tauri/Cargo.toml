@@ -39,3 +39,4 @@ gtk = "0.18"
 
 image = { version = "0.25", default-features = false, features = ["jpeg", "png", "webp"] }
 base64 = "0.22"
+webp = "0.3.1"
