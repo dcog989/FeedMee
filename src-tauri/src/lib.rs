@@ -6,9 +6,20 @@ pub mod settings;
 
 #[allow(unused_imports)]
 use log::{error, info, warn};
+use std::path::PathBuf;
 use std::sync::Mutex;
 use tauri::Manager;
 use tauri_plugin_window_state::StateFlags;
+
+fn local_data_dir() -> PathBuf {
+    let home = std::env::var("HOME").unwrap_or_else(|_| "/tmp".to_string());
+    PathBuf::from(home).join(".local/share/com.feedmee.app")
+}
+
+fn config_data_dir() -> PathBuf {
+    let home = std::env::var("HOME").unwrap_or_else(|_| "/tmp".to_string());
+    PathBuf::from(home).join(".config/com.feedmee.app")
+}
 
 #[cfg(target_os = "linux")]
 use gtk::prelude::GtkWindowExt;
@@ -26,15 +37,12 @@ pub fn run() {
 
     tauri::Builder::default()
         .setup(|app| {
-            let app_data_dir = app
-                .path()
-                .app_data_dir()
-                .expect("failed to find app data dir");
+            let local_dir = local_data_dir();
+            let config_dir = config_data_dir();
+            let logs_dir = local_dir.join("Logs");
+            let db_dir = config_dir.join("Database");
 
-            let logs_dir = app_data_dir.join("Logs");
-            let db_dir = app_data_dir.join("Database");
-
-            for dir in [&app_data_dir, &logs_dir, &db_dir] {
+            for dir in [&local_dir, &config_dir, &logs_dir, &db_dir] {
                 if !dir.exists() {
                     std::fs::create_dir_all(dir).expect("failed to create app data dir");
                 }
@@ -67,7 +75,7 @@ pub fn run() {
             // ---------------------
 
             // Load Settings
-            let mut app_settings = settings::load_settings(&app_data_dir);
+            let mut app_settings = settings::load_settings();
 
             let log_level = match app_settings.log_level.to_lowercase().as_str() {
                 "error" => LevelFilter::Error,
@@ -122,7 +130,7 @@ pub fn run() {
                     error!("Maintenance VACUUM failed: {}", e);
                 } else {
                     app_settings.last_vacuum = now;
-                    settings::save_settings(&app_data_dir, &app_settings);
+                    settings::save_settings(&app_settings);
                 }
             }
 
@@ -180,11 +188,9 @@ pub fn run() {
                         if let Err(e) = db::run_vacuum(&state.db.lock().unwrap()) {
                             error!("Maintenance VACUUM failed: {}", e);
                         } else {
-                            if let Ok(app_data_dir) = maint_handle.path().app_data_dir() {
-                                let mut settings = state.settings.lock().unwrap();
-                                settings.last_vacuum = now;
-                                settings::save_settings(&app_data_dir, &settings);
-                            }
+                            let mut settings = state.settings.lock().unwrap();
+                            settings.last_vacuum = now;
+                            settings::save_settings(&settings);
                         }
                     }
 

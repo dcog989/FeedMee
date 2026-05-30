@@ -1,6 +1,11 @@
 use serde::{Deserialize, Serialize};
 use std::fs;
-use std::path::Path;
+use std::path::PathBuf;
+
+fn config_dir() -> PathBuf {
+    let home = std::env::var("HOME").unwrap_or_else(|_| "/tmp".to_string());
+    PathBuf::from(home).join(".config/com.feedmee.app")
+}
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct AppSettings {
@@ -65,25 +70,25 @@ impl Default for AppSettings {
     }
 }
 
-pub fn load_settings(app_dir: &Path) -> AppSettings {
-    let settings_path = app_dir.join("settings.toml");
-
-    if settings_path.exists() {
-        let content = fs::read_to_string(&settings_path).unwrap_or_default();
+pub fn load_settings() -> AppSettings {
+    let dir = config_dir();
+    fs::create_dir_all(&dir).ok();
+    let path = dir.join("settings.toml");
+    if path.exists() {
+        let content = fs::read_to_string(&path).unwrap_or_default();
         if let Ok(settings) = toml::from_str(&content) {
             return settings;
         }
     }
-
     let settings = AppSettings::default();
-    save_settings(app_dir, &settings);
-
+    save_settings(&settings);
     settings
 }
 
-pub fn save_settings(app_dir: &Path, settings: &AppSettings) {
-    let settings_path = app_dir.join("settings.toml");
+pub fn save_settings(settings: &AppSettings) {
+    let dir = config_dir();
+    fs::create_dir_all(&dir).ok();
     if let Ok(toml_string) = toml::to_string_pretty(settings) {
-        let _ = fs::write(settings_path, toml_string);
+        let _ = fs::write(dir.join("settings.toml"), toml_string);
     }
 }

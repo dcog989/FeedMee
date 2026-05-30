@@ -123,8 +123,32 @@ function onKeyDown(e: KeyboardEvent) {
                         <option value="latest">Latest</option>
                         <option value="saved">Read Later</option>
                         <option value="last">Last Folder or Feed</option>
+                        <option value="folder">Folder…</option>
+                        <option value="feed">Feed…</option>
                     </select>
                 </div>
+
+                {#if settings.default_view_type === 'folder'}
+                    <div class="form-group">
+                        <label for="default-folder"></label>
+                        <select id="default-folder" bind:value={settings.default_view_id}>
+                            {#each appState.folders as folder}
+                                <option value={folder.id}>{folder.name}</option>
+                            {/each}
+                        </select>
+                    </div>
+                {:else if settings.default_view_type === 'feed'}
+                    <div class="form-group">
+                        <label for="default-feed"></label>
+                        <select id="default-feed" bind:value={settings.default_view_id}>
+                            {#each appState.folders as folder}
+                                {#each folder.feeds as feed}
+                                    <option value={feed.id}>{folder.name} / {feed.name}</option>
+                                {/each}
+                            {/each}
+                        </select>
+                    </div>
+                {/if}
 
                 <div class="form-group">
                     <label for="auto-collapse">Auto Collapse Folders</label>

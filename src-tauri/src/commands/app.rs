@@ -5,7 +5,18 @@ use crate::{
 use log::info;
 use serde::Serialize;
 use std::fs;
-use tauri::{AppHandle, Manager, State};
+use std::path::PathBuf;
+use tauri::State;
+
+fn config_dir() -> PathBuf {
+    let home = std::env::var("HOME").unwrap_or_else(|_| "/tmp".to_string());
+    PathBuf::from(home).join(".config/com.feedmee.app")
+}
+
+fn local_dir() -> PathBuf {
+    let home = std::env::var("HOME").unwrap_or_else(|_| "/tmp".to_string());
+    PathBuf::from(home).join(".local/share/com.feedmee.app")
+}
 
 #[derive(Serialize)]
 pub struct AppInfo {
@@ -17,15 +28,15 @@ pub struct AppInfo {
 
 #[tauri::command]
 pub fn get_app_info(app: tauri::AppHandle) -> Result<AppInfo, String> {
-    let app_data_dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
-
+    let config_dir = config_dir();
+    let local_dir = local_dir();
     let version = app.package_info().version.to_string();
 
     Ok(AppInfo {
         version,
-        data_path: app_data_dir.to_string_lossy().to_string(),
-        logs_path: app_data_dir.join("Logs").to_string_lossy().to_string(),
-        db_path: app_data_dir
+        data_path: config_dir.to_string_lossy().to_string(),
+        logs_path: local_dir.join("Logs").to_string_lossy().to_string(),
+        db_path: config_dir
             .join("Database")
             .join(db::DB_FILENAME)
             .to_string_lossy()
@@ -42,18 +53,12 @@ pub fn get_app_settings(state: State<'_, AppState>) -> Result<AppSettings, Strin
 #[tauri::command]
 pub fn save_app_settings(
     new_settings: AppSettings,
-    app_handle: AppHandle,
     state: State<'_, AppState>,
 ) -> Result<(), String> {
     let mut settings_guard = state.settings.lock().unwrap();
     *settings_guard = new_settings.clone();
-
-    if let Ok(app_data_dir) = app_handle.path().app_data_dir() {
-        settings::save_settings(&app_data_dir, &new_settings);
-        Ok(())
-    } else {
-        Err("Could not determine app data directory".to_string())
-    }
+    settings::save_settings(&new_settings);
+    Ok(())
 }
 
 #[tauri::command]
@@ -108,11 +113,8 @@ fn pick_font_platform() -> Result<String, String> {
 }
 
 #[tauri::command]
-pub fn get_shortcuts(
-    app: tauri::AppHandle,
-) -> Result<std::collections::HashMap<String, String>, String> {
-    let app_data_dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
-    let shortcuts_path = app_data_dir.join("shortcuts.json");
+pub fn get_shortcuts() -> Result<std::collections::HashMap<String, String>, String> {
+    let shortcuts_path = config_dir().join("shortcuts.json");
 
     if shortcuts_path.exists() {
         let content = fs::read_to_string(&shortcuts_path).map_err(|e| e.to_string())?;
@@ -125,16 +127,11 @@ pub fn get_shortcuts(
 }
 
 #[tauri::command]
-pub fn save_shortcuts(
-    shortcuts: std::collections::HashMap<String, String>,
-    app: tauri::AppHandle,
-) -> Result<(), String> {
-    let app_data_dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
-    let shortcuts_path = app_data_dir.join("shortcuts.json");
-
+pub fn save_shortcuts(shortcuts: std::collections::HashMap<String, String>) -> Result<(), String> {
+    let path = config_dir().join("shortcuts.json");
+    fs::create_dir_all(config_dir()).map_err(|e| e.to_string())?;
     let json = serde_json::to_string_pretty(&shortcuts).map_err(|e| e.to_string())?;
-    fs::write(shortcuts_path, json).map_err(|e| e.to_string())?;
-
+    fs::write(path, json).map_err(|e| e.to_string())?;
     info!("Shortcuts saved to disk");
     Ok(())
 }
