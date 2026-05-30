@@ -87,100 +87,109 @@ pub async fn refresh_feed(feed_id: i64, state: State<'_, AppState>) -> Result<i6
                         feed.entries.len()
                     );
 
-                    let mut articles: Vec<Article> = feed.entries.into_iter().map(|entry| {
-                        let article_url = entry
-                            .links
-                            .iter()
-                            .find(|l| l.rel.as_deref() == Some("alternate"))
-                            .or(entry.links.first())
-                            .map(|l| l.href.clone())
-                            .unwrap_or_else(|| {
-                                let key = if !entry.id.is_empty() {
-                                    entry.id.clone()
-                                } else {
-                                    entry
-                                        .title
-                                        .as_ref()
-                                        .map(|t| t.content.clone())
-                                        .unwrap_or_default()
-                                };
-                                format!(
-                                    "{}/#{}",
-                                    url.trim_end_matches('/'),
-                                    compute_content_hash(&key)
-                                )
-                            });
+                    let mut articles: Vec<Article> = feed
+                        .entries
+                        .into_iter()
+                        .map(|entry| {
+                            let article_url = entry
+                                .links
+                                .iter()
+                                .find(|l| l.rel.as_deref() == Some("alternate"))
+                                .or(entry.links.first())
+                                .map(|l| l.href.clone())
+                                .unwrap_or_else(|| {
+                                    let key = if !entry.id.is_empty() {
+                                        entry.id.clone()
+                                    } else {
+                                        entry
+                                            .title
+                                            .as_ref()
+                                            .map(|t| t.content.clone())
+                                            .unwrap_or_default()
+                                    };
+                                    format!(
+                                        "{}/#{}",
+                                        url.trim_end_matches('/'),
+                                        compute_content_hash(&key)
+                                    )
+                                });
 
-                        let image_url = (|| -> Option<String> {
-                            if let Some(obj) = entry.media.iter().find_map(|m| m.content.first())
-                                && let Some(url) = &obj.url
-                            {
-                                return Some(url.as_str().to_string());
-                            }
-                            for link in &entry.links {
-                                if link.rel.as_deref() == Some("enclosure")
-                                    && link
-                                        .media_type
-                                        .as_deref()
-                                        .is_some_and(|m| m.starts_with("image/"))
+                            let image_url = (|| -> Option<String> {
+                                if let Some(obj) =
+                                    entry.media.iter().find_map(|m| m.content.first())
+                                    && let Some(url) = &obj.url
                                 {
-                                    return Some(link.href.clone());
+                                    return Some(url.as_str().to_string());
                                 }
-                            }
-                            // Fallback: extract first image from content:encoded HTML
-                            if let Some(body) = entry.content.as_ref().and_then(|c| c.body.as_ref()) {
-                                use scraper::{Html, Selector};
-                                if let Ok(sel) = Selector::parse("img[src]") {
-                                    let doc = Html::parse_fragment(body);
-                                    if let Some(el) = doc.select(&sel).next() {
-                                        if let Some(src) = el.value().attr("src") {
+                                for link in &entry.links {
+                                    if link.rel.as_deref() == Some("enclosure")
+                                        && link
+                                            .media_type
+                                            .as_deref()
+                                            .is_some_and(|m| m.starts_with("image/"))
+                                    {
+                                        return Some(link.href.clone());
+                                    }
+                                }
+                                // Fallback: extract first image from content:encoded HTML
+                                if let Some(body) =
+                                    entry.content.as_ref().and_then(|c| c.body.as_ref())
+                                {
+                                    use scraper::{Html, Selector};
+                                    if let Ok(sel) = Selector::parse("img[src]") {
+                                        let doc = Html::parse_fragment(body);
+                                        if let Some(el) = doc.select(&sel).next()
+                                            && let Some(src) = el.value().attr("src")
+                                        {
                                             let src = src.to_string();
-                                            if src.starts_with("http://") || src.starts_with("https://") {
+                                            if src.starts_with("http://")
+                                                || src.starts_with("https://")
+                                            {
                                                 return Some(src);
                                             }
                                             // resolve relative URL
-                                            if let Ok(base) = url::Url::parse(&article_url) {
-                                                if let Ok(abs) = base.join(&src) {
-                                                    return Some(abs.to_string());
-                                                }
+                                            if let Ok(base) = url::Url::parse(&article_url)
+                                                && let Ok(abs) = base.join(&src)
+                                            {
+                                                return Some(abs.to_string());
                                             }
                                         }
                                     }
                                 }
-                            }
-                            None
-                        })()
-                        .unwrap_or_default();
+                                None
+                            })()
+                            .unwrap_or_default();
 
-                        Article {
-                            id: 0,
-                            feed_id,
-                            title: entry
-                                .title
-                                .map(|t| t.content)
-                                .unwrap_or_else(|| "No Title".to_string()),
-                            author: entry
-                                .authors
-                                .first()
-                                .map(|p| p.name.clone())
-                                .unwrap_or_default(),
-                            summary: entry
-                                .content
-                                .and_then(|c| c.body)
-                                .or_else(|| entry.summary.map(|s| s.content))
-                                .unwrap_or_default(),
-                            url: article_url,
-                            image_url,
-                            timestamp: entry
-                                .published
-                                .or(entry.updated)
-                                .map(|d| d.timestamp())
-                                .unwrap_or(0),
-                            is_read: false,
-                            is_saved: false,
-                            has_tags: false,
-                        }
-                    }).collect();
+                            Article {
+                                id: 0,
+                                feed_id,
+                                title: entry
+                                    .title
+                                    .map(|t| t.content)
+                                    .unwrap_or_else(|| "No Title".to_string()),
+                                author: entry
+                                    .authors
+                                    .first()
+                                    .map(|p| p.name.clone())
+                                    .unwrap_or_default(),
+                                summary: entry
+                                    .content
+                                    .and_then(|c| c.body)
+                                    .or_else(|| entry.summary.map(|s| s.content))
+                                    .unwrap_or_default(),
+                                url: article_url,
+                                image_url,
+                                timestamp: entry
+                                    .published
+                                    .or(entry.updated)
+                                    .map(|d| d.timestamp())
+                                    .unwrap_or(0),
+                                is_read: false,
+                                is_saved: false,
+                                has_tags: false,
+                            }
+                        })
+                        .collect();
 
                     // Eagerly fetch og:image for articles that the feed didn't provide one for.
                     // Spawn all fetches concurrently; the HTTP client's connection pool limits
@@ -214,10 +223,20 @@ pub async fn refresh_feed(feed_id: i64, state: State<'_, AppState>) -> Result<i6
                         // Article already existed — patch image and summary with newly available data.
                         if inserted == 0 {
                             if !article.image_url.is_empty() {
-                                let _ = db::update_article_image(&conn, feed_id, &article.url, &article.image_url);
+                                let _ = db::update_article_image(
+                                    &conn,
+                                    feed_id,
+                                    &article.url,
+                                    &article.image_url,
+                                );
                             }
                             if !article.summary.is_empty() {
-                                let _ = db::update_article_summary(&conn, feed_id, &article.url, &article.summary);
+                                let _ = db::update_article_summary(
+                                    &conn,
+                                    feed_id,
+                                    &article.url,
+                                    &article.summary,
+                                );
                             }
                         }
                     }

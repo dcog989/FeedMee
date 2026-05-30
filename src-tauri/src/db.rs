@@ -322,7 +322,12 @@ pub fn insert_article(conn: &Connection, article: &Article) -> Result<usize> {
     Ok(inserted)
 }
 
-pub fn update_article_image(conn: &Connection, feed_id: i64, url: &str, image_url: &str) -> Result<()> {
+pub fn update_article_image(
+    conn: &Connection,
+    feed_id: i64,
+    url: &str,
+    image_url: &str,
+) -> Result<()> {
     conn.execute(
         "UPDATE articles SET image_url = ?1 WHERE feed_id = ?2 AND url = ?3 AND image_url = ''",
         params![image_url, feed_id, url],
@@ -330,7 +335,12 @@ pub fn update_article_image(conn: &Connection, feed_id: i64, url: &str, image_ur
     Ok(())
 }
 
-pub fn update_article_summary(conn: &Connection, feed_id: i64, url: &str, summary: &str) -> Result<()> {
+pub fn update_article_summary(
+    conn: &Connection,
+    feed_id: i64,
+    url: &str,
+    summary: &str,
+) -> Result<()> {
     conn.execute(
         "UPDATE articles SET summary = ?1 WHERE feed_id = ?2 AND url = ?3",
         params![summary, feed_id, url],
