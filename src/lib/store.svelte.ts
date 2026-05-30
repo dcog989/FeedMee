@@ -200,6 +200,11 @@ class AppStateImpl {
         localStorage.setItem('sortOrder', this.sortOrder);
     }
 
+    private persistLastView(type: 'feed' | 'folder', id: number) {
+        localStorage.setItem('lastViewType', type);
+        localStorage.setItem('lastViewId', id.toString());
+    }
+
     async setSortOrder(order: SortOrder) {
         if (this.sortOrder !== order) {
             this.sortOrder = order;
@@ -241,6 +246,7 @@ class AppStateImpl {
         this.selectedFeedId = null;
         this.selectedArticle = null;
         this.isLoadingArticles = true;
+        this.persistLastView('folder', folderId);
         try {
             await this.reloadCurrentArticleList();
         } finally {
@@ -257,6 +263,7 @@ class AppStateImpl {
         this.selectedFolderId = null;
         this.selectedArticle = null;
         this.isLoadingArticles = true;
+        if (feedId > 0) this.persistLastView('feed', feedId);
         try {
             await this.reloadCurrentArticleList();
         } finally {
@@ -487,7 +494,17 @@ class AppStateImpl {
 
         if (viewType === 'saved') this.selectFeed(FEED_ID_SAVED);
         else if (viewType === 'latest') this.selectFeed(FEED_ID_LATEST);
-        else if (viewType === 'folder' && viewId > 0) this.selectFolder(viewId);
+        else if (viewType === 'last') {
+            const lastViewType = localStorage.getItem('lastViewType');
+            const lastViewId = parseInt(localStorage.getItem('lastViewId') || '0', 10);
+            if (lastViewType === 'folder' && lastViewId > 0) {
+                this.selectFolder(lastViewId);
+            } else if (lastViewType === 'feed' && lastViewId > 0) {
+                this.selectFeed(lastViewId);
+            } else {
+                this.selectFeed(FEED_ID_LATEST);
+            }
+        } else if (viewType === 'folder' && viewId > 0) this.selectFolder(viewId);
         else if (viewType === 'feed' && viewId > 0) this.selectFeed(viewId);
     }
 }
