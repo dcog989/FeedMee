@@ -344,14 +344,6 @@ select {
     min-width: 160px;
 }
 
-.form-group.indent {
-    padding-left: 20px;
-}
-
-.form-group.indent label {
-    flex: 0 0 160px;
-}
-
 .checkbox-wrap {
     display: flex;
     align-items: center;

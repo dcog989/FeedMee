@@ -373,6 +373,10 @@ function cmToggleSaved() {
     color: var(--text-primary);
 }
 
+.tool-btn.active {
+    color: var(--bg-selected);
+}
+
 .pane {
     flex: 1;
     overflow-y: auto;
