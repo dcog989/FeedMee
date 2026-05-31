@@ -59,10 +59,14 @@ export function createArticleActions(state: AppState) {
         return articles.filter((a) => !matchesBlockedPhrases(a, state.blockedPhrases));
     }
 
+    let reloadGeneration = 0;
+
     async function reloadCurrentArticleList() {
+        const gen = ++reloadGeneration;
         state.articles = [];
         state.page = 0;
         const result = await fetchPage(0);
+        if (gen !== reloadGeneration) return;
         state.articles = filterBlocked(result || []);
         state.hasMore = (result?.length || 0) === state.pageSize;
     }
