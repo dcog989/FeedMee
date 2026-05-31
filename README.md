@@ -19,9 +19,12 @@ _FeedMee_ is an RSS/Atom news reader built for the desktop, cross-platform and L
   - Auto-discovery of RSS/Atom links from URLs.
   - Drag-and-drop folder organization.
   - OPML Import/Export.
+  - Bluesky profile support.
 - **Smart Views:** "Latest" (24h) and "Read Later" (Saved) aggregation.
+- **Article Tagging:** Color-coded tags for categorization and filtering.
+- **Thumbnails:** Automatic og:image extraction with resizing, WebP caching, and configurable size.
 - **Local Privacy:** All data is stored locally in SQLite. No tracking, no accounts.
-- **Customizable:** Dark/Light themes, configurable refresh intervals, and log rotation.
+- **Customizable:** Dark/Light themes, configurable refresh intervals, thumbnail size, and log rotation.
 
 ## Tech Stack
 

@@ -8,8 +8,8 @@ Linux CachyOS, Limine boot loader, KDE Plasma 6, Wayland, Btrfs. Firefox, Kate t
 
 ## Tech Stack
 
-- **Tauri** (v2.9) - Desktop framework wrapping the web frontend
-- **Rust** (2024 / v1.95) - Backend logic, Markdown processing, file I/O
+- **Tauri** (v2.11) - Desktop framework wrapping the web frontend
+- **Rust** (2024 / v1.95) - Backend logic, web scraping, image processing, file I/O
 - **Svelte** (v5.55) - Frontend framework with Svelte 5 runes (`.svelte.ts` files)
 - **TypeScript** (v6.0) - Type-safe frontend code
 - **SQLite** (v3.53) - Local database for metadata/bookmarks
@@ -26,7 +26,29 @@ Linux CachyOS, Limine boot loader, KDE Plasma 6, Wayland, Btrfs. Firefox, Kate t
 - `src/lib/components/ArticleListPane.svelte` - Article list
 - `src/lib/components/ReadingPane.svelte` - Article content reader
 
+- `src/lib/components/TagManager.svelte` - Inline tag add/remove UI
+- `src/lib/components/ManageDialog.svelte` - Add feed / OPML / blocked phrases dialog
+- `src/lib/components/SettingsModal.svelte` - Settings (refresh, thumbnail, themes, shortcuts)
+- `src/lib/components/ReadingPane.svelte` - Article content reader
+
 - `src/lib/store.svelte.ts` - Central state management
+- `src/lib/storeTypes.ts` - AppState interface type definitions
+- `src/lib/types.ts` - Shared data types (Article, Feed, Folder, Tag, etc.)
+- `src/lib/articleActions.svelte.ts` - Article list loading/pagination/search
+- `src/lib/feedActions.svelte.ts` - Feed/folder CRUD operations
+- `src/lib/feedRefresh.svelte.ts` - Concurrent feed refresh scheduler
+- `src/lib/keyboardNav.svelte.ts` - Customizable keyboard shortcuts
+
+### Rust Command Modules
+
+- `src-tauri/src/commands/feeds.rs` - Feed add/discovery (RSS, website, Bluesky)
+- `src-tauri/src/commands/refresh.rs` - Feed refresh with og:image backfill
+- `src-tauri/src/commands/crud.rs` - Article/folder/tag CRUD
+- `src-tauri/src/commands/scraper.rs` - HTML scraping, og:image extraction
+- `src-tauri/src/commands/thumbnails.rs` - Thumbnail download, resize, WebP cache
+- `src-tauri/src/connectors/bluesky.rs` - Bluesky AT Protocol integration
+- `src-tauri/src/connectors/mod.rs` - Connector registry
+- `src-tauri/src/db.rs` - SQLite schema, migrations, queries
 
 ### Build Output
 
@@ -40,7 +62,6 @@ Linux CachyOS, Limine boot loader, KDE Plasma 6, Wayland, Btrfs. Firefox, Kate t
 - Pagination (50 articles/page) with infinite scroll
 - Concurrent feed refresh (5 workers max)
 - Debounced refresh operations (configurable, default 5min/2min)
-- Virtualized rendering for large lists
 - Auto-vacuum every 24 hours
 
 ### Caching Strategy
