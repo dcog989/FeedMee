@@ -65,6 +65,13 @@ pub async fn add_feed(
 
         let feed_url = format!("bsky:{}", did);
 
+        {
+            let conn = state.db.lock().unwrap();
+            if db::feed_exists_by_url(&conn, &feed_url).map_err(|e| e.to_string())? {
+                return Err("Feed already exists".to_string());
+            }
+        }
+
         let feed_id = {
             let conn = state.db.lock().unwrap();
             let target =
@@ -91,6 +98,13 @@ pub async fn add_feed(
         );
 
         return Ok(feed_id);
+    }
+
+    {
+        let conn = state.db.lock().unwrap();
+        if db::feed_exists_by_url(&conn, &url).map_err(|e| e.to_string())? {
+            return Err("Feed already exists".to_string());
+        }
     }
 
     let client = state.http_client.clone();

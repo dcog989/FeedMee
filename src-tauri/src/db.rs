@@ -324,6 +324,14 @@ pub fn create_folder(conn: &Connection, name: &str) -> Result<i64> {
     )
 }
 
+pub fn feed_exists_by_url(conn: &Connection, url: &str) -> Result<bool> {
+    conn.query_row(
+        "SELECT EXISTS(SELECT 1 FROM feeds WHERE url = ?1)",
+        params![url],
+        |r| r.get(0),
+    )
+}
+
 pub fn create_feed(
     conn: &Connection,
     name: &str,
