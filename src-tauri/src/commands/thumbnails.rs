@@ -64,8 +64,8 @@ pub async fn get_thumbnail(
 
     let bytes = response.bytes().await.map_err(|e| e.to_string())?;
 
-    if bytes.len() > 500_000 {
-        return Err("Image too large (>500KB)".to_string());
+    if bytes.len() > 5_000_000 {
+        return Err("Image too large (>5MB)".to_string());
     }
 
     let img = match image::load_from_memory(&bytes) {

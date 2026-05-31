@@ -4,7 +4,7 @@ use readabilityrs::{Readability, ReadabilityOptions};
 use std::io::Cursor;
 use tauri::State;
 
-use super::scraper::{compute_content_hash, scrape_articles_from_page, scrape_og_image};
+use super::scraper::{backfill_og_images, compute_content_hash, scrape_articles_from_page, scrape_og_image, scrape_og_image_from_html};
 
 #[tauri::command]
 pub async fn get_article_content(
@@ -47,14 +47,21 @@ pub async fn refresh_feed(feed_id: i64, state: State<'_, AppState>) -> Result<i6
     if is_website {
         let response = client.get(&url).send().await.map_err(|e| e.to_string())?;
         let html = response.text().await.map_err(|e| e.to_string())?;
-        let articles = scrape_articles_from_page(&html, &url);
+        let og_image = scrape_og_image_from_html(&html, &url);
+        let mut articles = scrape_articles_from_page(&html, &url);
+        for a in &mut articles {
+            a.feed_id = feed_id;
+            if a.image_url.is_empty() {
+                a.image_url = og_image.clone().unwrap_or_default();
+            }
+        }
+        backfill_og_images(&client, &mut articles).await;
         let conn = state.db.lock().unwrap();
         conn.execute_batch("BEGIN TRANSACTION")
             .map_err(|e| e.to_string())?;
-        let _: usize = articles
-            .into_iter()
-            .filter_map(|a| db::insert_article(&conn, &a).ok())
-            .sum();
+        for article in &articles {
+            let _ = db::insert_article(&conn, article);
+        }
         conn.execute_batch("COMMIT").map_err(|e| e.to_string())?;
         let _ = db::update_feed_error(&conn, feed_id, false);
         return Ok(db::get_feed_unread_count(&conn, feed_id).unwrap_or(0));

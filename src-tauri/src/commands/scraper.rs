@@ -3,6 +3,28 @@ use log::debug;
 use scraper::{Html, Selector};
 use url::Url;
 
+pub fn scrape_og_image_from_html(html: &str, page_url: &str) -> Option<String> {
+    let document = Html::parse_document(html);
+    let meta_sel = Selector::parse("meta").ok()?;
+    let raw = document.select(&meta_sel).find_map(|el| {
+        let prop = el.value().attr("property").unwrap_or("");
+        let name = el.value().attr("name").unwrap_or("");
+        if prop == "og:image" || name == "twitter:image" || name == "twitter:image:src" {
+            el.value().attr("content").map(str::to_string)
+        } else {
+            None
+        }
+    })?;
+    if raw.starts_with("http://") || raw.starts_with("https://") {
+        Some(raw)
+    } else {
+        Url::parse(page_url)
+            .ok()
+            .and_then(|base| base.join(&raw).ok())
+            .map(|u| u.to_string())
+    }
+}
+
 pub async fn scrape_og_image(client: &reqwest::Client, article_url: &str) -> Option<String> {
     let html = client
         .get(article_url)
@@ -151,4 +173,26 @@ pub fn scrape_articles_from_page(html: &str, page_url: &str) -> Vec<Article> {
     }
 
     articles
+}
+
+pub async fn backfill_og_images(client: &reqwest::Client, articles: &mut [Article]) {
+    let handles: Vec<(usize, tauri::async_runtime::JoinHandle<Option<String>>)> = articles
+        .iter()
+        .enumerate()
+        .filter(|(_, a)| a.image_url.is_empty())
+        .map(|(idx, a)| {
+            let client = client.clone();
+            let article_url = a.url.clone();
+            let handle = tauri::async_runtime::spawn(async move {
+                scrape_og_image(&client, &article_url).await
+            });
+            (idx, handle)
+        })
+        .collect();
+
+    for (idx, handle) in handles {
+        if let Ok(Some(img)) = handle.await {
+            articles[idx].image_url = img;
+        }
+    }
 }
