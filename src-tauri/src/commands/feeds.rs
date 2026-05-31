@@ -274,6 +274,29 @@ pub async fn add_feed(
                         return Some(link.href.clone());
                     }
                 }
+                // Fallback: extract first image from content or summary HTML
+                let html_sources = [
+                    entry.content.as_ref().and_then(|c| c.body.as_deref()),
+                    entry.summary.as_ref().map(|s| s.content.as_str()),
+                ];
+                for html in html_sources.into_iter().flatten() {
+                    if let Ok(sel) = Selector::parse("img[src]") {
+                        let doc = Html::parse_fragment(html);
+                        if let Some(el) = doc.select(&sel).next()
+                            && let Some(src) = el.value().attr("src")
+                        {
+                            let src = src.to_string();
+                            if src.starts_with("http://") || src.starts_with("https://") {
+                                return Some(src);
+                            }
+                            if let Ok(base) = Url::parse(&article_url)
+                                && let Ok(abs) = base.join(&src)
+                            {
+                                return Some(abs.to_string());
+                            }
+                        }
+                    }
+                }
                 None
             })()
             .unwrap_or_default();

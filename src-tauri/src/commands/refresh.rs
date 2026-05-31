@@ -138,13 +138,15 @@ pub async fn refresh_feed(feed_id: i64, state: State<'_, AppState>) -> Result<i6
                                         return Some(link.href.clone());
                                     }
                                 }
-                                // Fallback: extract first image from content:encoded HTML
-                                if let Some(body) =
-                                    entry.content.as_ref().and_then(|c| c.body.as_ref())
-                                {
+                                // Fallback: extract first image from content or summary HTML
+                                let html_sources = [
+                                    entry.content.as_ref().and_then(|c| c.body.as_deref()),
+                                    entry.summary.as_ref().map(|s| s.content.as_str()),
+                                ];
+                                for html in html_sources.into_iter().flatten() {
                                     use scraper::{Html, Selector};
                                     if let Ok(sel) = Selector::parse("img[src]") {
-                                        let doc = Html::parse_fragment(body);
+                                        let doc = Html::parse_fragment(html);
                                         if let Some(el) = doc.select(&sel).next()
                                             && let Some(src) = el.value().attr("src")
                                         {
@@ -154,8 +156,8 @@ pub async fn refresh_feed(feed_id: i64, state: State<'_, AppState>) -> Result<i6
                                             {
                                                 return Some(src);
                                             }
-                                            // resolve relative URL
-                                            if let Ok(base) = url::Url::parse(&article_url)
+                                            if let Ok(base) =
+                                                url::Url::parse(&article_url)
                                                 && let Ok(abs) = base.join(&src)
                                             {
                                                 return Some(abs.to_string());
