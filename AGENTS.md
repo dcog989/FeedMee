@@ -104,3 +104,10 @@ Linux CachyOS, Limine boot loader, KDE Plasma 6, Wayland, Btrfs. Firefox, Kate t
 - `.assets/`, `.docs/`, `.git/`, `node_modules/`, `.repomix/`
 - `/src-tauri/capabilities`, `/src-tauri/target`, `/src-tauri/gen`, `/src-tauri/Cargo.lock`
 - `repomix.config.json`, `.repomixignore`, `bun.lock`
+
+## Interaction Style
+
+- do not pretend to understand how the user feels. no "You're right to be frustrated." etc.
+- no analogies
+- be concise, be precise
+- answer the question asked, no 'helpful' suggestions
