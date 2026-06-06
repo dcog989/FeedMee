@@ -183,9 +183,10 @@ pub async fn backfill_og_images(client: &reqwest::Client, articles: &mut [Articl
         .map(|(idx, a)| {
             let client = client.clone();
             let article_url = a.url.clone();
-            let handle = tauri::async_runtime::spawn(async move {
-                scrape_og_image(&client, &article_url).await
-            });
+            let handle =
+                tauri::async_runtime::spawn(
+                    async move { scrape_og_image(&client, &article_url).await },
+                );
             (idx, handle)
         })
         .collect();

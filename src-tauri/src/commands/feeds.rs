@@ -5,7 +5,9 @@ use std::io::Cursor;
 use tauri::State;
 use url::Url;
 
-use super::scraper::{backfill_og_images, compute_content_hash, scrape_articles_from_page, scrape_og_image_from_html};
+use super::scraper::{
+    backfill_og_images, compute_content_hash, scrape_articles_from_page, scrape_og_image_from_html,
+};
 
 async fn add_website_feed(
     url: &str,

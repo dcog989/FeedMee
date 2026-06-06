@@ -1,90 +1,90 @@
 export type ShortcutHandler = (e: KeyboardEvent) => void | Promise<void>;
 
 export interface ShortcutDefinition {
-    id: string;
-    command: string;
-    defaultKey: string;
-    description: string;
-    category: string;
-    handler?: ShortcutHandler;
+  id: string;
+  command: string;
+  defaultKey: string;
+  description: string;
+  category: string;
+  handler?: ShortcutHandler;
 }
 
 export class KeyboardShortcutManager {
-    private definitions: Map<string, ShortcutDefinition> = new Map();
-    private customMappings: Record<string, string> = {};
+  private definitions: Map<string, ShortcutDefinition> = new Map();
+  private customMappings: Record<string, string> = {};
 
-    register(definition: ShortcutDefinition): void {
-        this.definitions.set(definition.command, definition);
+  register(definition: ShortcutDefinition): void {
+    this.definitions.set(definition.command, definition);
+  }
+
+  setCustomMappings(mappings: Record<string, string>): void {
+    this.customMappings = mappings;
+  }
+
+  private isInputElement(target: EventTarget | null): boolean {
+    if (!target || !(target instanceof HTMLElement)) return false;
+    const tagName = target.tagName.toLowerCase();
+    const isInput = tagName === 'input' || tagName === 'textarea' || tagName === 'select';
+    return isInput || target.isContentEditable;
+  }
+
+  private getEventKey(e: KeyboardEvent): string {
+    const parts: string[] = [];
+    if (e.ctrlKey) parts.push('ctrl');
+    if (e.altKey) parts.push('alt');
+    if (e.shiftKey) parts.push('shift');
+    if (e.metaKey) parts.push('meta');
+    let key = e.key.toLowerCase();
+    if (key === ' ') key = 'space';
+    if (!['control', 'shift', 'alt', 'meta'].includes(key)) {
+      parts.push(key);
+    }
+    return parts.join('+');
+  }
+
+  async handleKeyEvent(e: KeyboardEvent): Promise<boolean> {
+    if (e.repeat) return false;
+
+    const pressedKey = this.getEventKey(e);
+    const isInput = this.isInputElement(e.target);
+
+    if (isInput && e.key !== 'Escape' && e.key !== 'Enter') {
+      return false;
     }
 
-    setCustomMappings(mappings: Record<string, string>): void {
-        this.customMappings = mappings;
-    }
-
-    private isInputElement(target: EventTarget | null): boolean {
-        if (!target || !(target instanceof HTMLElement)) return false;
-        const tagName = target.tagName.toLowerCase();
-        const isInput = tagName === 'input' || tagName === 'textarea' || tagName === 'select';
-        return isInput || target.isContentEditable;
-    }
-
-    private getEventKey(e: KeyboardEvent): string {
-        const parts: string[] = [];
-        if (e.ctrlKey) parts.push('ctrl');
-        if (e.altKey) parts.push('alt');
-        if (e.shiftKey) parts.push('shift');
-        if (e.metaKey) parts.push('meta');
-        let key = e.key.toLowerCase();
-        if (key === ' ') key = 'space';
-        if (!['control', 'shift', 'alt', 'meta'].includes(key)) {
-            parts.push(key);
+    for (const def of this.definitions.values()) {
+      const mappedKey = this.customMappings[def.command] || def.defaultKey;
+      if (pressedKey === mappedKey.toLowerCase() && def.handler) {
+        e.preventDefault();
+        e.stopPropagation();
+        try {
+          await def.handler(e);
+        } catch (err) {
+          console.error(`[Shortcuts] Handler failed for "${def.command}":`, err);
         }
-        return parts.join('+');
+        return true;
+      }
     }
+    return false;
+  }
 
-    async handleKeyEvent(e: KeyboardEvent): Promise<boolean> {
-        if (e.repeat) return false;
+  getShortcutDisplay(commandId: string): string {
+    const def = this.definitions.get(commandId);
+    if (!def) return '';
+    const key = this.customMappings[commandId] || def.defaultKey;
+    return key
+      .split('+')
+      .map((p) => p.charAt(0).toUpperCase() + p.slice(1))
+      .join('+');
+  }
 
-        const pressedKey = this.getEventKey(e);
-        const isInput = this.isInputElement(e.target);
+  clear(): void {
+    this.definitions.clear();
+  }
 
-        if (isInput && e.key !== 'Escape' && e.key !== 'Enter') {
-            return false;
-        }
-
-        for (const def of this.definitions.values()) {
-            const mappedKey = this.customMappings[def.command] || def.defaultKey;
-            if (pressedKey === mappedKey.toLowerCase() && def.handler) {
-                e.preventDefault();
-                e.stopPropagation();
-                try {
-                    await def.handler(e);
-                } catch (err) {
-                    console.error(`[Shortcuts] Handler failed for "${def.command}":`, err);
-                }
-                return true;
-            }
-        }
-        return false;
-    }
-
-    getShortcutDisplay(commandId: string): string {
-        const def = this.definitions.get(commandId);
-        if (!def) return '';
-        const key = this.customMappings[commandId] || def.defaultKey;
-        return key
-            .split('+')
-            .map((p) => p.charAt(0).toUpperCase() + p.slice(1))
-            .join('+');
-    }
-
-    clear(): void {
-        this.definitions.clear();
-    }
-
-    getDefinitions(): ShortcutDefinition[] {
-        return Array.from(this.definitions.values());
-    }
+  getDefinitions(): ShortcutDefinition[] {
+    return Array.from(this.definitions.values());
+  }
 }
 
 export const shortcutManager = new KeyboardShortcutManager();

@@ -1,98 +1,98 @@
 /* Base Theme (Light) */
 :root {
-    color-scheme: light;
+  color-scheme: light;
 
-    /* Backgrounds */
-    --bg-app: #ffffff;
-    --bg-pane: #f3f3f3;
-    --bg-content: #ffffff;
-    --bg-hover: #e9e9e9;
-    --bg-selected: #ec4899; /* Pink 500 */
-    --bg-selected-muted: rgba(236, 72, 153, 0.3);
-    --accent-muted: #c94d88; /* Accent, darkened for readability on light bg */
-    --bg-reading: #f8f8f8; /* Reading pane - distinct from feed list --bg-pane */
+  /* Backgrounds */
+  --bg-app: #ffffff;
+  --bg-pane: #f3f3f3;
+  --bg-content: #ffffff;
+  --bg-hover: #e9e9e9;
+  --bg-selected: #ec4899; /* Pink 500 */
+  --bg-selected-muted: rgba(236, 72, 153, 0.3);
+  --accent-muted: #c94d88; /* Accent, darkened for readability on light bg */
+  --bg-reading: #f8f8f8; /* Reading pane - distinct from feed list --bg-pane */
 
-    /* Text */
-    --text-primary: #111111;
-    --text-secondary: #666666;
-    --text-inverse: #ffffff;
+  /* Text */
+  --text-primary: #111111;
+  --text-secondary: #666666;
+  --text-inverse: #ffffff;
 
-    /* Borders & UI */
-    --border-color: #e0e0e0;
+  /* Borders & UI */
+  --border-color: #e0e0e0;
 
-    /* Typography */
-    --font-ui: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    --font-serif: serif;
-    --font-body: sans-serif;
+  /* Typography */
+  --font-ui: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-serif: serif;
+  --font-body: sans-serif;
 }
 
 /* Dark Theme Override */
 [data-theme="dark"] {
-    color-scheme: dark;
+  color-scheme: dark;
 
-    --bg-app: #1e1e1e;
-    --bg-pane: #252525;
-    --bg-content: #1e1e1e;
-    --bg-hover: #2a2d2e;
-    --bg-selected: #ec4899;
-    --bg-selected-muted: rgba(236, 72, 153, 0.2);
-    --accent-muted: #d4619a; /* Accent, lightened for readability on dark bg */
-    --bg-reading: #252525; /* Reading pane - matches --bg-pane in dark */
+  --bg-app: #1e1e1e;
+  --bg-pane: #252525;
+  --bg-content: #1e1e1e;
+  --bg-hover: #2a2d2e;
+  --bg-selected: #ec4899;
+  --bg-selected-muted: rgba(236, 72, 153, 0.2);
+  --accent-muted: #d4619a; /* Accent, lightened for readability on dark bg */
+  --bg-reading: #252525; /* Reading pane - matches --bg-pane in dark */
 
-    --text-primary: #cccccc;
-    --text-secondary: #858585;
-    --text-inverse: #ffffff;
+  --text-primary: #cccccc;
+  --text-secondary: #858585;
+  --text-inverse: #ffffff;
 
-    --border-color: #333333;
+  --border-color: #333333;
 }
 
 /* Focus rings — keyboard only */
 :focus {
-    outline: none;
+  outline: none;
 }
 :focus-visible {
-    outline: 2px solid var(--bg-selected);
-    outline-offset: 2px;
+  outline: 2px solid var(--bg-selected);
+  outline-offset: 2px;
 }
 
 /* Global Reset */
 html,
 body {
-    margin: 0;
-    padding: 0;
-    height: 100vh; /* Force view height */
-    width: 100vw;
-    font-family: var(--font-ui);
-    background-color: var(--bg-app); /* Ensures artifacts are same color */
-    color: var(--text-primary);
-    overflow: hidden; /* Prevent native scrollbars */
+  margin: 0;
+  padding: 0;
+  height: 100vh; /* Force view height */
+  width: 100vw;
+  font-family: var(--font-ui);
+  background-color: var(--bg-app); /* Ensures artifacts are same color */
+  color: var(--text-primary);
+  overflow: hidden; /* Prevent native scrollbars */
 }
 
 /* === Custom Scrollbars === */
 ::-webkit-scrollbar {
-    width: 10px;
-    height: 10px;
+  width: 10px;
+  height: 10px;
 }
 
 ::-webkit-scrollbar-track {
-    background: transparent;
+  background: transparent;
 }
 
 ::-webkit-scrollbar-thumb {
-    background: #b0b0b0;
-    border-radius: 5px;
-    border: 2px solid transparent;
-    background-clip: content-box;
+  background: #b0b0b0;
+  border-radius: 5px;
+  border: 2px solid transparent;
+  background-clip: content-box;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-    background-color: #909090;
+  background-color: #909090;
 }
 
 [data-theme="dark"] ::-webkit-scrollbar-thumb {
-    background-color: #555555;
+  background-color: #555555;
 }
 
 [data-theme="dark"] ::-webkit-scrollbar-thumb:hover {
-    background-color: #777777;
+  background-color: #777777;
 }

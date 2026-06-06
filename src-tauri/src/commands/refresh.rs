@@ -4,7 +4,10 @@ use readabilityrs::{Readability, ReadabilityOptions};
 use std::io::Cursor;
 use tauri::State;
 
-use super::scraper::{backfill_og_images, compute_content_hash, scrape_articles_from_page, scrape_og_image, scrape_og_image_from_html};
+use super::scraper::{
+    backfill_og_images, compute_content_hash, scrape_articles_from_page, scrape_og_image,
+    scrape_og_image_from_html,
+};
 
 #[tauri::command]
 pub async fn get_article_content(
@@ -156,8 +159,7 @@ pub async fn refresh_feed(feed_id: i64, state: State<'_, AppState>) -> Result<i6
                                             {
                                                 return Some(src);
                                             }
-                                            if let Ok(base) =
-                                                url::Url::parse(&article_url)
+                                            if let Ok(base) = url::Url::parse(&article_url)
                                                 && let Ok(abs) = base.join(&src)
                                             {
                                                 return Some(abs.to_string());
