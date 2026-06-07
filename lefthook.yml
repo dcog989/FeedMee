@@ -11,6 +11,16 @@ pre-commit:
       run: rustfmt --check {staged_files}
       fail_text: "Rust formatting check failed."
 
+commit-msg:
+  jobs:
+    - name: conventional-commit
+      run: |
+        grep -Eq '^(feat|fix|refactor|chore|docs|style|perf|test|build|ci|revert)(\(.+\))?: .+|^Merge |^Revert ' "{1}" && exit 0
+        echo "✗ Commit message must follow Conventional Commits:"
+        echo "  feat|fix|refactor|chore|docs|style|perf|test|build|ci|revert(<scope>): <description>"
+        exit 1
+      fail_text: "Commit message rejected."
+
 pre-push:
   jobs:
     - name: check
