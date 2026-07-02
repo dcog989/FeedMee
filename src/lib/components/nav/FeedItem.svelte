@@ -109,23 +109,6 @@ let { feed, isSelected = false }: { feed: Feed; isSelected?: boolean } = $props(
     color: var(--bg-selected);
 }
 
-.badge {
-    background-color: var(--text-secondary);
-    color: var(--bg-pane);
-    font-size: 0.75rem;
-    padding: 1px 6px;
-    border-radius: 10px;
-    font-weight: 600;
-    min-width: 16px;
-    text-align: center;
-    flex-shrink: 0;
-}
-
-.badge:hover {
-    background-color: var(--bg-selected);
-    color: white;
-}
-
 .badge-selected {
     background-color: var(--bg-selected);
     color: white;
@@ -142,32 +125,4 @@ let { feed, isSelected = false }: { feed: Feed; isSelected?: boolean } = $props(
     flex-shrink: 0;
 }
 
-.refresh-icon {
-    color: var(--text-secondary);
-    opacity: 0.5;
-    transition: opacity 0.2s;
-    display: flex;
-    align-items: center;
-}
-
-.refresh-icon:hover {
-    opacity: 1;
-    color: var(--text-primary);
-}
-
-.mini-spinner {
-    width: 14px;
-    height: 14px;
-    border: 2px solid var(--text-secondary);
-    border-top-color: transparent;
-    border-radius: 50%;
-    animation: spin 1s linear infinite;
-    flex-shrink: 0;
-}
-
-@keyframes spin {
-    to {
-        transform: rotate(360deg);
-    }
-}
 </style>

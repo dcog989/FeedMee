@@ -398,4 +398,5 @@ li.drop-before::before {
     border-left-color: var(--bg-selected);
     font-weight: 500;
 }
+
 </style>
