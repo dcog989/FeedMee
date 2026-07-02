@@ -26,8 +26,6 @@ pub struct AppSettings {
     pub article_body_color: String,
     #[serde(default)]
     pub article_bg_color: String,
-    #[serde(default)]
-    pub show_thumbnails: bool,
     #[serde(default = "default_thumbnail_size")]
     pub thumbnail_size: u64,
     #[serde(default = "default_retention_days")]
@@ -57,7 +55,6 @@ impl Default for AppSettings {
             article_title_color: String::new(),
             article_body_color: String::new(),
             article_bg_color: String::new(),
-            show_thumbnails: false,
             thumbnail_size: 56,
             article_retention_days: 90,
         }

@@ -20,7 +20,6 @@ fn migrations() -> Migrations<'static> {
                 folder_id    INTEGER NOT NULL,
                 has_error    BOOLEAN NOT NULL DEFAULT 0,
                 feed_type    TEXT NOT NULL DEFAULT 'rss',
-                content_hash TEXT,
                 FOREIGN KEY (folder_id) REFERENCES folders (id)
             );
             CREATE TABLE IF NOT EXISTS articles (

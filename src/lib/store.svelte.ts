@@ -90,17 +90,6 @@ class AppStateImpl {
     this.initStore();
   }
 
-  destroy() {
-    if (this.autoRefreshTimer !== null) {
-      clearInterval(this.autoRefreshTimer);
-      this.autoRefreshTimer = null;
-    }
-    if (this.cleanupKeyHandler) {
-      this.cleanupKeyHandler();
-      this.cleanupKeyHandler = null;
-    }
-  }
-
   get debounceMs() {
     return this.settings.feed_refresh_debounce_minutes * 60 * 1000;
   }

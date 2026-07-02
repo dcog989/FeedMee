@@ -15,8 +15,6 @@
   /* Text */
   --text-primary: #111111;
   --text-secondary: #666666;
-  --text-inverse: #ffffff;
-
   /* Borders & UI */
   --border-color: #e0e0e0;
 
@@ -41,7 +39,6 @@
 
   --text-primary: #cccccc;
   --text-secondary: #858585;
-  --text-inverse: #ffffff;
 
   --border-color: #333333;
 }
