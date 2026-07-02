@@ -3,6 +3,7 @@ import { feedStore, uiStore } from '$lib/store.svelte';
 
 let name = $state(uiStore.editFeedTarget?.name ?? '');
 let url = $state(uiStore.editFeedTarget?.url ?? '');
+let isBluesky = $derived(url.startsWith('bsky:'));
 
 function closeDialog() {
     uiStore.showEditFeedDialog = false;
@@ -56,7 +57,10 @@ function focusOnMount(node: HTMLInputElement) {
         </label>
         <label class="field">
             <span>URL</span>
-            <input type="text" bind:value={url} placeholder="Feed URL" onkeydown={onKeyDown}>
+            <input type="text" bind:value={url} placeholder="Feed URL" onkeydown={onKeyDown} disabled={isBluesky}>
+            {#if isBluesky}
+                <span class="field-note">Bluesky feed URL is fixed and cannot be edited.</span>
+            {/if}
         </label>
         <div class="modal-actions">
             <button type="button" class="secondary" onclick={closeDialog}>Cancel</button>
@@ -128,6 +132,17 @@ function focusOnMount(node: HTMLInputElement) {
 
 .field input:focus {
     border-color: var(--bg-selected);
+}
+
+.field input:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.field-note {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    margin-top: 2px;
 }
 
 .modal-actions {
