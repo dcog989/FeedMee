@@ -1,7 +1,7 @@
 <script lang="ts">
 import { RefreshCw, X } from 'lucide-svelte';
 import { tooltip } from '$lib/actions/tooltip.svelte';
-import { appState } from '$lib/store.svelte';
+import { navStore, refreshStore } from '$lib/store.svelte';
 import type { Feed } from '$lib/types';
 import { getFavicon, handleFaviconError } from '$lib/utils/favicon';
 
@@ -29,11 +29,11 @@ let { feed, isSelected = false }: { feed: Feed; isSelected?: boolean } = $props(
     class="feed-action-area"
     onclick={(e) => {
         e.stopPropagation();
-        appState.requestRefreshFeed(feed.id);
+        refreshStore.requestRefreshFeed(feed.id);
     }}
     aria-label="Refresh feed"
 >
-    {#if appState.isFeedUpdating(feed.id)}
+    {#if refreshStore.isFeedUpdating(feed.id)}
         <div class="mini-spinner"></div>
     {:else if feed.has_error}
         <span class="error-badge" use:tooltip={'Feed update failed'}>
@@ -43,7 +43,7 @@ let { feed, isSelected = false }: { feed: Feed; isSelected?: boolean } = $props(
         <span
             class="badge"
             class:badge-selected={isSelected}
-            use:tooltip={appState.isFeedFresh(feed.id)
+            use:tooltip={refreshStore.isFeedFresh(feed.id)
                 ? 'Already fresh!'
                 : 'Click to refresh'}
             >{feed.unread_count}</span
@@ -51,7 +51,7 @@ let { feed, isSelected = false }: { feed: Feed; isSelected?: boolean } = $props(
     {:else}
         <span
             class="refresh-icon"
-            use:tooltip={appState.isFeedFresh(feed.id)
+            use:tooltip={refreshStore.isFeedFresh(feed.id)
                 ? 'Already fresh!'
                 : 'Refresh'}
         >

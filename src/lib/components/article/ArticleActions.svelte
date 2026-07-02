@@ -2,7 +2,7 @@
 import { Bookmark, FileText, Tags } from 'lucide-svelte';
 import { tooltip, tooltipState } from '$lib/actions/tooltip.svelte';
 import TagPopover from '$lib/components/TagPopover.svelte';
-import { appState } from '$lib/store.svelte';
+import { articleStore } from '$lib/store.svelte';
 import type { Article } from '$lib/types';
 
 let {
@@ -47,7 +47,7 @@ let isSaved = $derived(article.is_saved);
         type="button"
         class="action-btn"
         class:active={isSaved}
-        onclick={() => appState.toggleSaved(article)}
+        onclick={() => articleStore.toggleSaved(article)}
         use:tooltip={'Read Later'}
         aria-label="Read Later"
     >

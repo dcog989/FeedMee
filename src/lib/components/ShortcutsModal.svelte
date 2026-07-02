@@ -1,6 +1,6 @@
 <script lang="ts">
 import { RotateCcw, X } from 'lucide-svelte';
-import { appState } from '$lib/store.svelte';
+import { shortcutStore } from '$lib/store.svelte';
 import { type ShortcutDefinition, shortcutManager } from '$lib/utils/shortcuts';
 
 let { isOpen = $bindable(false), onClose }: { isOpen: boolean; onClose: () => void } = $props();
@@ -49,7 +49,7 @@ function handleRecordKey(e: KeyboardEvent) {
     parts.push(e.key.toLowerCase());
 
     const keyStr = parts.join('+');
-    appState.setShortcut(recordingCommandId, keyStr);
+    shortcutStore.setShortcut(recordingCommandId, keyStr);
     stopRecording();
 }
 
@@ -59,7 +59,7 @@ function stopRecording() {
 }
 
 function resetShortcut(commandId: string) {
-    appState.resetShortcut(commandId);
+    shortcutStore.resetShortcut(commandId);
 }
 
 function onKeyDown(e: KeyboardEvent) {
@@ -103,7 +103,7 @@ function onKeyDown(e: KeyboardEvent) {
                         <h4>{category}</h4>
                         {#each defs as def (def.command)}
                             {@const isRecording = recordingCommandId === def.command}
-                            {@const hasCustom = appState.customShortcuts[def.command]}
+                            {@const hasCustom = shortcutStore.customShortcuts[def.command]}
                             <div class="shortcut-row">
                                 <span class="description">{def.description}</span>
                                 <div class="shortcut-actions">

@@ -1,8 +1,8 @@
 <script lang="ts">
-import { appState } from '$lib/store.svelte';
+import { settingsStore } from '$lib/store.svelte';
 
 $effect(() => {
-    const s = appState.settings;
+    const s = settingsStore.settings;
     const root = document.documentElement;
 
     for (const [prop, value] of [

@@ -6,11 +6,33 @@ import { createFreshnessHelpers } from './freshness.svelte';
 import { registerShortcuts, setupKeyHandler } from './keyboardNav.svelte';
 import { createNavigation } from './navigation.svelte';
 import { createShortcutOps } from './shortcuts.svelte';
-import type { AppState, SortOrder, Theme } from './storeTypes';
+import type {
+  AppState,
+  ArticleStore,
+  FeedStore,
+  NavStore,
+  RefreshStore,
+  SettingsStore,
+  ShortcutStore,
+  SortOrder,
+  TagStore,
+  Theme,
+  UIStore,
+} from './storeTypes';
 import { createTagOps } from './tags.svelte';
 import type { AppSettings, Article, Folder, Tag } from './types';
 
-export type { AppState } from './storeTypes';
+export type {
+  AppState,
+  ArticleStore,
+  FeedStore,
+  NavStore,
+  RefreshStore,
+  SettingsStore,
+  ShortcutStore,
+  TagStore,
+  UIStore,
+} from './storeTypes';
 export type { Article, SortOrder, Theme };
 export const FEED_ID_LATEST = -1;
 export const FEED_ID_SAVED = -2;
@@ -317,3 +339,11 @@ class AppStateImpl {
 }
 
 export const appState: AppState = new AppStateImpl();
+export const tagStore: TagStore = appState;
+export const articleStore: ArticleStore = appState;
+export const feedStore: FeedStore = appState;
+export const refreshStore: RefreshStore = appState;
+export const navStore: NavStore = appState;
+export const uiStore: UIStore = appState;
+export const settingsStore: SettingsStore = appState;
+export const shortcutStore: ShortcutStore = appState;

@@ -1,7 +1,7 @@
 import { invoke } from '@tauri-apps/api/core';
-import type { AppState } from './storeTypes';
+import type { NavStore } from './storeTypes';
 
-export function createNavigation(state: AppState) {
+export function createNavigation(state: NavStore) {
   async function markFeedReadOnExit(previousFeedId: number | null) {
     if (!state.settings.mark_feed_read_on_exit || !previousFeedId || previousFeedId <= 0) return;
     try {

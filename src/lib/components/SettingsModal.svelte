@@ -1,7 +1,7 @@
 <script lang="ts">
 import { invoke } from '@tauri-apps/api/core';
 import { Keyboard, Settings, X } from 'lucide-svelte';
-import { appState } from '$lib/store.svelte';
+import { feedStore, settingsStore, uiStore } from '$lib/store.svelte';
 import type { AppSettings } from '$lib/types';
 import ShortcutsModal from './ShortcutsModal.svelte';
 
@@ -34,13 +34,13 @@ async function pickFont(target: 'title' | 'body') {
     } catch (e) {
         const msg = String(e);
         if (msg !== 'Font selection cancelled') {
-            appState.alert(msg);
+            uiStore.alert(msg);
         }
     }
 }
 
 $effect(() => {
-    const s = appState.settings;
+    const s = settingsStore.settings;
     if (s && 'default_view_type' in s) {
         const cs = getComputedStyle(document.documentElement);
         settings = {
@@ -63,12 +63,12 @@ $effect(() => {
     if (JSON.stringify(settings) === JSON.stringify(prevSettings)) return;
     prevSettings = { ...settings };
     if (saveTimer) clearTimeout(saveTimer);
-    saveTimer = setTimeout(() => appState.saveSettings(settings, false), 500);
+    saveTimer = setTimeout(() => settingsStore.saveSettings(settings, false), 500);
 });
 
 function cancel() {
     (document.activeElement as HTMLElement)?.blur();
-    appState.closeSettings();
+    settingsStore.closeSettings();
 }
 
 function onKeyDown(e: KeyboardEvent) {
@@ -148,7 +148,7 @@ function onKeyDown(e: KeyboardEvent) {
                     <div class="form-group">
                         <label for="default-folder">Default Folder</label>
                         <select id="default-folder" bind:value={settings.default_view_id}>
-                            {#each appState.folders.filter(f => f.id !== 0) as folder}
+                            {#each feedStore.folders.filter(f => f.id !== 0) as folder}
                                 <option value={folder.id}>{folder.name}</option>
                             {/each}
                         </select>
@@ -157,7 +157,7 @@ function onKeyDown(e: KeyboardEvent) {
                     <div class="form-group">
                         <label for="default-feed">Default Feed</label>
                         <select id="default-feed" bind:value={settings.default_view_id}>
-                            {#each appState.folders.filter(f => f.id !== 0) as folder}
+                            {#each feedStore.folders.filter(f => f.id !== 0) as folder}
                                 {#each folder.feeds as feed}
                                     <option value={feed.id}>{folder.name} / {feed.name}</option>
                                 {/each}

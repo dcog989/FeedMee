@@ -1,9 +1,20 @@
 import { invoke } from '@tauri-apps/api/core';
 import { openUrl } from '@tauri-apps/plugin-opener';
-import type { AppState } from './storeTypes';
+import type { Article, Folder } from './types';
 import { shortcutManager } from './utils/shortcuts';
 
-export function registerShortcuts(state: AppState) {
+interface ShortcutRegDeps {
+  showAddDialog: boolean;
+  folders: Folder[];
+  expandedFolders: Set<number>;
+  selectedArticle: Article | null;
+  openSettings(): void;
+  refreshAllFeeds(): Promise<void>;
+  toggleSaved(article: Article): Promise<void>;
+  adjustUnreadCount(feedId: number, delta: number): void;
+}
+
+export function registerShortcuts(state: ShortcutRegDeps) {
   shortcutManager.register({
     id: 'settings',
     command: 'settings',
@@ -117,7 +128,17 @@ export function registerShortcuts(state: AppState) {
   });
 }
 
-export function setupKeyHandler(state: AppState): () => void {
+interface KeyHandlerDeps {
+  showSettings: boolean;
+  focusedPane: 'nav' | 'list' | 'reading';
+  selectedArticle: Article | null;
+  navUp(): void;
+  navDown(): void;
+  articleUp(): void;
+  articleDown(): void;
+}
+
+export function setupKeyHandler(state: KeyHandlerDeps): () => void {
   const handler = (e: KeyboardEvent) => {
     if (state.showSettings) return;
 

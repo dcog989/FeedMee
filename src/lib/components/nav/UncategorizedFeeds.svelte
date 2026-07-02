@@ -1,6 +1,6 @@
 <script lang="ts">
 import { flip } from 'svelte/animate';
-import { appState } from '$lib/store.svelte';
+import { feedStore, navStore, refreshStore } from '$lib/store.svelte';
 import type { Folder } from '$lib/types';
 import FeedItem from './FeedItem.svelte';
 
@@ -24,7 +24,7 @@ let { folder, onContextMenu }: {
             const data = dt.getData('text/plain');
             if (!data) return;
             const { feedId } = JSON.parse(data);
-            appState.moveFeed(feedId, null);
+            feedStore.moveFeed(feedId, null);
         }}
     >
         <div class="root-header">UNCATEGORIZED</div>
@@ -32,10 +32,10 @@ let { folder, onContextMenu }: {
             <div
                 animate:flip={{ duration: 200 }}
                 class="feed-item"
-                class:selected={appState.selectedFeedId === feed.id}
+                class:selected={navStore.selectedFeedId === feed.id}
                 onclick={(e) => {
                     e.stopPropagation();
-                    appState.selectFeed(feed.id);
+                    navStore.selectFeed(feed.id);
                 }}
                 oncontextmenu={(e) => onContextMenu(e, 'feed', feed.id, feed.name)}
                 draggable={true}
@@ -58,15 +58,15 @@ let { folder, onContextMenu }: {
                 }}
                 role="option"
                 tabindex="0"
-                aria-selected={appState.selectedFeedId === feed.id}
+                aria-selected={navStore.selectedFeedId === feed.id}
                 onkeydown={(e) => {
                     if (e.key === 'Enter' || e.key === ' ') {
                         e.preventDefault();
-                        appState.selectFeed(feed.id);
+                        navStore.selectFeed(feed.id);
                     }
                 }}
             >
-                <FeedItem {feed} isSelected={appState.selectedFeedId === feed.id} />
+                <FeedItem {feed} isSelected={navStore.selectedFeedId === feed.id} />
             </div>
         {/each}
     </fieldset>

@@ -1,5 +1,5 @@
 <script lang="ts">
-import { appState } from '$lib/store.svelte';
+import { feedStore, uiStore } from '$lib/store.svelte';
 
 let newFeedUrl = $state('');
 let selectedFolderId = $state<number | null>(null);
@@ -13,13 +13,13 @@ let isValidUrl = $derived(/^https?:\/\/.+/.test(newFeedUrl.trim()));
 let canSubmit = $derived(isValidUrl && !isSubmitting);
 
 $effect(() => {
-    if (!appState.showAddDialog) return;
+    if (!uiStore.showAddDialog) return;
     newFeedUrl = '';
     selectedFolderId = null;
     isSubmitting = false;
     errorMessage = '';
     successMessage = '';
-    blockedText = appState.blockedPhrases.join('\n');
+    blockedText = feedStore.blockedPhrases.join('\n');
     try {
         navigator.clipboard.readText().then((text) => {
             if (newFeedUrl === '' && /^https?:\/\/.+/.test(text.trim())) {
@@ -32,13 +32,13 @@ $effect(() => {
 });
 
 function closeDialog() {
-    appState.setBlockedPhrases(
+    feedStore.setBlockedPhrases(
         blockedText
             .split('\n')
             .map((s) => s.trim())
             .filter((s) => s.length > 0),
     );
-    appState.showAddDialog = false;
+    uiStore.showAddDialog = false;
 }
 
 async function submitAddFeed() {
@@ -47,7 +47,7 @@ async function submitAddFeed() {
     errorMessage = '';
     successMessage = '';
     try {
-        await appState.addFeed(newFeedUrl.trim(), selectedFolderId);
+        await feedStore.addFeed(newFeedUrl.trim(), selectedFolderId);
         successMessage = 'Feed added successfully';
         await new Promise((r) => setTimeout(r, 1200));
         closeDialog();
@@ -59,12 +59,12 @@ async function submitAddFeed() {
 }
 
 function handleImport() {
-    appState.importOpml();
+    feedStore.importOpml();
     closeDialog();
 }
 
 async function handleExport() {
-    await appState.exportOpml();
+    await feedStore.exportOpml();
     closeDialog();
 }
 
@@ -122,7 +122,7 @@ function focusOnMount(node: HTMLElement) {
             <label for="folder-select">Add to folder</label>
             <select id="folder-select" bind:value={selectedFolderId}>
                 <option value={null}>Root (no folder)</option>
-                {#each appState.folders.filter(f => f.id !== 0) as folder (folder.id)}
+                {#each feedStore.folders.filter(f => f.id !== 0) as folder (folder.id)}
                     <option value={folder.id}>{folder.name}</option>
                 {/each}
             </select>

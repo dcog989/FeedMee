@@ -1,18 +1,18 @@
 ﻿<script lang="ts">
 import { ChevronDown, ChevronUp, FolderPlus, RefreshCw } from 'lucide-svelte';
 import { tooltip } from '$lib/actions/tooltip.svelte';
-import { appState } from '$lib/store.svelte';
+import { refreshStore, uiStore } from '$lib/store.svelte';
 
 let { onExpandAll, onCollapseAll } = $props<{
     onExpandAll: () => void;
     onCollapseAll: () => void;
 }>();
 
-let isRefreshing = $derived(appState.isRefreshingFeeds);
-let refreshAllTooltip = $derived(appState.isAllFresh() ? 'Already fresh!' : 'Refresh All');
+let isRefreshing = $derived(refreshStore.isRefreshingFeeds);
+let refreshAllTooltip = $derived(refreshStore.isAllFresh() ? 'Already fresh!' : 'Refresh All');
 
 function createFolder() {
-    appState.showNewFolderDialog = true;
+    uiStore.showNewFolderDialog = true;
 }
 </script>
 
@@ -30,7 +30,7 @@ function createFolder() {
     </button>
     <button
         type="button"
-        onclick={() => appState.refreshAllFeeds()}
+        onclick={() => refreshStore.refreshAllFeeds()}
         use:tooltip={refreshAllTooltip}
         disabled={isRefreshing}
         aria-label="Refresh All"

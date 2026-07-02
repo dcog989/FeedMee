@@ -1,5 +1,5 @@
 import { invoke } from '@tauri-apps/api/core';
-import type { AppState } from './storeTypes';
+import type { ArticleStore } from './storeTypes';
 import type { Article } from './types';
 
 function matchesBlockedPhrases(article: Article, phrases: string[]): boolean {
@@ -8,7 +8,7 @@ function matchesBlockedPhrases(article: Article, phrases: string[]): boolean {
   return phrases.some((phrase) => phrase && text.includes(phrase.toLowerCase()));
 }
 
-export function createArticleActions(state: AppState) {
+export function createArticleActions(state: ArticleStore) {
   async function fetchPage(page: number): Promise<Article[]> {
     const offset = page * state.pageSize;
     const sortDesc = state.sortOrder === 'desc';

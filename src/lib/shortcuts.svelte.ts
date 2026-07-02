@@ -1,8 +1,11 @@
 import { invoke } from '@tauri-apps/api/core';
-import type { AppState } from './storeTypes';
 import { shortcutManager } from './utils/shortcuts';
 
-export function createShortcutOps(state: AppState) {
+interface ShortcutDeps {
+  customShortcuts: Record<string, string>;
+}
+
+export function createShortcutOps(state: ShortcutDeps) {
   function setShortcut(commandId: string, key: string) {
     state.customShortcuts = { ...state.customShortcuts, [commandId]: key };
     shortcutManager.setCustomMappings(state.customShortcuts);

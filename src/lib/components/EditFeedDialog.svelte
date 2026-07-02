@@ -1,17 +1,17 @@
 <script lang="ts">
-import { appState } from '$lib/store.svelte';
+import { feedStore, uiStore } from '$lib/store.svelte';
 
-let name = $state(appState.editFeedTarget?.name ?? '');
-let url = $state(appState.editFeedTarget?.url ?? '');
+let name = $state(uiStore.editFeedTarget?.name ?? '');
+let url = $state(uiStore.editFeedTarget?.url ?? '');
 
 function closeDialog() {
-    appState.showEditFeedDialog = false;
-    appState.editFeedTarget = null;
+    uiStore.showEditFeedDialog = false;
+    uiStore.editFeedTarget = null;
 }
 
 function submit() {
-    if (name.trim() && url.trim() && appState.editFeedTarget) {
-        appState.renameFeed(appState.editFeedTarget.id, name.trim(), url.trim());
+    if (name.trim() && url.trim() && uiStore.editFeedTarget) {
+        feedStore.renameFeed(uiStore.editFeedTarget.id, name.trim(), url.trim());
     }
     closeDialog();
 }

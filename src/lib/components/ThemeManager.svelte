@@ -1,11 +1,11 @@
 <script lang="ts">
-import { appState } from '$lib/store.svelte';
+import { settingsStore } from '$lib/store.svelte';
 
 $effect(() => {
     const root = document.documentElement;
 
-    if (appState.theme !== 'system') {
-        root.setAttribute('data-theme', appState.theme);
+    if (settingsStore.theme !== 'system') {
+        root.setAttribute('data-theme', settingsStore.theme);
         return;
     }
 

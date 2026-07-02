@@ -1,8 +1,8 @@
 import { invoke } from '@tauri-apps/api/core';
 import { open, save } from '@tauri-apps/plugin-dialog';
-import type { AppState } from './storeTypes';
+import type { FeedStore } from './storeTypes';
 
-export function createFeedActions(state: AppState) {
+export function createFeedActions(state: FeedStore) {
   async function markAllRead() {
     try {
       if (state.selectedFeedId === -1 || state.selectedFeedId === -3) {

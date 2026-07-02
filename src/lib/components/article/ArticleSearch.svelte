@@ -1,18 +1,18 @@
 <script lang="ts">
 import { Search } from 'lucide-svelte';
-import { appState } from '$lib/store.svelte';
+import { articleStore } from '$lib/store.svelte';
 
 let searchDebounce: ReturnType<typeof setTimeout> | null = null;
 
 function onInput(e: Event) {
     const query = (e.target as HTMLInputElement).value;
     if (searchDebounce) clearTimeout(searchDebounce);
-    searchDebounce = setTimeout(() => appState.setSearch(query), 250);
+    searchDebounce = setTimeout(() => articleStore.setSearch(query), 250);
 }
 
 function onKeyDown(e: KeyboardEvent) {
     if (e.key === 'Escape') {
-        appState.setSearch('');
+        articleStore.setSearch('');
         (e.target as HTMLInputElement).blur();
     }
 }
@@ -26,7 +26,7 @@ function onKeyDown(e: KeyboardEvent) {
         aria-label="Search articles"
         oninput={onInput}
         onkeydown={onKeyDown}
-        value={appState.searchQuery}
+        value={articleStore.searchQuery}
     >
 </div>
 

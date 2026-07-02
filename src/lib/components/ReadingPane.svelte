@@ -2,7 +2,7 @@
 import { openUrl } from '@tauri-apps/plugin-opener';
 import { ExternalLink } from 'lucide-svelte';
 import { tooltip } from '$lib/actions/tooltip.svelte';
-import { appState } from '$lib/store.svelte';
+import { articleStore } from '$lib/store.svelte';
 import ArticleActions from './article/ArticleActions.svelte';
 import ArticleContent from './article/ArticleContent.svelte';
 
@@ -11,10 +11,10 @@ let isLoadingFull = $state(false);
 let loadError = $state(false);
 let loadGen = $state(0);
 
-let rawHtml = $derived(fullContent ?? appState.selectedArticle?.summary ?? '');
+let rawHtml = $derived(fullContent ?? articleStore.selectedArticle?.summary ?? '');
 
 $effect(() => {
-    if (appState.selectedArticle) {
+    if (articleStore.selectedArticle) {
         fullContent = null;
         isLoadingFull = false;
         loadError = false;
@@ -22,14 +22,14 @@ $effect(() => {
 });
 
 async function loadFullContent() {
-    if (!appState.selectedArticle) return;
+    if (!articleStore.selectedArticle) return;
     const gen = ++loadGen;
     isLoadingFull = true;
     loadError = false;
-    const content = await appState.fetchFullContent(appState.selectedArticle);
+    const content = await articleStore.fetchFullContent(articleStore.selectedArticle);
     if (gen !== loadGen) return;
     if (content) {
-        fullContent = stripDuplicateTitle(content, appState.selectedArticle.title);
+        fullContent = stripDuplicateTitle(content, articleStore.selectedArticle.title);
     } else {
         loadError = true;
     }
@@ -65,32 +65,32 @@ function formatDate(ts: number) {
 </script>
 
 <main class="pane">
-    {#if appState.selectedArticle}
+    {#if articleStore.selectedArticle}
         <article class="article-content">
             <header>
                 <h1>
                     <a
-                        href={appState.selectedArticle.url}
+                        href={articleStore.selectedArticle.url}
                         onclick={(e) => {
                             e.preventDefault();
-                            if (appState.selectedArticle) openUrl(appState.selectedArticle.url);
+                            if (articleStore.selectedArticle) openUrl(articleStore.selectedArticle.url);
                         }}
                         rel="noopener noreferrer"
                         class="title-link"
-                        use:tooltip={appState.selectedArticle.url}
+                        use:tooltip={articleStore.selectedArticle.url}
                     >
-                        {appState.selectedArticle.title}
+                        {articleStore.selectedArticle.title}
                     </a>
                 </h1>
                 <div class="meta-row">
                     <div class="meta-left">
-                        <span class="author">By {appState.selectedArticle.author}</span>
+                        <span class="author">By {articleStore.selectedArticle.author}</span>
                         <span class="separator">•</span>
-                        <span class="date">{formatDate(appState.selectedArticle.timestamp)}</span>
+                        <span class="date">{formatDate(articleStore.selectedArticle.timestamp)}</span>
                     </div>
 
                     <ArticleActions
-                        article={appState.selectedArticle}
+                        article={articleStore.selectedArticle}
                         isLoadingFull={isLoadingFull}
                         hasFullContent={!!fullContent}
                         onLoadFullContent={loadFullContent}
@@ -101,19 +101,19 @@ function formatDate(ts: number) {
             <ArticleContent
                 rawHtml={rawHtml}
                 loadError={loadError}
-                articleUrl={appState.selectedArticle.url}
+                articleUrl={articleStore.selectedArticle.url}
             />
 
             <footer class="article-footer">
                 <a
-                    href={appState.selectedArticle.url}
+                    href={articleStore.selectedArticle.url}
                     target="_blank"
                     rel="noopener noreferrer"
                     class="original-link"
-                    use:tooltip={appState.selectedArticle.url}
+                    use:tooltip={articleStore.selectedArticle.url}
                     onclick={(e) => {
                         e.preventDefault();
-                        if (appState.selectedArticle) openUrl(appState.selectedArticle.url);
+                        if (articleStore.selectedArticle) openUrl(articleStore.selectedArticle.url);
                     }}
                 >
                     Read original article

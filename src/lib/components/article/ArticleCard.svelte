@@ -1,7 +1,7 @@
 <script lang="ts">
 import { Bookmark, Image, Tags } from 'lucide-svelte';
 import { tooltip } from '$lib/actions/tooltip.svelte';
-import { appState } from '$lib/store.svelte';
+import { articleStore } from '$lib/store.svelte';
 import type { Article } from '$lib/types';
 
 let { article, isSelected, thumbnailSize, thumbnailCache, isTagOpen = false, onContextMenu, onTagToggle }: {
@@ -17,7 +17,7 @@ let { article, isSelected, thumbnailSize, thumbnailCache, isTagOpen = false, onC
 function handleKeydown(e: KeyboardEvent) {
     if (e.key === 'Enter' || e.key === ' ') {
         e.preventDefault();
-        appState.selectArticle(article);
+        articleStore.selectArticle(article);
     }
 }
 </script>
@@ -28,7 +28,7 @@ function handleKeydown(e: KeyboardEvent) {
     class:selected={isSelected}
     class:unread={!article.is_read}
     class:has-thumbnail={thumbnailSize > 0}
-    onclick={() => appState.selectArticle(article)}
+    onclick={() => articleStore.selectArticle(article)}
     oncontextmenu={(e) => onContextMenu(e, article)}
     onkeydown={handleKeydown}
     role="button"
@@ -89,7 +89,7 @@ function handleKeydown(e: KeyboardEvent) {
                     class:active={article.is_saved}
                     onclick={(e) => {
                     e.stopPropagation();
-                    appState.toggleSaved(article);
+                    articleStore.toggleSaved(article);
                 }}
                     use:tooltip={'Read Later'}
                     aria-label="Read Later"

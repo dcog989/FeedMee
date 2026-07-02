@@ -1,6 +1,6 @@
 <script lang="ts">
 import { invoke } from '@tauri-apps/api/core';
-import { appState, FEED_ID_LATEST, FEED_ID_SAVED, FEED_ID_TODAY } from '$lib/store.svelte';
+import { articleStore, FEED_ID_LATEST, FEED_ID_SAVED, FEED_ID_TODAY, settingsStore } from '$lib/store.svelte';
 import type { Article } from '$lib/types';
 import ArticleCard from './ArticleCard.svelte';
 
@@ -16,7 +16,7 @@ let listContainer: HTMLElement;
 let thumbnailCache = $state<Record<string, string>>({});
 let thumbnailPending = new Set<string>();
 
-let thumbnailSize = $derived(appState.settings.thumbnail_size || 0);
+let thumbnailSize = $derived(settingsStore.settings.thumbnail_size || 0);
 
 async function loadThumbnail(articleUrl: string, imageUrl: string) {
     const size = thumbnailSize;
@@ -35,7 +35,7 @@ async function loadThumbnail(articleUrl: string, imageUrl: string) {
 
 $effect(() => {
     if (!(thumbnailSize > 0)) return;
-    for (const article of appState.articles) {
+    for (const article of articleStore.articles) {
         loadThumbnail(article.url, article.image_url);
     }
 });
@@ -44,7 +44,7 @@ function onScroll() {
     if (!listContainer) return;
     const { scrollTop, scrollHeight, clientHeight } = listContainer;
     if (scrollHeight - scrollTop <= clientHeight + 100) {
-        appState.loadMore();
+        articleStore.loadMore();
     }
     onExternalScroll?.();
 }
@@ -55,13 +55,13 @@ function onScroll() {
     bind:this={listContainer}
     onscroll={onScroll}
 >
-    {#if appState.articles.length > 0}
+    {#if articleStore.articles.length > 0}
         <ul class="article-list">
-            {#each appState.articles as article (article.id)}
+            {#each articleStore.articles as article (article.id)}
                 <li>
                     <ArticleCard
                         {article}
-                        isSelected={appState.selectedArticle?.id === article.id}
+                        isSelected={articleStore.selectedArticle?.id === article.id}
                         isTagOpen={tagArticleId === article.id}
                         {thumbnailSize}
                         {thumbnailCache}
@@ -71,28 +71,28 @@ function onScroll() {
                 </li>
             {/each}
         </ul>
-        {#if appState.isLoadingArticles}
+        {#if articleStore.isLoadingArticles}
             <div class="loading-more">Loading more...</div>
         {/if}
-    {:else if appState.isLoadingArticles}
+    {:else if articleStore.isLoadingArticles}
         <div class="loading">Loading articles...</div>
-    {:else if appState.selectedFeedId === FEED_ID_LATEST}
+    {:else if articleStore.selectedFeedId === FEED_ID_LATEST}
         <div class="empty-state">
             <p>No recent articles.</p>
         </div>
-    {:else if appState.selectedFeedId === FEED_ID_TODAY}
+    {:else if articleStore.selectedFeedId === FEED_ID_TODAY}
         <div class="empty-state">
             <p>No articles today.</p>
         </div>
-    {:else if appState.selectedFeedId === FEED_ID_SAVED}
+    {:else if articleStore.selectedFeedId === FEED_ID_SAVED}
         <div class="empty-state">
             <p>No saved articles.</p>
         </div>
-    {:else if appState.selectedFeedId !== null}
+    {:else if articleStore.selectedFeedId !== null}
         <div class="empty-state">
             <p>No articles in this feed.</p>
         </div>
-    {:else if appState.selectedFolderId !== null}
+    {:else if articleStore.selectedFolderId !== null}
         <div class="empty-state">
             <p>No articles in this folder.</p>
         </div>

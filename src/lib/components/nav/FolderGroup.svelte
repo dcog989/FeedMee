@@ -2,7 +2,7 @@
 import { ChevronRight, RefreshCcwDot } from 'lucide-svelte';
 import { flip } from 'svelte/animate';
 import { tooltip } from '$lib/actions/tooltip.svelte';
-import { appState } from '$lib/store.svelte';
+import { feedStore, navStore, refreshStore } from '$lib/store.svelte';
 import type { Feed, Folder } from '$lib/types';
 import FeedItem from './FeedItem.svelte';
 
@@ -91,7 +91,7 @@ function handleDrop(e: DragEvent) {
         feeds.splice(idx, 0, item);
         onFeedsChange(folder.id, feeds);
     } else {
-        const allFeeds = appState.folders.flatMap((f) => f.feeds);
+        const allFeeds = navStore.folders.flatMap((f) => f.feeds);
         const feed = allFeeds.find((f) => f.id === feedId);
         if (!feed) return;
         const idx = dropIndex ?? feeds.length;
@@ -100,7 +100,7 @@ function handleDrop(e: DragEvent) {
     }
 
     if (sourceFolderId !== folder.id) {
-        appState.moveFeed(feedId, folder.id);
+        feedStore.moveFeed(feedId, folder.id);
     }
 
     dropIndex = null;
@@ -132,7 +132,7 @@ function getFolderUnreadCount(feeds: Feed[]): number {
     <!-- biome-ignore lint/a11y/noStaticElementInteractions: oncontextmenu/ondblclick are mouse-only events with no keyboard analog -->
     <div
         class="folder-header"
-        class:selected={appState.selectedFolderId === folder.id}
+        class:selected={navStore.selectedFolderId === folder.id}
         oncontextmenu={(e) => onContextMenu(e, 'folder', folder.id, folder.name)}
         ondblclick={onHeaderDblClick}
     >
@@ -152,7 +152,7 @@ function getFolderUnreadCount(feeds: Feed[]): number {
             type="button"
             class="folder-name-area"
             onclick={(e) => {
-                appState.selectFolder(folder.id);
+                navStore.selectFolder(folder.id);
                 onToggle(e);
             }}
         >
@@ -164,16 +164,16 @@ function getFolderUnreadCount(feeds: Feed[]): number {
             class="folder-action-area"
             onclick={(e) => {
                 e.stopPropagation();
-                appState.requestRefreshFolder(folder.id);
+                refreshStore.requestRefreshFolder(folder.id);
             }}
             aria-label="Refresh folder"
         >
-            {#if appState.isFolderUpdating(folder.id)}
+            {#if refreshStore.isFolderUpdating(folder.id)}
                 <div class="mini-spinner"></div>
             {:else if unreadCount > 0}
                 <span
                     class="badge folder-badge"
-                    use:tooltip={appState.isFolderFresh(folder.id)
+                    use:tooltip={refreshStore.isFolderFresh(folder.id)
                         ? 'Already fresh!'
                         : 'Click to refresh folder'}
                     >{unreadCount}</span
@@ -181,7 +181,7 @@ function getFolderUnreadCount(feeds: Feed[]): number {
             {:else}
                 <span
                     class="refresh-icon folder-refresh"
-                    use:tooltip={appState.isFolderFresh(folder.id)
+                    use:tooltip={refreshStore.isFolderFresh(folder.id)
                         ? 'Already fresh!'
                         : 'Click to refresh folder'}
                 >
@@ -212,23 +212,23 @@ function getFolderUnreadCount(feeds: Feed[]): number {
                     <!-- svelte-ignore a11y_click_events_have_key_events -->
                     <div
                         class="feed-item"
-                        class:selected={appState.selectedFeedId === feed.id}
+                        class:selected={navStore.selectedFeedId === feed.id}
                         onclick={(e) => {
                             e.stopPropagation();
-                            appState.selectFeed(feed.id);
+                            navStore.selectFeed(feed.id);
                         }}
                         oncontextmenu={(e) => onContextMenu(e, 'feed', feed.id, feed.name)}
                         role="option"
                         tabindex="0"
-                        aria-selected={appState.selectedFeedId === feed.id}
+                        aria-selected={navStore.selectedFeedId === feed.id}
                         onkeydown={(e) => {
                             if (e.key === 'Enter' || e.key === ' ') {
                                 e.preventDefault();
-                                appState.selectFeed(feed.id);
+                                navStore.selectFeed(feed.id);
                             }
                         }}
                     >
-                        <FeedItem {feed} isSelected={appState.selectedFeedId === feed.id} />
+                        <FeedItem {feed} isSelected={navStore.selectedFeedId === feed.id} />
                     </div>
                 </li>
             {/each}

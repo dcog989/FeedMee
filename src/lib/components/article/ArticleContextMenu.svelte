@@ -1,7 +1,7 @@
 <script lang="ts">
 import { invoke } from '@tauri-apps/api/core';
 import { openUrl } from '@tauri-apps/plugin-opener';
-import { appState } from '$lib/store.svelte';
+import { articleStore } from '$lib/store.svelte';
 import type { Article } from '$lib/types';
 import ContextMenu from '../ContextMenu.svelte';
 
@@ -41,7 +41,7 @@ function toggleRead() {
 
 function toggleSaved() {
     if (!cmArticle) return;
-    appState.toggleSaved(cmArticle);
+    articleStore.toggleSaved(cmArticle);
     close();
 }
 </script>

@@ -1,6 +1,13 @@
-import type { AppState } from './storeTypes';
+import type { Folder } from './types';
 
-export function createFreshnessHelpers(state: AppState) {
+interface FreshnessDeps {
+  folders: Folder[];
+  updatingFeedIds: Set<number>;
+  lastRefreshed: Map<number, number>;
+  readonly debounceMs: number;
+}
+
+export function createFreshnessHelpers(state: FreshnessDeps) {
   function adjustUnreadCount(feedId: number, delta: number) {
     for (const folder of state.folders) {
       const feed = folder.feeds.find((f) => f.id === feedId);

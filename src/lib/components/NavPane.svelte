@@ -1,13 +1,13 @@
 <script lang="ts">
 import { Info, Rss, Settings } from 'lucide-svelte';
-import { appState } from '$lib/store.svelte';
+import { navStore, refreshStore, uiStore } from '$lib/store.svelte';
 import FolderGroup from './nav/FolderGroup.svelte';
 import NavContextMenu from './nav/NavContextMenu.svelte';
 import NavToolbar from './nav/NavToolbar.svelte';
 import UncategorizedFeeds from './nav/UncategorizedFeeds.svelte';
 
 function openAddDialog() {
-    appState.showAddDialog = true;
+    uiStore.showAddDialog = true;
 }
 
 let initialized = false;
@@ -21,14 +21,14 @@ $effect(() => {
         if (stored) {
             try {
                 const ids = JSON.parse(stored);
-                appState.expandedFolders = new Set(ids);
+                navStore.expandedFolders = new Set(ids);
             } catch (e) {
                 console.error(e);
             }
         } else {
-            const newSet = new Set(appState.expandedFolders);
-            for (const f of appState.folders) newSet.add(f.id);
-            appState.expandedFolders = newSet;
+            const newSet = new Set(navStore.expandedFolders);
+            for (const f of navStore.folders) newSet.add(f.id);
+            navStore.expandedFolders = newSet;
         }
         initialized = true;
     }
@@ -38,32 +38,32 @@ $effect(() => {
     if (initialized) {
         localStorage.setItem(
             'appState.expandedFolders',
-            JSON.stringify(Array.from(appState.expandedFolders)),
+            JSON.stringify(Array.from(navStore.expandedFolders)),
         );
     }
 });
 
 function toggleFolder(id: number) {
-    const newSet = new Set(appState.expandedFolders);
+    const newSet = new Set(navStore.expandedFolders);
     if (newSet.has(id)) {
         newSet.delete(id);
     } else {
-        if (appState.settings.auto_collapse_folders) {
+        if (navStore.settings.auto_collapse_folders) {
             newSet.clear();
         }
         newSet.add(id);
     }
-    appState.expandedFolders = newSet;
+    navStore.expandedFolders = newSet;
 }
 
 function expandAll() {
     const newSet = new Set<number>();
-    for (const f of appState.folders) newSet.add(f.id);
-    appState.expandedFolders = newSet;
+    for (const f of navStore.folders) newSet.add(f.id);
+    navStore.expandedFolders = newSet;
 }
 
 function collapseAll() {
-    appState.expandedFolders = new Set();
+    navStore.expandedFolders = new Set();
 }
 
 function handleNavDragOver(e: DragEvent) {
@@ -85,11 +85,11 @@ function handleNavDragOver(e: DragEvent) {
             expandTargetId = folderId;
         }
 
-        if (!appState.expandedFolders.has(folderId) && !expandTimeout) {
+        if (!navStore.expandedFolders.has(folderId) && !expandTimeout) {
             expandTimeout = setTimeout(() => {
-                const newSet = new Set(appState.expandedFolders);
+                const newSet = new Set(navStore.expandedFolders);
                 newSet.add(folderId);
-                appState.expandedFolders = newSet;
+                navStore.expandedFolders = newSet;
                 expandTimeout = null;
                 expandTargetId = null;
             }, 600);
@@ -126,22 +126,22 @@ function onDragLeavePane(e: DragEvent) {
     <NavToolbar onExpandAll={expandAll} onCollapseAll={collapseAll} />
 
     <div class="folder-list" onscroll={() => ctxMenu.close()}>
-        {#each appState.folders.filter((f) => f.id !== 0) as folder (folder.id)}
+        {#each navStore.folders.filter((f) => f.id !== 0) as folder (folder.id)}
             <FolderGroup
                 {folder}
-                isExpanded={appState.expandedFolders.has(folder.id)}
+                isExpanded={navStore.expandedFolders.has(folder.id)}
                 onToggle={(e) => {
                     e.stopPropagation();
                     toggleFolder(folder.id);
                 }}
                 onContextMenu={(e, type, id, name) => ctxMenu.show(e, type, id, name)}
                 onFeedsChange={(folderId, feeds) => {
-                    const f = appState.folders.find((x) => x.id === folderId);
+                    const f = navStore.folders.find((x) => x.id === folderId);
                     if (f) f.feeds = feeds;
                 }}
             />
         {/each}
-        {#each appState.folders as folder (folder.id)}
+        {#each navStore.folders as folder (folder.id)}
             <UncategorizedFeeds {folder} onContextMenu={(e, type, id, name) => ctxMenu.show(e, type, id, name)} />
         {/each}
     </div>
@@ -152,7 +152,7 @@ function onDragLeavePane(e: DragEvent) {
         <button
             type="button"
             class="footer-btn"
-            onclick={() => appState.openSettings()}
+            onclick={() => uiStore.openSettings()}
             title="Settings"
             aria-label="Settings"
         >
@@ -171,7 +171,7 @@ function onDragLeavePane(e: DragEvent) {
         <button
             type="button"
             class="footer-btn"
-            onclick={() => appState.openAbout()}
+            onclick={() => uiStore.openAbout()}
             title="About FeedMee"
             aria-label="About FeedMee"
         >

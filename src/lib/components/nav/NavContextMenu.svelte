@@ -1,5 +1,5 @@
 <script lang="ts">
-import { appState } from '$lib/store.svelte';
+import { feedStore, uiStore } from '$lib/store.svelte';
 import ContextMenu from '../ContextMenu.svelte';
 
 let cmVisible = $state(false);
@@ -34,35 +34,35 @@ function rename() {
     if (cmTarget?.type !== 'folder') return;
     const newName = prompt('Rename Folder:', cmTarget.name);
     if (newName && newName.trim() !== '') {
-        appState.renameFolder(cmTarget.id, newName.trim());
+        feedStore.renameFolder(cmTarget.id, newName.trim());
     }
     close();
 }
 
 function renameFeed() {
     if (cmTarget?.type !== 'feed') return;
-    const feed = appState.folders.flatMap((f) => f.feeds).find((f) => f.id === cmTarget?.id);
-    appState.editFeedTarget = {
+    const feed = feedStore.folders.flatMap((f) => f.feeds).find((f) => f.id === cmTarget?.id);
+    uiStore.editFeedTarget = {
         id: cmTarget?.id,
         name: cmTarget?.name ?? '',
         url: feed?.url ?? '',
     };
-    appState.showEditFeedDialog = true;
+    uiStore.showEditFeedDialog = true;
     close();
 }
 
 function deleteTarget() {
     if (!cmTarget) return;
     if (cmTarget.type === 'folder') {
-        appState.deleteFolder(cmTarget.id);
+        feedStore.deleteFolder(cmTarget.id);
     } else if (cmTarget.type === 'feed') {
-        appState.deleteFeed(cmTarget.id);
+        feedStore.deleteFeed(cmTarget.id);
     }
     close();
 }
 
 function createFolder() {
-    appState.showNewFolderDialog = true;
+    uiStore.showNewFolderDialog = true;
     close();
 }
 </script>

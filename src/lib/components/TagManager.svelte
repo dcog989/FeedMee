@@ -1,7 +1,7 @@
 <script lang="ts">
 import { Check, Plus, Tags, Trash2, X } from 'lucide-svelte';
 import { tooltip } from '$lib/actions/tooltip.svelte';
-import { appState } from '$lib/store.svelte';
+import { articleStore, tagStore } from '$lib/store.svelte';
 import type { Tag } from '$lib/types';
 
 let { articleId, onClose }: { articleId: number; onClose: () => void } = $props();
@@ -19,8 +19,8 @@ async function loadAll() {
     loading = true;
     try {
         const [tags, articleTags] = await Promise.all([
-            appState.getAllTags(),
-            appState.getArticleTags(articleId),
+            tagStore.getAllTags(),
+            tagStore.getArticleTags(articleId),
         ]);
         allTags = tags;
         activeTagIds = new Set(articleTags.map((t) => t.id));
@@ -33,21 +33,21 @@ async function loadAll() {
 
 function syncHasTags() {
     const has = activeTagIds.size > 0;
-    if (appState.selectedArticle?.id === articleId) {
-        appState.selectedArticle = { ...appState.selectedArticle, has_tags: has };
+    if (articleStore.selectedArticle?.id === articleId) {
+        articleStore.selectedArticle = { ...articleStore.selectedArticle, has_tags: has };
     }
-    const idx = appState.articles.findIndex((a) => a.id === articleId);
-    if (idx !== -1 && appState.articles[idx].has_tags !== has) {
-        const updated = appState.articles.slice();
+    const idx = articleStore.articles.findIndex((a) => a.id === articleId);
+    if (idx !== -1 && articleStore.articles[idx].has_tags !== has) {
+        const updated = articleStore.articles.slice();
         updated[idx] = { ...updated[idx], has_tags: has };
-        appState.articles = updated;
+        articleStore.articles = updated;
     }
 }
 
 async function toggleTag(tag: Tag) {
     if (activeTagIds.has(tag.id)) {
         try {
-            await appState.removeTag(articleId, tag.id);
+            await tagStore.removeTag(articleId, tag.id);
             activeTagIds = new Set([...activeTagIds].filter((id) => id !== tag.id));
             syncHasTags();
         } catch (e) {
@@ -55,7 +55,7 @@ async function toggleTag(tag: Tag) {
         }
     } else {
         try {
-            await appState.addTag(articleId, tag.name);
+            await tagStore.addTag(articleId, tag.name);
             activeTagIds = new Set([...activeTagIds, tag.id]);
             syncHasTags();
         } catch (e) {
@@ -68,7 +68,7 @@ async function addNewTag() {
     const name = inputValue.trim();
     if (!name) return;
     try {
-        const tag = await appState.addTag(articleId, name);
+        const tag = await tagStore.addTag(articleId, name);
         allTags = [...allTags, tag];
         activeTagIds = new Set([...activeTagIds, tag.id]);
         inputValue = '';
@@ -82,7 +82,7 @@ async function deleteTagPermanently(tag: Tag) {
     const confirmed = confirm(`Delete tag "${tag.name}" from all articles?`);
     if (!confirmed) return;
     try {
-        await appState.deleteTag(tag.id);
+        await tagStore.deleteTag(tag.id);
         activeTagIds = new Set([...activeTagIds].filter((id) => id !== tag.id));
         allTags = allTags.filter((t) => t.id !== tag.id);
         syncHasTags();

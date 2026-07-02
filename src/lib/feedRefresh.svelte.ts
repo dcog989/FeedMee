@@ -1,9 +1,9 @@
 import { invoke } from '@tauri-apps/api/core';
-import type { AppState } from './storeTypes';
+import type { RefreshStore } from './storeTypes';
 
 const REFRESH_CONCURRENCY = 5;
 
-export function createFeedRefresher(state: AppState) {
+export function createFeedRefresher(state: RefreshStore) {
   let saveTimer: ReturnType<typeof setTimeout> | null = null;
 
   function saveLastRefreshed() {

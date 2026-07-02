@@ -1,40 +1,40 @@
 <script lang="ts">
-import { appState } from '$lib/store.svelte';
+import { uiStore } from '$lib/store.svelte';
 </script>
 
-{#if appState.modalState.isOpen}
+{#if uiStore.modalState.isOpen}
     <!-- svelte-ignore a11y_no_static_element_interactions -->
     <!-- biome-ignore lint/a11y/noStaticElementInteractions: backdrop is decorative, can't use button because it wraps modal with buttons -->
     <div
         class="modal-overlay"
         role="presentation"
-        onclick={(e) => { if (e.target === e.currentTarget) appState.closeModal(); }}
+        onclick={(e) => { if (e.target === e.currentTarget) uiStore.closeModal(); }}
     >
         <div class="modal">
             <h3>
-                {appState.modalState.type === "confirm"
+                {uiStore.modalState.type === "confirm"
                     ? "Confirmation"
                     : "Alert"}
             </h3>
-            <p>{appState.modalState.message}</p>
+            <p>{uiStore.modalState.message}</p>
             <div class="modal-actions">
-                {#if appState.modalState.type === "confirm"}
+                {#if uiStore.modalState.type === "confirm"}
                     <button
                         type="button"
                         class="secondary"
-                        onclick={() => appState.closeModal()}
+                        onclick={() => uiStore.closeModal()}
                     >
                         Cancel
                     </button>
                 {/if}
                 <button
                     type="button"
-                    class={appState.modalState.type === "confirm"
+                    class={uiStore.modalState.type === "confirm"
                         ? "danger"
                         : "primary"}
-                    onclick={appState.modalState.onConfirm}
+                    onclick={uiStore.modalState.onConfirm}
                 >
-                    {appState.modalState.type === "confirm"
+                    {uiStore.modalState.type === "confirm"
                         ? "Confirm"
                         : "OK"}
                 </button>

@@ -1,15 +1,15 @@
 <script lang="ts">
-import { appState } from '$lib/store.svelte';
+import { feedStore, uiStore } from '$lib/store.svelte';
 
 let name = $state('');
 
 function closeDialog() {
-    appState.showNewFolderDialog = false;
+    uiStore.showNewFolderDialog = false;
 }
 
 function submit() {
     if (name.trim()) {
-        appState.createFolder(name.trim());
+        feedStore.createFolder(name.trim());
     }
     closeDialog();
 }

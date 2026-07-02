@@ -1,7 +1,7 @@
 <script lang="ts">
 import { ArrowUpDown, Bookmark, CalendarDays, CheckCheck, Clock } from 'lucide-svelte';
 import { tooltip } from '$lib/actions/tooltip.svelte';
-import { appState, FEED_ID_LATEST, FEED_ID_SAVED, FEED_ID_TODAY } from '$lib/store.svelte';
+import { FEED_ID_LATEST, FEED_ID_SAVED, FEED_ID_TODAY, feedStore, settingsStore } from '$lib/store.svelte';
 </script>
 
 <div class="list-toolbar">
@@ -9,8 +9,8 @@ import { appState, FEED_ID_LATEST, FEED_ID_SAVED, FEED_ID_TODAY } from '$lib/sto
         <button
             type="button"
             class="tool-btn"
-            class:active={appState.selectedFeedId === FEED_ID_LATEST}
-            onclick={() => appState.selectFeed(FEED_ID_LATEST)}
+            class:active={feedStore.selectedFeedId === FEED_ID_LATEST}
+            onclick={() => feedStore.selectFeed(FEED_ID_LATEST)}
             use:tooltip={'Latest'}
             aria-label="Latest"
         >
@@ -19,8 +19,8 @@ import { appState, FEED_ID_LATEST, FEED_ID_SAVED, FEED_ID_TODAY } from '$lib/sto
         <button
             type="button"
             class="tool-btn"
-            class:active={appState.selectedFeedId === FEED_ID_TODAY}
-            onclick={() => appState.selectFeed(FEED_ID_TODAY)}
+            class:active={feedStore.selectedFeedId === FEED_ID_TODAY}
+            onclick={() => feedStore.selectFeed(FEED_ID_TODAY)}
             use:tooltip={"Today's articles"}
             aria-label="Today"
         >
@@ -29,8 +29,8 @@ import { appState, FEED_ID_LATEST, FEED_ID_SAVED, FEED_ID_TODAY } from '$lib/sto
         <button
             type="button"
             class="tool-btn"
-            class:active={appState.selectedFeedId === FEED_ID_SAVED}
-            onclick={() => appState.selectFeed(FEED_ID_SAVED)}
+            class:active={feedStore.selectedFeedId === FEED_ID_SAVED}
+            onclick={() => feedStore.selectFeed(FEED_ID_SAVED)}
             use:tooltip={'Read Later'}
             aria-label="Read Later"
         >
@@ -41,11 +41,11 @@ import { appState, FEED_ID_LATEST, FEED_ID_SAVED, FEED_ID_TODAY } from '$lib/sto
         <button
             type="button"
             class="tool-btn"
-            onclick={() => appState.setSortOrder(appState.sortOrder === 'desc' ? 'asc' : 'desc')}
-            use:tooltip={appState.sortOrder === 'desc'
+            onclick={() => settingsStore.setSortOrder(settingsStore.sortOrder === 'desc' ? 'asc' : 'desc')}
+            use:tooltip={settingsStore.sortOrder === 'desc'
                 ? 'Sort: Newest First'
                 : 'Sort: Oldest First'}
-            aria-label={appState.sortOrder === 'desc' ? 'Sort Newest First' : 'Sort Oldest First'}
+            aria-label={settingsStore.sortOrder === 'desc' ? 'Sort Newest First' : 'Sort Oldest First'}
         >
             <ArrowUpDown size={20} />
         </button>
@@ -53,7 +53,7 @@ import { appState, FEED_ID_LATEST, FEED_ID_SAVED, FEED_ID_TODAY } from '$lib/sto
         <button
             type="button"
             class="tool-btn"
-            onclick={() => appState.markAllRead()}
+            onclick={() => feedStore.markAllRead()}
             use:tooltip={'Mark All Read'}
             aria-label="Mark All Read"
         >
