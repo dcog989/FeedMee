@@ -1,6 +1,7 @@
 <script lang="ts">
 import { Info, Rss, Settings } from 'lucide-svelte';
 import { appState } from '$lib/store.svelte';
+import ContextMenu from './ContextMenu.svelte';
 import FolderGroup from './nav/FolderGroup.svelte';
 import NavToolbar from './nav/NavToolbar.svelte';
 
@@ -12,7 +13,6 @@ let initialized = false;
 let expandTimeout: ReturnType<typeof setTimeout> | null = null;
 let expandTargetId: number | null = null;
 
-// Context Menu State
 let cmVisible = $state(false);
 let cmX = $state(0);
 let cmY = $state(0);
@@ -124,7 +124,6 @@ function onDragLeavePane(e: DragEvent) {
     }
 }
 
-// --- Context Menu ---
 function handleContextMenu(
     event: MouseEvent,
     type: 'folder' | 'feed' | 'root',
@@ -180,11 +179,6 @@ function cmCreateFolder() {
     closeContextMenu();
 }
 </script>
-
-<svelte:window
-    onclick={closeContextMenu}
-    onkeydown={(e) => e.key === 'Escape' && closeContextMenu()}
-/>
 
 <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
 <nav
@@ -281,19 +275,17 @@ function cmCreateFolder() {
         {/each}
     </div>
 
-    {#if cmVisible}
-        <div class="context-menu" style="top: {cmY}px; left: {cmX}px">
-            {#if cmTarget?.type === 'root'}
-                <button type="button" onclick={cmCreateFolder}>New Folder</button>
-            {:else if cmTarget?.type === 'folder'}
-                <button type="button" onclick={cmRename}>Rename Folder</button>
-                <button type="button" class="danger" onclick={cmDelete}>Delete Folder</button>
-            {:else if cmTarget?.type === 'feed'}
-                <button type="button" onclick={cmRenameFeed}>Edit Feed</button>
-                <button type="button" class="danger" onclick={cmDelete}>Delete Feed</button>
-            {/if}
-        </div>
-    {/if}
+    <ContextMenu x={cmX} y={cmY} visible={cmVisible} onClose={closeContextMenu}>
+        {#if cmTarget?.type === 'root'}
+            <button type="button" onclick={cmCreateFolder}>New Folder</button>
+        {:else if cmTarget?.type === 'folder'}
+            <button type="button" onclick={cmRename}>Rename Folder</button>
+            <button type="button" class="danger" onclick={cmDelete}>Delete Folder</button>
+        {:else if cmTarget?.type === 'feed'}
+            <button type="button" onclick={cmRenameFeed}>Edit Feed</button>
+            <button type="button" class="danger" onclick={cmDelete}>Delete Feed</button>
+        {/if}
+    </ContextMenu>
 
     <div class="footer-bar">
         <button
@@ -343,41 +335,6 @@ function cmCreateFolder() {
     flex: 1;
     overflow-y: auto;
     padding: 0 1rem 1rem;
-}
-
-.context-menu {
-    position: fixed;
-    background: var(--bg-app);
-    border: 1px solid var(--border-color);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-    border-radius: 6px;
-    padding: 4px;
-    z-index: 1000;
-    min-width: 120px;
-}
-
-.context-menu button {
-    display: block;
-    width: 100%;
-    text-align: left;
-    background: none;
-    border: none;
-    padding: 8px 12px;
-    cursor: pointer;
-    color: var(--text-primary);
-    border-radius: 4px;
-    font-size: 0.9rem;
-}
-
-.context-menu button:hover {
-    background-color: var(--bg-hover);
-}
-
-.context-menu button.danger {
-    color: #e81123;
-}
-.context-menu button.danger:hover {
-    background-color: #ffeef0;
 }
 
 .root-section {

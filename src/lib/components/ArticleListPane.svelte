@@ -5,6 +5,7 @@ import { ArrowUpDown, Bookmark, CalendarDays, CheckCheck, Clock, Image, Search, 
 import { tooltip } from '$lib/actions/tooltip.svelte';
 import { appState, FEED_ID_LATEST, FEED_ID_SAVED, FEED_ID_TODAY } from '$lib/store.svelte';
 import type { Article } from '$lib/types';
+import ContextMenu from './ContextMenu.svelte';
 import TagManager from './TagManager.svelte';
 
 let listContainer: HTMLElement;
@@ -128,8 +129,7 @@ function cmToggleSaved() {
 </script>
 
 <svelte:window
-    onclick={closeContextMenu}
-    onkeydown={(e) => { if (e.key === 'Escape') { closeContextMenu(); closeTagManager(); } }}
+    onkeydown={(e) => { if (e.key === 'Escape') closeTagManager(); }}
 />
 
 <div class="pane-wrapper">
@@ -335,17 +335,15 @@ function cmToggleSaved() {
     </div>
 {/if}
 
-{#if cmVisible}
-    <div class="context-menu" style="top: {cmY}px; left: {cmX}px" role="menu">
-        <button type="button" onclick={cmOpenInBrowser}>Open in Browser</button>
-        <button type="button" onclick={cmToggleRead}>
-            {cmArticle?.is_read ? 'Mark Unread' : 'Mark Read'}
-        </button>
-        <button type="button" onclick={cmToggleSaved}>
-            {cmArticle?.is_saved ? 'Remove Bookmark' : 'Bookmark'}
-        </button>
-    </div>
-{/if}
+<ContextMenu x={cmX} y={cmY} visible={cmVisible} onClose={closeContextMenu}>
+    <button type="button" onclick={cmOpenInBrowser}>Open in Browser</button>
+    <button type="button" onclick={cmToggleRead}>
+        {cmArticle?.is_read ? 'Mark Unread' : 'Mark Read'}
+    </button>
+    <button type="button" onclick={cmToggleSaved}>
+        {cmArticle?.is_saved ? 'Remove Bookmark' : 'Bookmark'}
+    </button>
+</ContextMenu>
 
 <style>
 .pane-wrapper {
@@ -614,31 +612,4 @@ function cmToggleSaved() {
     pointer-events: none;
 }
 
-.context-menu {
-    position: fixed;
-    background: var(--bg-app);
-    border: 1px solid var(--border-color);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-    border-radius: 6px;
-    padding: 4px;
-    z-index: 1000;
-    min-width: 150px;
-}
-
-.context-menu button {
-    display: block;
-    width: 100%;
-    text-align: left;
-    background: none;
-    border: none;
-    padding: 8px 12px;
-    cursor: pointer;
-    color: var(--text-primary);
-    border-radius: 4px;
-    font-size: 0.9rem;
-}
-
-.context-menu button:hover {
-    background-color: var(--bg-hover);
-}
 </style>
