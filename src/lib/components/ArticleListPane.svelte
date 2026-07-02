@@ -2,7 +2,7 @@
 import { invoke } from '@tauri-apps/api/core';
 import { openUrl } from '@tauri-apps/plugin-opener';
 import { ArrowUpDown, Bookmark, CalendarDays, CheckCheck, Clock, Image, Search, Tags } from 'lucide-svelte';
-import { tooltip } from '$lib/actions/tooltip.svelte';
+import { tooltip, tooltipState } from '$lib/actions/tooltip.svelte';
 import { appState, FEED_ID_LATEST, FEED_ID_SAVED, FEED_ID_TODAY } from '$lib/store.svelte';
 import type { Article } from '$lib/types';
 import ContextMenu from './ContextMenu.svelte';
@@ -75,6 +75,7 @@ function toggleTagManager(e: MouseEvent, article: Article) {
     if (tagArticleId === article.id) {
         tagArticleId = null;
     } else {
+        tooltipState.visible = false;
         tagArticleId = article.id;
         const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
         tagX = rect.left;
@@ -266,10 +267,12 @@ function cmToggleSaved() {
                                             use:tooltip={'Tags'}
                                             aria-label="Tags"
                                         >
-                                            <Tags
-                                                size={14}
-                                                fill={article.has_tags ? 'currentColor' : 'none'}
-                                            />
+                                            {#key article.has_tags || tagArticleId === article.id}
+                                                <Tags
+                                                    size={14}
+                                                    fill={article.has_tags ? 'currentColor' : 'none'}
+                                                />
+                                            {/key}
                                         </button>
 
                                         <button
@@ -546,7 +549,7 @@ function cmToggleSaved() {
     align-items: center;
     color: var(--text-secondary);
     opacity: 0.4;
-    transition: all 0.2s;
+    transition: opacity 0.2s;
     cursor: pointer;
     background: transparent;
     border: none;

@@ -2,7 +2,7 @@
 import { openUrl } from '@tauri-apps/plugin-opener';
 import DOMPurify from 'dompurify';
 import { Bookmark, CircleAlert, ExternalLink, FileText, Tags } from 'lucide-svelte';
-import { tooltip } from '$lib/actions/tooltip.svelte';
+import { tooltip, tooltipState } from '$lib/actions/tooltip.svelte';
 import { appState } from '$lib/store.svelte';
 import TagPopover from './TagPopover.svelte';
 
@@ -123,6 +123,7 @@ async function handleContentClick(e?: MouseEvent) {
                             class="action-btn"
                             class:active={appState.selectedArticle?.has_tags || showTagManager}
                             onclick={(e) => {
+                                tooltipState.visible = false;
                                 const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
                                 tagX = rect.left;
                                 tagY = rect.bottom + 4;
@@ -131,10 +132,12 @@ async function handleContentClick(e?: MouseEvent) {
                             use:tooltip={'Tags'}
                             aria-label="Tags"
                         >
-                            <Tags
-                                size={18}
-                                fill={appState.selectedArticle?.has_tags ? 'currentColor' : 'none'}
-                            />
+                            {#key appState.selectedArticle?.has_tags || showTagManager}
+                                <Tags
+                                    size={18}
+                                    fill={appState.selectedArticle?.has_tags ? 'currentColor' : 'none'}
+                                />
+                            {/key}
                         </button>
 
                         <button
@@ -173,7 +176,7 @@ async function handleContentClick(e?: MouseEvent) {
                     y={tagY}
                     onClose={() => { showTagManager = false; }}
                 />
-            </header>
+             </header>
 
             {#if loadError}
                 <div class="error-banner">
@@ -286,7 +289,7 @@ h1 {
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: background-color 0.2s, opacity 0.2s;
 }
 
 .action-btn:hover {
