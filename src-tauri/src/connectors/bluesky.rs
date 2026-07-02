@@ -1,5 +1,5 @@
 use async_trait::async_trait;
-use log::{debug, info};
+use log::{debug, info, warn};
 use serde::Deserialize;
 
 use crate::{AppState, db, models::Article};
@@ -191,13 +191,15 @@ pub async fn fetch_posts(
     client: &reqwest::Client,
     actor: &str,
     feed_id: i64,
-) -> Result<Vec<Article>, String> {
+    last_seen_uri: Option<&str>,
+) -> Result<(Vec<Article>, Option<String>), String> {
     info!("fetch_posts: actor={}, feed_id={}", actor, feed_id);
 
     let mut articles = Vec::new();
     let mut cursor: Option<String> = None;
+    let mut first_uri: Option<String> = None;
 
-    for page in 0..2 {
+    'outer: for page in 0..2 {
         let response = fetch_author_feed(client, actor, cursor.as_deref()).await?;
 
         if response.feed.is_empty() {
@@ -206,6 +208,17 @@ pub async fn fetch_posts(
         }
 
         for view in &response.feed {
+            if let Some(ref seen) = last_seen_uri {
+                if view.post.uri == *seen {
+                    debug!("fetch_posts: caught up at post {}", seen);
+                    break 'outer;
+                }
+            }
+
+            if first_uri.is_none() {
+                first_uri = Some(view.post.uri.clone());
+            }
+
             let record = &view.post.record;
             let text = record
                 .get("text")
@@ -266,7 +279,7 @@ pub async fn fetch_posts(
         articles.len(),
         actor
     );
-    Ok(articles)
+    Ok((articles, first_uri))
 }
 
 pub async fn resolve_bluesky_source(
@@ -276,7 +289,7 @@ pub async fn resolve_bluesky_source(
     let handle = extract_handle(url).ok_or_else(|| "Not a Bluesky URL".to_string())?;
     let (did, display_name) = resolve_author_info(client, &handle).await?;
     let feed_url = format!("bsky:{}", did);
-    let articles = fetch_posts(client, &did, 0).await?;
+    let (articles, _) = fetch_posts(client, &did, 0, None).await?;
     Ok((display_name, feed_url, articles))
 }
 
@@ -286,9 +299,24 @@ pub async fn refresh_bluesky_feed(
     state: &AppState,
 ) -> Result<i64, String> {
     let actor = feed_url.strip_prefix("bsky:").unwrap_or(feed_url);
-    let articles = fetch_posts(&state.http_client, actor, feed_id).await?;
+
+    let last_seen = {
+        let conn = state.db.lock().unwrap();
+        db::get_bluesky_cursor(&conn, feed_id).unwrap_or(None)
+    };
+
+    let (articles, new_cursor) =
+        fetch_posts(&state.http_client, actor, feed_id, last_seen.as_deref()).await?;
+
     let conn = state.db.lock().unwrap();
     let _ = db::batch_insert_articles(&conn, &articles).map_err(|e| e.to_string())?;
     let _ = db::update_feed_error(&conn, feed_id, false);
+
+    if let Some(ref uri) = new_cursor {
+        if let Err(e) = db::set_bluesky_cursor(&conn, feed_id, uri) {
+            warn!("Failed to store bluesky cursor for feed {}: {}", feed_id, e);
+        }
+    }
+
     Ok(db::get_feed_unread_count(&conn, feed_id).unwrap_or(0))
 }

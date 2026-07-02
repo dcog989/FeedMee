@@ -87,6 +87,7 @@ fn migrations() -> Migrations<'static> {
              UPDATE feeds SET folder_id = 0 WHERE folder_id = 1;
              DELETE FROM folders WHERE id = 1;",
         ),
+        M::up("ALTER TABLE feeds ADD COLUMN bluesky_cursor TEXT;"),
     ])
 }
 
@@ -392,6 +393,26 @@ pub fn update_feed_error(conn: &Connection, feed_id: i64, has_error: bool) -> Re
     conn.execute(
         "UPDATE feeds SET has_error = ?1 WHERE id = ?2",
         params![has_error, feed_id],
+    )?;
+    Ok(())
+}
+
+pub fn get_bluesky_cursor(conn: &Connection, feed_id: i64) -> Result<Option<String>> {
+    let result: Result<String> = conn.query_row(
+        "SELECT bluesky_cursor FROM feeds WHERE id = ?1",
+        params![feed_id],
+        |row| row.get(0),
+    );
+    match result {
+        Ok(cursor) if !cursor.is_empty() => Ok(Some(cursor)),
+        _ => Ok(None),
+    }
+}
+
+pub fn set_bluesky_cursor(conn: &Connection, feed_id: i64, cursor: &str) -> Result<()> {
+    conn.execute(
+        "UPDATE feeds SET bluesky_cursor = ?1 WHERE id = ?2",
+        params![cursor, feed_id],
     )?;
     Ok(())
 }
