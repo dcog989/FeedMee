@@ -4,13 +4,12 @@ use image::GenericImageView;
 use image::imageops::FilterType;
 use log::info;
 use std::fs;
-use std::hash::{Hash, Hasher};
 use std::path::PathBuf;
 use tauri::Manager;
 use tauri::State;
 use webp::Encoder;
 
-use super::scraper::scrape_og_image;
+use super::scraper::{compute_content_hash, scrape_og_image};
 
 fn thumbnail_cache_dir(app: &tauri::AppHandle) -> Result<PathBuf, String> {
     let dir = app
@@ -23,9 +22,7 @@ fn thumbnail_cache_dir(app: &tauri::AppHandle) -> Result<PathBuf, String> {
 }
 
 fn hash_url(url: &str) -> String {
-    let mut hasher = std::collections::hash_map::DefaultHasher::new();
-    url.hash(&mut hasher);
-    format!("{:x}", hasher.finish())
+    compute_content_hash(url)
 }
 
 #[tauri::command]
