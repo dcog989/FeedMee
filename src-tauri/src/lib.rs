@@ -156,48 +156,6 @@ pub fn run() {
                 http_client,
             });
 
-            // Background maintenance thread (runs every 6 hours)
-            let maint_handle = app.handle().clone();
-            std::thread::spawn(move || {
-                let six_hours = std::time::Duration::from_secs(6 * 3600);
-                loop {
-                    std::thread::sleep(six_hours);
-                    let state = maint_handle.state::<AppState>();
-
-                    // Purge old articles
-                    let retention = {
-                        let settings = state.settings.lock().unwrap();
-                        settings.article_retention_days
-                    };
-                    if let Ok(count) = db::purge_old_articles(&state.db.lock().unwrap(), retention)
-                        && count > 0
-                    {
-                        info!("Maintenance: purged {} old articles", count);
-                    }
-
-                    // Vacuum check
-                    let now = std::time::SystemTime::now()
-                        .duration_since(std::time::UNIX_EPOCH)
-                        .unwrap()
-                        .as_secs() as i64;
-                    let needs_vacuum = {
-                        let settings = state.settings.lock().unwrap();
-                        now - settings.last_vacuum > 86400
-                    };
-                    if needs_vacuum {
-                        if let Err(e) = db::run_vacuum(&state.db.lock().unwrap()) {
-                            error!("Maintenance VACUUM failed: {}", e);
-                        } else {
-                            let mut settings = state.settings.lock().unwrap();
-                            settings.last_vacuum = now;
-                            settings::save_settings(&settings);
-                        }
-                    }
-
-                    // Clean up stale thumbnails
-                    let _ = commands::thumbnails::cleanup_thumbnail_cache(&maint_handle, 7);
-                }
-            });
 
             let window = app.get_webview_window("main").unwrap();
 
