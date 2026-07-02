@@ -1,5 +1,6 @@
 ﻿<script lang="ts">
 import { invoke } from '@tauri-apps/api/core';
+import { openUrl } from '@tauri-apps/plugin-opener';
 import { ArrowUpDown, Bookmark, CheckCheck, Clock, Image, Search, Tags } from 'lucide-svelte';
 import { tooltip } from '$lib/actions/tooltip.svelte';
 import { appState, FEED_ID_LATEST, FEED_ID_SAVED } from '$lib/store.svelte';
@@ -105,7 +106,7 @@ function closeTagManager() {
 }
 
 function cmOpenInBrowser() {
-    if (cmArticle?.url) window.open(cmArticle.url, '_blank');
+    if (cmArticle?.url) openUrl(cmArticle.url);
     closeContextMenu();
 }
 
