@@ -1,6 +1,4 @@
-use crate::commands::scraper::{
-    backfill_og_images, scrape_articles_from_page, scrape_og_image_from_html,
-};
+use crate::commands::scraper::{scrape_articles_from_page, scrape_og_image_from_html};
 use crate::{AppState, db};
 use log::debug;
 use scraper::{Html, Selector};
@@ -19,7 +17,6 @@ async fn scrape_and_insert(
             a.image_url = og_image.clone().unwrap_or_default();
         }
     }
-    backfill_og_images(&state.http_client, &mut articles).await;
     let conn = state.db.lock().unwrap();
     let count = db::batch_insert_articles(&conn, &articles).map_err(|e| e.to_string())?;
     let _ = db::update_feed_error(&conn, feed_id, false);

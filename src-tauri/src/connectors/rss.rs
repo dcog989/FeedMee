@@ -166,7 +166,7 @@ pub async fn refresh_rss_feed(
                         feed.entries.len()
                     );
 
-                    let mut articles = entries_to_articles(feed.entries, feed_id, feed_url);
+                    let articles = entries_to_articles(feed.entries, feed_id, feed_url);
 
                     let conn = state.db.lock().unwrap();
                     conn.execute_batch("BEGIN TRANSACTION")
