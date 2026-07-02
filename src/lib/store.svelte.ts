@@ -58,7 +58,7 @@ class AppStateImpl {
   page = 0;
   readonly pageSize = 50;
   hasMore = $state(true);
-  latestHours = $state(24);
+  readonly latestHours = 24;
 
   lastRefreshed = new Map<number, number>();
   updatingFeedIds = $state(new Set<number>());
