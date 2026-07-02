@@ -1,34 +1,17 @@
 <script lang="ts">
 import { openUrl } from '@tauri-apps/plugin-opener';
-import DOMPurify from 'dompurify';
-import { Bookmark, CircleAlert, ExternalLink, FileText, Tags } from 'lucide-svelte';
-import { tooltip, tooltipState } from '$lib/actions/tooltip.svelte';
+import { ExternalLink } from 'lucide-svelte';
+import { tooltip } from '$lib/actions/tooltip.svelte';
 import { appState } from '$lib/store.svelte';
-import TagPopover from './TagPopover.svelte';
+import ArticleActions from './article/ArticleActions.svelte';
+import ArticleContent from './article/ArticleContent.svelte';
 
-DOMPurify.addHook('afterSanitizeAttributes', (node: Element) => {
-    if (node.tagName === 'A' && node.hasAttribute('href')) {
-        const href = node.getAttribute('href') || '';
-        node.setAttribute('title', href);
-        node.setAttribute('target', '_blank');
-        node.setAttribute('rel', 'noopener noreferrer');
-    }
-    if (node.tagName === 'IMG') {
-        node.setAttribute('loading', 'lazy');
-    }
-});
-
-let tagArticleId = $state<number | null>(null);
-let tagX = $state(0);
-let tagY = $state(0);
 let fullContent = $state<string | null>(null);
 let isLoadingFull = $state(false);
 let loadError = $state(false);
 let loadGen = $state(0);
 
 let rawHtml = $derived(fullContent ?? appState.selectedArticle?.summary ?? '');
-let displayHtml = $derived(rawHtml ? DOMPurify.sanitize(rawHtml) : '');
-let isSaved = $derived(appState.selectedArticle?.is_saved ?? false);
 
 $effect(() => {
     if (appState.selectedArticle) {
@@ -79,17 +62,6 @@ function formatDate(ts: number) {
     });
     return `${datePart} / ${timePart}`;
 }
-
-// Intercept clicks on links
-async function handleContentClick(e?: MouseEvent) {
-    if (!e) { await openUrl(appState.selectedArticle?.url ?? ''); return; }
-    const target = e.target as HTMLElement;
-    const anchor = target.closest('a');
-    if (anchor?.href) {
-        e.preventDefault();
-        await openUrl(anchor.href);
-    }
-}
 </script>
 
 <main class="pane">
@@ -117,85 +89,20 @@ async function handleContentClick(e?: MouseEvent) {
                         <span class="date">{formatDate(appState.selectedArticle.timestamp)}</span>
                     </div>
 
-                    <div class="meta-actions">
-                        <button
-                            type="button"
-                            class="action-btn"
-                            class:active={appState.selectedArticle?.has_tags || tagArticleId !== null}
-                            onclick={(e) => {
-                                tooltipState.visible = false;
-                                const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-                                tagX = rect.left;
-                                tagY = rect.bottom + 4;
-                                const id = appState.selectedArticle?.id;
-                                tagArticleId = tagArticleId === id ? null : (id ?? null);
-                            }}
-                            use:tooltip={'Tags'}
-                            aria-label="Tags"
-                        >
-                            {#key appState.selectedArticle?.has_tags || tagArticleId !== null}
-                                <Tags
-                                    size={18}
-                                    fill={appState.selectedArticle?.has_tags ? 'currentColor' : 'none'}
-                                />
-                            {/key}
-                        </button>
-
-                        <button
-                            type="button"
-                            class="action-btn"
-                            class:active={isSaved}
-                            onclick={() =>
-                                appState.selectedArticle &&
-                                appState.toggleSaved(appState.selectedArticle)}
-                            use:tooltip={'Read Later'}
-                            aria-label="Read Later"
-                        >
-                            <Bookmark size={18} fill={isSaved ? 'currentColor' : 'none'} />
-                        </button>
-
-                        <button
-                            type="button"
-                            class="action-btn"
-                            onclick={loadFullContent}
-                            use:tooltip={'Load Full Content'}
-                            disabled={isLoadingFull || !!fullContent}
-                            aria-label="Load Full Content"
-                        >
-                            {#if isLoadingFull}
-                                <span class="spinner"></span>
-                            {:else}
-                                <FileText size={18} />
-                            {/if}
-                        </button>
-                    </div>
+                    <ArticleActions
+                        article={appState.selectedArticle}
+                        isLoadingFull={isLoadingFull}
+                        hasFullContent={!!fullContent}
+                        onLoadFullContent={loadFullContent}
+                    />
                 </div>
+            </header>
 
-                <TagPopover
-                    articleId={tagArticleId}
-                    x={tagX}
-                    y={tagY}
-                    onClose={() => { tagArticleId = null; }}
-                />
-             </header>
-
-            {#if loadError}
-                <div class="error-banner">
-                    <CircleAlert size={16} />
-                    <span>Could not extract full content. Showing summary instead.</span>
-                </div>
-            {/if}
-
-            <!-- biome-ignore lint/a11y/useSemanticElements: contains flow content from article HTML, cannot use <button> -->
-            <div
-                class="summary"
-                role="button"
-                tabindex="0"
-                onclick={handleContentClick}
-                onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleContentClick(); } }}
-            >
-                {@html displayHtml}
-            </div>
+            <ArticleContent
+                rawHtml={rawHtml}
+                loadError={loadError}
+                articleUrl={appState.selectedArticle.url}
+            />
 
             <footer class="article-footer">
                 <a
@@ -275,98 +182,6 @@ h1 {
     color: var(--border-color);
 }
 
-.meta-actions {
-    display: flex;
-    gap: 0.5rem;
-}
-
-.action-btn {
-    background: transparent;
-    border: none;
-    color: var(--text-secondary);
-    padding: 6px;
-    border-radius: 4px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    transition: background-color 0.2s, opacity 0.2s;
-}
-
-.action-btn:hover {
-    background-color: var(--bg-hover);
-    color: var(--text-primary);
-}
-
-.action-btn.active {
-    color: var(--bg-selected);
-}
-
-.action-btn:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-}
-
-.error-banner {
-    background-color: #ffeef0;
-    color: #d32f2f;
-    padding: 12px;
-    border-radius: 6px;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin-bottom: 1.5rem;
-    font-size: 0.9rem;
-}
-
-:global([data-theme="dark"]) .error-banner {
-    background-color: #3e1b1b;
-    color: #ff9999;
-}
-
-.summary {
-    line-height: 1.8;
-    font-size: 1.15rem;
-    font-family: var(--font-body-override, var(--font-body));
-    color: var(--color-body, var(--text-primary));
-}
-
-.summary :global(p) {
-    margin-bottom: 1.5rem;
-}
-
-/* Force override for content that tries to set black text on dark bg */
-.summary :global(*) {
-    /* biome-ignore lint/complexity/noImportantStyles: needed to override inline feed styles */
-    color: inherit !important;
-    /* biome-ignore lint/complexity/noImportantStyles: needed to override inline feed styles */
-    background-color: transparent !important;
-    /* biome-ignore lint/complexity/noImportantStyles: needed to override inline feed styles */
-    max-width: 100% !important;
-}
-
-/* Restore link color */
-.summary :global(a) {
-    /* biome-ignore lint/complexity/noImportantStyles: needed to override inline feed styles */
-    color: #4899ec !important;
-    text-decoration: none;
-    /* biome-ignore lint/complexity/noImportantStyles: needed to override inline feed styles */
-    cursor: pointer !important;
-}
-
-.summary :global(a:hover) {
-    text-decoration: underline;
-}
-
-.summary :global(img) {
-    max-width: 100%;
-    height: auto;
-    border-radius: 4px;
-    /* Don't force transparent background on images, some might need white */
-    /* biome-ignore lint/complexity/noImportantStyles: needed to override inline feed styles */
-    background-color: initial !important;
-}
-
 .article-footer {
     margin-top: 3rem;
     padding-top: 1.5rem;
@@ -413,14 +228,4 @@ h1 {
     user-select: none;
     pointer-events: none;
 }
-
-.spinner {
-    width: 14px;
-    height: 14px;
-    border: 2px solid var(--text-secondary);
-    border-top-color: transparent;
-    border-radius: 50%;
-    animation: spin 1s linear infinite;
-}
-
 </style>
