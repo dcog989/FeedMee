@@ -119,6 +119,21 @@ function onKeyDown(e: KeyboardEvent) {
                 </div>
 
                 <div class="form-group">
+                    <label for="debounce">Refresh Debounce (min)</label>
+                    <div class="range-wrap">
+                        <input
+                            type="range"
+                            id="debounce"
+                            min="1"
+                            max="30"
+                            step="1"
+                            bind:value={settings.feed_refresh_debounce_minutes}
+                        >
+                        <span class="range-value">{settings.feed_refresh_debounce_minutes} min</span>
+                    </div>
+                </div>
+
+                <div class="form-group">
                     <label for="default-view">View on Startup</label>
                     <select id="default-view" bind:value={settings.default_view_type}>
                         <option value="latest">Latest</option>
@@ -395,19 +410,27 @@ select {
     min-width: 160px;
 }
 
-.checkbox-wrap {
-    display: flex;
-    align-items: center;
-}
-
 .form-group input[type="text"]#title-font,
 .form-group input[type="text"]#body-font {
     cursor: pointer;
 }
 
+.checkbox-wrap {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    flex: 1;
+    padding-left: 8px;
+}
+
 .checkbox-wrap input[type="checkbox"] {
     width: 16px;
     height: 16px;
+    flex: none;
+    padding: 0;
+    border: none;
+    background: none;
+    min-width: 0;
     cursor: pointer;
     accent-color: var(--bg-selected);
 }
