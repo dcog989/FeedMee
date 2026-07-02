@@ -29,7 +29,7 @@ tauri = { version = "2.11", features = [] }
 tauri-plugin-dialog = "2.7"
 tauri-plugin-fs = "2.5"
 tauri-plugin-opener = "2.5"
-tauri-plugin-updater = "2"
+tauri-plugin-updater = "2.10"
 tauri-plugin-window-state = "2.4"
 toml = "1.1"
 url = "2.5"
