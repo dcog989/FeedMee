@@ -111,13 +111,7 @@ export function createArticleActions(state: AppState) {
       invoke('mark_article_read', { id: article.id, read: true }).catch(() => {
         article.is_read = false;
       });
-      for (const folder of state.folders) {
-        const feed = folder.feeds.find((f) => f.id === article.feed_id);
-        if (feed && feed.unread_count > 0) {
-          feed.unread_count--;
-          break;
-        }
-      }
+      state.adjustUnreadCount(article.feed_id, -1);
     }
   }
 

@@ -43,6 +43,7 @@ export interface AppState {
   isFeedFresh(feedId: number): boolean;
   isFolderFresh(folderId: number): boolean;
   isAllFresh(): boolean;
+  adjustUnreadCount(feedId: number, delta: number): void;
   isFeedUpdating(feedId: number): boolean;
   isFolderUpdating(folderId: number): boolean;
   refreshFolders(): Promise<void>;

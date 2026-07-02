@@ -105,6 +105,16 @@ class AppStateImpl {
     return this.settings.feed_refresh_debounce_minutes * 60 * 1000;
   }
 
+  adjustUnreadCount(feedId: number, delta: number) {
+    for (const folder of this.folders) {
+      const feed = folder.feeds.find((f) => f.id === feedId);
+      if (feed) {
+        feed.unread_count = Math.max(0, feed.unread_count + delta);
+        break;
+      }
+    }
+  }
+
   isFeedUpdating(feedId: number) {
     return this.updatingFeedIds.has(feedId);
   }

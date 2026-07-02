@@ -69,21 +69,9 @@ export function registerShortcuts(state: AppState) {
         const wasUnread = !article.is_read;
         article.is_read = newReadState;
         if (wasUnread && newReadState) {
-          for (const folder of state.folders) {
-            const feed = folder.feeds.find((f) => f.id === article.feed_id);
-            if (feed && feed.unread_count > 0) {
-              feed.unread_count--;
-              break;
-            }
-          }
+          state.adjustUnreadCount(article.feed_id, -1);
         } else if (!wasUnread && !newReadState) {
-          for (const folder of state.folders) {
-            const feed = folder.feeds.find((f) => f.id === article.feed_id);
-            if (feed) {
-              feed.unread_count++;
-              break;
-            }
-          }
+          state.adjustUnreadCount(article.feed_id, 1);
         }
         await invoke('mark_article_read', {
           id: article.id,
