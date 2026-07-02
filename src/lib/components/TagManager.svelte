@@ -17,13 +17,18 @@ $effect(() => {
 
 async function loadAll() {
     loading = true;
-    const [tags, articleTags] = await Promise.all([
-        appState.getAllTags(),
-        appState.getArticleTags(articleId),
-    ]);
-    allTags = tags;
-    activeTagIds = new Set(articleTags.map((t) => t.id));
-    loading = false;
+    try {
+        const [tags, articleTags] = await Promise.all([
+            appState.getAllTags(),
+            appState.getArticleTags(articleId),
+        ]);
+        allTags = tags;
+        activeTagIds = new Set(articleTags.map((t) => t.id));
+    } catch (e) {
+        console.error('Failed to load tags:', e);
+    } finally {
+        loading = false;
+    }
 }
 
 function syncHasTags() {

@@ -31,6 +31,8 @@ let {
     position: fixed;
     inset: 0;
     z-index: 999;
+    background: transparent;
+    border: none;
 }
 
 .tag-popover {
