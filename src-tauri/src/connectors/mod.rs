@@ -1,3 +1,4 @@
+pub mod add;
 pub mod bluesky;
 pub mod rss;
 pub mod website;
@@ -26,17 +27,7 @@ pub enum DetectedFeed {
 
 impl DetectedFeed {
     pub async fn add(self, folder_id: Option<i64>, state: &AppState) -> Result<i64, String> {
-        match self {
-            DetectedFeed::Bluesky { url } => {
-                bluesky::add_bluesky_feed(&url, folder_id, state).await
-            },
-            DetectedFeed::Rss { feed, url } => {
-                rss::add_rss_feed(feed, &url, folder_id, state).await
-            },
-            DetectedFeed::Website { url, content } => {
-                website::add_website_feed(&url, &content, folder_id, state).await
-            },
-        }
+        add::add_detected_feed(self, folder_id, state).await
     }
 }
 

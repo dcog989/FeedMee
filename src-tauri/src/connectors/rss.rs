@@ -1,6 +1,6 @@
-use crate::commands::scraper::{backfill_og_images, compute_content_hash};
+use crate::commands::scraper::compute_content_hash;
 use crate::{AppState, db, models::Article};
-use log::{debug, error, info};
+use log::{error, info};
 use scraper::{Html, Selector};
 use std::io::Cursor;
 use url::Url;
@@ -108,39 +108,6 @@ pub fn entries_to_articles(
             }
         })
         .collect()
-}
-
-pub async fn add_rss_feed(
-    feed: feed_rs::model::Feed,
-    url: &str,
-    folder_id: Option<i64>,
-    state: &AppState,
-) -> Result<i64, String> {
-    let title = feed
-        .title
-        .map(|t| t.content)
-        .unwrap_or_else(|| "Untitled Feed".to_string());
-
-    let feed_id = {
-        let conn = state.db.lock().unwrap();
-        if db::feed_exists_by_url(&conn, url).map_err(|e| e.to_string())? {
-            return Err("Feed already exists".to_string());
-        }
-        db::create_feed(&conn, &title, url, folder_id, "rss").map_err(|e| e.to_string())?
-    };
-
-    let mut articles = entries_to_articles(feed.entries, feed_id, url);
-    backfill_og_images(&state.http_client, &mut articles).await;
-
-    let conn = state.db.lock().unwrap();
-    let inserted = db::batch_insert_articles(&conn, &articles).map_err(|e| e.to_string())?;
-    let _ = db::update_feed_error(&conn, feed_id, false);
-
-    debug!(
-        "add_rss_feed: feed_id={}, new_articles={}",
-        feed_id, inserted
-    );
-    Ok(feed_id)
 }
 
 pub async fn refresh_rss_feed(
