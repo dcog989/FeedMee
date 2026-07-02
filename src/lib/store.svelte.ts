@@ -2,10 +2,13 @@ import { invoke } from '@tauri-apps/api/core';
 import { createArticleActions } from './articleActions.svelte';
 import { createFeedActions } from './feedActions.svelte';
 import { createFeedRefresher } from './feedRefresh.svelte';
+import { createFreshnessHelpers } from './freshness.svelte';
 import { registerShortcuts, setupKeyHandler } from './keyboardNav.svelte';
+import { createNavigation } from './navigation.svelte';
+import { createShortcutOps } from './shortcuts.svelte';
 import type { AppState, SortOrder, Theme } from './storeTypes';
+import { createTagOps } from './tags.svelte';
 import type { AppSettings, Article, Folder, Tag } from './types';
-import { shortcutManager } from './utils/shortcuts';
 
 export type { AppState } from './storeTypes';
 export type { Article, SortOrder, Theme };
@@ -78,6 +81,10 @@ class AppStateImpl {
   private refresh: ReturnType<typeof createFeedRefresher>;
   private feedOps: ReturnType<typeof createFeedActions>;
   private articleOps: ReturnType<typeof createArticleActions>;
+  private freshness: ReturnType<typeof createFreshnessHelpers>;
+  private nav: ReturnType<typeof createNavigation>;
+  private tagOps: ReturnType<typeof createTagOps>;
+  private shortcutOps: ReturnType<typeof createShortcutOps>;
   private autoRefreshTimer: ReturnType<typeof setInterval> | null = null;
   private cleanupKeyHandler: (() => void) | null = null;
 
@@ -85,6 +92,10 @@ class AppStateImpl {
     this.refresh = createFeedRefresher(this);
     this.feedOps = createFeedActions(this);
     this.articleOps = createArticleActions(this);
+    this.freshness = createFreshnessHelpers(this);
+    this.nav = createNavigation(this);
+    this.tagOps = createTagOps(this);
+    this.shortcutOps = createShortcutOps(this);
     registerShortcuts(this);
     this.cleanupKeyHandler = setupKeyHandler(this);
     this.initStore();
@@ -94,51 +105,29 @@ class AppStateImpl {
     return this.settings.feed_refresh_debounce_minutes * 60 * 1000;
   }
 
-  adjustUnreadCount(feedId: number, delta: number) {
-    for (const folder of this.folders) {
-      const feed = folder.feeds.find((f) => f.id === feedId);
-      if (feed) {
-        feed.unread_count = Math.max(0, feed.unread_count + delta);
-        break;
-      }
-    }
-  }
+  adjustUnreadCount = (feedId: number, delta: number) => this.freshness.adjustUnreadCount(feedId, delta);
+  isFeedUpdating = (feedId: number) => this.freshness.isFeedUpdating(feedId);
+  isFolderUpdating = (folderId: number) => this.freshness.isFolderUpdating(folderId);
+  persistLastRefreshed = () => this.freshness.persistLastRefreshed();
+  isFeedFresh = (feedId: number) => this.freshness.isFeedFresh(feedId);
+  isFolderFresh = (folderId: number) => this.freshness.isFolderFresh(folderId);
+  isAllFresh = () => this.freshness.isAllFresh();
 
-  isFeedUpdating(feedId: number) {
-    return this.updatingFeedIds.has(feedId);
-  }
+  selectFeed = (feedId: number) => this.nav.selectFeed(feedId);
+  selectFolder = (folderId: number) => this.nav.selectFolder(folderId);
+  navUp = () => this.nav.navUp();
+  navDown = () => this.nav.navDown();
+  articleUp = () => this.nav.articleUp();
+  articleDown = () => this.nav.articleDown();
 
-  isFolderUpdating(folderId: number) {
-    const folder = this.folders.find((f) => f.id === folderId);
-    if (!folder) return false;
-    return folder.feeds.some((feed) => this.updatingFeedIds.has(feed.id));
-  }
+  getArticleTags = (articleId: number) => this.tagOps.getArticleTags(articleId);
+  getAllTags = () => this.tagOps.getAllTags();
+  addTag = (articleId: number, name: string, color?: string) => this.tagOps.addTag(articleId, name, color);
+  removeTag = (articleId: number, tagId: number) => this.tagOps.removeTag(articleId, tagId);
+  deleteTag = (tagId: number) => this.tagOps.deleteTag(tagId);
 
-  persistLastRefreshed() {
-    const obj = Object.fromEntries(this.lastRefreshed);
-    localStorage.setItem('lastRefreshed', JSON.stringify(obj));
-  }
-
-  private startAutoRefreshTimer() {
-    if (this.settings.auto_update_interval_minutes > 0) {
-      const intervalMs = this.settings.auto_update_interval_minutes * 60 * 1000;
-      this.autoRefreshTimer = setInterval(() => this.refreshAllFeeds(), intervalMs);
-    }
-  }
-
-  isFeedFresh(feedId: number): boolean {
-    return Date.now() - (this.lastRefreshed.get(feedId) || 0) < this.debounceMs;
-  }
-
-  isFolderFresh(folderId: number): boolean {
-    const folder = this.folders.find((f) => f.id === folderId);
-    if (!folder || folder.feeds.length === 0) return false;
-    return folder.feeds.every((f) => this.isFeedFresh(f.id));
-  }
-
-  isAllFresh(): boolean {
-    return this.folders.flatMap((f) => f.feeds).every((f) => this.isFeedFresh(f.id));
-  }
+  setShortcut = (commandId: string, key: string) => this.shortcutOps.setShortcut(commandId, key);
+  resetShortcut = (commandId: string) => this.shortcutOps.resetShortcut(commandId);
 
   async refreshFolders() {
     try {
@@ -153,47 +142,11 @@ class AppStateImpl {
   requestRefreshFeed = (feedId: number) => this.refresh.requestRefreshFeed(feedId);
   requestRefreshFolder = (folderId: number) => this.refresh.requestRefreshFolder(folderId);
 
-  async setBlockedPhrases(phrases: string[]) {
-    this.blockedPhrases = phrases;
-    localStorage.setItem('blockedPhrases', JSON.stringify(phrases));
-    await this.reloadCurrentArticleList();
-  }
-
   reloadCurrentArticleList = () => this.articleOps.reloadCurrentArticleList();
   loadMore = () => this.articleOps.loadMore();
   selectArticle = (article: Article) => this.articleOps.selectArticle(article);
   toggleSaved = (article: Article) => this.articleOps.toggleSaved(article);
   fetchFullContent = (article: Article) => this.articleOps.fetchFullContent(article);
-
-  async getArticleTags(articleId: number): Promise<Tag[]> {
-    try {
-      return await invoke<Tag[]>('get_tags_for_article', { articleId });
-    } catch (e) {
-      console.error('Failed to get tags:', e);
-      return [];
-    }
-  }
-
-  async getAllTags(): Promise<Tag[]> {
-    try {
-      return await invoke<Tag[]>('get_all_tags');
-    } catch (e) {
-      console.error('Failed to get all tags:', e);
-      return [];
-    }
-  }
-
-  async addTag(articleId: number, name: string, color = '#4899ec'): Promise<Tag> {
-    return await invoke<Tag>('add_tag', { articleId, name, color });
-  }
-
-  async removeTag(articleId: number, tagId: number): Promise<void> {
-    await invoke('remove_tag', { articleId, tagId });
-  }
-
-  async deleteTag(tagId: number): Promise<void> {
-    await invoke('delete_tag', { tagId });
-  }
 
   markAllRead = () => this.feedOps.markAllRead();
   addFeed = (url: string, folderId?: number | null) => this.feedOps.addFeed(url, folderId);
@@ -206,15 +159,16 @@ class AppStateImpl {
   deleteFolder = (id: number) => this.feedOps.deleteFolder(id);
   moveFeed = (feedId: number, folderId: number | null) => this.feedOps.moveFeed(feedId, folderId);
 
+  async setBlockedPhrases(phrases: string[]) {
+    this.blockedPhrases = phrases;
+    localStorage.setItem('blockedPhrases', JSON.stringify(phrases));
+    await this.reloadCurrentArticleList();
+  }
+
   persistLayoutSettings() {
     localStorage.setItem('navWidth', this.navWidth.toString());
     localStorage.setItem('listWidth', this.listWidth.toString());
     localStorage.setItem('sortOrder', this.sortOrder);
-  }
-
-  private persistLastView(type: 'feed' | 'folder', id: number) {
-    localStorage.setItem('lastViewType', type);
-    localStorage.setItem('lastViewId', id.toString());
   }
 
   async setSortOrder(order: SortOrder) {
@@ -230,148 +184,23 @@ class AppStateImpl {
     await this.reloadCurrentArticleList();
   }
 
-  private async markFeedReadOnExit(previousFeedId: number | null) {
-    if (!this.settings.mark_feed_read_on_exit || !previousFeedId || previousFeedId <= 0) return;
-    try {
-      await invoke('mark_all_read', { targetType: 'feed', id: previousFeedId });
-      const unreadCount = await invoke<number>('get_feed_unread_count', {
-        feedId: previousFeedId,
-      });
-      for (const folder of this.folders) {
-        const feed = folder.feeds.find((f) => f.id === previousFeedId);
-        if (feed) {
-          feed.unread_count = unreadCount;
-          break;
-        }
-      }
-    } catch (e) {
-      console.error('mark_feed_read_on_exit failed:', e);
-    }
-  }
-
-  async selectFolder(folderId: number) {
-    if (this.selectedFolderId === folderId && !this.selectedFeedId) return;
-    await this.markFeedReadOnExit(this.selectedFeedId);
-    this.focusedPane = 'nav';
-    this.searchQuery = '';
-    this.selectedFolderId = folderId;
-    this.selectedFeedId = null;
-    this.selectedArticle = null;
-    this.isLoadingArticles = true;
-    this.persistLastView('folder', folderId);
-    try {
-      await this.reloadCurrentArticleList();
-    } finally {
-      this.isLoadingArticles = false;
-    }
-  }
-
-  async selectFeed(feedId: number) {
-    if (this.selectedFeedId === feedId) return;
-    await this.markFeedReadOnExit(this.selectedFeedId);
-    this.focusedPane = 'nav';
-    this.searchQuery = '';
-    this.selectedFeedId = feedId;
-    this.selectedFolderId = null;
-    this.selectedArticle = null;
-    this.isLoadingArticles = true;
-    if (feedId > 0) this.persistLastView('feed', feedId);
-    try {
-      await this.reloadCurrentArticleList();
-    } finally {
-      this.isLoadingArticles = false;
-    }
-  }
-
-  private getFlatNavItems(): { type: 'feed' | 'folder'; id: number }[] {
-    const items: { type: 'feed' | 'folder'; id: number }[] = [];
-    for (const folder of this.folders) {
-      items.push({ type: 'folder', id: folder.id });
-      if (this.expandedFolders.has(folder.id)) {
-        for (const feed of folder.feeds) {
-          items.push({ type: 'feed', id: feed.id });
-        }
-      }
-    }
-    return items;
-  }
-
-  private expandFolder(folderId: number) {
-    const newSet = new Set(this.expandedFolders);
-    if (this.settings.auto_collapse_folders) newSet.clear();
-    newSet.add(folderId);
-    this.expandedFolders = newSet;
-  }
-
-  navUp() {
-    const items = this.getFlatNavItems();
-    if (items.length === 0) return;
-    const currentIdx = items.findIndex(
-      (i) =>
-        (i.type === 'feed' && i.id === this.selectedFeedId) ||
-        (i.type === 'folder' && i.id === this.selectedFolderId && !this.selectedFeedId),
-    );
-    const nextIdx = currentIdx <= 0 ? items.length - 1 : currentIdx - 1;
-    const item = items[nextIdx];
-    if (item.type === 'feed') this.selectFeed(item.id);
-    else {
-      this.expandFolder(item.id);
-      this.selectFolder(item.id);
-    }
-  }
-
-  navDown() {
-    const items = this.getFlatNavItems();
-    if (items.length === 0) return;
-    const currentIdx = items.findIndex(
-      (i) =>
-        (i.type === 'feed' && i.id === this.selectedFeedId) ||
-        (i.type === 'folder' && i.id === this.selectedFolderId && !this.selectedFeedId),
-    );
-    const nextIdx = currentIdx < 0 || currentIdx >= items.length - 1 ? 0 : currentIdx + 1;
-    const item = items[nextIdx];
-    if (item.type === 'feed') this.selectFeed(item.id);
-    else {
-      this.expandFolder(item.id);
-      this.selectFolder(item.id);
-    }
-  }
-
-  articleUp() {
-    if (this.articles.length === 0) return;
-    const idx = this.articles.findIndex((a) => a.id === this.selectedArticle?.id);
-    const nextIdx = idx <= 0 ? 0 : idx - 1;
-    this.selectArticle(this.articles[nextIdx]);
-    this.scrollSelectedIntoView('.list-area .article-card.selected');
-  }
-
-  articleDown() {
-    if (this.articles.length === 0) return;
-    const idx = this.articles.findIndex((a) => a.id === this.selectedArticle?.id);
-    const nextIdx = idx < 0 ? 0 : Math.min(idx + 1, this.articles.length - 1);
-    this.selectArticle(this.articles[nextIdx]);
-    this.scrollSelectedIntoView('.list-area .article-card.selected');
-  }
-
-  private scrollSelectedIntoView(selector: string) {
-    requestAnimationFrame(() => {
-      document.querySelector<HTMLElement>(selector)?.scrollIntoView({ block: 'nearest' });
-    });
-  }
-
   setTheme(newTheme: Theme) {
     this.theme = newTheme;
     localStorage.setItem('theme', newTheme);
   }
+
   openSettings() {
     this.showSettings = true;
   }
+
   closeSettings() {
     this.showSettings = false;
   }
+
   openAbout() {
     this.showAbout = true;
   }
+
   closeAbout() {
     this.showAbout = false;
   }
@@ -418,33 +247,10 @@ class AppStateImpl {
     this.modalState.isOpen = false;
   }
 
-  setShortcut(commandId: string, key: string) {
-    this.customShortcuts[commandId] = key;
-    shortcutManager.setCustomMappings(this.customShortcuts);
-    this.saveShortcutSettings();
-  }
-
-  resetShortcut(commandId: string) {
-    delete this.customShortcuts[commandId];
-    shortcutManager.setCustomMappings(this.customShortcuts);
-    this.saveShortcutSettings();
-  }
-
-  private async saveShortcutSettings() {
-    try {
-      await invoke('save_shortcuts', { shortcuts: this.customShortcuts });
-    } catch (e) {
-      console.error('Failed to save shortcuts:', e);
-    }
-  }
-
-  private async loadShortcutSettings() {
-    try {
-      const shortcuts = await invoke<Record<string, string>>('get_shortcuts');
-      this.customShortcuts = shortcuts || {};
-      shortcutManager.setCustomMappings(this.customShortcuts);
-    } catch (e) {
-      console.error('Failed to load shortcuts:', e);
+  private startAutoRefreshTimer() {
+    if (this.settings.auto_update_interval_minutes > 0) {
+      const intervalMs = this.settings.auto_update_interval_minutes * 60 * 1000;
+      this.autoRefreshTimer = setInterval(() => this.refreshAllFeeds(), intervalMs);
     }
   }
 
@@ -486,7 +292,7 @@ class AppStateImpl {
       console.error('Failed to load settings', e);
     }
 
-    await this.loadShortcutSettings();
+    await this.shortcutOps.loadShortcutSettings();
     await this.refreshFolders();
     this.refreshAllFeeds();
 
