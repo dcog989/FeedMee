@@ -1,6 +1,6 @@
 {
   "name": "feedmee",
-  "version": "0.15.0",
+  "version": "0.16.0",
   "description": "The seriously fast feed reader.",
   "license": "MIT",
   "type": "module",
@@ -37,7 +37,7 @@
   "devDependencies": {
     "@biomejs/biome": "^2.5.2",
     "@sveltejs/adapter-static": "^3.0.10",
-    "@sveltejs/kit": "^2.69.0",
+    "@sveltejs/kit": "^2.69.1",
     "@sveltejs/vite-plugin-svelte": "^7.1.2",
     "@tauri-apps/cli": "^2.11.4",
     "lefthook": "^2.1.9",
