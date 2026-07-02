@@ -244,7 +244,7 @@ function cmToggleSaved() {
                             {/if}
 
                             <div class="card-body">
-                                <span class="title" title={article.title}>{article.title}</span>
+                                <span class="title" title={article.url}>{article.title}</span>
 
                                 <div class="meta-line">
                                     <div class="meta-left">
