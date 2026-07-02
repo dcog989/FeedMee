@@ -1,11 +1,5 @@
 use serde::{Deserialize, Serialize};
 use std::fs;
-use std::path::PathBuf;
-
-fn config_dir() -> PathBuf {
-    let home = std::env::var("HOME").unwrap_or_else(|_| "/tmp".to_string());
-    PathBuf::from(home).join(".config/com.feedmee.app")
-}
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct AppSettings {
@@ -71,7 +65,7 @@ impl Default for AppSettings {
 }
 
 pub fn load_settings() -> AppSettings {
-    let dir = config_dir();
+    let dir = crate::paths::config_dir();
     fs::create_dir_all(&dir).ok();
     let path = dir.join("settings.toml");
     if path.exists() {
@@ -86,7 +80,7 @@ pub fn load_settings() -> AppSettings {
 }
 
 pub fn save_settings(settings: &AppSettings) {
-    let dir = config_dir();
+    let dir = crate::paths::config_dir();
     fs::create_dir_all(&dir).ok();
     if let Ok(toml_string) = toml::to_string_pretty(settings) {
         let _ = fs::write(dir.join("settings.toml"), toml_string);

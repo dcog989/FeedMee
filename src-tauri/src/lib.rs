@@ -2,24 +2,14 @@ pub mod commands;
 pub mod connectors;
 pub mod db;
 pub mod models;
+pub mod paths;
 pub mod settings;
 
 #[allow(unused_imports)]
 use log::{error, info, warn};
-use std::path::PathBuf;
 use std::sync::Mutex;
 use tauri::Manager;
 use tauri_plugin_window_state::StateFlags;
-
-fn local_data_dir() -> PathBuf {
-    let home = std::env::var("HOME").unwrap_or_else(|_| "/tmp".to_string());
-    PathBuf::from(home).join(".local/share/com.feedmee.app")
-}
-
-fn config_data_dir() -> PathBuf {
-    let home = std::env::var("HOME").unwrap_or_else(|_| "/tmp".to_string());
-    PathBuf::from(home).join(".config/com.feedmee.app")
-}
 
 #[cfg(target_os = "linux")]
 use gtk::prelude::GtkWindowExt;
@@ -37,8 +27,8 @@ pub fn run() {
 
     tauri::Builder::default()
         .setup(|app| {
-            let local_dir = local_data_dir();
-            let config_dir = config_data_dir();
+            let local_dir = paths::local_data_dir();
+            let config_dir = paths::config_dir();
             let logs_dir = local_dir.join("Logs");
             let db_dir = config_dir.join("Database");
 

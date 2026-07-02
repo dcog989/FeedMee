@@ -5,18 +5,7 @@ use crate::{
 use log::info;
 use serde::Serialize;
 use std::fs;
-use std::path::PathBuf;
 use tauri::State;
-
-fn config_dir() -> PathBuf {
-    let home = std::env::var("HOME").unwrap_or_else(|_| "/tmp".to_string());
-    PathBuf::from(home).join(".config/com.feedmee.app")
-}
-
-fn local_dir() -> PathBuf {
-    let home = std::env::var("HOME").unwrap_or_else(|_| "/tmp".to_string());
-    PathBuf::from(home).join(".local/share/com.feedmee.app")
-}
 
 #[derive(Serialize)]
 pub struct AppInfo {
@@ -28,8 +17,8 @@ pub struct AppInfo {
 
 #[tauri::command]
 pub fn get_app_info(app: tauri::AppHandle) -> Result<AppInfo, String> {
-    let config_dir = config_dir();
-    let local_dir = local_dir();
+    let config_dir = crate::paths::config_dir();
+    let local_dir = crate::paths::local_data_dir();
     let version = app.package_info().version.to_string();
 
     Ok(AppInfo {
@@ -114,7 +103,7 @@ fn pick_font_platform() -> Result<String, String> {
 
 #[tauri::command]
 pub fn get_shortcuts() -> Result<std::collections::HashMap<String, String>, String> {
-    let shortcuts_path = config_dir().join("shortcuts.json");
+    let shortcuts_path = crate::paths::config_dir().join("shortcuts.json");
 
     if shortcuts_path.exists() {
         let content = fs::read_to_string(&shortcuts_path).map_err(|e| e.to_string())?;
@@ -128,8 +117,8 @@ pub fn get_shortcuts() -> Result<std::collections::HashMap<String, String>, Stri
 
 #[tauri::command]
 pub fn save_shortcuts(shortcuts: std::collections::HashMap<String, String>) -> Result<(), String> {
-    let path = config_dir().join("shortcuts.json");
-    fs::create_dir_all(config_dir()).map_err(|e| e.to_string())?;
+    let path = crate::paths::config_dir().join("shortcuts.json");
+    fs::create_dir_all(crate::paths::config_dir()).map_err(|e| e.to_string())?;
     let json = serde_json::to_string_pretty(&shortcuts).map_err(|e| e.to_string())?;
     fs::write(path, json).map_err(|e| e.to_string())?;
     info!("Shortcuts saved to disk");
