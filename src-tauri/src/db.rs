@@ -532,6 +532,9 @@ pub fn search_articles(
     sort_asc: bool,
 ) -> Result<Vec<Article>> {
     let order = if sort_asc { "ASC" } else { "DESC" };
+    // Escape the query for FTS5: wrap in quotes to treat as a literal phrase,
+    // and double any embedded double quotes to prevent operator injection.
+    let escaped = format!("\"{}\"", query.replace('"', "\"\""));
     let sql = format!(
         "SELECT a.id, a.feed_id, a.title, a.author, a.summary, a.url, a.image_url, a.timestamp, a.is_read, a.is_saved,
                 EXISTS (SELECT 1 FROM article_tags WHERE article_id = a.id) AS has_tags
@@ -542,7 +545,7 @@ pub fn search_articles(
         order
     );
     let mut stmt = conn.prepare(&sql)?;
-    map_articles(&mut stmt, params![query, limit as i64, offset as i64])
+    map_articles(&mut stmt, params![escaped, limit as i64, offset as i64])
 }
 
 // --- Tag Operations ---
