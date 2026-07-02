@@ -25,6 +25,12 @@ pub struct Registry {
     connectors: Vec<Box<dyn FeedConnector>>,
 }
 
+impl Default for Registry {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Registry {
     pub fn new() -> Self {
         Self {

@@ -208,11 +208,11 @@ pub async fn fetch_posts(
         }
 
         for view in &response.feed {
-            if let Some(ref seen) = last_seen_uri {
-                if view.post.uri == *seen {
-                    debug!("fetch_posts: caught up at post {}", seen);
-                    break 'outer;
-                }
+            if let Some(ref seen) = last_seen_uri
+                && view.post.uri == *seen
+            {
+                debug!("fetch_posts: caught up at post {}", seen);
+                break 'outer;
             }
 
             if first_uri.is_none() {
@@ -312,10 +312,10 @@ pub async fn refresh_bluesky_feed(
     let _ = db::batch_insert_articles(&conn, &articles).map_err(|e| e.to_string())?;
     let _ = db::update_feed_error(&conn, feed_id, false);
 
-    if let Some(ref uri) = new_cursor {
-        if let Err(e) = db::set_bluesky_cursor(&conn, feed_id, uri) {
-            warn!("Failed to store bluesky cursor for feed {}: {}", feed_id, e);
-        }
+    if let Some(ref uri) = new_cursor
+        && let Err(e) = db::set_bluesky_cursor(&conn, feed_id, uri)
+    {
+        warn!("Failed to store bluesky cursor for feed {}: {}", feed_id, e);
     }
 
     Ok(db::get_feed_unread_count(&conn, feed_id).unwrap_or(0))

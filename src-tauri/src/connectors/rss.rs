@@ -28,16 +28,16 @@ impl FeedConnector for RssConnector {
         let original_url = response.url().clone();
         let content_bytes = response.bytes().await.map_err(|e| e.to_string())?;
 
-        if let Ok(feed) = feed_rs::parser::parse(Cursor::new(content_bytes.clone())) {
-            if !feed.entries.is_empty() {
-                let title = feed
-                    .title
-                    .as_ref()
-                    .map(|t| t.content.clone())
-                    .unwrap_or_else(|| "Untitled Feed".to_string());
-                let articles = entries_to_articles(feed.entries, 0, url);
-                return Ok((title, url.to_string(), articles));
-            }
+        if let Ok(feed) = feed_rs::parser::parse(Cursor::new(content_bytes.clone()))
+            && !feed.entries.is_empty()
+        {
+            let title = feed
+                .title
+                .as_ref()
+                .map(|t| t.content.clone())
+                .unwrap_or_else(|| "Untitled Feed".to_string());
+            let articles = entries_to_articles(feed.entries, 0, url);
+            return Ok((title, url.to_string(), articles));
         }
 
         let html = String::from_utf8_lossy(&content_bytes);
@@ -49,16 +49,16 @@ impl FeedConnector for RssConnector {
                 .await
                 .map_err(|e| e.to_string())?;
             let bytes = resp.bytes().await.map_err(|e| e.to_string())?;
-            if let Ok(feed) = feed_rs::parser::parse(Cursor::new(bytes)) {
-                if !feed.entries.is_empty() {
-                    let title = feed
-                        .title
-                        .as_ref()
-                        .map(|t| t.content.clone())
-                        .unwrap_or_else(|| "Untitled Feed".to_string());
-                    let articles = entries_to_articles(feed.entries, 0, &rss_url);
-                    return Ok((title, rss_url, articles));
-                }
+            if let Ok(feed) = feed_rs::parser::parse(Cursor::new(bytes))
+                && !feed.entries.is_empty()
+            {
+                let title = feed
+                    .title
+                    .as_ref()
+                    .map(|t| t.content.clone())
+                    .unwrap_or_else(|| "Untitled Feed".to_string());
+                let articles = entries_to_articles(feed.entries, 0, &rss_url);
+                return Ok((title, rss_url, articles));
             }
         }
 
