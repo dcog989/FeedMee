@@ -1,6 +1,5 @@
 use std::path::{Path, PathBuf};
 
-use log::{error, info};
 use simplelog::*;
 
 use crate::db;
@@ -77,31 +76,12 @@ pub(crate) fn init_logging(logs_dir: &Path, log_level: LevelFilter) {
 
 pub(crate) fn setup_database(
     db_path: &Path,
-    app_settings: &mut AppSettings,
+    _app_settings: &mut AppSettings,
 ) -> rusqlite::Connection {
     let mut conn = rusqlite::Connection::open(db_path)
         .unwrap_or_else(|e| panic!("Failed to open database: {}", e));
 
     db::init_db(&mut conn).unwrap_or_else(|e| panic!("Schema init failed: {}", e));
-
-    let now = std::time::SystemTime::now()
-        .duration_since(std::time::UNIX_EPOCH)
-        .unwrap()
-        .as_secs() as i64;
-    if now - app_settings.last_vacuum > 86400 {
-        if let Err(e) = db::run_vacuum(&conn) {
-            error!("Maintenance VACUUM failed: {}", e);
-        } else {
-            app_settings.last_vacuum = now;
-            crate::settings::save_settings(app_settings);
-        }
-    }
-
-    if let Ok(count) = db::purge_old_articles(&conn, app_settings.article_retention_days)
-        && count > 0
-    {
-        info!("Startup: purged {} old articles", count);
-    }
 
     conn
 }

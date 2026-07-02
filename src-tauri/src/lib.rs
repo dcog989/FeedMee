@@ -34,8 +34,6 @@ pub fn run() {
             let db_path = db_dir.join(db::DB_FILENAME);
             let conn = startup::setup_database(&db_path, &mut app_settings);
 
-            let _ = commands::thumbnails::cleanup_thumbnail_cache(app.handle(), 7);
-
             let http_client = startup::build_http_client();
 
             app.manage(AppState {
@@ -46,6 +44,43 @@ pub fn run() {
 
             let window = app.get_webview_window("main").unwrap();
             startup::setup_window(&window);
+
+            let app_handle = app.handle().clone();
+            tauri::async_runtime::spawn(async move {
+                let state = app_handle.state::<AppState>();
+
+                let now = std::time::SystemTime::now()
+                    .duration_since(std::time::UNIX_EPOCH)
+                    .unwrap()
+                    .as_secs() as i64;
+
+                let (do_vacuum, retention) = {
+                    let s = state.settings.lock().unwrap();
+                    (now - s.last_vacuum > 86400, s.article_retention_days)
+                };
+
+                let conn = state.db.lock().unwrap();
+
+                if do_vacuum {
+                    if let Err(e) = db::run_vacuum(&conn) {
+                        log::error!("Maintenance VACUUM failed: {}", e);
+                    } else {
+                        let mut s = state.settings.lock().unwrap();
+                        s.last_vacuum = now;
+                        crate::settings::save_settings(&s);
+                    }
+                }
+
+                if let Ok(count) = db::purge_old_articles(&conn, retention)
+                    && count > 0
+                {
+                    log::info!("Startup: purged {} old articles", count);
+                }
+
+                drop(conn);
+
+                let _ = commands::thumbnails::cleanup_thumbnail_cache(&app_handle, 7);
+            });
 
             Ok(())
         })
