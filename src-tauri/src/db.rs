@@ -397,6 +397,16 @@ pub fn update_feed_error(conn: &Connection, feed_id: i64, has_error: bool) -> Re
     Ok(())
 }
 
+pub fn batch_insert_articles(conn: &Connection, articles: &[Article]) -> Result<usize> {
+    conn.execute_batch("BEGIN TRANSACTION")?;
+    let mut count = 0;
+    for article in articles {
+        count += insert_article(conn, article)?;
+    }
+    conn.execute_batch("COMMIT")?;
+    Ok(count)
+}
+
 pub fn insert_article(conn: &Connection, article: &Article) -> Result<usize> {
     let inserted = conn.execute(
         "INSERT OR IGNORE INTO articles (feed_id, title, author, summary, url, image_url, timestamp, is_read, is_saved)

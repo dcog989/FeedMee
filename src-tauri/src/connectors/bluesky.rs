@@ -1,4 +1,4 @@
-use crate::models::Article;
+use crate::{AppState, db, models::Article};
 use log::{debug, info};
 use serde::Deserialize;
 
@@ -257,4 +257,53 @@ pub async fn fetch_posts(
         actor
     );
     Ok(articles)
+}
+
+pub async fn add_bluesky_feed(
+    url: &str,
+    folder_id: Option<i64>,
+    state: &AppState,
+) -> Result<i64, String> {
+    let handle = extract_handle(url).ok_or_else(|| "Not a Bluesky URL".to_string())?;
+    let (did, display_name) = resolve_author_info(&state.http_client, &handle).await?;
+
+    let feed_url = format!("bsky:{}", did);
+
+    {
+        let conn = state.db.lock().unwrap();
+        if db::feed_exists_by_url(&conn, &feed_url).map_err(|e| e.to_string())? {
+            return Err("Feed already exists".to_string());
+        }
+    }
+
+    let feed_id = {
+        let conn = state.db.lock().unwrap();
+        db::create_feed(&conn, &display_name, &feed_url, folder_id, "bluesky")
+            .map_err(|e| e.to_string())?
+    };
+
+    let articles = fetch_posts(&state.http_client, &did, feed_id).await?;
+
+    let conn = state.db.lock().unwrap();
+    let _ = db::batch_insert_articles(&conn, &articles).map_err(|e| e.to_string())?;
+    let _ = db::update_feed_error(&conn, feed_id, false);
+    info!(
+        "add_bluesky_feed: feed_id={}, articles={}",
+        feed_id,
+        articles.len()
+    );
+    Ok(feed_id)
+}
+
+pub async fn refresh_bluesky_feed(
+    feed_url: &str,
+    feed_id: i64,
+    state: &AppState,
+) -> Result<i64, String> {
+    let actor = feed_url.strip_prefix("bsky:").unwrap_or(feed_url);
+    let articles = fetch_posts(&state.http_client, actor, feed_id).await?;
+    let conn = state.db.lock().unwrap();
+    let _ = db::batch_insert_articles(&conn, &articles).map_err(|e| e.to_string())?;
+    let _ = db::update_feed_error(&conn, feed_id, false);
+    Ok(db::get_feed_unread_count(&conn, feed_id).unwrap_or(0))
 }
