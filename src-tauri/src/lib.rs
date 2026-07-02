@@ -4,141 +4,39 @@ pub mod db;
 pub mod models;
 pub mod paths;
 pub mod settings;
+pub mod startup;
 
-#[allow(unused_imports)]
-use log::{error, info, warn};
 use std::sync::Mutex;
 use tauri::Manager;
 use tauri_plugin_window_state::StateFlags;
 
-#[cfg(target_os = "linux")]
-use gtk::prelude::GtkWindowExt;
-
 pub struct AppState {
-    db: Mutex<rusqlite::Connection>,
-    settings: Mutex<settings::AppSettings>,
+    pub db: Mutex<rusqlite::Connection>,
+    pub settings: Mutex<settings::AppSettings>,
     pub http_client: reqwest::Client,
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    use simplelog::*;
-    use std::fs::File;
-
     tauri::Builder::default()
         .setup(|app| {
-            let local_dir = paths::local_data_dir();
-            let config_dir = paths::config_dir();
-            let logs_dir = local_dir.join("Logs");
-            let db_dir = config_dir.join("Database");
+            use log::info;
 
-            for dir in [&local_dir, &config_dir, &logs_dir, &db_dir] {
-                if !dir.exists() {
-                    std::fs::create_dir_all(dir).expect("failed to create app data dir");
-                }
-            }
+            let (_local_dir, _config_dir, logs_dir, db_dir) = startup::create_dirs();
+            startup::rotate_logs(&logs_dir);
 
-            // --- Log Rotation ---
-            let log_file_name = "feedmee.log";
-            let max_logs = 5;
-
-            // Delete oldest if exists
-            let oldest_log = logs_dir.join(format!("feedmee.{}.log", max_logs));
-            if oldest_log.exists() {
-                let _ = std::fs::remove_file(oldest_log);
-            }
-
-            // Shift existing logs: 4->5, 3->4, etc.
-            for i in (1..max_logs).rev() {
-                let current = logs_dir.join(format!("feedmee.{}.log", i));
-                let next = logs_dir.join(format!("feedmee.{}.log", i + 1));
-                if current.exists() {
-                    let _ = std::fs::rename(current, next);
-                }
-            }
-
-            // Shift main log to .1
-            let current_log = logs_dir.join(log_file_name);
-            if current_log.exists() {
-                let _ = std::fs::rename(&current_log, logs_dir.join("feedmee.1.log"));
-            }
-            // ---------------------
-
-            // Load Settings
             let mut app_settings = settings::load_settings();
-
-            let log_level = match app_settings.log_level.to_lowercase().as_str() {
-                "error" => LevelFilter::Error,
-                "warn" => LevelFilter::Warn,
-                "debug" => LevelFilter::Debug,
-                "trace" => LevelFilter::Trace,
-                _ => LevelFilter::Info,
-            };
-
-            let log_path = logs_dir.join(log_file_name);
-
-            let log_config = ConfigBuilder::new()
-                .add_filter_ignore_str("html5ever")
-                .add_filter_ignore_str("selectors")
-                .add_filter_ignore_str("scraper")
-                .add_filter_ignore_str("tendril")
-                .set_time_format_rfc3339()
-                .build();
-
-            let _ = CombinedLogger::init(vec![
-                TermLogger::new(
-                    log_level,
-                    log_config.clone(),
-                    TerminalMode::Mixed,
-                    ColorChoice::Auto,
-                ),
-                WriteLogger::new(log_level, log_config, File::create(log_path).unwrap()),
-            ]);
+            let log_level = startup::parse_log_level(&app_settings.log_level);
+            startup::init_logging(&logs_dir, log_level);
 
             info!("Starting FeedMee application");
-            info!("Settings loaded: {:?}", app_settings);
 
             let db_path = db_dir.join(db::DB_FILENAME);
+            let conn = startup::setup_database(&db_path, &mut app_settings);
 
-            let mut conn = rusqlite::Connection::open(&db_path).map_err(|e| {
-                error!("Failed to open database: {}", e);
-                format!("Database open failed: {}", e)
-            })?;
-
-            if let Err(e) = db::init_db(&mut conn) {
-                error!("Schema initialization failed: {}", e);
-                panic!("Schema init failed: {}", e);
-            }
-
-            // Check Vacuum (every 24 hours = 86400 seconds)
-            let now = std::time::SystemTime::now()
-                .duration_since(std::time::UNIX_EPOCH)
-                .unwrap()
-                .as_secs() as i64;
-            if now - app_settings.last_vacuum > 86400 {
-                if let Err(e) = db::run_vacuum(&conn) {
-                    error!("Maintenance VACUUM failed: {}", e);
-                } else {
-                    app_settings.last_vacuum = now;
-                    settings::save_settings(&app_settings);
-                }
-            }
-
-            // Purge old articles on startup
-            if let Ok(count) = db::purge_old_articles(&conn, app_settings.article_retention_days)
-                && count > 0
-            {
-                info!("Startup: purged {} old articles", count);
-            }
-
-            // Clean up stale thumbnails on startup (older than 7 days)
             let _ = commands::thumbnails::cleanup_thumbnail_cache(app.handle(), 7);
 
-            let http_client = reqwest::Client::builder()
-                .user_agent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
-                .timeout(std::time::Duration::from_secs(10))
-                .build()
-                .expect("failed to build HTTP client");
+            let http_client = startup::build_http_client();
 
             app.manage(AppState {
                 db: Mutex::new(conn),
@@ -146,35 +44,8 @@ pub fn run() {
                 http_client,
             });
 
-
             let window = app.get_webview_window("main").unwrap();
-
-            #[cfg(target_os = "linux")]
-            {
-                if let Ok(gtk_window) = window.gtk_window() {
-                    gtk_window.set_titlebar(None::<&gtk::Widget>);
-
-                    const ICON_BYTES: &[u8] = include_bytes!("../icons/128x128@2x.png");
-                    if let Ok(img) = image::load_from_memory(ICON_BYTES) {
-                        let rgba = img.into_rgba8();
-                        let (w, h) = rgba.dimensions();
-                        let icon = tauri::image::Image::new_owned(rgba.into_raw(), w, h);
-                        let _ = window.set_icon(icon);
-
-                        if let Ok(pixbuf) = gtk::gdk_pixbuf::Pixbuf::from_read(ICON_BYTES) {
-                            gtk_window.set_icon(Some(&pixbuf));
-                        }
-                    }
-                }
-            }
-
-            #[cfg(not(target_os = "linux"))]
-            {
-                match window.set_icon(tauri::include_image!("icons/32x32.png")) {
-                    Ok(_) => info!("Window icon set successfully"),
-                    Err(e) => warn!("Failed to set window icon: {}", e),
-                }
-            }
+            startup::setup_window(&window);
 
             Ok(())
         })
@@ -182,7 +53,11 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_fs::init())
-        .plugin(tauri_plugin_window_state::Builder::default().with_state_flags(StateFlags::all() - StateFlags::DECORATIONS).build())
+        .plugin(
+            tauri_plugin_window_state::Builder::default()
+                .with_state_flags(StateFlags::all() - StateFlags::DECORATIONS)
+                .build(),
+        )
         .invoke_handler(tauri::generate_handler![
             commands::get_app_info,
             commands::get_folders_with_feeds,
