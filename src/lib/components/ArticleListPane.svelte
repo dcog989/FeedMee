@@ -201,6 +201,7 @@ function cmToggleSaved() {
             <ul class="article-list">
                 {#each appState.articles as article (article.id)}
                     <li>
+                        <!-- biome-ignore lint/a11y/useSemanticElements: contains flow content + nested action buttons, can't use <button> -->
                         <div
                             class="article-card"
                             class:selected={appState.selectedArticle?.id === article.id}
@@ -313,7 +314,7 @@ function cmToggleSaved() {
 </div>
 
 {#if tagArticleId !== null}
-    <div class="tag-backdrop" onclick={() => { tagArticleId = null; }} role="presentation"></div>
+    <button type="button" class="tag-backdrop" aria-label="Close" onclick={() => { tagArticleId = null; }}></button>
     <div class="tag-popover" style="top: {tagY}px; left: {tagX}px">
         <TagManager articleId={tagArticleId} onClose={() => { tagArticleId = null; }} />
     </div>
@@ -409,9 +410,11 @@ function cmToggleSaved() {
     width: 100%;
     padding: 0.8rem 1rem;
     text-align: left;
+    border: none;
     border-bottom: 1px solid var(--border-color);
     background: transparent;
     cursor: pointer;
+    font: inherit;
     color: var(--text-secondary);
     overflow: hidden;
     outline: none;

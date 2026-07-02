@@ -76,12 +76,15 @@ function onKeyDown(e: KeyboardEvent) {
 <svelte:window onkeydown={onKeyDown} />
 
 {#if isOpen}
-    <!-- svelte-ignore a11y_click_events_have_key_events -->
     <!-- svelte-ignore a11y_no_static_element_interactions -->
-    <div class="overlay" onclick={onClose} role="presentation">
+    <!-- biome-ignore lint/a11y/noStaticElementInteractions: backdrop is decorative, can't use button because it wraps modal with buttons -->
+    <div
+        class="overlay"
+        role="presentation"
+        onclick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+    >
         <div
             class="modal"
-            onclick={(e) => e.stopPropagation()}
             role="dialog"
             aria-modal="true"
             aria-label="Keyboard Shortcuts"

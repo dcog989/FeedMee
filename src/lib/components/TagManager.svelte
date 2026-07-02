@@ -124,14 +124,15 @@ function onInputKeydown(e: KeyboardEvent) {
                         </span>
                         <span class="tag-dot" style="background: {tag.color}"></span>
                         <span class="tag-name">{tag.name}</span>
+                        <!-- biome-ignore lint/a11y/useSemanticElements: nested inside <button>, cannot use nested <button> -->
                         <span
                             class="tag-delete"
                             role="button"
-                            tabindex="-1"
-                            onclick={(e) => { e.stopPropagation(); deleteTagPermanently(tag); }}
-                            onkeydown={() => {}}
-                            use:tooltip={'Delete tag'}
+                            tabindex="0"
                             aria-label="Delete tag {tag.name}"
+                            onclick={(e) => { e.stopPropagation(); deleteTagPermanently(tag); }}
+                            onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); deleteTagPermanently(tag); } }}
+                            use:tooltip={'Delete tag'}
                         >
                             <Trash2 size={11} />
                         </span>

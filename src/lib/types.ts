@@ -8,7 +8,7 @@ export interface Feed {
   id: number;
   name: string;
   url: string;
-  folder_id: number;
+  folder_id: number | null;
   unread_count: number;
   has_error: boolean;
 }

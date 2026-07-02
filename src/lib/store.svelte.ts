@@ -192,7 +192,7 @@ class AppStateImpl {
   renameFeed = (id: number, newName: string, newUrl: string) => this.feedOps.renameFeed(id, newName, newUrl);
   deleteFeed = (id: number) => this.feedOps.deleteFeed(id);
   deleteFolder = (id: number) => this.feedOps.deleteFolder(id);
-  moveFeed = (feedId: number, folderId: number) => this.feedOps.moveFeed(feedId, folderId);
+  moveFeed = (feedId: number, folderId: number | null) => this.feedOps.moveFeed(feedId, folderId);
 
   persistLayoutSettings() {
     localStorage.setItem('navWidth', this.navWidth.toString());

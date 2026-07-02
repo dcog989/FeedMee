@@ -83,6 +83,11 @@ fn migrations() -> Migrations<'static> {
                      VALUES (new.id, new.title, COALESCE(new.author,''), COALESCE(new.summary,''));
              END;",
         ),
+        M::up(
+            "INSERT OR IGNORE INTO folders (id, name) VALUES (0, '');
+             UPDATE feeds SET folder_id = 0 WHERE folder_id = 1;
+             DELETE FROM folders WHERE id = 1;",
+        ),
     ])
 }
 
@@ -139,7 +144,7 @@ pub fn get_folders_with_feeds(conn: &Connection) -> Result<Vec<Folder>> {
     debug!("Querying folders with feeds");
 
     let mut folder_stmt =
-        conn.prepare("SELECT id, name FROM folders ORDER BY name COLLATE NOCASE")?;
+        conn.prepare("SELECT id, name FROM folders WHERE id != 0 ORDER BY name COLLATE NOCASE")?;
 
     let mut feed_stmt = conn.prepare(
         "SELECT f.id, f.name, f.url, f.folder_id, f.has_error, f.feed_type,
@@ -155,30 +160,64 @@ pub fn get_folders_with_feeds(conn: &Connection) -> Result<Vec<Folder>> {
          ORDER BY f.name COLLATE NOCASE",
     )?;
 
-    let folders = folder_stmt
+    let mut root_feed_stmt = conn.prepare(
+        "SELECT f.id, f.name, f.url, f.folder_id, f.has_error, f.feed_type,
+                COALESCE(uc.unread_count, 0) AS unread_count
+         FROM feeds f
+         LEFT JOIN (
+             SELECT feed_id, COUNT(*) AS unread_count
+             FROM articles
+             WHERE is_read = 0
+             GROUP BY feed_id
+         ) uc ON f.id = uc.feed_id
+         WHERE f.folder_id = 0
+         ORDER BY f.name COLLATE NOCASE",
+    )?;
+
+    let root_feeds: Vec<Feed> = root_feed_stmt
+        .query_map([], |r| {
+            let raw_fid: i64 = r.get(3)?;
+            Ok(Feed {
+                id: r.get(0)?,
+                name: r.get(1)?,
+                url: r.get(2)?,
+                folder_id: if raw_fid == 0 { None } else { Some(raw_fid) },
+                has_error: r.get::<_, bool>(4).unwrap_or(false),
+                feed_type: r.get(5).unwrap_or_else(|_| "rss".to_string()),
+                unread_count: r.get(6)?,
+            })
+        })
+        .and_then(|rows| rows.collect())?;
+
+    let mut folders: Vec<Folder> = folder_stmt
         .query_map([], |row| {
             let id: i64 = row.get(0)?;
             let name: String = row.get(1)?;
-            let feeds = feed_stmt
+            let feeds: Vec<Feed> = feed_stmt
                 .query_map([id], |r| {
+                    let raw_fid: i64 = r.get(3)?;
                     Ok(Feed {
                         id: r.get(0)?,
                         name: r.get(1)?,
                         url: r.get(2)?,
-                        folder_id: r.get(3)?,
+                        folder_id: if raw_fid == 0 { None } else { Some(raw_fid) },
                         has_error: r.get::<_, bool>(4).unwrap_or(false),
                         feed_type: r.get(5).unwrap_or_else(|_| "rss".to_string()),
                         unread_count: r.get(6)?,
                     })
                 })
-                .and_then(|rows| rows.collect());
-            Ok(Folder {
-                id,
-                name,
-                feeds: feeds.unwrap_or_default(),
-            })
+                .and_then(|rows| rows.collect())?;
+            Ok(Folder { id, name, feeds })
         })?
         .collect::<Result<Vec<Folder>>>()?;
+
+    if !root_feeds.is_empty() {
+        folders.push(Folder {
+            id: 0,
+            name: String::new(),
+            feeds: root_feeds,
+        });
+    }
 
     Ok(folders)
 }
@@ -298,15 +337,18 @@ pub fn get_feed(conn: &Connection, feed_id: i64) -> Result<Feed> {
                 (SELECT COUNT(*) FROM articles a WHERE a.feed_id = feeds.id AND a.is_read = 0) AS unread_count
          FROM feeds WHERE id = ?1",
         params![feed_id],
-        |r| Ok(Feed {
-            id: r.get(0)?,
-            name: r.get(1)?,
-            url: r.get(2)?,
-            folder_id: r.get(3)?,
-            has_error: r.get::<_, bool>(4).unwrap_or(false),
-            feed_type: r.get(5).unwrap_or_else(|_| "rss".to_string()),
-            unread_count: r.get(6)?,
-        }),
+        |r| {
+            let raw_fid: i64 = r.get(3)?;
+            Ok(Feed {
+                id: r.get(0)?,
+                name: r.get(1)?,
+                url: r.get(2)?,
+                folder_id: if raw_fid == 0 { None } else { Some(raw_fid) },
+                has_error: r.get::<_, bool>(4).unwrap_or(false),
+                feed_type: r.get(5).unwrap_or_else(|_| "rss".to_string()),
+                unread_count: r.get(6)?,
+            })
+        },
     )
 }
 
@@ -336,12 +378,13 @@ pub fn create_feed(
     conn: &Connection,
     name: &str,
     url: &str,
-    folder_id: i64,
+    folder_id: Option<i64>,
     feed_type: &str,
 ) -> Result<i64> {
+    let fid = folder_id.unwrap_or(0);
     conn.execute(
         "INSERT INTO feeds (name, url, folder_id, has_error, feed_type) VALUES (?1, ?2, ?3, 0, ?4)",
-        params![name, url, folder_id, feed_type],
+        params![name, url, fid, feed_type],
     )?;
     Ok(conn.last_insert_rowid())
 }
@@ -463,10 +506,11 @@ pub fn delete_folder(conn: &Connection, id: i64) -> Result<()> {
     Ok(())
 }
 
-pub fn move_feed(conn: &Connection, feed_id: i64, target_folder_id: i64) -> Result<()> {
+pub fn move_feed(conn: &Connection, feed_id: i64, target_folder_id: Option<i64>) -> Result<()> {
+    let fid = target_folder_id.unwrap_or(0);
     conn.execute(
         "UPDATE feeds SET folder_id = ?1 WHERE id = ?2",
-        params![target_folder_id, feed_id],
+        params![fid, feed_id],
     )?;
     Ok(())
 }

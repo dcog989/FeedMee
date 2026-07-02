@@ -37,7 +37,7 @@ if (!newVersion) {
   // No argument provided: Auto-increment patch
   const parts = currentVersion.split('.').map((n) => parseInt(n, 10));
 
-  if (parts.length !== 3 || parts.some(isNaN)) {
+  if (parts.length !== 3 || parts.some(Number.isNaN)) {
     console.error(`Error: Current version '${currentVersion}' is not in semver format (x.y.z). Cannot auto-increment.`);
     process.exit(1);
   }
@@ -59,7 +59,7 @@ if (!/^\d+\.\d+\.\d+/.test(newVersion)) {
 // 3. Update package.json
 try {
   packageJson.version = newVersion;
-  fs.writeFileSync(packageJsonPath, JSON.stringify(packageJson, null, 2) + '\n');
+  fs.writeFileSync(packageJsonPath, `${JSON.stringify(packageJson, null, 2)}\n`);
   console.log('✅ Updated package.json');
 } catch (error) {
   console.error('Failed to update package.json:', error);
@@ -70,7 +70,7 @@ try {
 try {
   const content = JSON.parse(fs.readFileSync(tauriConfPath, 'utf8'));
   content.version = newVersion;
-  fs.writeFileSync(tauriConfPath, JSON.stringify(content, null, 2) + '\n');
+  fs.writeFileSync(tauriConfPath, `${JSON.stringify(content, null, 2)}\n`);
   console.log('✅ Updated src-tauri/tauri.conf.json');
 } catch (error) {
   console.error('Failed to update tauri.conf.json:', error);

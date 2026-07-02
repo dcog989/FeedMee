@@ -65,7 +65,7 @@ export interface AppState {
   renameFeed(id: number, newName: string, newUrl: string): Promise<void>;
   deleteFeed(id: number): Promise<void>;
   deleteFolder(id: number): Promise<void>;
-  moveFeed(feedId: number, folderId: number): Promise<void>;
+  moveFeed(feedId: number, folderId: number | null): Promise<void>;
   navUp(): void;
   navDown(): void;
   articleUp(): void;

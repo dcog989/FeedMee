@@ -195,8 +195,8 @@ function cmCreateFolder() {
 >
     <NavToolbar onExpandAll={expandAll} onCollapseAll={collapseAll} />
 
-    <div class="folder-list" role="tree" onscroll={closeContextMenu}>
-        {#each appState.folders as folder (folder.id)}
+    <div class="folder-list" onscroll={closeContextMenu}>
+        {#each appState.folders.filter((f) => f.id !== 0) as folder (folder.id)}
             <FolderGroup
                 {folder}
                 isExpanded={appState.expandedFolders.has(folder.id)}
@@ -210,6 +210,56 @@ function cmCreateFolder() {
                     if (f) f.feeds = feeds;
                 }}
             />
+        {/each}
+        {#each appState.folders as folder (folder.id)}
+            {#if folder.id === 0}
+                <!-- svelte-ignore a11y_no_static_element_interactions -->
+                <fieldset
+                    class="root-section"
+                    class:has-feeds={folder.feeds.length > 0}
+                    aria-label="Unfiled feeds"
+                    ondragover={(e) => e.preventDefault()}
+                    ondrop={(e) => {
+                        e.preventDefault();
+                        const dt = e.dataTransfer;
+                        if (!dt) return;
+                        const data = dt.getData('text/plain');
+                        if (!data) return;
+                        const { feedId } = JSON.parse(data);
+                        appState.moveFeed(feedId, null);
+                    }}
+                >
+                    <div class="root-header">UNCATEGORIZED</div>
+                    {#each folder.feeds as feed}
+                        <div
+                            class="feed-item"
+                            class:selected={appState.selectedFeedId === feed.id}
+                            onclick={(e) => {
+                                e.stopPropagation();
+                                appState.selectFeed(feed.id);
+                            }}
+                            oncontextmenu={(e) => handleContextMenu(e, 'feed', feed.id)}
+                            role="option"
+                            tabindex="0"
+                            aria-selected={appState.selectedFeedId === feed.id}
+                            onkeydown={(e) => {
+                                if (e.key === 'Enter' || e.key === ' ') {
+                                    e.preventDefault();
+                                    appState.selectFeed(feed.id);
+                                }
+                            }}
+                        >
+                            <span class="feed-name-wrap">
+                                <span class="feed-icon">#</span>
+                                <span class="feed-name">{feed.name}</span>
+                            </span>
+                            {#if feed.unread_count > 0}
+                                <span class="badge">{feed.unread_count}</span>
+                            {/if}
+                        </div>
+                    {/each}
+                </fieldset>
+            {/if}
         {/each}
     </div>
 
@@ -310,6 +360,99 @@ function cmCreateFolder() {
 }
 .context-menu button.danger:hover {
     background-color: #ffeef0;
+}
+
+.root-section {
+    margin: 0;
+    padding: 0 0 4px;
+    border: none;
+    min-inline-size: 0;
+}
+
+.root-section.has-feeds {
+    border-top: 2px solid var(--border-color);
+    margin-top: 8px;
+    padding-top: 4px;
+}
+
+.root-header {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    color: var(--text-secondary);
+    padding: 4px 0.6rem 4px 4px;
+    cursor: default;
+}
+
+.root-section .feed-item {
+    width: 100%;
+    padding: 0.4rem 0.6rem;
+    background: transparent;
+    text-align: left;
+    cursor: pointer;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    border-left: 3px solid transparent;
+    box-sizing: border-box;
+}
+
+.root-section .feed-item:hover {
+    background-color: var(--bg-hover);
+}
+
+.root-section .feed-item.selected {
+    background-color: var(--bg-selected-muted);
+    color: var(--text-primary);
+    border-left-color: var(--bg-selected);
+    font-weight: 500;
+}
+
+.root-section .badge {
+    background-color: var(--text-secondary);
+    color: var(--bg-pane);
+    font-size: 0.75rem;
+    padding: 1px 6px;
+    border-radius: 10px;
+    font-weight: 600;
+    min-width: 16px;
+    text-align: center;
+    flex-shrink: 0;
+}
+
+.root-section .badge:hover {
+    background-color: var(--bg-selected);
+    color: white;
+}
+
+.root-section .feed-item.selected .badge {
+    background-color: var(--bg-selected);
+    color: white;
+}
+
+.root-section .feed-name-wrap {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    white-space: nowrap;
+    overflow: hidden;
+}
+
+.root-section .feed-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.root-section .feed-icon {
+    color: var(--text-secondary);
+    font-size: 0.8rem;
+    opacity: 0.7;
+    flex-shrink: 0;
 }
 
 .footer-bar {

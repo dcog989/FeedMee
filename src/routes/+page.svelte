@@ -41,6 +41,32 @@ function onMouseMove(e: MouseEvent) {
 function focusPane(pane: 'nav' | 'list' | 'reading') {
     appState.focusedPane = pane;
 }
+
+function onPaneKeyDown(pane: 'nav' | 'list' | 'reading', e: KeyboardEvent) {
+    if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        focusPane(pane);
+    }
+}
+
+function onResizerKeyDown(target: 'nav' | 'list', e: KeyboardEvent) {
+    const step = 10;
+    if (e.key === 'ArrowLeft') {
+        if (target === 'nav') {
+            appState.navWidth = Math.max(150, appState.navWidth - step);
+        } else {
+            appState.listWidth = Math.max(200, appState.listWidth - step);
+        }
+        e.preventDefault();
+    } else if (e.key === 'ArrowRight') {
+        if (target === 'nav') {
+            appState.navWidth = Math.min(500, appState.navWidth + step);
+        } else {
+            appState.listWidth = Math.min(900, appState.listWidth + step);
+        }
+        e.preventDefault();
+    }
+}
 </script>
 
 <svelte:window onmouseup={stopResize} onmousemove={onMouseMove} />
@@ -55,54 +81,68 @@ function focusPane(pane: 'nav' | 'list' | 'reading') {
     style="--nav-w: {appState.navWidth}px; --list-w: {appState.listWidth}px;"
 >
     <!-- Navigation Pane -->
-    <!-- svelte-ignore a11y_click_events_have_key_events -->
-    <!-- svelte-ignore a11y_no_static_element_interactions -->
     <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
-    <div
+    <section
         class="nav-area"
-        role="region"
         aria-label="Navigation"
         class:pane-focused={appState.focusedPane === "nav"}
         onclick={() => focusPane("nav")}
+        onkeydown={(e) => onPaneKeyDown("nav", e)}
     >
         <NavPane />
-    </div>
+    </section>
 
     <!-- Resizer Handle 1 (Nav <-> List) -->
-    <!-- svelte-ignore a11y_no_static_element_interactions -->
-    <div class="resizer nav-resizer" onmousedown={() => startResize("nav")}></div>
+    <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
+    <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+    <hr
+        class="resizer nav-resizer"
+        aria-orientation="vertical"
+        aria-valuenow={appState.navWidth}
+        aria-valuemin={150}
+        aria-valuemax={500}
+        tabindex="0"
+        onmousedown={() => startResize("nav")}
+        onkeydown={(e) => onResizerKeyDown("nav", e)}
+    >
 
     <!-- Article List Pane -->
-    <!-- svelte-ignore a11y_click_events_have_key_events -->
-    <!-- svelte-ignore a11y_no_static_element_interactions -->
     <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
-    <div
+    <section
         class="list-area"
-        role="region"
         aria-label="Article List"
         class:pane-focused={appState.focusedPane === "list"}
         onclick={() => focusPane("list")}
+        onkeydown={(e) => onPaneKeyDown("list", e)}
     >
         <ArticleListPane />
-    </div>
+    </section>
 
     <!-- Resizer Handle 2 (List <-> Reading) -->
-    <!-- svelte-ignore a11y_no_static_element_interactions -->
-    <div class="resizer list-resizer" onmousedown={() => startResize("list")}></div>
+    <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
+    <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+    <hr
+        class="resizer list-resizer"
+        aria-orientation="vertical"
+        aria-valuenow={appState.listWidth}
+        aria-valuemin={200}
+        aria-valuemax={900}
+        tabindex="0"
+        onmousedown={() => startResize("list")}
+        onkeydown={(e) => onResizerKeyDown("list", e)}
+    >
 
     <!-- Reading Pane -->
-    <!-- svelte-ignore a11y_click_events_have_key_events -->
-    <!-- svelte-ignore a11y_no_static_element_interactions -->
     <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
-    <div
+    <section
         class="reading-area"
-        role="region"
         aria-label="Reading"
         class:pane-focused={appState.focusedPane === "reading"}
         onclick={() => focusPane("reading")}
+        onkeydown={(e) => onPaneKeyDown("reading", e)}
     >
         <ReadingPane />
-    </div>
+    </section>
 </div>
 
 <style>
@@ -138,6 +178,10 @@ function focusPane(pane: 'nav' | 'list' | 'reading') {
 }
 
 .resizer {
+    border: none;
+    margin: 0;
+    height: 100%;
+    width: 100%;
     background-color: transparent;
     cursor: col-resize;
     z-index: 10;

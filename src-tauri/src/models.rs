@@ -20,7 +20,7 @@ pub struct Feed {
     pub id: i64,
     pub name: String,
     pub url: String,
-    pub folder_id: i64,
+    pub folder_id: Option<i64>,
     pub unread_count: i64,
     pub has_error: bool,
     pub feed_type: String,

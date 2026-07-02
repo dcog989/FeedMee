@@ -29,9 +29,7 @@ async fn add_website_feed(
 
     let feed_id = {
         let conn = state.db.lock().unwrap();
-        let target =
-            folder_id.unwrap_or_else(|| db::create_folder(&conn, "Uncategorized").unwrap_or(1));
-        db::create_feed(&conn, &title, url, target, "website").map_err(|e| e.to_string())?
+        db::create_feed(&conn, &title, url, folder_id, "website").map_err(|e| e.to_string())?
     };
 
     let og_image = scrape_og_image_from_html(&html, url);
@@ -85,9 +83,7 @@ pub async fn add_feed(
 
         let feed_id = {
             let conn = state.db.lock().unwrap();
-            let target =
-                folder_id.unwrap_or_else(|| db::create_folder(&conn, "Uncategorized").unwrap_or(1));
-            db::create_feed(&conn, &display_name, &feed_url, target, "bluesky")
+            db::create_feed(&conn, &display_name, &feed_url, folder_id, "bluesky")
                 .map_err(|e| e.to_string())?
         };
 
@@ -228,9 +224,8 @@ pub async fn add_feed(
 
     let id = {
         let conn = state.db.lock().unwrap();
-        let target =
-            folder_id.unwrap_or_else(|| db::create_folder(&conn, "Uncategorized").unwrap_or(1));
-        db::create_feed(&conn, &title, &final_url, target, &feed_type).map_err(|e| e.to_string())?
+        db::create_feed(&conn, &title, &final_url, folder_id, &feed_type)
+            .map_err(|e| e.to_string())?
     };
 
     let mut articles: Vec<Article> = feed

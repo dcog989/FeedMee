@@ -81,7 +81,8 @@ function formatDate(ts: number) {
 }
 
 // Intercept clicks on links
-async function handleContentClick(e: MouseEvent) {
+async function handleContentClick(e?: MouseEvent) {
+    if (!e) { await openUrl(appState.selectedArticle?.url ?? ''); return; }
     const target = e.target as HTMLElement;
     const anchor = target.closest('a');
     if (anchor?.href) {
@@ -167,11 +168,12 @@ async function handleContentClick(e: MouseEvent) {
                 </div>
 
                 {#if showTagManager && appState.selectedArticle}
-                    <div
+                    <button
+                        type="button"
                         class="tag-backdrop"
+                        aria-label="Close"
                         onclick={() => { showTagManager = false; }}
-                        role="presentation"
-                    ></div>
+                    ></button>
                     <div class="tag-popover" style="top: {tagY}px; left: {tagX}px">
                         <TagManager
                             articleId={appState.selectedArticle.id}
@@ -188,9 +190,14 @@ async function handleContentClick(e: MouseEvent) {
                 </div>
             {/if}
 
-            <!-- svelte-ignore a11y_click_events_have_key_events -->
-            <!-- svelte-ignore a11y_no_static_element_interactions -->
-            <div class="summary" onclick={handleContentClick}>
+            <!-- biome-ignore lint/a11y/useSemanticElements: contains flow content from article HTML, cannot use <button> -->
+            <div
+                class="summary"
+                role="button"
+                tabindex="0"
+                onclick={handleContentClick}
+                onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleContentClick(); } }}
+            >
                 {@html displayHtml}
             </div>
 

@@ -77,14 +77,15 @@ function onKeyDown(e: KeyboardEvent) {
 </script>
 
 <svelte:window onkeydown={onKeyDown} />
-<!-- svelte-ignore a11y_click_events_have_key_events -->
 <!-- svelte-ignore a11y_no_static_element_interactions -->
-<div class="modal-overlay" onclick={cancel} role="presentation">
-    <!-- svelte-ignore a11y_click_events_have_key_events -->
-    <!-- svelte-ignore a11y_no_static_element_interactions -->
+<!-- biome-ignore lint/a11y/noStaticElementInteractions: backdrop is decorative, can't use button because it wraps modal with buttons -->
+<div
+    class="modal-overlay"
+    role="presentation"
+    onclick={(e) => { if (e.target === e.currentTarget) cancel(); }}
+>
     <div
         class="modal"
-        onclick={(e) => e.stopPropagation()}
         role="dialog"
         aria-modal="true"
         tabindex="-1"
@@ -130,18 +131,18 @@ function onKeyDown(e: KeyboardEvent) {
 
                 {#if settings.default_view_type === 'folder'}
                     <div class="form-group">
-                        <label for="default-folder"></label>
+                        <label for="default-folder">Default Folder</label>
                         <select id="default-folder" bind:value={settings.default_view_id}>
-                            {#each appState.folders as folder}
+                            {#each appState.folders.filter(f => f.id !== 0) as folder}
                                 <option value={folder.id}>{folder.name}</option>
                             {/each}
                         </select>
                     </div>
                 {:else if settings.default_view_type === 'feed'}
                     <div class="form-group">
-                        <label for="default-feed"></label>
+                        <label for="default-feed">Default Feed</label>
                         <select id="default-feed" bind:value={settings.default_view_id}>
-                            {#each appState.folders as folder}
+                            {#each appState.folders.filter(f => f.id !== 0) as folder}
                                 {#each folder.feeds as feed}
                                     <option value={feed.id}>{folder.name} / {feed.name}</option>
                                 {/each}

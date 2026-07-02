@@ -121,7 +121,7 @@ pub async fn import_opml(path: String, state: State<'_, AppState>) -> Result<(),
             if let Ok(folder_id) = db::create_folder(&conn, &folder_name) {
                 for child in outline.outlines {
                     if let Some(url) = child.xml_url {
-                        let _ = db::create_feed(&conn, &child.text, &url, folder_id, "rss");
+                        let _ = db::create_feed(&conn, &child.text, &url, Some(folder_id), "rss");
                     }
                 }
             }
@@ -130,12 +130,8 @@ pub async fn import_opml(path: String, state: State<'_, AppState>) -> Result<(),
         }
     }
 
-    if !flat_feeds.is_empty()
-        && let Ok(default_folder_id) = db::create_folder(&conn, "Uncategorized")
-    {
-        for (name, url) in flat_feeds {
-            let _ = db::create_feed(&conn, &name, &url, default_folder_id, "rss");
-        }
+    for (name, url) in flat_feeds {
+        let _ = db::create_feed(&conn, &name, &url, None, "rss");
     }
     Ok(())
 }
@@ -165,20 +161,31 @@ pub async fn export_opml(state: State<'_, AppState>) -> Result<String, String> {
         if folder.feeds.is_empty() {
             continue;
         }
-        let _ = writeln!(
-            &mut opml,
-            "    <outline text=\"{}\">",
-            xml_escape(&folder.name)
-        );
-        for feed in &folder.feeds {
+        if folder.id == 0 {
+            for feed in &folder.feeds {
+                let _ = writeln!(
+                    &mut opml,
+                    "      <outline type=\"rss\" text=\"{}\" xmlUrl=\"{}\" />",
+                    xml_escape(&feed.name),
+                    xml_escape(&feed.url)
+                );
+            }
+        } else {
             let _ = writeln!(
                 &mut opml,
-                "      <outline type=\"rss\" text=\"{}\" xmlUrl=\"{}\" />",
-                xml_escape(&feed.name),
-                xml_escape(&feed.url)
+                "    <outline text=\"{}\">",
+                xml_escape(&folder.name)
             );
+            for feed in &folder.feeds {
+                let _ = writeln!(
+                    &mut opml,
+                    "      <outline type=\"rss\" text=\"{}\" xmlUrl=\"{}\" />",
+                    xml_escape(&feed.name),
+                    xml_escape(&feed.url)
+                );
+            }
+            let _ = writeln!(&mut opml, "    </outline>");
         }
-        let _ = writeln!(&mut opml, "    </outline>");
     }
     let _ = writeln!(&mut opml, "  </body>");
     let _ = writeln!(&mut opml, "</opml>");
@@ -220,7 +227,11 @@ pub fn delete_folder(id: i64, state: State<'_, AppState>) -> Result<(), String> 
 }
 
 #[tauri::command]
-pub fn move_feed(feed_id: i64, folder_id: i64, state: State<'_, AppState>) -> Result<(), String> {
+pub fn move_feed(
+    feed_id: i64,
+    folder_id: Option<i64>,
+    state: State<'_, AppState>,
+) -> Result<(), String> {
     let conn = state.db.lock().unwrap();
     db::move_feed(&conn, feed_id, folder_id).map_err(|e| e.to_string())
 }

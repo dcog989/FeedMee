@@ -81,10 +81,14 @@ function focusOnMount(node: HTMLElement) {
 }
 </script>
 
-<!-- svelte-ignore a11y_click_events_have_key_events -->
 <!-- svelte-ignore a11y_no_static_element_interactions -->
-<div class="modal-overlay" onclick={closeDialog}>
-    <div class="modal" onclick={(e) => e.stopPropagation()}>
+<!-- biome-ignore lint/a11y/noStaticElementInteractions: backdrop is decorative, can't use button because it wraps modal with buttons -->
+<div
+    class="modal-overlay"
+    role="presentation"
+    onclick={(e) => { if (e.target === e.currentTarget) closeDialog(); }}
+>
+    <div class="modal">
         <h3>Manage Content</h3>
         <div class="input-group">
             <input
@@ -117,8 +121,8 @@ function focusOnMount(node: HTMLElement) {
         <div class="form-group">
             <label for="folder-select">Add to folder</label>
             <select id="folder-select" bind:value={selectedFolderId}>
-                <option value={null}>Uncategorized</option>
-                {#each appState.folders as folder (folder.id)}
+                <option value={null}>Root (no folder)</option>
+                {#each appState.folders.filter(f => f.id !== 0) as folder (folder.id)}
                     <option value={folder.id}>{folder.name}</option>
                 {/each}
             </select>

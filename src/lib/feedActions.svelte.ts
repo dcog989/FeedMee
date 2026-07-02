@@ -141,7 +141,7 @@ export function createFeedActions(state: AppState) {
     });
   }
 
-  async function moveFeed(feedId: number, folderId: number) {
+  async function moveFeed(feedId: number, folderId: number | null) {
     try {
       await invoke('move_feed', { feedId, folderId });
       await state.refreshFolders();

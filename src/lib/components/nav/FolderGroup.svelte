@@ -152,22 +152,28 @@ function getFolderUnreadCount(feeds: Feed[]): number {
     tabindex="-1"
     data-folder-id={folder.id}
 >
-    <!-- svelte-ignore a11y_click_events_have_key_events -->
     <!-- svelte-ignore a11y_no_static_element_interactions -->
+    <!-- biome-ignore lint/a11y/noStaticElementInteractions: oncontextmenu/ondblclick are mouse-only events with no keyboard analog -->
     <div
         class="folder-header"
         class:selected={appState.selectedFolderId === folder.id}
         oncontextmenu={(e) => onContextMenu(e, 'folder', folder.id, folder.name)}
         ondblclick={onHeaderDblClick}
     >
-        <span class="toggle-icon" onclick={onToggle}>
+        <button
+            type="button"
+            class="toggle-icon"
+            onclick={onToggle}
+            aria-label="Toggle folder"
+        >
             <ChevronRight
                 size={10}
                 style="transform: rotate({isExpanded ? 90 : 0}deg); transition: transform 0.2s;"
             />
-        </span>
+        </button>
 
-        <span
+        <button
+            type="button"
             class="folder-name-area"
             onclick={(e) => {
                 appState.selectFolder(folder.id);
@@ -175,38 +181,38 @@ function getFolderUnreadCount(feeds: Feed[]): number {
             }}
         >
             <span class="folder-name">{folder.name}</span>
+        </button>
 
-            <!-- svelte-ignore a11y_click_events_have_key_events -->
-            <!-- svelte-ignore a11y_no_static_element_interactions -->
-            <div
-                class="folder-action-area"
-                onclick={(e) => {
-                    e.stopPropagation();
-                    appState.requestRefreshFolder(folder.id);
-                }}
-            >
-                {#if appState.isFolderUpdating(folder.id)}
-                    <div class="mini-spinner"></div>
-                {:else if unreadCount > 0}
-                    <span
-                        class="badge folder-badge"
-                        use:tooltip={appState.isFolderFresh(folder.id)
-                            ? 'Already fresh!'
-                            : 'Click to refresh folder'}
-                        >{unreadCount}</span
-                    >
-                {:else}
-                    <span
-                        class="refresh-icon folder-refresh"
-                        use:tooltip={appState.isFolderFresh(folder.id)
-                            ? 'Already fresh!'
-                            : 'Click to refresh folder'}
-                    >
-                        <RefreshCcwDot size={16} />
-                    </span>
-                {/if}
-            </div>
-        </span>
+        <button
+            type="button"
+            class="folder-action-area"
+            onclick={(e) => {
+                e.stopPropagation();
+                appState.requestRefreshFolder(folder.id);
+            }}
+            aria-label="Refresh folder"
+        >
+            {#if appState.isFolderUpdating(folder.id)}
+                <div class="mini-spinner"></div>
+            {:else if unreadCount > 0}
+                <span
+                    class="badge folder-badge"
+                    use:tooltip={appState.isFolderFresh(folder.id)
+                        ? 'Already fresh!'
+                        : 'Click to refresh folder'}
+                    >{unreadCount}</span
+                >
+            {:else}
+                <span
+                    class="refresh-icon folder-refresh"
+                    use:tooltip={appState.isFolderFresh(folder.id)
+                        ? 'Already fresh!'
+                        : 'Click to refresh folder'}
+                >
+                    <RefreshCcwDot size={16} />
+                </span>
+            {/if}
+        </button>
     </div>
 
     <ul
@@ -263,14 +269,14 @@ function getFolderUnreadCount(feeds: Feed[]): number {
                         </span>
 
                         <!-- Action Area -->
-                        <!-- svelte-ignore a11y_click_events_have_key_events -->
-                        <!-- svelte-ignore a11y_no_static_element_interactions -->
-                        <div
+                        <button
+                            type="button"
                             class="feed-action-area"
                             onclick={(e) => {
                                 e.stopPropagation();
                                 appState.requestRefreshFeed(feed.id);
                             }}
+                            aria-label="Refresh feed"
                         >
                             {#if appState.isFeedUpdating(feed.id)}
                                 <div class="mini-spinner"></div>
@@ -296,7 +302,7 @@ function getFolderUnreadCount(feeds: Feed[]): number {
                                     <RefreshCw size={16} />
                                 </span>
                             {/if}
-                        </div>
+                        </button>
                     </div>
                 </li>
             {/each}
@@ -344,6 +350,11 @@ function getFolderUnreadCount(feeds: Feed[]): number {
     height: 24px;
     cursor: pointer;
     opacity: 0.7;
+    border: none;
+    background: transparent;
+    padding: 0;
+    font: inherit;
+    color: inherit;
 }
 
 .toggle-icon:hover {
@@ -357,6 +368,11 @@ function getFolderUnreadCount(feeds: Feed[]): number {
     cursor: pointer;
     padding: 2px 0;
     overflow: hidden;
+    border: none;
+    background: transparent;
+    font: inherit;
+    color: inherit;
+    text-align: left;
 }
 
 .folder-name {
@@ -463,6 +479,10 @@ li.drop-before::before {
     height: 100%;
     cursor: pointer;
     padding-left: 8px;
+    border: none;
+    background: transparent;
+    font: inherit;
+    color: inherit;
 }
 
 .badge {
@@ -518,6 +538,10 @@ li.drop-before::before {
     padding-left: 8px;
     justify-content: center;
     cursor: pointer;
+    border: none;
+    background: transparent;
+    font: inherit;
+    color: inherit;
 }
 
 .folder-refresh {
