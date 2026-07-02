@@ -1,7 +1,5 @@
-<script lang="ts">
-import { openUrl } from '@tauri-apps/plugin-opener';
+<script module lang="ts">
 import DOMPurify from 'dompurify';
-import { CircleAlert } from 'lucide-svelte';
 
 DOMPurify.addHook('afterSanitizeAttributes', (node: Element) => {
     if (node.tagName === 'A' && node.hasAttribute('href')) {
@@ -14,6 +12,11 @@ DOMPurify.addHook('afterSanitizeAttributes', (node: Element) => {
         node.setAttribute('loading', 'lazy');
     }
 });
+</script>
+
+<script lang="ts">
+import { openUrl } from '@tauri-apps/plugin-opener';
+import { CircleAlert } from 'lucide-svelte';
 
 let { rawHtml = '', loadError = false, articleUrl = '' }: {
     rawHtml?: string;
