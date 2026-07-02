@@ -30,6 +30,16 @@ export function createArticleActions(state: AppState) {
         offset,
         sortDesc,
       });
+    } else if (state.selectedFeedId === -3) {
+      const now = new Date();
+      const midnight = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      const cutoff = Math.floor(midnight.getTime() / 1000);
+      return await invoke('get_latest_articles', {
+        cutoffTimestamp: cutoff,
+        limit: state.pageSize,
+        offset,
+        sortDesc,
+      });
     } else if (state.selectedFeedId === -2) {
       return await invoke('get_saved_articles', {
         limit: state.pageSize,

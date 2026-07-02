@@ -5,7 +5,7 @@ import type { AppState } from './storeTypes';
 export function createFeedActions(state: AppState) {
   async function markAllRead() {
     try {
-      if (state.selectedFeedId === -1) {
+      if (state.selectedFeedId === -1 || state.selectedFeedId === -3) {
         await invoke('mark_all_read', { targetType: 'global', id: 0 });
       } else if (state.selectedFeedId && state.selectedFeedId > 0) {
         await invoke('mark_all_read', {

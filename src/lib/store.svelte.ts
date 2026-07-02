@@ -11,6 +11,7 @@ export type { AppState } from './storeTypes';
 export type { Article, SortOrder, Theme };
 export const FEED_ID_LATEST = -1;
 export const FEED_ID_SAVED = -2;
+export const FEED_ID_TODAY = -3;
 
 class AppStateImpl {
   folders = $state<Folder[]>([]);

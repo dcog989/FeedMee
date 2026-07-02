@@ -1,9 +1,9 @@
 ﻿<script lang="ts">
 import { invoke } from '@tauri-apps/api/core';
 import { openUrl } from '@tauri-apps/plugin-opener';
-import { ArrowUpDown, Bookmark, CheckCheck, Clock, Image, Search, Tags } from 'lucide-svelte';
+import { ArrowUpDown, Bookmark, CalendarDays, CheckCheck, Clock, Image, Search, Tags } from 'lucide-svelte';
 import { tooltip } from '$lib/actions/tooltip.svelte';
-import { appState, FEED_ID_LATEST, FEED_ID_SAVED } from '$lib/store.svelte';
+import { appState, FEED_ID_LATEST, FEED_ID_SAVED, FEED_ID_TODAY } from '$lib/store.svelte';
 import type { Article } from '$lib/types';
 import TagManager from './TagManager.svelte';
 
@@ -160,6 +160,16 @@ function cmToggleSaved() {
             <button
                 type="button"
                 class="tool-btn"
+                class:active={appState.selectedFeedId === FEED_ID_TODAY}
+                onclick={() => appState.selectFeed(FEED_ID_TODAY)}
+                use:tooltip={"Today's articles"}
+                aria-label="Today"
+            >
+                <CalendarDays size={18} />
+            </button>
+            <button
+                type="button"
+                class="tool-btn"
                 class:active={appState.selectedFeedId === FEED_ID_SAVED}
                 onclick={() => appState.selectFeed(FEED_ID_SAVED)}
                 use:tooltip={'Read Later'}
@@ -293,6 +303,10 @@ function cmToggleSaved() {
         {:else if appState.selectedFeedId === FEED_ID_LATEST}
             <div class="empty-state">
                 <p>No recent articles.</p>
+            </div>
+        {:else if appState.selectedFeedId === FEED_ID_TODAY}
+            <div class="empty-state">
+                <p>No articles today.</p>
             </div>
         {:else if appState.selectedFeedId === FEED_ID_SAVED}
             <div class="empty-state">
