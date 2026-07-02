@@ -2,7 +2,6 @@
 .context/
 .docs/
 .feeds/
-.git/
 .pkg/*.tar.zst
 .pkg/*.log
 .pkg/feedmee/
