@@ -130,6 +130,13 @@ class AppStateImpl {
     localStorage.setItem('lastRefreshed', JSON.stringify(obj));
   }
 
+  private startAutoRefreshTimer() {
+    if (this.settings.auto_update_interval_minutes > 0) {
+      const intervalMs = this.settings.auto_update_interval_minutes * 60 * 1000;
+      this.autoRefreshTimer = setInterval(() => this.refreshAllFeeds(), intervalMs);
+    }
+  }
+
   isFeedFresh(feedId: number): boolean {
     return Date.now() - (this.lastRefreshed.get(feedId) || 0) < this.debounceMs;
   }
@@ -388,10 +395,7 @@ class AppStateImpl {
         clearInterval(this.autoRefreshTimer);
         this.autoRefreshTimer = null;
       }
-      if (newSettings.auto_update_interval_minutes > 0) {
-        const intervalMs = newSettings.auto_update_interval_minutes * 60 * 1000;
-        this.autoRefreshTimer = setInterval(() => this.refreshAllFeeds(), intervalMs);
-      }
+      this.startAutoRefreshTimer();
       if (closeModal) this.closeSettings();
     } catch (e) {
       this.alert(`Failed to save settings: ${e}`);
@@ -488,10 +492,7 @@ class AppStateImpl {
     try {
       const s = await invoke<AppSettings>('get_app_settings');
       this.settings = s;
-      if (this.settings.auto_update_interval_minutes > 0) {
-        const intervalMs = this.settings.auto_update_interval_minutes * 60 * 1000;
-        this.autoRefreshTimer = setInterval(() => this.refreshAllFeeds(), intervalMs);
-      }
+      this.startAutoRefreshTimer();
     } catch (e) {
       console.error('Failed to load settings', e);
     }
