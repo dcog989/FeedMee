@@ -1,4 +1,4 @@
-use crate::commands::scraper::{backfill_og_images, compute_content_hash, scrape_og_image};
+use crate::commands::scraper::{backfill_og_images, compute_content_hash};
 use crate::{AppState, db, models::Article};
 use log::{debug, error, info};
 use scraper::{Html, Selector};
@@ -167,27 +167,6 @@ pub async fn refresh_rss_feed(
                     );
 
                     let mut articles = entries_to_articles(feed.entries, feed_id, feed_url);
-
-                    let handles: Vec<(usize, tauri::async_runtime::JoinHandle<Option<String>>)> =
-                        articles
-                            .iter()
-                            .enumerate()
-                            .filter(|(_, a)| a.image_url.is_empty())
-                            .map(|(idx, a)| {
-                                let client = client.clone();
-                                let article_url = a.url.clone();
-                                let handle = tauri::async_runtime::spawn(async move {
-                                    scrape_og_image(&client, &article_url).await
-                                });
-                                (idx, handle)
-                            })
-                            .collect();
-
-                    for (idx, handle) in handles {
-                        if let Ok(Some(img)) = handle.await {
-                            articles[idx].image_url = img;
-                        }
-                    }
 
                     let conn = state.db.lock().unwrap();
                     conn.execute_batch("BEGIN TRANSACTION")
