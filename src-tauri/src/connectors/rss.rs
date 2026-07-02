@@ -1,9 +1,74 @@
+use std::io::Cursor;
+
+use async_trait::async_trait;
+use log::{debug, error, info};
+use scraper::{Html, Selector};
+use url::Url;
+
 use crate::commands::scraper::compute_content_hash;
 use crate::{AppState, db, models::Article};
-use log::{error, info};
-use scraper::{Html, Selector};
-use std::io::Cursor;
-use url::Url;
+
+use super::FeedConnector;
+
+pub struct RssConnector;
+
+#[async_trait]
+impl FeedConnector for RssConnector {
+    fn feed_type(&self) -> &'static str {
+        "rss"
+    }
+
+    async fn fetch_articles(
+        &self,
+        url: &str,
+        state: &AppState,
+    ) -> Result<(String, String, Vec<Article>), String> {
+        let client = &state.http_client;
+        let response = client.get(url).send().await.map_err(|e| e.to_string())?;
+        let original_url = response.url().clone();
+        let content_bytes = response.bytes().await.map_err(|e| e.to_string())?;
+
+        if let Ok(feed) = feed_rs::parser::parse(Cursor::new(content_bytes.clone())) {
+            if !feed.entries.is_empty() {
+                let title = feed
+                    .title
+                    .as_ref()
+                    .map(|t| t.content.clone())
+                    .unwrap_or_else(|| "Untitled Feed".to_string());
+                let articles = entries_to_articles(feed.entries, 0, url);
+                return Ok((title, url.to_string(), articles));
+            }
+        }
+
+        let html = String::from_utf8_lossy(&content_bytes);
+        if let Some(rss_url) = discover_rss_feed_url(&html, &original_url) {
+            debug!("rss connector: discovered RSS url={}", rss_url);
+            let resp = client
+                .get(&rss_url)
+                .send()
+                .await
+                .map_err(|e| e.to_string())?;
+            let bytes = resp.bytes().await.map_err(|e| e.to_string())?;
+            if let Ok(feed) = feed_rs::parser::parse(Cursor::new(bytes)) {
+                if !feed.entries.is_empty() {
+                    let title = feed
+                        .title
+                        .as_ref()
+                        .map(|t| t.content.clone())
+                        .unwrap_or_else(|| "Untitled Feed".to_string());
+                    let articles = entries_to_articles(feed.entries, 0, &rss_url);
+                    return Ok((title, rss_url, articles));
+                }
+            }
+        }
+
+        Err("No RSS feed found".to_string())
+    }
+
+    async fn refresh(&self, feed_url: &str, feed_id: i64, state: &AppState) -> Result<i64, String> {
+        refresh_rss_feed(feed_url, feed_id, state).await
+    }
+}
 
 pub fn entries_to_articles(
     entries: Vec<feed_rs::model::Entry>,
@@ -110,11 +175,7 @@ pub fn entries_to_articles(
         .collect()
 }
 
-pub async fn refresh_rss_feed(
-    feed_url: &str,
-    feed_id: i64,
-    state: &AppState,
-) -> Result<i64, String> {
+async fn refresh_rss_feed(feed_url: &str, feed_id: i64, state: &AppState) -> Result<i64, String> {
     let client = state.http_client.clone();
     let result = client.get(feed_url).send().await;
 
@@ -178,4 +239,37 @@ pub async fn refresh_rss_feed(
             Err(format!("Network error: {}", e))
         },
     }
+}
+
+fn discover_rss_feed_url(html: &str, base_url: &Url) -> Option<String> {
+    let feed_types = [
+        "application/rss+xml",
+        "application/atom+xml",
+        "application/feed+json",
+    ];
+    let document = Html::parse_document(html);
+    Selector::parse("link")
+        .ok()
+        .map(|sel| {
+            document
+                .select(&sel)
+                .filter_map(|el| {
+                    let t = el.value().attr("type").unwrap_or("");
+                    if feed_types.iter().any(|ft| t.contains(ft)) {
+                        el.value()
+                            .attr("href")
+                            .and_then(|href| base_url.join(href).ok().map(|u| u.to_string()))
+                    } else {
+                        None
+                    }
+                })
+                .collect::<Vec<_>>()
+        })
+        .and_then(|urls| {
+            if urls.is_empty() {
+                None
+            } else {
+                urls.into_iter().max_by_key(|u| u.len())
+            }
+        })
 }

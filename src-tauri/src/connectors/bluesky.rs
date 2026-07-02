@@ -1,6 +1,10 @@
-use crate::{AppState, db, models::Article};
+use async_trait::async_trait;
 use log::{debug, info};
 use serde::Deserialize;
+
+use crate::{AppState, db, models::Article};
+
+use super::FeedConnector;
 
 const PUBLIC_API: &str = "https://public.api.bsky.app";
 
@@ -37,8 +41,27 @@ struct Actor {
     display_name: Option<String>,
 }
 
-/// Extract the handle from a bsky.app/profile/{handle} URL.
-/// Returns the handle part, or None if the URL doesn't match.
+pub struct BlueskyConnector;
+
+#[async_trait]
+impl FeedConnector for BlueskyConnector {
+    fn feed_type(&self) -> &'static str {
+        "bluesky"
+    }
+
+    async fn fetch_articles(
+        &self,
+        url: &str,
+        state: &AppState,
+    ) -> Result<(String, String, Vec<Article>), String> {
+        resolve_bluesky_source(url, &state.http_client).await
+    }
+
+    async fn refresh(&self, feed_url: &str, feed_id: i64, state: &AppState) -> Result<i64, String> {
+        refresh_bluesky_feed(feed_url, feed_id, state).await
+    }
+}
+
 pub fn extract_handle(url: &str) -> Option<String> {
     let url = url.trim_end_matches('/');
     let prefix = "https://bsky.app/profile/";
@@ -51,7 +74,6 @@ pub fn extract_handle(url: &str) -> Option<String> {
     None
 }
 
-/// Resolve a Bluesky handle to a DID using the public API.
 pub async fn resolve_handle(client: &reqwest::Client, handle: &str) -> Result<String, String> {
     let url = format!(
         "{}/xrpc/com.atproto.identity.resolveHandle?handle={}",
@@ -77,8 +99,6 @@ pub async fn resolve_handle(client: &reqwest::Client, handle: &str) -> Result<St
     Ok(data.did)
 }
 
-/// Get the display name from an author's first available post.
-/// Returns (did, display_name).
 pub async fn resolve_author_info(
     client: &reqwest::Client,
     handle: &str,
@@ -96,8 +116,6 @@ pub async fn resolve_author_info(
     Ok((did, display_name))
 }
 
-/// Fetch an author's feed from the Bluesky public API.
-/// Returns a list of Article structs ready for DB insertion.
 async fn fetch_author_feed(
     client: &reqwest::Client,
     actor: &str,
@@ -125,18 +143,14 @@ async fn fetch_author_feed(
         .map_err(|e| format!("Bluesky fetch feed parse error: {}", e))
 }
 
-/// Extract the rkey (record key) from an AT Protocol URI.
-/// URI format: at://did:plc:xxx/app.bsky.feed.post/rkey
 fn extract_rkey(uri: &str) -> String {
     uri.rsplit('/').next().unwrap_or("unknown").to_string()
 }
 
-/// Build a bsky.app URL for a given handle and post rkey.
 fn build_post_url(handle: &str, rkey: &str) -> String {
     format!("https://bsky.app/profile/{}/post/{}", handle, rkey)
 }
 
-/// Format a post text into a display-friendly title (first line or truncated).
 fn post_title(text: &str) -> String {
     let trimmed = text.trim();
     if trimmed.is_empty() {
@@ -151,7 +165,6 @@ fn post_title(text: &str) -> String {
     }
 }
 
-/// Detect embed type from the post's record.embed and return a short label.
 fn embed_label(record: &serde_json::Value) -> Option<&'static str> {
     let embed = record.get("embed")?;
     let type_str = embed.get("$type")?.as_str()?;
@@ -164,7 +177,6 @@ fn embed_label(record: &serde_json::Value) -> Option<&'static str> {
     }
 }
 
-/// Parse a Bluesky datetime string to a unix timestamp.
 fn parse_timestamp(ts: &str) -> i64 {
     if let Ok(dt) = chrono::DateTime::parse_from_rfc3339(ts) {
         dt.timestamp()
@@ -175,8 +187,6 @@ fn parse_timestamp(ts: &str) -> i64 {
     }
 }
 
-/// Fetch recent posts from a Bluesky author and return them as Articles.
-/// No database access — caller is responsible for insertion.
 pub async fn fetch_posts(
     client: &reqwest::Client,
     actor: &str,

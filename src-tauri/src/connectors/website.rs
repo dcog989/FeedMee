@@ -1,26 +1,41 @@
+use async_trait::async_trait;
+use scraper::{Html, Selector};
+
 use crate::commands::scraper::{scrape_articles_from_page, scrape_og_image_from_html};
 use crate::{AppState, db, models::Article};
 
-use scraper::{Html, Selector};
+use super::FeedConnector;
 
-async fn scrape_and_insert(
-    html: &str,
-    page_url: &str,
-    feed_id: i64,
-    state: &AppState,
-) -> Result<usize, String> {
-    let og_image = scrape_og_image_from_html(html, page_url);
-    let mut articles = scrape_articles_from_page(html, page_url);
-    for a in &mut articles {
-        a.feed_id = feed_id;
-        if a.image_url.is_empty() {
-            a.image_url = og_image.clone().unwrap_or_default();
-        }
+pub struct WebsiteConnector;
+
+#[async_trait]
+impl FeedConnector for WebsiteConnector {
+    fn feed_type(&self) -> &'static str {
+        "website"
     }
-    let conn = state.db.lock().unwrap();
-    let count = db::batch_insert_articles(&conn, &articles).map_err(|e| e.to_string())?;
-    let _ = db::update_feed_error(&conn, feed_id, false);
-    Ok(count)
+
+    async fn fetch_articles(
+        &self,
+        url: &str,
+        state: &AppState,
+    ) -> Result<(String, String, Vec<Article>), String> {
+        let html = state
+            .http_client
+            .get(url)
+            .send()
+            .await
+            .map_err(|e| e.to_string())?
+            .text()
+            .await
+            .map_err(|e| e.to_string())?;
+
+        let (title, articles) = extract_website_articles(&html, url)?;
+        Ok((title, url.to_string(), articles))
+    }
+
+    async fn refresh(&self, feed_url: &str, feed_id: i64, state: &AppState) -> Result<i64, String> {
+        refresh_website_feed(feed_url, feed_id, state).await
+    }
 }
 
 pub fn extract_website_articles(
@@ -53,7 +68,27 @@ pub fn extract_page_title(html: &str, fallback_url: &str) -> String {
         .unwrap_or_else(|| fallback_url.to_string())
 }
 
-pub async fn refresh_website_feed(
+async fn scrape_and_insert(
+    html: &str,
+    page_url: &str,
+    feed_id: i64,
+    state: &AppState,
+) -> Result<usize, String> {
+    let og_image = scrape_og_image_from_html(html, page_url);
+    let mut articles = scrape_articles_from_page(html, page_url);
+    for a in &mut articles {
+        a.feed_id = feed_id;
+        if a.image_url.is_empty() {
+            a.image_url = og_image.clone().unwrap_or_default();
+        }
+    }
+    let conn = state.db.lock().unwrap();
+    let count = db::batch_insert_articles(&conn, &articles).map_err(|e| e.to_string())?;
+    let _ = db::update_feed_error(&conn, feed_id, false);
+    Ok(count)
+}
+
+async fn refresh_website_feed(
     feed_url: &str,
     feed_id: i64,
     state: &AppState,

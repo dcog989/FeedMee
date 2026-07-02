@@ -9,8 +9,9 @@ pub async fn add_feed(
     folder_id: Option<i64>,
     state: State<'_, AppState>,
 ) -> Result<i64, String> {
-    let source = crate::connectors::detect_feed(&url, &state.http_client).await?;
-    let feed_id = source.add(folder_id, &state).await?;
+    let feed_id = crate::connectors::registry()
+        .detect_and_add(&url, folder_id, &state)
+        .await?;
     info!("add_feed: url={}, feed_id={}", url, feed_id);
     Ok(feed_id)
 }

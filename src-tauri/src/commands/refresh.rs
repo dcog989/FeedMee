@@ -34,5 +34,7 @@ pub async fn refresh_feed(feed_id: i64, state: State<'_, AppState>) -> Result<i6
         (feed.url, feed.feed_type)
     };
 
-    crate::connectors::refresh_feed_by_type(&feed_type, &url, feed_id, &state).await
+    crate::connectors::registry()
+        .refresh(&feed_type, &url, feed_id, &state)
+        .await
 }
