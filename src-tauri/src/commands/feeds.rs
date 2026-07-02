@@ -15,6 +15,13 @@ async fn add_website_feed(
     folder_id: Option<i64>,
     state: &State<'_, AppState>,
 ) -> Result<i64, String> {
+    {
+        let conn = state.db.lock().unwrap();
+        if db::feed_exists_by_url(&conn, url).map_err(|e| e.to_string())? {
+            return Err("Feed already exists".to_string());
+        }
+    }
+
     let html = String::from_utf8_lossy(content_bytes);
     let title = {
         let document = Html::parse_document(&html);
@@ -221,6 +228,13 @@ pub async fn add_feed(
         .title
         .map(|t| t.content)
         .unwrap_or_else(|| "Untitled Feed".to_string());
+
+    {
+        let conn = state.db.lock().unwrap();
+        if db::feed_exists_by_url(&conn, &final_url).map_err(|e| e.to_string())? {
+            return Err("Feed already exists".to_string());
+        }
+    }
 
     let id = {
         let conn = state.db.lock().unwrap();
