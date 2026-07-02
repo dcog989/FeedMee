@@ -1,7 +1,9 @@
 <script lang="ts">
 import { Info, Rss, Settings } from 'lucide-svelte';
+import { flip } from 'svelte/animate';
 import { appState } from '$lib/store.svelte';
 import ContextMenu from './ContextMenu.svelte';
+import FeedItem from './nav/FeedItem.svelte';
 import FolderGroup from './nav/FolderGroup.svelte';
 import NavToolbar from './nav/NavToolbar.svelte';
 
@@ -224,8 +226,9 @@ function cmCreateFolder() {
                     }}
                 >
                     <div class="root-header">UNCATEGORIZED</div>
-                    {#each folder.feeds as feed}
+                    {#each folder.feeds as feed (feed.id)}
                         <div
+                            animate:flip={{ duration: 200 }}
                             class="feed-item"
                             class:selected={appState.selectedFeedId === feed.id}
                             onclick={(e) => {
@@ -261,13 +264,7 @@ function cmCreateFolder() {
                                 }
                             }}
                         >
-                            <span class="feed-name-wrap">
-                                <span class="feed-icon">#</span>
-                                <span class="feed-name">{feed.name}</span>
-                            </span>
-                            {#if feed.unread_count > 0}
-                                <span class="badge">{feed.unread_count}</span>
-                            {/if}
+                            <FeedItem {feed} isSelected={appState.selectedFeedId === feed.id} />
                         </div>
                     {/each}
                 </fieldset>
@@ -386,48 +383,6 @@ function cmCreateFolder() {
     color: var(--text-primary);
     border-left-color: var(--bg-selected);
     font-weight: 500;
-}
-
-.root-section .badge {
-    background-color: var(--text-secondary);
-    color: var(--bg-pane);
-    font-size: 0.75rem;
-    padding: 1px 6px;
-    border-radius: 10px;
-    font-weight: 600;
-    min-width: 16px;
-    text-align: center;
-    flex-shrink: 0;
-}
-
-.root-section .badge:hover {
-    background-color: var(--bg-selected);
-    color: white;
-}
-
-.root-section .feed-item.selected .badge {
-    background-color: var(--bg-selected);
-    color: white;
-}
-
-.root-section .feed-name-wrap {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    white-space: nowrap;
-    overflow: hidden;
-}
-
-.root-section .feed-name {
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-.root-section .feed-icon {
-    color: var(--text-secondary);
-    font-size: 0.8rem;
-    opacity: 0.7;
-    flex-shrink: 0;
 }
 
 .footer-bar {

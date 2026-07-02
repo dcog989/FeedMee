@@ -1,9 +1,10 @@
 <script lang="ts">
-import { ChevronRight, RefreshCcwDot, RefreshCw, X } from 'lucide-svelte';
+import { ChevronRight, RefreshCcwDot } from 'lucide-svelte';
 import { flip } from 'svelte/animate';
 import { tooltip } from '$lib/actions/tooltip.svelte';
 import { appState } from '$lib/store.svelte';
 import type { Feed, Folder } from '$lib/types';
+import FeedItem from './FeedItem.svelte';
 
 let { folder, isExpanded, onToggle, onContextMenu, onFeedsChange } = $props<{
     folder: Folder;
@@ -112,31 +113,6 @@ function handleDragEnd() {
 function onHeaderDblClick(e: MouseEvent) {
     e.stopPropagation();
     onToggle(e);
-}
-
-const FAVICON_TTL = 48 * 60 * 60 * 1000;
-const faviconCache = new Map<string, { url: string; time: number }>();
-
-function getFavicon(url: string): string {
-    try {
-        const domain = new URL(url).hostname;
-        const cached = faviconCache.get(domain);
-        if (cached && Date.now() - cached.time < FAVICON_TTL) {
-            return cached.url;
-        }
-        const result = `https://icons.duckduckgo.com/ip3/${domain}.ico`;
-        faviconCache.set(domain, { url: result, time: Date.now() });
-        return result;
-    } catch {
-        return '';
-    }
-}
-
-function handleFaviconError(e: Event) {
-    const img = e.currentTarget as HTMLImageElement;
-    img.style.display = 'none';
-    const fallback = img.nextElementSibling;
-    if (fallback) fallback.classList.remove('favicon-fallback-hidden');
 }
 
 function getFolderUnreadCount(feeds: Feed[]): number {
@@ -252,57 +228,7 @@ function getFolderUnreadCount(feeds: Feed[]): number {
                             }
                         }}
                     >
-                        <span class="feed-name-wrap">
-                            {#if feed.url}
-                                <img
-                                    src={getFavicon(feed.url)}
-                                    alt=""
-                                    class="feed-favicon"
-                                    loading="lazy"
-                                    onerror={handleFaviconError}
-                                >
-                                <span class="feed-icon favicon-fallback-hidden">#</span>
-                            {:else}
-                                <span class="feed-icon">#</span>
-                            {/if}
-                            <span class="feed-name">{feed.name}</span>
-                        </span>
-
-                        <!-- Action Area -->
-                        <button
-                            type="button"
-                            class="feed-action-area"
-                            onclick={(e) => {
-                                e.stopPropagation();
-                                appState.requestRefreshFeed(feed.id);
-                            }}
-                            aria-label="Refresh feed"
-                        >
-                            {#if appState.isFeedUpdating(feed.id)}
-                                <div class="mini-spinner"></div>
-                            {:else if feed.has_error}
-                                <span class="error-badge" use:tooltip={'Feed update failed'}>
-                                    <X size={10} color="white" />
-                                </span>
-                            {:else if feed.unread_count > 0}
-                                <span
-                                    class="badge"
-                                    use:tooltip={appState.isFeedFresh(feed.id)
-                                        ? 'Already fresh!'
-                                        : 'Click to refresh'}
-                                    >{feed.unread_count}</span
-                                >
-                            {:else}
-                                <span
-                                    class="refresh-icon"
-                                    use:tooltip={appState.isFeedFresh(feed.id)
-                                        ? 'Already fresh!'
-                                        : 'Refresh'}
-                                >
-                                    <RefreshCw size={16} />
-                                </span>
-                            {/if}
-                        </button>
+                        <FeedItem {feed} isSelected={appState.selectedFeedId === feed.id} />
                     </div>
                 </li>
             {/each}
@@ -311,7 +237,6 @@ function getFolderUnreadCount(feeds: Feed[]): number {
 </div>
 
 <style>
-/* Styles remain same as previous step, just applied to this block */
 .folder {
     outline: none;
     margin-bottom: 2px;
@@ -441,93 +366,8 @@ li.drop-before::before {
     box-sizing: border-box;
 }
 
-.feed-name-wrap {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    white-space: nowrap;
-    overflow: hidden;
-}
-
-.feed-name {
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-.feed-icon {
-    color: var(--text-secondary);
-    font-size: 0.8rem;
-    opacity: 0.7;
-    flex-shrink: 0;
-}
-
-.feed-favicon {
-    width: 16px;
-    height: 16px;
-    border-radius: 2px;
-}
-
-.favicon-fallback-hidden {
-    display: none;
-}
-
-.feed-action-area {
-    display: flex;
-    align-items: center;
-    justify-content: flex-end;
-    min-width: 24px;
-    height: 100%;
-    cursor: pointer;
-    padding-left: 8px;
-    border: none;
-    background: transparent;
-    font: inherit;
-    color: inherit;
-}
-
-.badge {
-    background-color: var(--text-secondary);
-    color: var(--bg-pane);
-    font-size: 0.75rem;
-    padding: 1px 6px;
-    border-radius: 10px;
-    font-weight: 600;
-    min-width: 16px;
-    text-align: center;
-    flex-shrink: 0;
-}
-
-.badge:hover {
-    background-color: var(--bg-selected);
-    color: white;
-}
-
-.error-badge {
-    width: 16px;
-    height: 16px;
-    background-color: #d32f2f;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-}
-
 .folder-badge {
     opacity: 0.7;
-}
-
-.refresh-icon {
-    color: var(--text-secondary);
-    opacity: 0.5;
-    transition: opacity 0.2s;
-    display: flex;
-    align-items: center;
-}
-
-.refresh-icon:hover {
-    opacity: 1;
-    color: var(--text-primary);
 }
 
 .folder-action-area {
@@ -557,30 +397,5 @@ li.drop-before::before {
     color: var(--text-primary);
     border-left-color: var(--bg-selected);
     font-weight: 500;
-}
-
-.feed-item.selected .feed-icon {
-    color: var(--bg-selected);
-}
-
-.feed-item.selected .badge {
-    background-color: var(--bg-selected);
-    color: white;
-}
-
-.mini-spinner {
-    width: 14px;
-    height: 14px;
-    border: 2px solid var(--text-secondary);
-    border-top-color: transparent;
-    border-radius: 50%;
-    animation: spin 1s linear infinite;
-    flex-shrink: 0;
-}
-
-@keyframes spin {
-    to {
-        transform: rotate(360deg);
-    }
 }
 </style>
