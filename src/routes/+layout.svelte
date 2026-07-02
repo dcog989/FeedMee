@@ -1,9 +1,12 @@
 ﻿<script lang="ts">
 import AboutModal from '$lib/components/AboutModal.svelte';
+import ConfirmModal from '$lib/components/ConfirmModal.svelte';
 import EditFeedDialog from '$lib/components/EditFeedDialog.svelte';
 import ManageDialog from '$lib/components/ManageDialog.svelte';
 import NewFolderDialog from '$lib/components/NewFolderDialog.svelte';
 import SettingsModal from '$lib/components/SettingsModal.svelte';
+import StyleInjector from '$lib/components/StyleInjector.svelte';
+import ThemeManager from '$lib/components/ThemeManager.svelte';
 import Tooltip from '$lib/components/Tooltip.svelte';
 import { appState } from '$lib/store.svelte';
 import '../app.css';
@@ -13,62 +16,14 @@ let { children } = $props();
 function disableContextMenu(e: MouseEvent) {
     e.preventDefault();
 }
-
-$effect(() => {
-    const root = document.documentElement;
-
-    if (appState.theme !== 'system') {
-        root.setAttribute('data-theme', appState.theme);
-        return;
-    }
-
-    const mq = window.matchMedia('(prefers-color-scheme: dark)');
-    const apply = () => root.setAttribute('data-theme', mq.matches ? 'dark' : 'light');
-    apply();
-    mq.addEventListener('change', apply);
-    return () => mq.removeEventListener('change', apply);
-});
-
-$effect(() => {
-    const s = appState.settings;
-    const root = document.documentElement;
-
-    if (s.article_title_font) {
-        root.style.setProperty('--font-title', s.article_title_font);
-    } else {
-        root.style.removeProperty('--font-title');
-    }
-
-    if (s.article_body_font) {
-        root.style.setProperty('--font-body-override', s.article_body_font);
-    } else {
-        root.style.removeProperty('--font-body-override');
-    }
-
-    if (s.article_title_color) {
-        root.style.setProperty('--color-title', s.article_title_color);
-    } else {
-        root.style.removeProperty('--color-title');
-    }
-
-    if (s.article_body_color) {
-        root.style.setProperty('--color-body', s.article_body_color);
-    } else {
-        root.style.removeProperty('--color-body');
-    }
-
-    if (s.article_bg_color) {
-        root.style.setProperty('--bg-article', s.article_bg_color);
-    } else {
-        root.style.removeProperty('--bg-article');
-    }
-});
 </script>
 
 <div class="layout-wrapper" role="application" oncontextmenu={disableContextMenu}>
     <div class="content-wrapper">
         {@render children()}
     </div>
+    <ThemeManager />
+    <StyleInjector />
     <Tooltip />
 
     {#if appState.showSettings}
@@ -91,46 +46,7 @@ $effect(() => {
         <EditFeedDialog />
     {/if}
 
-    {#if appState.modalState.isOpen}
-        <!-- svelte-ignore a11y_no_static_element_interactions -->
-        <!-- biome-ignore lint/a11y/noStaticElementInteractions: backdrop is decorative, can't use button because it wraps modal with buttons -->
-        <div
-            class="modal-overlay"
-            role="presentation"
-            onclick={(e) => { if (e.target === e.currentTarget) appState.closeModal(); }}
-        >
-            <div class="modal">
-                <h3>
-                    {appState.modalState.type === "confirm"
-                        ? "Confirmation"
-                        : "Alert"}
-                </h3>
-                <p>{appState.modalState.message}</p>
-                <div class="modal-actions">
-                    {#if appState.modalState.type === "confirm"}
-                        <button
-                            type="button"
-                            class="secondary"
-                            onclick={() => appState.closeModal()}
-                        >
-                            Cancel
-                        </button>
-                    {/if}
-                    <button
-                        type="button"
-                        class={appState.modalState.type === "confirm"
-                            ? "danger"
-                            : "primary"}
-                        onclick={appState.modalState.onConfirm}
-                    >
-                        {appState.modalState.type === "confirm"
-                            ? "Confirm"
-                            : "OK"}
-                    </button>
-                </div>
-            </div>
-        </div>
-    {/if}
+    <ConfirmModal />
 </div>
 
 <style>
@@ -146,78 +62,5 @@ $effect(() => {
     flex: 1;
     overflow: hidden;
     position: relative;
-}
-
-.modal-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100vw;
-    height: 100vh;
-    background: rgba(0, 0, 0, 0.5);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    z-index: 10000;
-    backdrop-filter: blur(2px);
-}
-
-.modal {
-    background: var(--bg-pane);
-    padding: 1.5rem;
-    border-radius: 8px;
-    width: 350px;
-    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
-    border: 1px solid var(--border-color);
-    color: var(--text-primary);
-}
-
-.modal h3 {
-    margin-top: 0;
-    font-size: 1.1rem;
-}
-
-.modal p {
-    margin: 1rem 0 1.5rem 0;
-    color: var(--text-secondary);
-}
-
-.modal-actions {
-    display: flex;
-    justify-content: flex-end;
-    gap: 12px;
-}
-
-button {
-    padding: 8px 16px;
-    border-radius: 4px;
-    cursor: pointer;
-    font-weight: 500;
-    border: none;
-}
-
-button.secondary {
-    background: transparent;
-    border: 1px solid var(--border-color);
-    color: var(--text-primary);
-}
-
-button.secondary:hover {
-    background: var(--bg-hover);
-}
-
-button.danger {
-    background: #e81123;
-    color: white;
-}
-
-button.primary {
-    background: var(--bg-selected);
-    color: white;
-}
-
-button.danger:hover,
-button.primary:hover {
-    opacity: 0.9;
 }
 </style>
