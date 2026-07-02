@@ -36,6 +36,7 @@ pub async fn refresh_feed(feed_id: i64, state: State<'_, AppState>) -> Result<i6
     let (url, feed_type) = {
         let conn = state.db.lock().unwrap();
         let feed = db::get_feed(&conn, feed_id).map_err(|e| e.to_string())?;
+        let _ = db::update_feed_error(&conn, feed_id, false);
         (feed.url, feed.feed_type)
     };
 
@@ -48,8 +49,16 @@ pub async fn refresh_feed(feed_id: i64, state: State<'_, AppState>) -> Result<i6
     );
 
     if is_website {
-        let response = client.get(&url).send().await.map_err(|e| e.to_string())?;
-        let html = response.text().await.map_err(|e| e.to_string())?;
+        let response = client.get(&url).send().await.map_err(|e| {
+            let conn = state.db.lock().unwrap();
+            let _ = db::update_feed_error(&conn, feed_id, true);
+            e.to_string()
+        })?;
+        let html = response.text().await.map_err(|e| {
+            let conn = state.db.lock().unwrap();
+            let _ = db::update_feed_error(&conn, feed_id, true);
+            e.to_string()
+        })?;
         let og_image = scrape_og_image_from_html(&html, &url);
         let mut articles = scrape_articles_from_page(&html, &url);
         for a in &mut articles {
@@ -89,7 +98,14 @@ pub async fn refresh_feed(feed_id: i64, state: State<'_, AppState>) -> Result<i6
 
     match result {
         Ok(response) => {
-            let content = response.bytes().await.map_err(|e| e.to_string())?;
+            let content = match response.bytes().await {
+                Ok(b) => b,
+                Err(e) => {
+                    let conn = state.db.lock().unwrap();
+                    let _ = db::update_feed_error(&conn, feed_id, true);
+                    return Err(format!("Failed to read response: {}", e));
+                },
+            };
             match feed_rs::parser::parse(Cursor::new(content)) {
                 Ok(feed) => {
                     info!(
