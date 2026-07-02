@@ -21,6 +21,7 @@ import type {
 } from './storeTypes';
 import { createTagOps } from './tags.svelte';
 import type { AppSettings, Article, Folder, Tag } from './types';
+import { DEFAULT_SETTINGS } from './types';
 
 export type {
   AppState,
@@ -50,22 +51,7 @@ class AppStateImpl {
   theme = $state<Theme>('system');
   sortOrder = $state<SortOrder>('desc');
 
-  settings = $state<AppSettings>({
-    feed_refresh_debounce_minutes: 4,
-    auto_update_interval_minutes: 30,
-    log_level: 'info',
-    default_view_type: 'latest',
-    default_view_id: -1,
-    auto_collapse_folders: true,
-    mark_feed_read_on_exit: false,
-    article_title_font: '',
-    article_body_font: '',
-    article_title_color: '',
-    article_body_color: '',
-    article_bg_color: '',
-    thumbnail_size: 0,
-    article_retention_days: 90,
-  });
+  settings = $state<AppSettings>({ ...DEFAULT_SETTINGS });
 
   showSettings = $state(false);
   showAddDialog = $state(false);
