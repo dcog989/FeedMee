@@ -4,7 +4,7 @@ FeedMee is a desktop RSS / Atom news feed reader with a clean, minimal style. It
 
 ## Dev Environment
 
-Linux CachyOS, Limine boot loader, KDE Plasma 6, Wayland, Btrfs. Firefox, Kate text editor, Zed code editor, fish shell with Ghostty + Fresh editor. paru and bun package managers. All software is updated as of today.
+Linux CachyOS / KDE Plasma 6 + Firefox, Zed code editor, fish shell with Ghostty + Fresh editor. yay and bun package managers. All software is updated as of today.
 
 ## Tech Stack
 
@@ -25,12 +25,10 @@ Linux CachyOS, Limine boot loader, KDE Plasma 6, Wayland, Btrfs. Firefox, Kate t
 - `src/lib/components/NavPane.svelte` - Folder/feed navigation
 - `src/lib/components/ArticleListPane.svelte` - Article list
 - `src/lib/components/ReadingPane.svelte` - Article content reader
-
 - `src/lib/components/TagManager.svelte` - Inline tag add/remove UI
 - `src/lib/components/ManageDialog.svelte` - Add feed / OPML / blocked phrases dialog
 - `src/lib/components/SettingsModal.svelte` - Settings (refresh, thumbnail, themes, shortcuts)
 - `src/lib/components/ReadingPane.svelte` - Article content reader
-
 - `src/lib/store.svelte.ts` - Central state management
 - `src/lib/storeTypes.ts` - AppState interface type definitions
 - `src/lib/types.ts` - Shared data types (Article, Feed, Folder, Tag, etc.)
