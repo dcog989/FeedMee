@@ -104,8 +104,7 @@ export function createFeedActions(state: AppState) {
 
   function removeStaleRefreshEntries(feedId: number) {
     state.lastRefreshed.delete(feedId);
-    const obj = Object.fromEntries(state.lastRefreshed);
-    localStorage.setItem('lastRefreshed', JSON.stringify(obj));
+    state.persistLastRefreshed();
   }
 
   async function deleteFeed(id: number) {

@@ -9,8 +9,7 @@ export function createFeedRefresher(state: AppState) {
   function saveLastRefreshed() {
     if (saveTimer) clearTimeout(saveTimer);
     saveTimer = setTimeout(() => {
-      const obj = Object.fromEntries(state.lastRefreshed);
-      localStorage.setItem('lastRefreshed', JSON.stringify(obj));
+      state.persistLastRefreshed();
       saveTimer = null;
     }, 50);
   }

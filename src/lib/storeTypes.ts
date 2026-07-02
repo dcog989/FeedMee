@@ -40,6 +40,7 @@ export interface AppState {
     onConfirm: () => void;
   };
   readonly debounceMs: number;
+  persistLastRefreshed(): void;
   isFeedFresh(feedId: number): boolean;
   isFolderFresh(folderId: number): boolean;
   isAllFresh(): boolean;

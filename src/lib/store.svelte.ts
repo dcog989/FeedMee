@@ -125,6 +125,11 @@ class AppStateImpl {
     return folder.feeds.some((feed) => this.updatingFeedIds.has(feed.id));
   }
 
+  persistLastRefreshed() {
+    const obj = Object.fromEntries(this.lastRefreshed);
+    localStorage.setItem('lastRefreshed', JSON.stringify(obj));
+  }
+
   isFeedFresh(feedId: number): boolean {
     return Date.now() - (this.lastRefreshed.get(feedId) || 0) < this.debounceMs;
   }
