@@ -18,7 +18,7 @@ DOMPurify.addHook('afterSanitizeAttributes', (node: Element) => {
     }
 });
 
-let showTagManager = $state(false);
+let tagArticleId = $state<number | null>(null);
 let tagX = $state(0);
 let tagY = $state(0);
 let fullContent = $state<string | null>(null);
@@ -121,18 +121,19 @@ async function handleContentClick(e?: MouseEvent) {
                         <button
                             type="button"
                             class="action-btn"
-                            class:active={appState.selectedArticle?.has_tags || showTagManager}
+                            class:active={appState.selectedArticle?.has_tags || tagArticleId !== null}
                             onclick={(e) => {
                                 tooltipState.visible = false;
                                 const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
                                 tagX = rect.left;
                                 tagY = rect.bottom + 4;
-                                showTagManager = !showTagManager;
+                                const id = appState.selectedArticle?.id;
+                                tagArticleId = tagArticleId === id ? null : (id ?? null);
                             }}
                             use:tooltip={'Tags'}
                             aria-label="Tags"
                         >
-                            {#key appState.selectedArticle?.has_tags || showTagManager}
+                            {#key appState.selectedArticle?.has_tags || tagArticleId !== null}
                                 <Tags
                                     size={18}
                                     fill={appState.selectedArticle?.has_tags ? 'currentColor' : 'none'}
@@ -171,10 +172,10 @@ async function handleContentClick(e?: MouseEvent) {
                 </div>
 
                 <TagPopover
-                    articleId={showTagManager && appState.selectedArticle ? appState.selectedArticle.id : null}
+                    articleId={tagArticleId}
                     x={tagX}
                     y={tagY}
-                    onClose={() => { showTagManager = false; }}
+                    onClose={() => { tagArticleId = null; }}
                 />
              </header>
 
