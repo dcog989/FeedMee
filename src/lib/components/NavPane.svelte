@@ -238,7 +238,7 @@ function cmCreateFolder() {
                                 e.stopPropagation();
                                 appState.selectFeed(feed.id);
                             }}
-                            oncontextmenu={(e) => handleContextMenu(e, 'feed', feed.id)}
+                            oncontextmenu={(e) => handleContextMenu(e, 'feed', feed.id, feed.name)}
                             role="option"
                             tabindex="0"
                             aria-selected={appState.selectedFeedId === feed.id}
