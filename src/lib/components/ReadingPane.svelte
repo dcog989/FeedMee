@@ -4,7 +4,7 @@ import DOMPurify from 'dompurify';
 import { Bookmark, CircleAlert, ExternalLink, FileText, Tags } from 'lucide-svelte';
 import { tooltip } from '$lib/actions/tooltip.svelte';
 import { appState } from '$lib/store.svelte';
-import TagManager from './TagManager.svelte';
+import TagPopover from './TagPopover.svelte';
 
 DOMPurify.addHook('afterSanitizeAttributes', (node: Element) => {
     if (node.tagName === 'A' && node.hasAttribute('href')) {
@@ -167,20 +167,12 @@ async function handleContentClick(e?: MouseEvent) {
                     </div>
                 </div>
 
-                {#if showTagManager && appState.selectedArticle}
-                    <button
-                        type="button"
-                        class="tag-backdrop"
-                        aria-label="Close"
-                        onclick={() => { showTagManager = false; }}
-                    ></button>
-                    <div class="tag-popover" style="top: {tagY}px; left: {tagX}px">
-                        <TagManager
-                            articleId={appState.selectedArticle.id}
-                            onClose={() => { showTagManager = false; }}
-                        />
-                    </div>
-                {/if}
+                <TagPopover
+                    articleId={showTagManager && appState.selectedArticle ? appState.selectedArticle.id : null}
+                    x={tagX}
+                    y={tagY}
+                    onClose={() => { showTagManager = false; }}
+                />
             </header>
 
             {#if loadError}
@@ -416,17 +408,6 @@ h1 {
     opacity: 0.3;
     user-select: none;
     pointer-events: none;
-}
-
-.tag-backdrop {
-    position: fixed;
-    inset: 0;
-    z-index: 999;
-}
-
-.tag-popover {
-    position: fixed;
-    z-index: 1000;
 }
 
 .spinner {

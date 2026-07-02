@@ -6,7 +6,7 @@ import { tooltip } from '$lib/actions/tooltip.svelte';
 import { appState, FEED_ID_LATEST, FEED_ID_SAVED, FEED_ID_TODAY } from '$lib/store.svelte';
 import type { Article } from '$lib/types';
 import ContextMenu from './ContextMenu.svelte';
-import TagManager from './TagManager.svelte';
+import TagPopover from './TagPopover.svelte';
 
 let listContainer: HTMLElement;
 
@@ -328,12 +328,7 @@ function cmToggleSaved() {
     </section>
 </div>
 
-{#if tagArticleId !== null}
-    <button type="button" class="tag-backdrop" aria-label="Close" onclick={() => { tagArticleId = null; }}></button>
-    <div class="tag-popover" style="top: {tagY}px; left: {tagX}px">
-        <TagManager articleId={tagArticleId} onClose={() => { tagArticleId = null; }} />
-    </div>
-{/if}
+<TagPopover articleId={tagArticleId} x={tagX} y={tagY} onClose={() => { tagArticleId = null; }} />
 
 <ContextMenu x={cmX} y={cmY} visible={cmVisible} onClose={closeContextMenu}>
     <button type="button" onclick={cmOpenInBrowser}>Open in Browser</button>
@@ -566,17 +561,6 @@ function cmToggleSaved() {
 .icon-btn.active {
     color: var(--bg-selected);
     opacity: 1;
-}
-
-.tag-backdrop {
-    position: fixed;
-    inset: 0;
-    z-index: 999;
-}
-
-.tag-popover {
-    position: fixed;
-    z-index: 1000;
 }
 
 .search-wrapper {
