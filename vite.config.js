@@ -38,12 +38,12 @@ export default defineConfig(async () => ({
   optimizeDeps: {
     include: [
       'dompurify',
-      'lucide-svelte',
       'svelte/animate',
       'svelte/transition',
       '@tauri-apps/api/core',
       '@tauri-apps/plugin-opener',
       '@tauri-apps/plugin-dialog',
     ],
+    exclude: ['lucide-svelte'],
   },
 }));
