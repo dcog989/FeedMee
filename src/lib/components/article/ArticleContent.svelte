@@ -85,14 +85,19 @@ async function handleContentClick(e?: MouseEvent) {
 }
 
 .summary :global(*) {
+    /* biome-ignore lint/complexity/noImportantStyles: override RSS feed styles */
     color: inherit !important;
+    /* biome-ignore lint/complexity/noImportantStyles: override RSS feed styles */
     background-color: transparent !important;
+    /* biome-ignore lint/complexity/noImportantStyles: override RSS feed styles */
     max-width: 100% !important;
 }
 
 .summary :global(a) {
+    /* biome-ignore lint/complexity/noImportantStyles: override RSS feed link styles */
     color: #4899ec !important;
     text-decoration: none;
+    /* biome-ignore lint/complexity/noImportantStyles: override RSS feed pointer */
     cursor: pointer !important;
 }
 
@@ -104,6 +109,7 @@ async function handleContentClick(e?: MouseEvent) {
     max-width: 100%;
     height: auto;
     border-radius: 4px;
+    /* biome-ignore lint/complexity/noImportantStyles: override RSS feed img bg */
     background-color: initial !important;
 }
 </style>

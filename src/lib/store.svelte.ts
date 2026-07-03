@@ -20,7 +20,7 @@ import type {
   UIStore,
 } from './storeTypes';
 import { createTagOps } from './tags.svelte';
-import type { AppSettings, Article, Folder, Tag } from './types';
+import type { AppSettings, Article, Folder } from './types';
 import { DEFAULT_SETTINGS } from './types';
 
 export type {
@@ -94,8 +94,6 @@ class AppStateImpl {
   private tagOps: ReturnType<typeof createTagOps>;
   private shortcutOps: ReturnType<typeof createShortcutOps>;
   private autoRefreshTimer: ReturnType<typeof setInterval> | null = null;
-  private cleanupKeyHandler: (() => void) | null = null;
-
   constructor() {
     this.refresh = createFeedRefresher(this);
     this.feedOps = createFeedActions(this);
@@ -105,7 +103,7 @@ class AppStateImpl {
     this.tagOps = createTagOps(this);
     this.shortcutOps = createShortcutOps(this);
     registerShortcuts(this);
-    this.cleanupKeyHandler = setupKeyHandler(this);
+    setupKeyHandler(this);
     this.initStore();
   }
 
