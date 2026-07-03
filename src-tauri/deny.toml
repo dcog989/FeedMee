@@ -1,18 +1,22 @@
 [advisories]
-vulnerability = "deny"
-unmaintained = "warn"
-notice = "warn"
-unsound = "deny"
+unmaintained = "workspace"
+unsound = "workspace"
 yanked = "warn"
-ignore = []
+ignore = [
+  "RUSTSEC-2024-0415",  # gtk-rs GTK3 bindings unmaintained — Tauri 2.x dep, no alternative
+  "RUSTSEC-2026-0194",  # quick-xml quadratic attribute check — blocked on feed-rs/plist upgrades
+  "RUSTSEC-2026-0195",  # quick-xml unbounded namespace allocation — blocked on feed-rs/plist upgrades
+]
 
 [licenses]
-unlicensed = "deny"
+confidence-threshold = 0.8
 allow = [
     "MIT",
     "Apache-2.0",
+    "Apache-2.0 WITH LLVM-exception",
     "BSD-2-Clause",
     "BSD-3-Clause",
+    "CDLA-Permissive-2.0",
     "Zlib",
     "Unicode-3.0",
     "ISC",
@@ -20,11 +24,6 @@ allow = [
     "MPL-2.0",
     "OpenSSL",
 ]
-deny = []
-copyleft = "warn"
-allow-osi-fsf-free = "neither"
-default = "deny"
-confidence-threshold = 0.8
 
 [bans]
 multiple-versions = "warn"
