@@ -25,6 +25,5 @@ build/
 node_modules/
 publish/
 repomix.*.json
-src-tauri/Cargo.lock
 src-tauri/gen/
 src-tauri/target/
