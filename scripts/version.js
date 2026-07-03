@@ -9,6 +9,7 @@ const rootDir = path.join(__dirname, '..');
 const packageJsonPath = path.join(rootDir, 'package.json');
 const tauriConfPath = path.join(rootDir, 'src-tauri', 'tauri.conf.json');
 const cargoTomlPath = path.join(rootDir, 'src-tauri', 'Cargo.toml');
+const readmePath = path.join(rootDir, 'README.md');
 
 // Parse arguments
 const args = process.argv.slice(2);
@@ -95,7 +96,25 @@ try {
   process.exit(1);
 }
 
-// 6. Git Integration
+// 6. Update README.md version badge
+try {
+  let content = fs.readFileSync(readmePath, 'utf8');
+  const badgeRegex = /(version-)[\d.]+(-blue\.svg)/;
+
+  if (badgeRegex.test(content)) {
+    content = content.replace(badgeRegex, `$1${newVersion}$2`);
+    fs.writeFileSync(readmePath, content);
+    console.log('✅ Updated README.md version badge');
+  } else {
+    console.error('❌ Could not find version badge in README.md');
+    process.exit(1);
+  }
+} catch (error) {
+  console.error('Failed to update README.md:', error);
+  process.exit(1);
+}
+
+// 7. Git Integration
 if (shouldGit) {
   try {
     console.log('\n📦 Processing Git operations...');
@@ -104,7 +123,7 @@ if (shouldGit) {
     // We use forward slashes for cross-platform compatibility in exec commands,
     // although path.join handles OS separators, git usually accepts forward slashes.
     // Using strict paths ensures we only add what we changed.
-    const files = [packageJsonPath, tauriConfPath, cargoTomlPath].map((p) => `"${p}"`).join(' ');
+    const files = [packageJsonPath, tauriConfPath, cargoTomlPath, readmePath].map((p) => `"${p}"`).join(' ');
     execSync(`git add ${files}`, { stdio: 'inherit' });
 
     // Commit
