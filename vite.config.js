@@ -29,6 +29,16 @@ export default defineConfig(async () => ({
       ignored: ['**/src-tauri/**'],
     },
   },
+  build: {
+    rolldownOptions: {
+      output: {
+        manualChunks: {
+          svelte: ['svelte', 'svelte/animate', 'svelte/transition'],
+          tauri: ['@tauri-apps/api/core', '@tauri-apps/plugin-dialog', '@tauri-apps/plugin-opener'],
+        },
+      },
+    },
+  },
   // 4. Force dep pre-bundling to complete before the server accepts requests.
   //    Without this, Tauri opens the webview before Vite has finished optimizing
   //    dependencies on a cold first run, causing stylesheets to arrive late or

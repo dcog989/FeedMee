@@ -8,6 +8,7 @@ on:
 
 env:
   CARGO_TERM_COLOR: always
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
   check:
@@ -57,7 +58,7 @@ jobs:
 
       - name: Check backend
         working-directory: src-tauri
-        run: cargo check && cargo clippy --all-targets --all-features -- -D warnings
+        run: cargo check --locked && cargo clippy --locked --all-targets --all-features -- -D warnings
 
       - name: Check cargo-deny
         uses: EmbarkStudios/cargo-deny-action@v2
