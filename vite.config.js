@@ -5,14 +5,9 @@ import { defineConfig } from 'vite';
 const host = process.env.TAURI_DEV_HOST;
 
 // https://vite.dev/config/
-export default defineConfig(async () => ({
-  plugins: [sveltekit()],
-
-  // Vite options tailored for Tauri development and only applied in `tauri dev` or `tauri build`
-  //
-  // 1. prevent Vite from obscuring rust errors
+export default defineConfig({
+  plugins: await sveltekit(),
   clearScreen: false,
-  // 2. tauri expects a fixed port, fail if that port is not available
   server: {
     port: 1420,
     strictPort: true,
@@ -25,26 +20,25 @@ export default defineConfig(async () => ({
         }
       : undefined,
     watch: {
-      // 3. tell Vite to ignore watching `src-tauri`
       ignored: ['**/src-tauri/**'],
     },
   },
   build: {
+    chunkSizeWarningLimit: 1000,
     rolldownOptions: {
       output: {
-        manualChunks: {
-          svelte: ['svelte', 'svelte/animate', 'svelte/transition'],
-          tauri: ['@tauri-apps/api/core', '@tauri-apps/plugin-dialog', '@tauri-apps/plugin-opener'],
+        codeSplitting: {
+          groups: [
+            { name: 'svelte', test: /[\\/]node_modules[\\/]svelte[\\/]/ },
+            { name: 'tauri', test: /[\\/]node_modules[\\/]@tauri-apps[\\/]/ },
+          ],
         },
       },
     },
   },
-  // 4. Force dep pre-bundling to complete before the server accepts requests.
-  //    Without this, Tauri opens the webview before Vite has finished optimizing
-  //    dependencies on a cold first run, causing stylesheets to arrive late or
-  //    empty and the three-pane layout to collapse on first `bun run dev`.
-  //    Keep this list in sync with all bare-specifier imports on the
-  //    initial-render module graph (trace via `+page.svelte`).
+  // Force dep pre-bundling before Tauri opens the webview on cold start.
+  // Prevents stylesheets arriving late and layout collapsing on first `bun run dev`.
+  // Keep in sync with bare-specifier imports on the initial-render module graph.
   optimizeDeps: {
     include: [
       'dompurify',
@@ -56,4 +50,4 @@ export default defineConfig(async () => ({
     ],
     exclude: ['lucide-svelte'],
   },
-}));
+});
