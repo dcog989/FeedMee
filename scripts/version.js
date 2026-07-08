@@ -9,6 +9,7 @@ const rootDir = path.join(__dirname, '..');
 const packageJsonPath = path.join(rootDir, 'package.json');
 const tauriConfPath = path.join(rootDir, 'src-tauri', 'tauri.conf.json');
 const cargoTomlPath = path.join(rootDir, 'src-tauri', 'Cargo.toml');
+const cargoLockPath = path.join(rootDir, 'src-tauri', 'Cargo.lock');
 const readmePath = path.join(rootDir, 'README.md');
 
 // Parse arguments
@@ -123,7 +124,9 @@ if (shouldGit) {
     // We use forward slashes for cross-platform compatibility in exec commands,
     // although path.join handles OS separators, git usually accepts forward slashes.
     // Using strict paths ensures we only add what we changed.
-    const files = [packageJsonPath, tauriConfPath, cargoTomlPath, readmePath].map((p) => `"${p}"`).join(' ');
+    const files = [packageJsonPath, tauriConfPath, cargoTomlPath, cargoLockPath, readmePath]
+      .map((p) => `"${p}"`)
+      .join(' ');
     execSync(`git add ${files}`, { stdio: 'inherit' });
 
     // Commit
