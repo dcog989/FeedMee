@@ -192,10 +192,6 @@ h1 {
     align-items: center;
 }
 
-.separator {
-    color: var(--border-color);
-}
-
 .article-footer {
     margin-top: 3rem;
     padding-top: 1.5rem;
