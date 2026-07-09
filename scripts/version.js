@@ -97,7 +97,19 @@ try {
   process.exit(1);
 }
 
-// 6. Update README.md version badge
+// 6. Regenerate Cargo.lock to stay in sync
+try {
+  execSync('cargo generate-lockfile', {
+    cwd: path.join(rootDir, 'src-tauri'),
+    stdio: 'inherit',
+  });
+  console.log('✅ Regenerated src-tauri/Cargo.lock');
+} catch (error) {
+  console.error('❌ Failed to regenerate Cargo.lock');
+  process.exit(1);
+}
+
+// 7. Update README.md version badge
 try {
   let content = fs.readFileSync(readmePath, 'utf8');
   const badgeRegex = /(version-)[\d.]+(-blue\.svg)/;
@@ -115,7 +127,7 @@ try {
   process.exit(1);
 }
 
-// 7. Git Integration
+// 8. Git Integration
 if (shouldGit) {
   try {
     console.log('\n📦 Processing Git operations...');
