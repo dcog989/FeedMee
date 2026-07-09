@@ -2,7 +2,7 @@
 import { openUrl } from '@tauri-apps/plugin-opener';
 import { ExternalLink } from 'lucide-svelte';
 import { tooltip } from '$lib/actions/tooltip.svelte';
-import { articleStore } from '$lib/store.svelte';
+import { appState, articleStore } from '$lib/store.svelte';
 import ArticleActions from './article/ArticleActions.svelte';
 import ArticleContent from './article/ArticleContent.svelte';
 
@@ -60,7 +60,21 @@ function formatDate(ts: number) {
         hour: '2-digit',
         minute: '2-digit',
     });
-    return `${datePart} / ${timePart}`;
+    return `${datePart}, ${timePart}`;
+}
+
+function getFeedDomain(feedId: number): string {
+    for (const folder of appState.folders) {
+        const feed = folder.feeds.find(f => f.id === feedId);
+        if (feed) {
+            try {
+                return new URL(feed.url).hostname.replace(/^www\./, '');
+            } catch {
+                return feed.name;
+            }
+        }
+    }
+    return '';
 }
 </script>
 
@@ -84,8 +98,8 @@ function formatDate(ts: number) {
                 </h1>
                 <div class="meta-row">
                     <div class="meta-left">
-                        <span class="author">By {articleStore.selectedArticle.author}</span>
-                        <span class="separator">•</span>
+                        <span class="author">{articleStore.selectedArticle.author}</span>
+                        <span class="feed-domain">{getFeedDomain(articleStore.selectedArticle.feed_id)}</span>
                         <span class="date">{formatDate(articleStore.selectedArticle.timestamp)}</span>
                     </div>
 
