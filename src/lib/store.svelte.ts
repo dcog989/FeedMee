@@ -305,6 +305,8 @@ class AppStateImpl {
     const viewType = this.settings.default_view_type;
     const viewId = this.settings.default_view_id;
 
+    let expandFolderId: number | null = null;
+
     if (viewType === 'saved') this.selectFeed(FEED_ID_SAVED);
     else if (viewType === 'latest') this.selectFeed(FEED_ID_LATEST);
     else if (viewType === 'last') {
@@ -312,13 +314,27 @@ class AppStateImpl {
       const lastViewId = parseInt(localStorage.getItem('lastViewId') || '0', 10);
       if (lastViewType === 'folder' && lastViewId > 0) {
         this.selectFolder(lastViewId);
+        expandFolderId = lastViewId;
       } else if (lastViewType === 'feed' && lastViewId > 0) {
         this.selectFeed(lastViewId);
+        expandFolderId = this.folders.find((f) => f.feeds.some((fd) => fd.id === lastViewId))?.id ?? null;
       } else {
         this.selectFeed(FEED_ID_LATEST);
       }
-    } else if (viewType === 'folder' && viewId > 0) this.selectFolder(viewId);
-    else if (viewType === 'feed' && viewId > 0) this.selectFeed(viewId);
+    } else if (viewType === 'folder' && viewId > 0) {
+      this.selectFolder(viewId);
+      expandFolderId = viewId;
+    } else if (viewType === 'feed' && viewId > 0) {
+      this.selectFeed(viewId);
+      expandFolderId = this.folders.find((f) => f.feeds.some((fd) => fd.id === viewId))?.id ?? null;
+    }
+
+    if (expandFolderId !== null) {
+      const newSet = new Set(this.expandedFolders);
+      if (this.settings.auto_collapse_folders) newSet.clear();
+      newSet.add(expandFolderId);
+      this.expandedFolders = newSet;
+    }
   }
 }
 
