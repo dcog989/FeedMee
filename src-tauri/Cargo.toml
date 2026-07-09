@@ -15,7 +15,7 @@ tauri-build = { version = "2.6.3", features = [] }
 
 [dependencies]
 chrono = { version = "0.4", features = [] }
-feed-rs = "2.3"
+feed-rs = "2.4"
 image = { version = "0.25", default-features = false, features = ["jpeg", "png", "webp"] }
 log = "0.4"
 opml = "1.1"

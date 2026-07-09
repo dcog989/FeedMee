@@ -35,15 +35,15 @@
     "lucide-svelte": "^1.0.1"
   },
   "devDependencies": {
-    "@biomejs/biome": "^2.5.2",
+    "@biomejs/biome": "^2.5.3",
     "@sveltejs/adapter-static": "^3.0.10",
-    "@sveltejs/kit": "^2.69.1",
-    "@sveltejs/vite-plugin-svelte": "^7.1.2",
+    "@sveltejs/kit": "^2.69.2",
+    "@sveltejs/vite-plugin-svelte": "^7.2.0",
     "@tauri-apps/cli": "^2.11.4",
-    "lefthook": "^2.1.9",
+    "lefthook": "^2.1.10",
     "svelte": "^5.56.4",
-    "svelte-check": "^4.7.1",
-    "typescript": "^6.0.3",
+    "svelte-check": "^4.7.2",
+    "typescript": "^7.0.2",
     "vite": "^8.1.3"
   }
 }
