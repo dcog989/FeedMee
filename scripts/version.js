@@ -104,7 +104,7 @@ try {
     stdio: 'inherit',
   });
   console.log('✅ Regenerated src-tauri/Cargo.lock');
-} catch (error) {
+} catch (_error) {
   console.error('❌ Failed to regenerate Cargo.lock');
   process.exit(1);
 }
