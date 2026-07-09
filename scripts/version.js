@@ -97,15 +97,19 @@ try {
   process.exit(1);
 }
 
-// 6. Regenerate Cargo.lock to stay in sync
+// 6. Update crates and regenerate Cargo.lock
 try {
+  execSync('cargo upgrade --verbose', {
+    cwd: path.join(rootDir, 'src-tauri'),
+    stdio: 'inherit',
+  });
   execSync('cargo generate-lockfile', {
     cwd: path.join(rootDir, 'src-tauri'),
     stdio: 'inherit',
   });
-  console.log('✅ Regenerated src-tauri/Cargo.lock');
+  console.log('✅ Updated Cargo.toml dependencies and Cargo.lock');
 } catch (_error) {
-  console.error('❌ Failed to regenerate Cargo.lock');
+  console.error('❌ Failed to update crates');
   process.exit(1);
 }
 
