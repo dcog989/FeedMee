@@ -82,6 +82,18 @@ pub fn run() {
                 let _ = commands::thumbnails::cleanup_thumbnail_cache(&app_handle, 7);
             });
 
+            let backup_handle = app.handle().clone();
+            std::thread::spawn(move || {
+                std::thread::sleep(std::time::Duration::from_secs(200));
+                loop {
+                    let state = backup_handle.state::<AppState>();
+                    if let Err(e) = commands::backup::run_auto_backup(&state.db) {
+                        log::error!("Auto-backup failed: {}", e);
+                    }
+                    std::thread::sleep(std::time::Duration::from_secs(86400));
+                }
+            });
+
             Ok(())
         })
         .plugin(tauri_plugin_updater::Builder::new().build())
