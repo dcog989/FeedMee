@@ -1,6 +1,6 @@
 [package]
 name = "FeedMee"
-version = "0.17.0"
+version = "0.17.1"
 description = "The seriously fast feed reader."
 license = "MIT"
 edition = "2024"
