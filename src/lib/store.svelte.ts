@@ -329,10 +329,9 @@ class AppStateImpl {
       expandFolderId = this.folders.find((f) => f.feeds.some((fd) => fd.id === viewId))?.id ?? null;
     }
 
-    if (expandFolderId !== null) {
-      const newSet = new Set(this.expandedFolders);
-      if (this.settings.auto_collapse_folders) newSet.clear();
-      newSet.add(expandFolderId);
+    {
+      const newSet = new Set<number>();
+      if (expandFolderId !== null) newSet.add(expandFolderId);
       this.expandedFolders = newSet;
     }
   }

@@ -38,6 +38,7 @@ export function createNavigation(state: NavStore) {
     persistLastView('folder', folderId);
     try {
       await state.reloadCurrentArticleList();
+      if (state.articles.length > 0) state.selectArticle(state.articles[0]);
     } finally {
       state.isLoadingArticles = false;
     }
@@ -55,6 +56,7 @@ export function createNavigation(state: NavStore) {
     if (feedId > 0) persistLastView('feed', feedId);
     try {
       await state.reloadCurrentArticleList();
+      if (state.articles.length > 0) state.selectArticle(state.articles[0]);
     } finally {
       state.isLoadingArticles = false;
     }
