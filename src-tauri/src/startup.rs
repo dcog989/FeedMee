@@ -59,7 +59,7 @@ pub(crate) fn init_logging(logs_dir: &Path, log_level: LevelFilter) {
         .build();
 
     let log_path = logs_dir.join("feedmee.log");
-    let _ = CombinedLogger::init(vec![
+    if let Err(e) = CombinedLogger::init(vec![
         TermLogger::new(
             log_level,
             log_config.clone(),
@@ -71,7 +71,9 @@ pub(crate) fn init_logging(logs_dir: &Path, log_level: LevelFilter) {
             log_config,
             std::fs::File::create(log_path).unwrap(),
         ),
-    ]);
+    ]) {
+        eprintln!("[startup] logger init failed: {}", e);
+    }
 }
 
 pub(crate) fn setup_database(
