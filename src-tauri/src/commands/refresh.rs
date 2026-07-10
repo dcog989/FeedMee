@@ -11,15 +11,35 @@ fn content_text_len(html: &str) -> usize {
 }
 
 fn has_paragraph_structure(html: &str) -> bool {
-    let breaks = html.matches("<p>").count() + html.matches("<br").count();
-    breaks >= 2
+    let bytes = html.as_bytes();
+    let mut i = 0;
+    let mut count = 0i32;
+    while i < bytes.len() {
+        if bytes[i] == b'<' {
+            if i + 2 < bytes.len() && bytes[i + 1] == b'p' {
+                let next = bytes[i + 2];
+                if next == b'>' || next == b' ' {
+                    count += 1;
+                }
+            } else if i + 3 < bytes.len() && bytes[i + 1] == b'b' && bytes[i + 2] == b'r' {
+                let next = bytes[i + 3];
+                if next == b'>' || next == b' ' || next == b'/' {
+                    count += 1;
+                }
+            }
+        }
+        i += 1;
+    }
+    count >= 2
 }
 
 fn extract_with_css_selectors(html: &str) -> Option<String> {
     let selectors = [
+        "[role=\"main\"]",
         "article.full",
         "article[class*=\"full\"]",
         "article",
+        "#main-content",
         "#content",
         ".content",
         "[itemprop=\"articleBody\"]",
@@ -27,17 +47,22 @@ fn extract_with_css_selectors(html: &str) -> Option<String> {
         ".entry-content",
         ".article-body",
         ".story-body",
+        ".RichTextContainer",
+        "[data-component=\"text-block\"]",
     ];
 
     let document = Html::parse_document(html);
     for sel_str in &selectors {
-        let selector = Selector::parse(sel_str).ok()?;
+        let selector = match Selector::parse(sel_str) {
+            Ok(s) => s,
+            Err(_) => continue,
+        };
         if let Some(el) = document.select(&selector).next() {
             let inner = el.inner_html();
             let text_len = content_text_len(&inner);
-            if text_len > 200 && has_paragraph_structure(&inner) {
+            if text_len > 100 && has_paragraph_structure(&inner) {
                 debug!(
-                    "extract_with_css: matched selector '{}' ({} chars)",
+                    "extract_with_css: matched '{}' ({} chars)",
                     sel_str,
                     inner.len()
                 );
@@ -51,34 +76,52 @@ fn extract_with_css_selectors(html: &str) -> Option<String> {
 #[tauri::command]
 pub async fn get_article_content(
     url: String,
-    state: State<'_, AppState>,
+    _state: State<'_, AppState>,
 ) -> Result<String, String> {
-    let client = state.http_client.clone();
+    let client = reqwest::Client::builder()
+        .user_agent(
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        )
+        .timeout(std::time::Duration::from_secs(30))
+        .build()
+        .map_err(|e| e.to_string())?;
+
     let html = client
         .get(&url)
         .send()
         .await
-        .map_err(|e| e.to_string())?
+        .map_err(|e| format!("Failed to fetch: {}", e))?
         .text()
         .await
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| format!("Failed to read response: {}", e))?;
 
-    if let Ok(readability) =
-        Readability::new(&html, Some(&url), Some(ReadabilityOptions::default()))
-        && let Some(article) = readability.parse()
-        && let Some(content) = article.content
-    {
-        if content_text_len(&content) > 200 && has_paragraph_structure(&content) {
+    let readability_ok = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+        if let Ok(readability) =
+            Readability::new(&html, Some(&url), Some(ReadabilityOptions::default()))
+            && let Some(article) = readability.parse()
+            && let Some(content) = article.content
+        {
+            if content_text_len(&content) > 100 && has_paragraph_structure(&content) {
+                debug!(
+                    "get_article_content: readabilityrs extracted {} chars",
+                    content.len()
+                );
+                return Some(content);
+            }
             debug!(
-                "get_article_content: readabilityrs extracted {} chars",
+                "get_article_content: readabilityrs content too short or no paragraphs ({} chars), falling back to CSS",
                 content.len()
             );
-            return Ok(content);
         }
-        debug!(
-            "get_article_content: readabilityrs content too short or no paragraphs ({} chars), falling back to CSS",
-            content.len()
-        );
+        None
+    }));
+
+    if let Ok(Some(content)) = readability_ok {
+        return Ok(content);
+    }
+
+    if readability_ok.is_err() {
+        debug!("get_article_content: readabilityrs panicked, falling back to CSS");
     }
 
     extract_with_css_selectors(&html).ok_or_else(|| "No content extracted".to_string())
