@@ -65,22 +65,20 @@ pub async fn get_article_content(
 
     if let Ok(readability) =
         Readability::new(&html, Some(&url), Some(ReadabilityOptions::default()))
+        && let Some(article) = readability.parse()
+        && let Some(content) = article.content
     {
-        if let Some(article) = readability.parse() {
-            if let Some(content) = article.content {
-                if content_text_len(&content) > 200 && has_paragraph_structure(&content) {
-                    debug!(
-                        "get_article_content: readabilityrs extracted {} chars",
-                        content.len()
-                    );
-                    return Ok(content);
-                }
-                debug!(
-                    "get_article_content: readabilityrs content too short or no paragraphs ({} chars), falling back to CSS",
-                    content.len()
-                );
-            }
+        if content_text_len(&content) > 200 && has_paragraph_structure(&content) {
+            debug!(
+                "get_article_content: readabilityrs extracted {} chars",
+                content.len()
+            );
+            return Ok(content);
         }
+        debug!(
+            "get_article_content: readabilityrs content too short or no paragraphs ({} chars), falling back to CSS",
+            content.len()
+        );
     }
 
     extract_with_css_selectors(&html).ok_or_else(|| "No content extracted".to_string())
