@@ -6,6 +6,7 @@ import { appState, articleStore } from '$lib/store.svelte';
 import ArticleActions from './article/ArticleActions.svelte';
 import ArticleContent from './article/ArticleContent.svelte';
 
+let paneEl: HTMLElement | undefined = $state();
 let fullContent = $state<string | null>(null);
 let isLoadingFull = $state(false);
 let loadError = $state(false);
@@ -18,6 +19,7 @@ $effect(() => {
         fullContent = null;
         isLoadingFull = false;
         loadError = false;
+        paneEl?.scrollTo(0, 0);
     }
 });
 
@@ -78,7 +80,7 @@ function getFeedDomain(feedId: number): string {
 }
 </script>
 
-<main class="pane">
+<main class="pane" bind:this={paneEl}>
     {#if articleStore.selectedArticle}
         <article class="article-content">
             <header>
