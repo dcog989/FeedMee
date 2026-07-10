@@ -9,6 +9,20 @@ DOMPurify.addHook('afterSanitizeAttributes', (node: Element) => {
         node.setAttribute('rel', 'noopener noreferrer');
     }
     if (node.tagName === 'IMG') {
+        const dataOriginal = node.getAttribute('data-original');
+        const dataSrc = node.getAttribute('data-src');
+        if (dataOriginal) {
+            node.setAttribute('src', dataOriginal);
+            node.removeAttribute('data-original');
+        } else if (dataSrc) {
+            node.setAttribute('src', dataSrc);
+            node.removeAttribute('data-src');
+        }
+        const dataSrcset = node.getAttribute('data-srcset');
+        if (dataSrcset) {
+            node.setAttribute('srcset', dataSrcset);
+            node.removeAttribute('data-srcset');
+        }
         node.setAttribute('loading', 'lazy');
     }
 });
