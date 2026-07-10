@@ -290,16 +290,18 @@ class AppStateImpl {
       }
     }
 
-    try {
-      const s = await invoke<AppSettings>('get_app_settings');
-      this.settings = s;
-      this.startAutoRefreshTimer();
-    } catch (e) {
-      console.error('Failed to load settings', e);
-    }
+    await Promise.all([
+      invoke<AppSettings>('get_app_settings')
+        .then((s) => {
+          this.settings = s;
+          this.startAutoRefreshTimer();
+        })
+        .catch((e) => console.error('Failed to load settings', e)),
+      this.shortcutOps.loadShortcutSettings(),
+    ]);
 
-    await this.shortcutOps.loadShortcutSettings();
     await this.refreshFolders();
+
     this.refreshAllFeeds();
 
     const viewType = this.settings.default_view_type;
