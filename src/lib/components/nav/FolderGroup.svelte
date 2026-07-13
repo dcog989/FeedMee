@@ -338,23 +338,6 @@ li.drop-before::before {
     position: relative;
 }
 
-.feed-item {
-    width: 100%;
-    padding: 0.4rem 0.6rem;
-    background: transparent;
-    text-align: left;
-    cursor: pointer;
-    border-radius: 6px;
-    font-size: 0.9rem;
-    color: var(--text-primary);
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 8px;
-    border-left: 3px solid transparent;
-    box-sizing: border-box;
-}
-
 .folder-badge {
     opacity: 0.7;
 }
@@ -375,17 +358,6 @@ li.drop-before::before {
 
 .folder-refresh {
     opacity: 0.5;
-}
-
-.feed-item:hover {
-    background-color: var(--bg-hover);
-}
-
-.feed-item.selected {
-    background-color: var(--bg-selected-muted);
-    color: var(--text-primary);
-    border-left-color: var(--bg-selected);
-    font-weight: 500;
 }
 
 </style>

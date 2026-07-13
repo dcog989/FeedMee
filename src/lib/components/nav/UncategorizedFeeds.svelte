@@ -87,31 +87,5 @@ let { folder, onContextMenu }: {
     cursor: default;
 }
 
-.root-section .feed-item {
-    width: 100%;
-    padding: 0.4rem 0.6rem;
-    background: transparent;
-    text-align: left;
-    cursor: pointer;
-    border-radius: 6px;
-    font-size: 0.9rem;
-    color: var(--text-primary);
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 8px;
-    border-left: 3px solid transparent;
-    box-sizing: border-box;
-}
 
-.root-section .feed-item:hover {
-    background-color: var(--bg-hover);
-}
-
-.root-section .feed-item.selected {
-    background-color: var(--bg-selected-muted);
-    color: var(--text-primary);
-    border-left-color: var(--bg-selected);
-    font-weight: 500;
-}
 </style>
