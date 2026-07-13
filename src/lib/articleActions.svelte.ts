@@ -1,4 +1,5 @@
 import { invoke } from '@tauri-apps/api/core';
+import { FEED_ID_LATEST, FEED_ID_SAVED, FEED_ID_TODAY } from './store.svelte';
 import type { ArticleStore } from './storeTypes';
 import type { Article } from './types';
 
@@ -22,7 +23,7 @@ export function createArticleActions(state: ArticleStore) {
       });
     }
 
-    if (state.selectedFeedId === -1) {
+    if (state.selectedFeedId === FEED_ID_LATEST) {
       const cutoff = Math.floor(Date.now() / 1000) - state.latestHours * 3600;
       return await invoke('get_latest_articles', {
         cutoffTimestamp: cutoff,
@@ -30,7 +31,7 @@ export function createArticleActions(state: ArticleStore) {
         offset,
         sortDesc,
       });
-    } else if (state.selectedFeedId === -3) {
+    } else if (state.selectedFeedId === FEED_ID_TODAY) {
       const now = new Date();
       const midnight = new Date(now.getFullYear(), now.getMonth(), now.getDate());
       const cutoff = Math.floor(midnight.getTime() / 1000);
@@ -40,7 +41,7 @@ export function createArticleActions(state: ArticleStore) {
         offset,
         sortDesc,
       });
-    } else if (state.selectedFeedId === -2) {
+    } else if (state.selectedFeedId === FEED_ID_SAVED) {
       return await invoke('get_saved_articles', {
         limit: state.pageSize,
         offset,

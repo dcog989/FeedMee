@@ -1,11 +1,12 @@
 import { invoke } from '@tauri-apps/api/core';
 import { open, save } from '@tauri-apps/plugin-dialog';
+import { FEED_ID_LATEST, FEED_ID_TODAY } from './store.svelte';
 import type { FeedStore } from './storeTypes';
 
 export function createFeedActions(state: FeedStore) {
   async function markAllRead() {
     try {
-      if (state.selectedFeedId === -1 || state.selectedFeedId === -3) {
+      if (state.selectedFeedId === FEED_ID_LATEST || state.selectedFeedId === FEED_ID_TODAY) {
         await invoke('mark_all_read', { targetType: 'global', id: 0 });
       } else if (state.selectedFeedId && state.selectedFeedId > 0) {
         await invoke('mark_all_read', {
