@@ -2,6 +2,7 @@
 import { RotateCcw, X } from 'lucide-svelte';
 import { shortcutStore } from '$lib/store.svelte';
 import { type ShortcutDefinition, shortcutManager } from '$lib/utils/shortcuts';
+import Modal from './Modal.svelte';
 
 let { isOpen = $bindable(false), onClose }: { isOpen: boolean; onClose: () => void } = $props();
 
@@ -10,6 +11,19 @@ let recordingCommandId = $state<string | null>(null);
 $effect(() => {
     if (isOpen) {
         recordingCommandId = null;
+    }
+});
+
+$effect(() => {
+    if (recordingCommandId) {
+        function handler(e: KeyboardEvent) {
+            if (e.key === 'Escape') {
+                e.preventDefault();
+                stopRecording();
+            }
+        }
+        window.addEventListener('keydown', handler, { capture: true });
+        return () => window.removeEventListener('keydown', handler, { capture: true });
     }
 });
 
@@ -61,108 +75,66 @@ function stopRecording() {
 function resetShortcut(commandId: string) {
     shortcutStore.resetShortcut(commandId);
 }
-
-function onKeyDown(e: KeyboardEvent) {
-    if (e.key === 'Escape') {
-        if (recordingCommandId) {
-            stopRecording();
-        } else {
-            onClose();
-        }
-    }
-}
 </script>
 
-<svelte:window onkeydown={onKeyDown} />
+<Modal isOpen={isOpen} onclose={onClose} zindex={10001} class="shortcuts-modal">
+    <div class="modal-header">
+        <h3>Keyboard Shortcuts</h3>
+        <button type="button" class="close-btn" onclick={onClose} aria-label="Close">
+            <X size={18} />
+        </button>
+    </div>
 
-{#if isOpen}
-    <!-- svelte-ignore a11y_no_static_element_interactions -->
-    <!-- biome-ignore lint/a11y/noStaticElementInteractions: backdrop is decorative, can't use button because it wraps modal with buttons -->
-    <div
-        class="overlay"
-        role="presentation"
-        onclick={(e) => { if (e.target === e.currentTarget) onClose(); }}
-    >
-        <div
-            class="modal"
-            role="dialog"
-            aria-modal="true"
-            aria-label="Keyboard Shortcuts"
-            tabindex="-1"
-        >
-            <div class="modal-header">
-                <h3>Keyboard Shortcuts</h3>
-                <button type="button" class="close-btn" onclick={onClose} aria-label="Close">
-                    <X size={18} />
-                </button>
-            </div>
-
-            <div class="shortcuts-list">
-                {#each categories() as [ category, defs ] (category)}
-                    <div class="section">
-                        <h4>{category}</h4>
-                        {#each defs as def (def.command)}
-                            {@const isRecording = recordingCommandId === def.command}
-                            {@const hasCustom = shortcutStore.customShortcuts[def.command]}
-                            <div class="shortcut-row">
-                                <span class="description">{def.description}</span>
-                                <div class="shortcut-actions">
-                                    <button
-                                        type="button"
-                                        class="shortcut-key"
-                                        class:recording={isRecording}
-                                        onclick={() => startRecording(def.command)}
-                                        title="Click to change"
-                                    >
-                                        {isRecording
-                                            ? 'Press keys...'
-                                            : shortcutManager.getShortcutDisplay(def.command)}
-                                    </button>
-                                    {#if hasCustom}
-                                        <button
-                                            type="button"
-                                            class="reset-btn"
-                                            onclick={() => resetShortcut(def.command)}
-                                            title="Reset to default"
-                                        >
-                                            <RotateCcw size={14} />
-                                        </button>
-                                    {/if}
-                                </div>
-                            </div>
-                        {/each}
+    <div class="shortcuts-list">
+        {#each categories() as [ category, defs ] (category)}
+            <div class="section">
+                <h4>{category}</h4>
+                {#each defs as def (def.command)}
+                    {@const isRecording = recordingCommandId === def.command}
+                    {@const hasCustom = shortcutStore.customShortcuts[def.command]}
+                    <div class="shortcut-row">
+                        <span class="description">{def.description}</span>
+                        <div class="shortcut-actions">
+                            <button
+                                type="button"
+                                class="shortcut-key"
+                                class:recording={isRecording}
+                                onclick={() => startRecording(def.command)}
+                                title="Click to change"
+                            >
+                                {isRecording
+                                    ? 'Press keys...'
+                                    : shortcutManager.getShortcutDisplay(def.command)}
+                            </button>
+                            {#if hasCustom}
+                                <button
+                                    type="button"
+                                    class="reset-btn"
+                                    onclick={() => resetShortcut(def.command)}
+                                    title="Reset to default"
+                                >
+                                    <RotateCcw size={14} />
+                                </button>
+                            {/if}
+                        </div>
                     </div>
                 {/each}
-                {#if allShortcuts.length === 0}
-                    <div class="empty-state">
-                        <p>No shortcuts match your search</p>
-                    </div>
-                {/if}
             </div>
-        </div>
+        {/each}
+        {#if allShortcuts.length === 0}
+            <div class="empty-state">
+                <p>No shortcuts match your search</p>
+            </div>
+        {/if}
     </div>
-{/if}
+</Modal>
 
 <style>
-.overlay {
-    position: fixed;
-    inset: 0;
-    background: rgba(0, 0, 0, 0.5);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 10001;
-    backdrop-filter: blur(2px);
-}
-
-.modal {
-    background: var(--bg-pane);
-    border: 1px solid var(--border-color);
-    border-radius: 10px;
+:global(.shortcuts-modal) {
     width: 440px;
     max-height: 80vh;
+    padding: 0;
     overflow: hidden;
-    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.25);
     display: flex;
     flex-direction: column;
 }

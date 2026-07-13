@@ -3,6 +3,7 @@ import { invoke } from '@tauri-apps/api/core';
 import { Keyboard, Settings, X } from 'lucide-svelte';
 import { feedStore, settingsStore, uiStore } from '$lib/store.svelte';
 import { type AppSettings, DEFAULT_SETTINGS } from '$lib/types';
+import Modal from './Modal.svelte';
 import ShortcutsModal from './ShortcutsModal.svelte';
 
 let settings = $state({ ...DEFAULT_SETTINGS });
@@ -55,264 +56,226 @@ function cancel() {
     (document.activeElement as HTMLElement)?.blur();
     settingsStore.closeSettings();
 }
-
-function onKeyDown(e: KeyboardEvent) {
-    if (e.key === 'Escape') cancel();
-}
 </script>
 
-<svelte:window onkeydown={onKeyDown} />
-<!-- svelte-ignore a11y_no_static_element_interactions -->
-<!-- biome-ignore lint/a11y/noStaticElementInteractions: backdrop is decorative, can't use button because it wraps modal with buttons -->
-<div
-    class="modal-overlay"
-    role="presentation"
-    onclick={(e) => { if (e.target === e.currentTarget) cancel(); }}
->
-    <div
-        class="modal"
-        role="dialog"
-        aria-modal="true"
-        tabindex="-1"
-    >
-        <div class="modal-header">
-            <h3><Settings size={18} /> Settings</h3>
-            <button
-                type="button"
-                class="shortcuts-btn"
-                onclick={() => (showShortcuts = true)}
-                title="Keyboard Shortcuts"
-            >
-                <Keyboard size={18} />
-            </button>
-            <button type="button" class="close-btn" onclick={cancel} title="Close">
-                <X size={18} />
-            </button>
-        </div>
+<Modal isOpen={true} onclose={cancel} class="settings-modal">
+    <div class="modal-header">
+        <h3><Settings size={18} /> Settings</h3>
+        <button
+            type="button"
+            class="shortcuts-btn"
+            onclick={() => (showShortcuts = true)}
+            title="Keyboard Shortcuts"
+        >
+            <Keyboard size={18} />
+        </button>
+        <button type="button" class="close-btn" onclick={cancel} title="Close">
+            <X size={18} />
+        </button>
+    </div>
 
-        <div class="modal-content">
-            <div class="form-container">
-                <div class="form-group">
-                    <label for="auto-update">Auto Update Interval (min)</label>
+    <div class="modal-content">
+        <div class="form-container">
+            <div class="form-group">
+                <label for="auto-update">Auto Update Interval (min)</label>
+                <input
+                    type="number"
+                    id="auto-update"
+                    bind:value={settings.auto_update_interval_minutes}
+                    min="5"
+                    title="0 to disable"
+                >
+            </div>
+
+            <div class="form-group">
+                <label for="debounce">Refresh Debounce (min)</label>
+                <div class="range-wrap">
                     <input
-                        type="number"
-                        id="auto-update"
-                        bind:value={settings.auto_update_interval_minutes}
-                        min="5"
-                        title="0 to disable"
+                        type="range"
+                        id="debounce"
+                        min="1"
+                        max="30"
+                        step="1"
+                        bind:value={settings.feed_refresh_debounce_minutes}
                     >
+                    <span class="range-value">{settings.feed_refresh_debounce_minutes} min</span>
                 </div>
+            </div>
 
-                <div class="form-group">
-                    <label for="debounce">Refresh Debounce (min)</label>
-                    <div class="range-wrap">
-                        <input
-                            type="range"
-                            id="debounce"
-                            min="1"
-                            max="30"
-                            step="1"
-                            bind:value={settings.feed_refresh_debounce_minutes}
-                        >
-                        <span class="range-value">{settings.feed_refresh_debounce_minutes} min</span>
-                    </div>
-                </div>
+            <div class="form-group">
+                <label for="default-view">View on Startup</label>
+                <select id="default-view" bind:value={settings.default_view_type}>
+                    <option value="latest">Latest</option>
+                    <option value="saved">Read Later</option>
+                    <option value="last">Last Folder or Feed</option>
+                    <option value="folder">Folder…</option>
+                    <option value="feed">Feed…</option>
+                </select>
+            </div>
 
+            {#if settings.default_view_type === 'folder'}
                 <div class="form-group">
-                    <label for="default-view">View on Startup</label>
-                    <select id="default-view" bind:value={settings.default_view_type}>
-                        <option value="latest">Latest</option>
-                        <option value="saved">Read Later</option>
-                        <option value="last">Last Folder or Feed</option>
-                        <option value="folder">Folder…</option>
-                        <option value="feed">Feed…</option>
+                    <label for="default-folder">Default Folder</label>
+                    <select id="default-folder" bind:value={settings.default_view_id}>
+                        {#each feedStore.folders.filter(f => f.id !== 0) as folder}
+                            <option value={folder.id}>{folder.name}</option>
+                        {/each}
                     </select>
                 </div>
-
-                {#if settings.default_view_type === 'folder'}
-                    <div class="form-group">
-                        <label for="default-folder">Default Folder</label>
-                        <select id="default-folder" bind:value={settings.default_view_id}>
-                            {#each feedStore.folders.filter(f => f.id !== 0) as folder}
-                                <option value={folder.id}>{folder.name}</option>
+            {:else if settings.default_view_type === 'feed'}
+                <div class="form-group">
+                    <label for="default-feed">Default Feed</label>
+                    <select id="default-feed" bind:value={settings.default_view_id}>
+                        {#each feedStore.folders.filter(f => f.id !== 0) as folder}
+                            {#each folder.feeds as feed}
+                                <option value={feed.id}>{folder.name} / {feed.name}</option>
                             {/each}
-                        </select>
-                    </div>
-                {:else if settings.default_view_type === 'feed'}
-                    <div class="form-group">
-                        <label for="default-feed">Default Feed</label>
-                        <select id="default-feed" bind:value={settings.default_view_id}>
-                            {#each feedStore.folders.filter(f => f.id !== 0) as folder}
-                                {#each folder.feeds as feed}
-                                    <option value={feed.id}>{folder.name} / {feed.name}</option>
-                                {/each}
-                            {/each}
-                        </select>
-                    </div>
-                {/if}
-
-                <div class="form-group">
-                    <label for="auto-collapse">Auto Collapse Folders</label>
-                    <div class="checkbox-wrap">
-                        <input
-                            type="checkbox"
-                            id="auto-collapse"
-                            bind:checked={settings.auto_collapse_folders}
-                        >
-                    </div>
-                </div>
-
-                <div class="form-group">
-                    <label for="mark-read-exit">Mark Feed Read on Exit</label>
-                    <div class="checkbox-wrap">
-                        <input
-                            type="checkbox"
-                            id="mark-read-exit"
-                            bind:checked={settings.mark_feed_read_on_exit}
-                        >
-                    </div>
-                </div>
-
-                <h4 class="section-label">Typography</h4>
-
-                <div class="form-group">
-                    <label for="title-font">Article Title Font</label>
-                    <input
-                        type="text"
-                        id="title-font"
-                        bind:value={settings.article_title_font}
-                        placeholder="Default (Serif)"
-                        onclick={() => pickFont('title')}
-                    >
-                </div>
-
-                <div class="form-group">
-                    <label for="body-font">Article Body Font</label>
-                    <input
-                        type="text"
-                        id="body-font"
-                        bind:value={settings.article_body_font}
-                        placeholder="Default (Sans)"
-                        onclick={() => pickFont('body')}
-                    >
-                </div>
-
-                <h4 class="section-label">Colors</h4>
-
-                <div class="form-group">
-                    <label for="title-color">Article Title FG</label>
-                    <div class="color-input-wrap">
-                        <input
-                            type="color"
-                            id="title-color"
-                            bind:value={settings.article_title_color}
-                        >
-                        <input type="text" bind:value={settings.article_title_color}>
-                    </div>
-                </div>
-
-                <div class="form-group">
-                    <label for="body-color">Article Body FG</label>
-                    <div class="color-input-wrap">
-                        <input
-                            type="color"
-                            id="body-color"
-                            bind:value={settings.article_body_color}
-                        >
-                        <input type="text" bind:value={settings.article_body_color}>
-                    </div>
-                </div>
-
-                <div class="form-group">
-                    <label for="bg-color">Article Body BG</label>
-                    <div class="color-input-wrap">
-                        <input type="color" id="bg-color" bind:value={settings.article_bg_color}>
-                        <input type="text" bind:value={settings.article_bg_color}>
-                    </div>
-                </div>
-
-                <h4 class="section-label">Display</h4>
-
-                <div class="form-group">
-                    <label for="thumb-size">Thumbnail Size</label>
-                    <div class="range-wrap">
-                        <input
-                            type="range"
-                            id="thumb-size"
-                            min="0"
-                            max="156"
-                            step="12"
-                            bind:value={settings.thumbnail_size}
-                        >
-                        <span class="range-value"
-                            >{settings.thumbnail_size > 0 ? `${settings.thumbnail_size}px` : 'Off'}</span
-                        >
-                    </div>
-                </div>
-
-                <h4 class="section-label">Maintenance</h4>
-
-                <div class="form-group">
-                    <label for="retention-days">Auto-delete articles</label>
-                    <div class="range-wrap">
-                        <input
-                            type="range"
-                            id="retention-days"
-                            min="0"
-                            max="365"
-                            step="1"
-                            bind:value={settings.article_retention_days}
-                        >
-                        <span class="range-value"
-                            >{settings.article_retention_days > 0 ? `${settings.article_retention_days} days` : 'Never'}</span
-                        >
-                    </div>
-                </div>
-
-                <hr>
-
-                <div class="form-group">
-                    <label for="log-level">Log Level</label>
-                    <select id="log-level" bind:value={settings.log_level}>
-                        <option value="error">Error</option>
-                        <option value="warn">Warn</option>
-                        <option value="info">Info</option>
-                        <option value="debug">Debug</option>
-                        <option value="trace">Trace</option>
+                        {/each}
                     </select>
                 </div>
+            {/if}
+
+            <div class="form-group">
+                <label for="auto-collapse">Auto Collapse Folders</label>
+                <div class="checkbox-wrap">
+                    <input
+                        type="checkbox"
+                        id="auto-collapse"
+                        bind:checked={settings.auto_collapse_folders}
+                    >
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="mark-read-exit">Mark Feed Read on Exit</label>
+                <div class="checkbox-wrap">
+                    <input
+                        type="checkbox"
+                        id="mark-read-exit"
+                        bind:checked={settings.mark_feed_read_on_exit}
+                    >
+                </div>
+            </div>
+
+            <h4 class="section-label">Typography</h4>
+
+            <div class="form-group">
+                <label for="title-font">Article Title Font</label>
+                <input
+                    type="text"
+                    id="title-font"
+                    bind:value={settings.article_title_font}
+                    placeholder="Default (Serif)"
+                    onclick={() => pickFont('title')}
+                >
+            </div>
+
+            <div class="form-group">
+                <label for="body-font">Article Body Font</label>
+                <input
+                    type="text"
+                    id="body-font"
+                    bind:value={settings.article_body_font}
+                    placeholder="Default (Sans)"
+                    onclick={() => pickFont('body')}
+                >
+            </div>
+
+            <h4 class="section-label">Colors</h4>
+
+            <div class="form-group">
+                <label for="title-color">Article Title FG</label>
+                <div class="color-input-wrap">
+                    <input
+                        type="color"
+                        id="title-color"
+                        bind:value={settings.article_title_color}
+                    >
+                    <input type="text" bind:value={settings.article_title_color}>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="body-color">Article Body FG</label>
+                <div class="color-input-wrap">
+                    <input
+                        type="color"
+                        id="body-color"
+                        bind:value={settings.article_body_color}
+                    >
+                    <input type="text" bind:value={settings.article_body_color}>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="bg-color">Article Body BG</label>
+                <div class="color-input-wrap">
+                    <input type="color" id="bg-color" bind:value={settings.article_bg_color}>
+                    <input type="text" bind:value={settings.article_bg_color}>
+                </div>
+            </div>
+
+            <h4 class="section-label">Display</h4>
+
+            <div class="form-group">
+                <label for="thumb-size">Thumbnail Size</label>
+                <div class="range-wrap">
+                    <input
+                        type="range"
+                        id="thumb-size"
+                        min="0"
+                        max="156"
+                        step="12"
+                        bind:value={settings.thumbnail_size}
+                    >
+                    <span class="range-value"
+                        >{settings.thumbnail_size > 0 ? `${settings.thumbnail_size}px` : 'Off'}</span
+                    >
+                </div>
+            </div>
+
+            <h4 class="section-label">Maintenance</h4>
+
+            <div class="form-group">
+                <label for="retention-days">Auto-delete articles</label>
+                <div class="range-wrap">
+                    <input
+                        type="range"
+                        id="retention-days"
+                        min="0"
+                        max="365"
+                        step="1"
+                        bind:value={settings.article_retention_days}
+                    >
+                    <span class="range-value"
+                        >{settings.article_retention_days > 0 ? `${settings.article_retention_days} days` : 'Never'}</span
+                    >
+                </div>
+            </div>
+
+            <hr>
+
+            <div class="form-group">
+                <label for="log-level">Log Level</label>
+                <select id="log-level" bind:value={settings.log_level}>
+                    <option value="error">Error</option>
+                    <option value="warn">Warn</option>
+                    <option value="info">Info</option>
+                    <option value="debug">Debug</option>
+                    <option value="trace">Trace</option>
+                </select>
             </div>
         </div>
     </div>
-</div>
+</Modal>
 
 <ShortcutsModal bind:isOpen={showShortcuts} onClose={() => (showShortcuts = false)} />
 
 <style>
-.modal-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.5);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 10000;
-    backdrop-filter: blur(2px);
-}
-
-.modal {
-    background: var(--bg-pane);
-    border: 1px solid var(--border-color);
-    border-radius: 10px;
-    width: auto;
+:global(.settings-modal) {
     min-width: 460px;
     max-width: 640px;
-    max-height: 80vh;
-    overflow: auto;
-    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.25);
+    padding: 0;
     display: flex;
     flex-direction: column;
 }

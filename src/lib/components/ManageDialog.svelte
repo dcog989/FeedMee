@@ -1,5 +1,6 @@
 <script lang="ts">
 import { feedStore, uiStore } from '$lib/store.svelte';
+import Modal from './Modal.svelte';
 
 let newFeedUrl = $state('');
 let selectedFolderId = $state<number | null>(null);
@@ -71,8 +72,6 @@ async function handleExport() {
 function onKeyDown(e: KeyboardEvent) {
     if (e.key === 'Enter' && canSubmit) {
         submitAddFeed();
-    } else if (e.key === 'Escape') {
-        closeDialog();
     }
 }
 
@@ -81,105 +80,74 @@ function focusOnMount(node: HTMLElement) {
 }
 </script>
 
-<!-- svelte-ignore a11y_no_static_element_interactions -->
-<!-- biome-ignore lint/a11y/noStaticElementInteractions: backdrop is decorative, can't use button because it wraps modal with buttons -->
-<div
-    class="modal-overlay"
-    role="presentation"
-    onclick={(e) => { if (e.target === e.currentTarget) closeDialog(); }}
->
-    <div class="modal">
-        <h3>Manage Content</h3>
-        <div class="input-group">
-            <input
-                type="text"
-                bind:value={newFeedUrl}
-                placeholder="Feed URL or Bluesky profile URL"
-                onkeydown={onKeyDown}
-                use:focusOnMount
-                disabled={isSubmitting}
-            >
-            <button type="button" class="primary" disabled={!canSubmit} onclick={submitAddFeed}>
-                {#if successMessage}
-                    Added!
-                {:else if isSubmitting}
-                    Adding Feed...
-                {:else}
-                    Add Feed
-                {/if}
-            </button>
-        </div>
-
-        <div class="hint">Supports RSS/Atom feeds, websites, and Bluesky profiles</div>
-
-        {#if successMessage}
-            <div class="success-message">{successMessage}</div>
-        {:else if errorMessage}
-            <div class="error-message">{errorMessage}</div>
-        {/if}
-
-        <div class="form-group">
-            <label for="folder-select">Add to folder</label>
-            <select id="folder-select" bind:value={selectedFolderId}>
-                <option value={null}>Root (no folder)</option>
-                {#each feedStore.folders.filter(f => f.id !== 0) as folder (folder.id)}
-                    <option value={folder.id}>{folder.name}</option>
-                {/each}
-            </select>
-        </div>
-
-        <div class="divider">
-            <span>OR</span>
-        </div>
-
-        <div class="opml-row">
-            <button type="button" class="secondary" onclick={handleImport}>Import OPML File</button>
-            <button type="button" class="secondary" onclick={handleExport}>Export OPML File</button>
-        </div>
-
-        <div class="divider">
-            <span>Blocked Phrases</span>
-        </div>
-
-        <div class="form-group">
-            <label for="blocked-phrases"
-                >One phrase per line — articles matching any will be hidden</label
-            >
-            <textarea
-                id="blocked-phrases"
-                bind:value={blockedText}
-                placeholder="Bad Content"
-                rows="4"
-            ></textarea>
-        </div>
+<Modal isOpen={true} onclose={closeDialog} width="400px" class="manage-dialog">
+    <h3>Manage Content</h3>
+    <div class="input-group">
+        <input
+            type="text"
+            bind:value={newFeedUrl}
+            placeholder="Feed URL or Bluesky profile URL"
+            onkeydown={onKeyDown}
+            use:focusOnMount
+            disabled={isSubmitting}
+        >
+        <button type="button" class="primary" disabled={!canSubmit} onclick={submitAddFeed}>
+            {#if successMessage}
+                Added!
+            {:else if isSubmitting}
+                Adding Feed...
+            {:else}
+                Add Feed
+            {/if}
+        </button>
     </div>
-</div>
+
+    <div class="hint">Supports RSS/Atom feeds, websites, and Bluesky profiles</div>
+
+    {#if successMessage}
+        <div class="success-message">{successMessage}</div>
+    {:else if errorMessage}
+        <div class="error-message">{errorMessage}</div>
+    {/if}
+
+    <div class="form-group">
+        <label for="folder-select">Add to folder</label>
+        <select id="folder-select" bind:value={selectedFolderId}>
+            <option value={null}>Root (no folder)</option>
+            {#each feedStore.folders.filter(f => f.id !== 0) as folder (folder.id)}
+                <option value={folder.id}>{folder.name}</option>
+            {/each}
+        </select>
+    </div>
+
+    <div class="divider">
+        <span>OR</span>
+    </div>
+
+    <div class="opml-row">
+        <button type="button" class="secondary" onclick={handleImport}>Import OPML File</button>
+        <button type="button" class="secondary" onclick={handleExport}>Export OPML File</button>
+    </div>
+
+    <div class="divider">
+        <span>Blocked Phrases</span>
+    </div>
+
+    <div class="form-group">
+        <label for="blocked-phrases"
+            >One phrase per line — articles matching any will be hidden</label
+        >
+        <textarea
+            id="blocked-phrases"
+            bind:value={blockedText}
+            placeholder="Bad Content"
+            rows="4"
+        ></textarea>
+    </div>
+</Modal>
 
 <style>
-.modal-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100vw;
-    height: 100vh;
-    background: rgba(0, 0, 0, 0.5);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    z-index: 9999;
-    backdrop-filter: blur(2px);
-}
-
-.modal {
-    background: var(--bg-app);
-    padding: 1.5rem;
-    border-radius: 8px;
-    width: 400px;
-    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
-    border: 1px solid var(--border-color);
-}
-
-.modal h3 {
+h3 {
     margin: 0 0 1rem 0;
     font-size: 1.1rem;
     color: var(--text-primary);

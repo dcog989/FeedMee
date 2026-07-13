@@ -1,79 +1,46 @@
 <script lang="ts">
 import { uiStore } from '$lib/store.svelte';
+import Modal from './Modal.svelte';
 </script>
 
-{#if uiStore.modalState.isOpen}
-    <!-- svelte-ignore a11y_no_static_element_interactions -->
-    <!-- biome-ignore lint/a11y/noStaticElementInteractions: backdrop is decorative, can't use button because it wraps modal with buttons -->
-    <div
-        class="modal-overlay"
-        role="presentation"
-        onclick={(e) => { if (e.target === e.currentTarget) uiStore.closeModal(); }}
-    >
-        <div class="modal">
-            <h3>
-                {uiStore.modalState.type === "confirm"
-                    ? "Confirmation"
-                    : "Alert"}
-            </h3>
-            <p>{uiStore.modalState.message}</p>
-            <div class="modal-actions">
-                {#if uiStore.modalState.type === "confirm"}
-                    <button
-                        type="button"
-                        class="secondary"
-                        onclick={() => uiStore.closeModal()}
-                    >
-                        Cancel
-                    </button>
-                {/if}
-                <button
-                    type="button"
-                    class={uiStore.modalState.type === "confirm"
-                        ? "danger"
-                        : "primary"}
-                    onclick={uiStore.modalState.onConfirm}
-                >
-                    {uiStore.modalState.type === "confirm"
-                        ? "Confirm"
-                        : "OK"}
-                </button>
-            </div>
-        </div>
+<Modal isOpen={uiStore.modalState.isOpen} onclose={() => uiStore.closeModal()}>
+    <h3>
+        {uiStore.modalState.type === "confirm"
+            ? "Confirmation"
+            : "Alert"}
+    </h3>
+    <p>{uiStore.modalState.message}</p>
+    <div class="modal-actions">
+        {#if uiStore.modalState.type === "confirm"}
+            <button
+                type="button"
+                class="secondary"
+                onclick={() => uiStore.closeModal()}
+            >
+                Cancel
+            </button>
+        {/if}
+        <button
+            type="button"
+            class={uiStore.modalState.type === "confirm"
+                ? "danger"
+                : "primary"}
+            onclick={uiStore.modalState.onConfirm}
+        >
+            {uiStore.modalState.type === "confirm"
+                ? "Confirm"
+                : "OK"}
+        </button>
     </div>
-{/if}
+</Modal>
 
 <style>
-.modal-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100vw;
-    height: 100vh;
-    background: rgba(0, 0, 0, 0.5);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    z-index: 10000;
-    backdrop-filter: blur(2px);
-}
-
-.modal {
-    background: var(--bg-pane);
-    padding: 1.5rem;
-    border-radius: 8px;
-    width: 350px;
-    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
-    border: 1px solid var(--border-color);
-    color: var(--text-primary);
-}
-
-.modal h3 {
-    margin-top: 0;
+h3 {
+    margin: 0;
     font-size: 1.1rem;
 }
 
-.modal p {
+p {
     margin: 1rem 0 1.5rem 0;
     color: var(--text-secondary);
 }

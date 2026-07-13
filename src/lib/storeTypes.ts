@@ -112,6 +112,7 @@ export interface UIStore {
   showNewFolderDialog: boolean;
   showEditFeedDialog: boolean;
   editFeedTarget: { id: number; name: string; url: string } | null;
+  renameFolderTarget: { id: number; name: string } | null;
   focusedPane: 'nav' | 'list' | 'reading';
   modalState: {
     isOpen: boolean;
@@ -166,6 +167,7 @@ export interface AppState {
   showNewFolderDialog: boolean;
   showEditFeedDialog: boolean;
   editFeedTarget: { id: number; name: string; url: string } | null;
+  renameFolderTarget: { id: number; name: string } | null;
   expandedFolders: Set<number>;
   blockedPhrases: string[];
   focusedPane: 'nav' | 'list' | 'reading';

@@ -59,6 +59,7 @@ class AppStateImpl {
   showNewFolderDialog = $state(false);
   showEditFeedDialog = $state(false);
   editFeedTarget = $state<{ id: number; name: string; url: string } | null>(null);
+  renameFolderTarget = $state<{ id: number; name: string } | null>(null);
   expandedFolders = $state<Set<number>>(new Set());
   focusedPane = $state<'nav' | 'list' | 'reading'>('nav');
   blockedPhrases = $state<string[]>([]);

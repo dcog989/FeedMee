@@ -32,10 +32,8 @@ export function close() {
 
 function rename() {
     if (cmTarget?.type !== 'folder') return;
-    const newName = prompt('Rename Folder:', cmTarget.name);
-    if (newName && newName.trim() !== '') {
-        feedStore.renameFolder(cmTarget.id, newName.trim());
-    }
+    uiStore.renameFolderTarget = { id: cmTarget.id, name: cmTarget.name ?? '' };
+    uiStore.showNewFolderDialog = true;
     close();
 }
 

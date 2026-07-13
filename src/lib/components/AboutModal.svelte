@@ -2,6 +2,7 @@
 import { invoke } from '@tauri-apps/api/core';
 import { openPath } from '@tauri-apps/plugin-opener';
 import { tooltip } from '$lib/actions/tooltip.svelte';
+import Modal from './Modal.svelte';
 
 let { isOpen = $bindable(false), onClose }: { isOpen: boolean; onClose: () => void } = $props();
 
@@ -36,116 +37,79 @@ function copyToClipboard(text: string) {
 async function openLogsDir() {
     if (appInfo.logs_path) await openPath(appInfo.logs_path);
 }
-
-function onKeyDown(e: KeyboardEvent) {
-    if (e.key === 'Escape') onClose();
-}
 </script>
 
-<svelte:window onkeydown={onKeyDown} />
+<Modal isOpen={isOpen} onclose={onClose} width="420px" class="about-modal">
+    <div class="modal-body">
+        <img src="/feedmee.png" alt="FeedMee" class="logo">
+        <h2>FeedMee</h2>
+        <p class="tagline">Clean, fast RSS &amp; Atom reading.</p>
 
-{#if isOpen}
-        <!-- svelte-ignore a11y_no_static_element_interactions -->
-        <!-- biome-ignore lint/a11y/noStaticElementInteractions: backdrop is decorative, can't use button because it wraps modal with buttons -->
-        <div
-            class="overlay"
-            role="presentation"
-            onclick={(e) => { if (e.target === e.currentTarget) onClose(); }}
-        >
-        <div
-            class="modal"
-            role="dialog"
-            aria-modal="true"
-            aria-label="About FeedMee"
-            tabindex="-1"
-        >
-            <div class="modal-body">
-                <img src="/feedmee.png" alt="FeedMee" class="logo">
-                <h2>FeedMee</h2>
-                <p class="tagline">Clean, fast RSS &amp; Atom reading.</p>
+        <div class="info-rows">
+            <div class="info-row">
+                <span class="label">Version</span>
+                <span class="value mono bold">{appInfo.version}</span>
+                <span class="spacer"></span>
+            </div>
 
-                <div class="info-rows">
-                    <div class="info-row">
-                        <span class="label">Version</span>
-                        <span class="value mono bold">{appInfo.version}</span>
-                        <span class="spacer"></span>
-                    </div>
-
-                    <div class="info-row">
-                        <span class="label">Data</span>
-                        <span class="value mono truncate" title={appInfo.data_path}
-                            >{appInfo.data_path}</span
-                        >
-                        <button
-                            type="button"
-                            class="copy-btn"
-                            onclick={() => copyToClipboard(appInfo.data_path)}
-                            use:tooltip={'Copy path'}
-                        >
-                            Copy
-                        </button>
-                    </div>
-
-                    <div class="info-row">
-                        <span class="label">Logs</span>
-                        <span class="value mono truncate" title={appInfo.logs_path}
-                            >{appInfo.logs_path}</span
-                        >
-                        <button
-                            type="button"
-                            class="copy-btn"
-                            onclick={() => copyToClipboard(appInfo.logs_path)}
-                            use:tooltip={'Copy path'}
-                        >
-                            Copy
-                        </button>
-                    </div>
-
-                    <div class="info-row">
-                        <span class="label">Database</span>
-                        <span class="value mono truncate" title={appInfo.db_path}
-                            >{appInfo.db_path}</span
-                        >
-                        <button
-                            type="button"
-                            class="copy-btn"
-                            onclick={() => copyToClipboard(appInfo.db_path)}
-                            use:tooltip={'Copy path'}
-                        >
-                            Copy
-                        </button>
-                    </div>
-                </div>
-
-                <button type="button" class="open-logs-btn" onclick={openLogsDir}>
-                    Open Logs Folder
+            <div class="info-row">
+                <span class="label">Data</span>
+                <span class="value mono truncate" title={appInfo.data_path}
+                    >{appInfo.data_path}</span
+                >
+                <button
+                    type="button"
+                    class="copy-btn"
+                    onclick={() => copyToClipboard(appInfo.data_path)}
+                    use:tooltip={'Copy path'}
+                >
+                    Copy
                 </button>
+            </div>
 
-                <p class="footer">Giants' Shoulders = Rust / Tauri / Svelte / SQLite</p>
-                <p class="footer">FeedMee � 2025. All rights reserved.</p>
+            <div class="info-row">
+                <span class="label">Logs</span>
+                <span class="value mono truncate" title={appInfo.logs_path}
+                    >{appInfo.logs_path}</span
+                >
+                <button
+                    type="button"
+                    class="copy-btn"
+                    onclick={() => copyToClipboard(appInfo.logs_path)}
+                    use:tooltip={'Copy path'}
+                >
+                    Copy
+                </button>
+            </div>
+
+            <div class="info-row">
+                <span class="label">Database</span>
+                <span class="value mono truncate" title={appInfo.db_path}
+                    >{appInfo.db_path}</span
+                >
+                <button
+                    type="button"
+                    class="copy-btn"
+                    onclick={() => copyToClipboard(appInfo.db_path)}
+                    use:tooltip={'Copy path'}
+                >
+                    Copy
+                </button>
             </div>
         </div>
+
+        <button type="button" class="open-logs-btn" onclick={openLogsDir}>
+            Open Logs Folder
+        </button>
+
+        <p class="footer">Giants' Shoulders = Rust / Tauri / Svelte / SQLite</p>
+        <p class="footer">FeedMee © 2025. All rights reserved.</p>
     </div>
-{/if}
+</Modal>
 
 <style>
-.overlay {
-    position: fixed;
-    inset: 0;
-    background: rgba(0, 0, 0, 0.5);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 10000;
-    backdrop-filter: blur(2px);
-}
-
-.modal {
-    background: var(--bg-pane);
-    border: 1px solid var(--border-color);
-    border-radius: 10px;
-    width: 420px;
-    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.25);
+:global(.about-modal) {
+    padding: 0;
     overflow: hidden;
 }
 
