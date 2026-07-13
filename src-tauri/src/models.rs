@@ -23,7 +23,10 @@ pub struct Feed {
     pub folder_id: Option<i64>,
     pub unread_count: i64,
     pub has_error: bool,
+    #[serde(rename = "source_type")]
     pub feed_type: String,
+    pub display_url: String,
+    pub source_id: String,
 }
 
 #[derive(Serialize, Clone, Debug)]

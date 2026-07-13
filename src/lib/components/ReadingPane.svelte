@@ -70,7 +70,7 @@ function getFeedDomain(feedId: number): string {
         const feed = folder.feeds.find(f => f.id === feedId);
         if (feed) {
             try {
-                return new URL(feed.url).hostname.replace(/^www\./, '');
+                return new URL(feed.display_url).hostname.replace(/^www\./, '');
             } catch {
                 return feed.name;
             }

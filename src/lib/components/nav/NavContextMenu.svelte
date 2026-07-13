@@ -43,7 +43,8 @@ function renameFeed() {
     uiStore.editFeedTarget = {
         id: cmTarget?.id,
         name: cmTarget?.name ?? '',
-        url: feed?.url ?? '',
+        source_type: feed?.source_type ?? '',
+        source_id: feed?.source_id ?? '',
     };
     uiStore.showEditFeedDialog = true;
     close();

@@ -9,9 +9,9 @@ let { feed, isSelected = false }: { feed: Feed; isSelected?: boolean } = $props(
 </script>
 
 <span class="feed-name-wrap">
-    {#if feed.url}
+    {#if feed.display_url}
         <img
-            src={getFavicon(feed.url)}
+            src={getFavicon(feed.display_url)}
             alt=""
             class="feed-favicon"
             loading="lazy"

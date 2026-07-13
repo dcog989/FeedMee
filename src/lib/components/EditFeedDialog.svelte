@@ -3,8 +3,9 @@ import { feedStore, uiStore } from '$lib/store.svelte';
 import Modal from './Modal.svelte';
 
 let name = $state(uiStore.editFeedTarget?.name ?? '');
-let url = $state(uiStore.editFeedTarget?.url ?? '');
-let isBluesky = $derived(url.startsWith('bsky:'));
+let sourceId = $state(uiStore.editFeedTarget?.source_id ?? '');
+let sourceType = $state(uiStore.editFeedTarget?.source_type ?? '');
+let isBluesky = $derived(sourceType === 'bluesky');
 
 function closeDialog() {
     uiStore.showEditFeedDialog = false;
@@ -12,14 +13,15 @@ function closeDialog() {
 }
 
 function submit() {
-    if (name.trim() && url.trim() && uiStore.editFeedTarget) {
-        feedStore.renameFeed(uiStore.editFeedTarget.id, name.trim(), url.trim());
+    if (name.trim() && sourceId.trim() && uiStore.editFeedTarget) {
+        const url = isBluesky ? `bsky:${sourceId.trim()}` : sourceId.trim();
+        feedStore.renameFeed(uiStore.editFeedTarget.id, name.trim(), url);
     }
     closeDialog();
 }
 
 function onKeyDown(e: KeyboardEvent) {
-    if (e.key === 'Enter' && name.trim() && url.trim()) {
+    if (e.key === 'Enter' && name.trim() && sourceId.trim()) {
         submit();
     }
 }
@@ -42,19 +44,19 @@ function focusOnMount(node: HTMLInputElement) {
             use:focusOnMount
         >
     </label>
-    <label class="field">
-        <span>URL</span>
-        <input type="text" bind:value={url} placeholder="Feed URL" onkeydown={onKeyDown} disabled={isBluesky}>
-        {#if isBluesky}
-            <span class="field-note">Bluesky feed URL is fixed and cannot be edited.</span>
-        {/if}
-    </label>
+    <div class="field">
+        <span id="feed-source-id-label">{isBluesky ? 'Bluesky DID' : 'URL'}</span>
+        <input aria-labelledby="feed-source-id-label" type="text" bind:value={sourceId} placeholder="Feed URL" onkeydown={onKeyDown} disabled={isBluesky}>
+    </div>
+    {#if isBluesky}
+        <span class="field-note">Bluesky feed identifier is fixed and cannot be edited.</span>
+    {/if}
     <div class="modal-actions">
         <button type="button" class="secondary" onclick={closeDialog}>Cancel</button>
         <button
             type="button"
             class="primary"
-            disabled={!name.trim() || !url.trim()}
+            disabled={!name.trim() || !sourceId.trim()}
             onclick={submit}
         >
             Save

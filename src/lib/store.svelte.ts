@@ -22,6 +22,7 @@ import type {
 import { createTagOps } from './tags.svelte';
 import type { AppSettings, Article, Folder } from './types';
 import { DEFAULT_SETTINGS } from './types';
+import { createUI } from './ui.svelte';
 import {
   LS_BLOCKED_PHRASES,
   LS_LAST_REFRESHED,
@@ -68,7 +69,7 @@ class AppStateImpl {
   showAbout = $state(false);
   showNewFolderDialog = $state(false);
   showEditFeedDialog = $state(false);
-  editFeedTarget = $state<{ id: number; name: string; url: string } | null>(null);
+  editFeedTarget = $state<{ id: number; name: string; source_type: string; source_id: string } | null>(null);
   renameFolderTarget = $state<{ id: number; name: string } | null>(null);
   expandedFolders = $state<Set<number>>(new Set());
   focusedPane = $state<'nav' | 'list' | 'reading'>('nav');
@@ -104,7 +105,8 @@ class AppStateImpl {
   private nav: ReturnType<typeof createNavigation>;
   private tagOps: ReturnType<typeof createTagOps>;
   private shortcutOps: ReturnType<typeof createShortcutOps>;
-  private autoRefreshTimer: ReturnType<typeof setInterval> | null = null;
+  private ui: ReturnType<typeof createUI>;
+  autoRefreshTimer: ReturnType<typeof setInterval> | null = null;
   constructor() {
     this.refresh = createFeedRefresher(this);
     this.feedOps = createFeedActions(this);
@@ -113,6 +115,7 @@ class AppStateImpl {
     this.nav = createNavigation(this);
     this.tagOps = createTagOps(this);
     this.shortcutOps = createShortcutOps(this);
+    this.ui = createUI(this);
     registerShortcuts(this);
     setupKeyHandler(this);
     this.initStore();
@@ -176,100 +179,19 @@ class AppStateImpl {
   deleteFolder = (id: number) => this.feedOps.deleteFolder(id);
   moveFeed = (feedId: number, folderId: number | null) => this.feedOps.moveFeed(feedId, folderId);
 
-  async setBlockedPhrases(phrases: string[]) {
-    this.blockedPhrases = phrases;
-    localStorage.setItem(LS_BLOCKED_PHRASES, JSON.stringify(phrases));
-    await this.reloadCurrentArticleList();
-  }
-
-  persistLayoutSettings() {
-    localStorage.setItem(LS_NAV_WIDTH, this.navWidth.toString());
-    localStorage.setItem(LS_LIST_WIDTH, this.listWidth.toString());
-    localStorage.setItem(LS_SORT_ORDER, this.sortOrder);
-  }
-
-  async setSortOrder(order: SortOrder) {
-    if (this.sortOrder !== order) {
-      this.sortOrder = order;
-      this.persistLayoutSettings();
-      await this.reloadCurrentArticleList();
-    }
-  }
-
-  async setSearch(query: string) {
-    this.searchQuery = query;
-    await this.reloadCurrentArticleList();
-  }
-
-  setTheme(newTheme: Theme) {
-    this.theme = newTheme;
-    localStorage.setItem(LS_THEME, newTheme);
-  }
-
-  openSettings() {
-    this.showSettings = true;
-  }
-
-  closeSettings() {
-    this.showSettings = false;
-  }
-
-  openAbout() {
-    this.showAbout = true;
-  }
-
-  closeAbout() {
-    this.showAbout = false;
-  }
-
-  async saveSettings(newSettings: AppSettings, closeModal = true) {
-    try {
-      await invoke('save_app_settings', { newSettings });
-      this.settings = newSettings;
-      if (this.autoRefreshTimer !== null) {
-        clearInterval(this.autoRefreshTimer);
-        this.autoRefreshTimer = null;
-      }
-      this.startAutoRefreshTimer();
-      if (closeModal) this.closeSettings();
-    } catch (e) {
-      this.alert(`Failed to save settings: ${e}`);
-    }
-  }
-
-  confirm(message: string, onConfirm: () => void | Promise<void>) {
-    this.modalState = {
-      isOpen: true,
-      type: 'confirm',
-      message,
-      onConfirm: () => {
-        this.modalState.isOpen = false;
-        Promise.resolve(onConfirm()).catch((e) => console.error('confirm callback failed:', e));
-      },
-    };
-  }
-
-  alert(message: string) {
-    this.modalState = {
-      isOpen: true,
-      type: 'alert',
-      message,
-      onConfirm: () => {
-        this.modalState.isOpen = false;
-      },
-    };
-  }
-
-  closeModal() {
-    this.modalState.isOpen = false;
-  }
-
-  private startAutoRefreshTimer() {
-    if (this.settings.auto_update_interval_minutes > 0) {
-      const intervalMs = this.settings.auto_update_interval_minutes * 60 * 1000;
-      this.autoRefreshTimer = setInterval(() => this.refreshAllFeeds(), intervalMs);
-    }
-  }
+  setBlockedPhrases = (phrases: string[]) => this.ui.setBlockedPhrases(phrases);
+  persistLayoutSettings = () => this.ui.persistLayoutSettings();
+  setSortOrder = (order: SortOrder) => this.ui.setSortOrder(order);
+  setSearch = (query: string) => this.ui.setSearch(query);
+  setTheme = (newTheme: Theme) => this.ui.setTheme(newTheme);
+  openSettings = () => this.ui.openSettings();
+  closeSettings = () => this.ui.closeSettings();
+  openAbout = () => this.ui.openAbout();
+  closeAbout = () => this.ui.closeAbout();
+  saveSettings = (newSettings: AppSettings, closeModal?: boolean) => this.ui.saveSettings(newSettings, closeModal);
+  confirm = (message: string, onConfirm: () => void | Promise<void>) => this.ui.confirm(message, onConfirm);
+  alert = (message: string) => this.ui.alert(message);
+  closeModal = () => this.ui.closeModal();
 
   private async initStore() {
     const storedNav = localStorage.getItem(LS_NAV_WIDTH);
@@ -305,7 +227,7 @@ class AppStateImpl {
       invoke<AppSettings>('get_app_settings')
         .then((s) => {
           this.settings = s;
-          this.startAutoRefreshTimer();
+          this.ui.startAutoRefreshTimer();
         })
         .catch((e) => console.error('Failed to load settings', e)),
       this.shortcutOps.loadShortcutSettings(),

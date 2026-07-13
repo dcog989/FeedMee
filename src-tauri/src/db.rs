@@ -138,6 +138,15 @@ pub fn purge_old_articles(conn: &Connection, retention_days: u64) -> Result<usiz
     Ok(count)
 }
 
+fn feed_derived_fields(url: &str, feed_type: &str) -> (String, String) {
+    if feed_type == "bluesky" {
+        let did = url.strip_prefix("bsky:").unwrap_or(url);
+        (String::new(), did.to_string())
+    } else {
+        (url.to_string(), url.to_string())
+    }
+}
+
 // --- Read Operations ---
 
 pub fn get_folders_with_feeds(conn: &Connection) -> Result<Vec<Folder>> {
@@ -177,14 +186,19 @@ pub fn get_folders_with_feeds(conn: &Connection) -> Result<Vec<Folder>> {
     let root_feeds: Vec<Feed> = root_feed_stmt
         .query_map([], |r| {
             let raw_fid: i64 = r.get(3)?;
+            let url_str: String = r.get(2)?;
+            let feed_type_str: String = r.get(5).unwrap_or_else(|_| "rss".to_string());
+            let (display_url, source_id) = feed_derived_fields(&url_str, &feed_type_str);
             Ok(Feed {
                 id: r.get(0)?,
                 name: r.get(1)?,
-                url: r.get(2)?,
+                url: url_str,
                 folder_id: if raw_fid == 0 { None } else { Some(raw_fid) },
                 has_error: r.get::<_, bool>(4).unwrap_or(false),
-                feed_type: r.get(5).unwrap_or_else(|_| "rss".to_string()),
+                feed_type: feed_type_str,
                 unread_count: r.get(6)?,
+                display_url,
+                source_id,
             })
         })
         .and_then(|rows| rows.collect())?;
@@ -196,14 +210,19 @@ pub fn get_folders_with_feeds(conn: &Connection) -> Result<Vec<Folder>> {
             let feeds: Vec<Feed> = feed_stmt
                 .query_map([id], |r| {
                     let raw_fid: i64 = r.get(3)?;
+                    let url_str: String = r.get(2)?;
+                    let feed_type_str: String = r.get(5).unwrap_or_else(|_| "rss".to_string());
+                    let (display_url, source_id) = feed_derived_fields(&url_str, &feed_type_str);
                     Ok(Feed {
                         id: r.get(0)?,
                         name: r.get(1)?,
-                        url: r.get(2)?,
+                        url: url_str,
                         folder_id: if raw_fid == 0 { None } else { Some(raw_fid) },
                         has_error: r.get::<_, bool>(4).unwrap_or(false),
-                        feed_type: r.get(5).unwrap_or_else(|_| "rss".to_string()),
+                        feed_type: feed_type_str,
                         unread_count: r.get(6)?,
+                        display_url,
+                        source_id,
                     })
                 })
                 .and_then(|rows| rows.collect())?;
@@ -339,14 +358,19 @@ pub fn get_feed(conn: &Connection, feed_id: i64) -> Result<Feed> {
         params![feed_id],
         |r| {
             let raw_fid: i64 = r.get(3)?;
+            let url_str: String = r.get(2)?;
+            let feed_type_str: String = r.get(5).unwrap_or_else(|_| "rss".to_string());
+            let (display_url, source_id) = feed_derived_fields(&url_str, &feed_type_str);
             Ok(Feed {
                 id: r.get(0)?,
                 name: r.get(1)?,
-                url: r.get(2)?,
+                url: url_str,
                 folder_id: if raw_fid == 0 { None } else { Some(raw_fid) },
                 has_error: r.get::<_, bool>(4).unwrap_or(false),
-                feed_type: r.get(5).unwrap_or_else(|_| "rss".to_string()),
+                feed_type: feed_type_str,
                 unread_count: r.get(6)?,
+                display_url,
+                source_id,
             })
         },
     )

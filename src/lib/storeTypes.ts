@@ -111,7 +111,7 @@ export interface UIStore {
   showAbout: boolean;
   showNewFolderDialog: boolean;
   showEditFeedDialog: boolean;
-  editFeedTarget: { id: number; name: string; url: string } | null;
+  editFeedTarget: { id: number; name: string; source_type: string; source_id: string } | null;
   renameFolderTarget: { id: number; name: string } | null;
   focusedPane: 'nav' | 'list' | 'reading';
   modalState: {
@@ -151,4 +151,12 @@ export interface ShortcutStore {
   resetShortcut(commandId: string): void;
 }
 
-export interface AppState extends ArticleStore, FeedStore, NavStore, UIStore, SettingsStore, ShortcutStore, TagStore {}
+export interface AppState
+  extends ArticleStore,
+    FeedStore,
+    NavStore,
+    UIStore,
+    SettingsStore,
+    ShortcutStore,
+    TagStore,
+    RefreshStore {}

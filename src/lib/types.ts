@@ -7,10 +7,12 @@ export interface Folder {
 export interface Feed {
   id: number;
   name: string;
-  url: string;
   folder_id: number | null;
   unread_count: number;
   has_error: boolean;
+  source_type: string;
+  display_url: string;
+  source_id: string;
 }
 
 export interface Article {
