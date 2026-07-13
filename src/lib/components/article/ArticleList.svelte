@@ -2,6 +2,7 @@
 import { invoke } from '@tauri-apps/api/core';
 import { articleStore, FEED_ID_LATEST, FEED_ID_SAVED, FEED_ID_TODAY, settingsStore } from '$lib/store.svelte';
 import type { Article } from '$lib/types';
+import { thumbnailCacheKey } from '$lib/utils/thumbnail';
 import ArticleCard from './ArticleCard.svelte';
 
 let { onContextMenu, onTagToggle, tagArticleId = null, onScroll: onExternalScroll }: {
@@ -20,7 +21,7 @@ let thumbnailSize = $derived(settingsStore.settings.thumbnail_size || 0);
 
 async function loadThumbnail(articleUrl: string, imageUrl: string) {
     const size = thumbnailSize;
-    const cacheKey = `${imageUrl || articleUrl}_${size}`;
+    const cacheKey = thumbnailCacheKey(imageUrl, articleUrl, size);
     if (cacheKey in thumbnailCache || thumbnailPending.has(cacheKey)) return;
     thumbnailPending.add(cacheKey);
     try {

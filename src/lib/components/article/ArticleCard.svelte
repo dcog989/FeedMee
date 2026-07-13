@@ -3,6 +3,7 @@ import { Bookmark, Image, Tags } from 'lucide-svelte';
 import { tooltip } from '$lib/actions/tooltip.svelte';
 import { articleStore } from '$lib/store.svelte';
 import type { Article } from '$lib/types';
+import { thumbnailCacheKey } from '$lib/utils/thumbnail';
 
 let { article, isSelected, thumbnailSize, thumbnailCache, isTagOpen = false, onContextMenu, onTagToggle }: {
     article: Article;
@@ -36,9 +37,9 @@ function handleKeydown(e: KeyboardEvent) {
 >
     {#if thumbnailSize > 0}
         <div class="thumbnail-wrap" style="width:{thumbnailSize}px;height:{thumbnailSize}px">
-            {#if thumbnailCache[`${article.image_url || article.url}_${thumbnailSize}`]}
+            {#if thumbnailCache[thumbnailCacheKey(article.image_url, article.url, thumbnailSize)]}
                 <img
-                    src={thumbnailCache[`${article.image_url || article.url}_${thumbnailSize}`]}
+                    src={thumbnailCache[thumbnailCacheKey(article.image_url, article.url, thumbnailSize)]}
                     alt=""
                 >
             {:else}
