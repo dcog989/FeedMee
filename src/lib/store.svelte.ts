@@ -22,6 +22,16 @@ import type {
 import { createTagOps } from './tags.svelte';
 import type { AppSettings, Article, Folder } from './types';
 import { DEFAULT_SETTINGS } from './types';
+import {
+  LS_BLOCKED_PHRASES,
+  LS_LAST_REFRESHED,
+  LS_LAST_VIEW_ID,
+  LS_LAST_VIEW_TYPE,
+  LS_LIST_WIDTH,
+  LS_NAV_WIDTH,
+  LS_SORT_ORDER,
+  LS_THEME,
+} from './utils/persistence';
 
 export type {
   AppState,
@@ -168,14 +178,14 @@ class AppStateImpl {
 
   async setBlockedPhrases(phrases: string[]) {
     this.blockedPhrases = phrases;
-    localStorage.setItem('blockedPhrases', JSON.stringify(phrases));
+    localStorage.setItem(LS_BLOCKED_PHRASES, JSON.stringify(phrases));
     await this.reloadCurrentArticleList();
   }
 
   persistLayoutSettings() {
-    localStorage.setItem('navWidth', this.navWidth.toString());
-    localStorage.setItem('listWidth', this.listWidth.toString());
-    localStorage.setItem('sortOrder', this.sortOrder);
+    localStorage.setItem(LS_NAV_WIDTH, this.navWidth.toString());
+    localStorage.setItem(LS_LIST_WIDTH, this.listWidth.toString());
+    localStorage.setItem(LS_SORT_ORDER, this.sortOrder);
   }
 
   async setSortOrder(order: SortOrder) {
@@ -193,7 +203,7 @@ class AppStateImpl {
 
   setTheme(newTheme: Theme) {
     this.theme = newTheme;
-    localStorage.setItem('theme', newTheme);
+    localStorage.setItem(LS_THEME, newTheme);
   }
 
   openSettings() {
@@ -262,18 +272,18 @@ class AppStateImpl {
   }
 
   private async initStore() {
-    const storedNav = localStorage.getItem('navWidth');
-    const storedList = localStorage.getItem('listWidth');
-    const storedSort = localStorage.getItem('sortOrder');
-    const storedTheme = localStorage.getItem('theme');
-    const storedLastRefreshed = localStorage.getItem('lastRefreshed');
+    const storedNav = localStorage.getItem(LS_NAV_WIDTH);
+    const storedList = localStorage.getItem(LS_LIST_WIDTH);
+    const storedSort = localStorage.getItem(LS_SORT_ORDER);
+    const storedTheme = localStorage.getItem(LS_THEME);
+    const storedLastRefreshed = localStorage.getItem(LS_LAST_REFRESHED);
 
     if (storedNav) this.navWidth = parseInt(storedNav, 10);
     if (storedList) this.listWidth = parseInt(storedList, 10);
     if (storedSort === 'asc' || storedSort === 'desc') this.sortOrder = storedSort;
     if (storedTheme === 'light' || storedTheme === 'dark' || storedTheme === 'system') this.theme = storedTheme;
 
-    const storedBlocked = localStorage.getItem('blockedPhrases');
+    const storedBlocked = localStorage.getItem(LS_BLOCKED_PHRASES);
     if (storedBlocked) {
       try {
         this.blockedPhrases = JSON.parse(storedBlocked);
@@ -313,8 +323,8 @@ class AppStateImpl {
     if (viewType === 'saved') this.selectFeed(FEED_ID_SAVED);
     else if (viewType === 'latest') this.selectFeed(FEED_ID_LATEST);
     else if (viewType === 'last') {
-      const lastViewType = localStorage.getItem('lastViewType');
-      const lastViewId = parseInt(localStorage.getItem('lastViewId') || '0', 10);
+      const lastViewType = localStorage.getItem(LS_LAST_VIEW_TYPE);
+      const lastViewId = parseInt(localStorage.getItem(LS_LAST_VIEW_ID) || '0', 10);
       if (lastViewType === 'folder' && lastViewId > 0) {
         this.selectFolder(lastViewId);
         expandFolderId = lastViewId;

@@ -1,6 +1,7 @@
 <script lang="ts">
 import { Info, Rss, Settings } from 'lucide-svelte';
 import { navStore, refreshStore, uiStore } from '$lib/store.svelte';
+import { LS_EXPANDED_FOLDERS } from '$lib/utils/persistence';
 import FolderGroup from './nav/FolderGroup.svelte';
 import NavContextMenu from './nav/NavContextMenu.svelte';
 import NavToolbar from './nav/NavToolbar.svelte';
@@ -38,7 +39,7 @@ $effect(() => {
 
 $effect(() => {
     if (!initialized) {
-        const stored = localStorage.getItem('appState.expandedFolders');
+        const stored = localStorage.getItem(LS_EXPANDED_FOLDERS);
         if (stored) {
             try {
                 const ids = JSON.parse(stored);
@@ -58,7 +59,7 @@ $effect(() => {
 $effect(() => {
     if (initialized) {
         localStorage.setItem(
-            'appState.expandedFolders',
+            LS_EXPANDED_FOLDERS,
             JSON.stringify(Array.from(navStore.expandedFolders)),
         );
     }

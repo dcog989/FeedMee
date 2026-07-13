@@ -1,4 +1,5 @@
 import type { Folder } from './types';
+import { LS_LAST_REFRESHED } from './utils/persistence';
 
 interface FreshnessDeps {
   folders: Folder[];
@@ -30,7 +31,7 @@ export function createFreshnessHelpers(state: FreshnessDeps) {
 
   function persistLastRefreshed() {
     const obj = Object.fromEntries(state.lastRefreshed);
-    localStorage.setItem('lastRefreshed', JSON.stringify(obj));
+    localStorage.setItem(LS_LAST_REFRESHED, JSON.stringify(obj));
   }
 
   function isFeedFresh(feedId: number): boolean {
