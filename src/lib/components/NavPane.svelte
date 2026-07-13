@@ -14,6 +14,27 @@ let initialized = false;
 let expandTimeout: ReturnType<typeof setTimeout> | null = null;
 let expandTargetId: number | null = null;
 let ctxMenu: NavContextMenu;
+let folderListEl: HTMLDivElement | undefined;
+
+$effect(() => {
+    const feedId = navStore.selectedFeedId;
+    const folderId = navStore.selectedFolderId;
+    const folders = navStore.folders;
+
+    if (folders.length > 0 && (feedId !== null || folderId !== null)) {
+        requestAnimationFrame(() => {
+            let selector: string | null = null;
+            if (feedId !== null && feedId > 0) {
+                selector = '.feed-item.selected';
+            } else if (folderId !== null) {
+                selector = '.folder-header.selected';
+            }
+            if (selector) {
+                folderListEl?.querySelector<HTMLElement>(selector)?.scrollIntoView({ block: 'start' });
+            }
+        });
+    }
+});
 
 $effect(() => {
     if (!initialized) {
@@ -125,7 +146,7 @@ function onDragLeavePane(e: DragEvent) {
 >
     <NavToolbar onExpandAll={expandAll} onCollapseAll={collapseAll} />
 
-    <div class="folder-list" onscroll={() => ctxMenu.close()}>
+    <div class="folder-list" bind:this={folderListEl} onscroll={() => ctxMenu.close()}>
         {#each navStore.folders.filter((f) => f.id !== 0) as folder (folder.id)}
             <FolderGroup
                 {folder}
