@@ -3,6 +3,17 @@ import type { RefreshStore } from './storeTypes';
 
 const REFRESH_CONCURRENCY = 5;
 
+async function runWithConcurrency<T>(items: T[], fn: (item: T) => Promise<void>, concurrency: number) {
+  let index = 0;
+  const worker = async () => {
+    while (index < items.length) {
+      const item = items[index++];
+      await fn(item);
+    }
+  };
+  await Promise.all(Array.from({ length: concurrency }, () => worker()));
+}
+
 export function createFeedRefresher(state: RefreshStore) {
   let saveTimer: ReturnType<typeof setTimeout> | null = null;
 
@@ -46,20 +57,8 @@ export function createFeedRefresher(state: RefreshStore) {
     for (const f of staleFeeds) addSet.add(f.id);
     state.updatingFeedIds = addSet;
 
-    let index = 0;
-    const worker = async () => {
-      while (index < staleFeeds.length) {
-        const feed = staleFeeds[index++];
-        await performSingleFeedRefresh(feed.id);
-      }
-    };
-
-    const workers = Array(REFRESH_CONCURRENCY)
-      .fill(null)
-      .map(() => worker());
-
     try {
-      await Promise.all(workers);
+      await runWithConcurrency(staleFeeds, (feed) => performSingleFeedRefresh(feed.id), REFRESH_CONCURRENCY);
       await state.refreshFolders();
       if (state.selectedFeedId !== null || state.selectedFolderId !== null) {
         await state.reloadCurrentArticleList();
@@ -98,20 +97,8 @@ export function createFeedRefresher(state: RefreshStore) {
     for (const f of staleFeeds) addSet.add(f.id);
     state.updatingFeedIds = addSet;
 
-    let index = 0;
-    const worker = async () => {
-      while (index < staleFeeds.length) {
-        const feed = staleFeeds[index++];
-        await performSingleFeedRefresh(feed.id);
-      }
-    };
-
-    const workers = Array(REFRESH_CONCURRENCY)
-      .fill(null)
-      .map(() => worker());
-
     try {
-      await Promise.all(workers);
+      await runWithConcurrency(staleFeeds, (feed) => performSingleFeedRefresh(feed.id), REFRESH_CONCURRENCY);
       await state.refreshFolders();
       if (state.selectedFolderId === folderId || folder.feeds.some((f) => f.id === state.selectedFeedId)) {
         await state.reloadCurrentArticleList();
