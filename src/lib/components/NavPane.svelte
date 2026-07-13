@@ -1,7 +1,7 @@
 <script lang="ts">
 import { Info, Rss, Settings } from 'lucide-svelte';
 import { navStore, refreshStore, uiStore } from '$lib/store.svelte';
-import { LS_EXPANDED_FOLDERS } from '$lib/utils/persistence';
+import { useExpandedFolders } from '$lib/useExpandedFolders.svelte';
 import FolderGroup from './nav/FolderGroup.svelte';
 import NavContextMenu from './nav/NavContextMenu.svelte';
 import NavToolbar from './nav/NavToolbar.svelte';
@@ -11,11 +11,17 @@ function openAddDialog() {
     uiStore.showAddDialog = true;
 }
 
-let initialized = false;
 let expandTimeout: ReturnType<typeof setTimeout> | null = null;
 let expandTargetId: number | null = null;
 let ctxMenu: NavContextMenu;
 let folderListEl: HTMLDivElement | undefined;
+
+const expanded = useExpandedFolders({
+    get folders() { return navStore.folders; },
+    get expandedFolders() { return navStore.expandedFolders; },
+    set expandedFolders(v: Set<number>) { navStore.expandedFolders = v; },
+    get autoCollapseFolders() { return navStore.settings.auto_collapse_folders; },
+});
 
 $effect(() => {
     const feedId = navStore.selectedFeedId;
@@ -36,57 +42,6 @@ $effect(() => {
         });
     }
 });
-
-$effect(() => {
-    if (!initialized) {
-        const stored = localStorage.getItem(LS_EXPANDED_FOLDERS);
-        if (stored) {
-            try {
-                const ids = JSON.parse(stored);
-                navStore.expandedFolders = new Set(ids);
-            } catch (e) {
-                console.error(e);
-            }
-        } else {
-            const newSet = new Set(navStore.expandedFolders);
-            for (const f of navStore.folders) newSet.add(f.id);
-            navStore.expandedFolders = newSet;
-        }
-        initialized = true;
-    }
-});
-
-$effect(() => {
-    if (initialized) {
-        localStorage.setItem(
-            LS_EXPANDED_FOLDERS,
-            JSON.stringify(Array.from(navStore.expandedFolders)),
-        );
-    }
-});
-
-function toggleFolder(id: number) {
-    const newSet = new Set(navStore.expandedFolders);
-    if (newSet.has(id)) {
-        newSet.delete(id);
-    } else {
-        if (navStore.settings.auto_collapse_folders) {
-            newSet.clear();
-        }
-        newSet.add(id);
-    }
-    navStore.expandedFolders = newSet;
-}
-
-function expandAll() {
-    const newSet = new Set<number>();
-    for (const f of navStore.folders) newSet.add(f.id);
-    navStore.expandedFolders = newSet;
-}
-
-function collapseAll() {
-    navStore.expandedFolders = new Set();
-}
 
 function handleNavDragOver(e: DragEvent) {
     e.preventDefault();
@@ -145,7 +100,7 @@ function onDragLeavePane(e: DragEvent) {
     ondragover={handleNavDragOver}
     ondragleave={onDragLeavePane}
 >
-    <NavToolbar onExpandAll={expandAll} onCollapseAll={collapseAll} />
+    <NavToolbar onExpandAll={expanded.expandAll} onCollapseAll={expanded.collapseAll} />
 
     <div class="folder-list" bind:this={folderListEl} onscroll={() => ctxMenu.close()}>
         {#each navStore.folders.filter((f) => f.id !== 0) as folder (folder.id)}
@@ -154,7 +109,7 @@ function onDragLeavePane(e: DragEvent) {
                 isExpanded={navStore.expandedFolders.has(folder.id)}
                 onToggle={(e) => {
                     e.stopPropagation();
-                    toggleFolder(folder.id);
+                    expanded.toggleFolder(folder.id);
                 }}
                 onContextMenu={(e, type, id, name) => ctxMenu.show(e, type, id, name)}
                 onFeedsChange={(folderId, feeds) => {
