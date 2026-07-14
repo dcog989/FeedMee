@@ -41,6 +41,14 @@ $effect(() => {
     }
 });
 
+$effect(() => {
+    if (listContainer) {
+        articleStore.selectedFeedId;
+        articleStore.selectedFolderId;
+        listContainer.scrollTop = 0;
+    }
+});
+
 function onScroll() {
     if (!listContainer) return;
     const { scrollTop, scrollHeight, clientHeight } = listContainer;
