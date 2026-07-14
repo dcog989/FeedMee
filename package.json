@@ -37,7 +37,7 @@
   "devDependencies": {
     "@biomejs/biome": "^2.5.3",
     "@sveltejs/adapter-static": "^3.0.10",
-    "@sveltejs/kit": "^2.69.2",
+    "@sveltejs/kit": "^2.69.3",
     "@sveltejs/vite-plugin-svelte": "^7.2.0",
     "@tauri-apps/cli": "^2.11.4",
     "lefthook": "^2.1.10",
