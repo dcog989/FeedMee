@@ -4,7 +4,7 @@ description = "The seriously fast feed reader."
 authors = ["dcog989"]
 edition = "2024"
 license = "MIT"
-version = "0.19.0"
+version = "0.19.1"
 
 [lib]
 crate-type = ["staticlib", "cdylib", "rlib"]
