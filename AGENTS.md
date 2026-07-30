@@ -1,111 +1,75 @@
-# AGENTS.md
+# Agent Directives
 
-FeedMee is a desktop RSS / Atom news feed reader with a clean, minimal style. It aims for fast performance, minimal resource usage.
+## Project Context
 
-## Dev Environment
+- Name: FeedMee
+- Description: Desktop RSS / Atom news feed reader with a clean, minimal style. Fast performance, minimal resource usage.
+- Tech: Tauri (v2.11), Rust (2024 / v1.95), Svelte (v5.56), TypeScript (v6.0), SQLite (v3.53)
 
-Linux CachyOS / KDE Plasma 6 + Firefox, Zed code editor, fish shell with Ghostty + Fresh editor. yay and bun package managers. All software is updated as of today.
+## Key Files
 
-## Tech Stack
+- `src-tauri/src/main.rs` — Rust entry point
+- `src/routes/+layout.svelte` — Svelte root layout
+- `src/lib/store.svelte.ts` — Central state (Svelte 5 runes)
+- `src/lib/storeTypes.ts` — AppState interface
+- `src/lib/types.ts` — Shared data types
+- `src/lib/articleActions.svelte.ts` — Article list loading/pagination/search
+- `src/lib/feedActions.svelte.ts` — Feed/folder CRUD
+- `src/lib/feedRefresh.svelte.ts` — Concurrent feed refresh scheduler
+- `src/lib/keyboardNav.svelte.ts` — Customizable keyboard shortcuts
+- `src-tauri/src/commands/feeds.rs` — Feed discovery/add
+- `src-tauri/src/commands/refresh.rs` — Feed refresh + og:image backfill
+- `src-tauri/src/commands/crud.rs` — Article/folder/tag CRUD
+- `src-tauri/src/commands/scraper.rs` — HTML scraping, og:image extraction
+- `src-tauri/src/commands/thumbnails.rs` — Thumbnail download/resize/WebP cache
+- `src-tauri/src/connectors/bluesky.rs` — Bluesky AT Protocol integration
+- `src-tauri/src/connectors/mod.rs` — Connector registry
+- `src-tauri/src/db.rs` — SQLite schema, migrations, queries
 
-- **Tauri** (v2.11) - Desktop framework wrapping the web frontend
-- **Rust** (2024 / v1.95) - Backend logic, web scraping, image processing, file I/O
-- **Svelte** (v5.55) - Frontend framework with Svelte 5 runes (`.svelte.ts` files)
-- **TypeScript** (v6.0) - Type-safe frontend code
-- **SQLite** (v3.53) - Local database for metadata/bookmarks
+---
 
-## Entry Points
+## Development Workflow
 
-- `src-tauri/src/main.rs` - Rust application entry point
-- `src/routes/+layout.svelte` - Svelte root layout component
-
-### Core Components
-
-- `src/routes/+page.svelte` - Main UI with 3-pane layout. To be extended in future version.
-- `src/lib/components/NavPane.svelte` - Folder/feed navigation
-- `src/lib/components/ArticleListPane.svelte` - Article list
-- `src/lib/components/ReadingPane.svelte` - Article content reader
-- `src/lib/components/TagManager.svelte` - Inline tag add/remove UI
-- `src/lib/components/ManageDialog.svelte` - Add feed / OPML / blocked phrases dialog
-- `src/lib/components/SettingsModal.svelte` - Settings (refresh, thumbnail, themes, shortcuts)
-- `src/lib/components/ReadingPane.svelte` - Article content reader
-- `src/lib/store.svelte.ts` - Central state management
-- `src/lib/storeTypes.ts` - AppState interface type definitions
-- `src/lib/types.ts` - Shared data types (Article, Feed, Folder, Tag, etc.)
-- `src/lib/articleActions.svelte.ts` - Article list loading/pagination/search
-- `src/lib/feedActions.svelte.ts` - Feed/folder CRUD operations
-- `src/lib/feedRefresh.svelte.ts` - Concurrent feed refresh scheduler
-- `src/lib/keyboardNav.svelte.ts` - Customizable keyboard shortcuts
-
-### Rust Command Modules
-
-- `src-tauri/src/commands/feeds.rs` - Feed add/discovery (RSS, website, Bluesky)
-- `src-tauri/src/commands/refresh.rs` - Feed refresh with og:image backfill
-- `src-tauri/src/commands/crud.rs` - Article/folder/tag CRUD
-- `src-tauri/src/commands/scraper.rs` - HTML scraping, og:image extraction
-- `src-tauri/src/commands/thumbnails.rs` - Thumbnail download, resize, WebP cache
-- `src-tauri/src/connectors/bluesky.rs` - Bluesky AT Protocol integration
-- `src-tauri/src/connectors/mod.rs` - Connector registry
-- `src-tauri/src/db.rs` - SQLite schema, migrations, queries
-
-### Build Output
-
-- `src-tauri/target/` - Rust build artifacts
-- `build/` - Svelte compiled frontend (configured in `tauri.conf.json`)
-
-## Key Architecture
-
-### Performance Optimizations
-
-- Pagination (50 articles/page) with infinite scroll
-- Concurrent feed refresh (5 workers max)
-- Debounced refresh operations (configurable, default 5min/2min)
-- Auto-vacuum every 24 hours
-
-### Caching Strategy
-
-- In-memory state via Svelte 5 runes in `store.svelte.ts`
-- LocalStorage for UI preferences (nav width, sort order)
-- SQLite for persistent data (feeds, articles, read/saved status)
-- Log rotation (5 files max) in app data directory
-
-### Event Handling
-
-- Tauri invoke commands for all backend operations
-- UI updates via reactive `$state` and `$effect`
-- Modal system for confirmations/alerts
-- Tooltip system via Svelte actions (`tooltip.svelte.ts`)
-
-### Decorator System
-
-- None - uses plain Svelte 5 components with TypeScript
-
-## Coding Principles
-
-- Use current coding standards and patterns (Svelte 5 runes, modern TS/Rust)
-- KISS, Occam's razor, DRY, YAGNI
-- Optimize for actual and perceived performance
-- Self-documenting code via clear naming
-- Comments only for workarounds/complex logic - do NOT add comments as running dev commentary.
-- No magic numbers
-- Split files of 400+ lines in to separate distinct functions
-- **Do NOT create docs files** (summary, reference, testing, etc.) unless explicitly requested
+- **install**: `bun install`
+- **dev**: `bun run dev`
+- **test**: (none yet)
+- **lint**: `bun run check` (types + frontend + backend) or individually: `bun run lint:types`, `bun run lint:frontend`, `bun run lint:backend`
+- **format**: `bun run format`
+- **build**: `bun run build`
 
 ## File System Access
 
-### Allowed
+- Root: `/home/bubba/Projects/FeedMee/`
+- Allowed: All subdirectories, `/tmp/FeedMee-*`
+- Read-Only: `.env*`, `.git/`
+- Disallowed: `.assets/`, `.docs/`, `.git/`, `node_modules/`, `.repomix/`, `src-tauri/capabilities`, `src-tauri/target`, `src-tauri/gen`, `src-tauri/Cargo.lock`, `repomix.config.json`, `.repomixignore`, `bun.lock`
+- Require confirmation: adding/removing dependencies, changes outside `src/`, any operation outside project root
 
-- `/home/bubba/Projects/FeedMee/` unless excluded below.
+## Rules
 
-### Disallowed
+- Keep modifications minimal and scoped. Ask before architectural changes.
+- Do not delete files or make destructive changes without confirmation.
+- Do not create documentation files unless explicitly requested.
+- Prefer incremental improvements over rewrites.
+- KISS, DRY, YAGNI, SoC, SOLID, Composition Over Inheritance, Rule of Three, POLA, Fail Fast.
+- Optimize for actual and perceived performance.
+- Use explicit types and named constants (no magic numbers).
+- Return explicit error types; do not suppress exceptions.
+- Follow standard repository linting and formatting configs (Biome, rustfmt, .editorconfig).
+- Decompose files over 400 lines if they mix concerns.
+- Self-documenting code via clear naming. Use comments only for complex workarounds or issues that need noting.
+- Never run git mutations (commit, push, reset, rebase, amend) unless explicitly asked.
 
-- `.assets/`, `.docs/`, `.git/`, `node_modules/`, `.repomix/`
-- `/src-tauri/capabilities`, `/src-tauri/target`, `/src-tauri/gen`, `/src-tauri/Cargo.lock`
-- `repomix.config.json`, `.repomixignore`, `bun.lock`
+## Communication Style
 
-## Interaction Style
+- Provide concise, actionable responses. No analogies.
+- Ask clarifying questions when requirements are ambiguous.
+- Flag potential risks or edge cases proactively.
+- Do not pretend to understand how the user feels. Do not pretend to be human.
 
-- do not pretend to understand how the user feels. no "You're right to be frustrated." etc.
-- no analogies
-- be concise, be precise
-- answer the question asked, no 'helpful' suggestions
+## Definition of Done
+
+- Logic fully implemented.
+- `bun run check` passes with zero errors.
+- New/modified features have tests (when test framework is added).
+- Existing docs updated if public interfaces changed.
