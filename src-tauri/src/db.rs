@@ -92,6 +92,25 @@ fn migrations() -> Migrations<'static> {
         M::up(
             "CREATE INDEX IF NOT EXISTS idx_articles_feed_unread ON articles(feed_id, is_read);",
         ),
+        M::up(
+            "DELETE FROM articles
+             WHERE id NOT IN (
+                 SELECT MIN(id) FROM articles
+                 GROUP BY feed_id,
+                     CASE
+                         WHEN instr(url, '?access_token=') > 0 THEN substr(url, 1, instr(url, '?access_token=') - 1)
+                         WHEN instr(url, '&access_token=') > 0 THEN substr(url, 1, instr(url, '&access_token=') - 1)
+                         ELSE url
+                     END
+             );
+             UPDATE articles SET url =
+                 CASE
+                     WHEN instr(url, '?access_token=') > 0 THEN substr(url, 1, instr(url, '?access_token=') - 1)
+                     WHEN instr(url, '&access_token=') > 0 THEN substr(url, 1, instr(url, '&access_token=') - 1)
+                     ELSE url
+                 END
+             WHERE instr(url, '?access_token=') > 0 OR instr(url, '&access_token=') > 0;",
+        ),
     ])
 }
 

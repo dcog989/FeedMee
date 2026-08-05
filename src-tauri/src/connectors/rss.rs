@@ -83,7 +83,7 @@ pub fn entries_to_articles(
                 .iter()
                 .find(|l| l.rel.as_deref() == Some("alternate"))
                 .or(entry.links.first())
-                .map(|l| l.href.clone())
+                .map(|l| strip_tracking_params(&l.href))
                 .unwrap_or_else(|| {
                     let key = if !entry.id.is_empty() {
                         entry.id.clone()
@@ -267,4 +267,33 @@ fn discover_rss_feed_url(html: &str, base_url: &Url) -> Option<String> {
                 urls.into_iter().max_by_key(|u| u.len())
             }
         })
+}
+
+const TRACKING_PARAMS: &[&str] = &[
+    "access_token",
+    "token",
+    "utm_source",
+    "utm_medium",
+    "utm_campaign",
+    "utm_term",
+    "utm_content",
+    "mc_cid",
+    "mc_eid",
+];
+
+fn strip_tracking_params(url: &str) -> String {
+    let mut parsed = match Url::parse(url) {
+        Ok(u) => u,
+        Err(_) => return url.to_string(),
+    };
+    let kept: Vec<(String, String)> = parsed
+        .query_pairs()
+        .filter(|(k, _)| !TRACKING_PARAMS.contains(&k.as_ref()))
+        .map(|(k, v)| (k.into_owned(), v.into_owned()))
+        .collect();
+    parsed.set_query(None);
+    for (key, value) in kept {
+        parsed.query_pairs_mut().append_pair(&key, &value);
+    }
+    parsed.to_string()
 }
