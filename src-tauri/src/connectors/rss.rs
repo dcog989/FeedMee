@@ -199,7 +199,7 @@ async fn refresh_rss_feed(feed_url: &str, feed_id: i64, state: &AppState) -> Res
                     let known_urls: std::collections::HashSet<String> = {
                         let conn = state.db.lock().unwrap();
                         db::get_article_urls(&conn, feed_id)
-                            .unwrap_or_default()
+                            .map_err(|e| e.to_string())?
                             .into_iter()
                             .collect()
                     };
@@ -207,33 +207,36 @@ async fn refresh_rss_feed(feed_url: &str, feed_id: i64, state: &AppState) -> Res
                     backfill_og_images(state, &mut articles, |a| !known_urls.contains(&a.url))
                         .await;
 
-                    let conn = state.db.lock().unwrap();
-                    conn.execute_batch("BEGIN TRANSACTION")
-                        .map_err(|e| e.to_string())?;
+                    let mut conn = state.db.lock().unwrap();
+                    let tx = conn.transaction().map_err(|e| e.to_string())?;
                     for article in &articles {
-                        let inserted = db::insert_article(&conn, article).unwrap_or(0);
+                        let inserted =
+                            db::insert_article(&tx, article).map_err(|e| e.to_string())?;
                         if inserted == 0 {
                             if !article.image_url.is_empty() {
-                                let _ = db::update_article_image(
-                                    &conn,
+                                db::update_article_image(
+                                    &tx,
                                     feed_id,
                                     &article.url,
                                     &article.image_url,
-                                );
+                                )
+                                .map_err(|e| e.to_string())?;
                             }
                             if !article.summary.is_empty() {
-                                let _ = db::update_article_summary(
-                                    &conn,
+                                db::update_article_summary(
+                                    &tx,
                                     feed_id,
                                     &article.url,
                                     &article.summary,
-                                );
+                                )
+                                .map_err(|e| e.to_string())?;
                             }
                         }
                     }
-                    conn.execute_batch("COMMIT").map_err(|e| e.to_string())?;
-                    let _ = db::update_feed_error(&conn, feed_id, false);
-                    let unread = db::get_feed_unread_count(&conn, feed_id).unwrap_or(0);
+                    tx.commit().map_err(|e| e.to_string())?;
+                    db::update_feed_error(&conn, feed_id, false).map_err(|e| e.to_string())?;
+                    let unread =
+                        db::get_feed_unread_count(&conn, feed_id).map_err(|e| e.to_string())?;
                     Ok(unread)
                 },
                 Err(e) => {

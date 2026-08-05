@@ -82,8 +82,8 @@ async fn scrape_and_insert(
             a.image_url = og_image.clone().unwrap_or_default();
         }
     }
-    let conn = state.db.lock().unwrap();
-    let count = db::batch_insert_articles(&conn, &articles).map_err(|e| e.to_string())?;
+    let mut conn = state.db.lock().unwrap();
+    let count = db::batch_insert_articles(&mut conn, &articles).map_err(|e| e.to_string())?;
     let _ = db::update_feed_error(&conn, feed_id, false);
     Ok(count)
 }

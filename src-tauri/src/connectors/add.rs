@@ -28,8 +28,8 @@ pub(crate) async fn add_feed_with_articles(
     backfill_og_images(state, &mut articles, |_| true).await;
 
     {
-        let conn = state.db.lock().unwrap();
-        let count = db::batch_insert_articles(&conn, &articles).map_err(|e| e.to_string())?;
+        let mut conn = state.db.lock().unwrap();
+        let count = db::batch_insert_articles(&mut conn, &articles).map_err(|e| e.to_string())?;
         let _ = db::update_feed_error(&conn, feed_id, false);
         if count == 0 && feed_type == "website" {
             drop(conn);

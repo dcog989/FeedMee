@@ -441,13 +441,13 @@ pub fn set_bluesky_cursor(conn: &Connection, feed_id: i64, cursor: &str) -> Resu
     Ok(())
 }
 
-pub fn batch_insert_articles(conn: &Connection, articles: &[Article]) -> Result<usize> {
-    conn.execute_batch("BEGIN TRANSACTION")?;
+pub fn batch_insert_articles(conn: &mut Connection, articles: &[Article]) -> Result<usize> {
+    let tx = conn.transaction()?;
     let mut count = 0;
     for article in articles {
-        count += insert_article(conn, article)?;
+        count += insert_article(&tx, article)?;
     }
-    conn.execute_batch("COMMIT")?;
+    tx.commit()?;
     Ok(count)
 }
 
