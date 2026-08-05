@@ -26,19 +26,11 @@ jobs:
           path: node_modules
           key: bun-${{ hashFiles('bun.lock') }}
 
-      - uses: dtolnay/rust-toolchain@stable
+      - uses: dtolnay/rust-toolchain@master
 
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: src-tauri
-
-      - name: Cache cargo registry
-        uses: actions/cache@v6
-        with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-          key: cargo-${{ hashFiles('src-tauri/Cargo.lock') }}
 
       - name: Install system dependencies
         run: |
@@ -126,19 +118,11 @@ jobs:
           path: node_modules
           key: bun-${{ hashFiles('bun.lock') }}
 
-      - uses: dtolnay/rust-toolchain@stable
+      - uses: dtolnay/rust-toolchain@master
 
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: src-tauri
-
-      - name: Cache cargo registry
-        uses: actions/cache@v6
-        with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-          key: cargo-${{ hashFiles('src-tauri/Cargo.lock') }}
 
       - run: bun install
 

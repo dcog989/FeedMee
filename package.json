@@ -7,7 +7,7 @@
   "scripts": {
     "build": "bunx tauri build --no-bundle",
     "build:frontend": "bunx vite build",
-    "check": "svelte-kit sync ; bun run lint:types ; bun run lint:frontend ; bun run lint:backend",
+    "check": "svelte-kit sync && bun run lint:types && bun run lint:frontend && bun run lint:backend",
     "check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
     "clean": "rm -rf build .context .svelte-kit node_modules bun.lock releases src-tauri/gen src-tauri/target src-tauri/Cargo.lock .pkg/src .pkg/pkg .pkg/feedmee .pkg/*.pkg.tar.zst .pkg/*.gz",
     "crates": "cd src-tauri && cargo upgrade --verbose",
@@ -36,10 +36,12 @@
   },
   "devDependencies": {
     "@biomejs/biome": "^2.5.7",
+    "@commitlint/config-conventional": "^21.2.0",
     "@sveltejs/adapter-static": "^3.0.10",
     "@sveltejs/kit": "^2.70.2",
     "@sveltejs/vite-plugin-svelte": "^7.2.0",
     "@tauri-apps/cli": "^2.11.4",
+    "commitlint": "^21.2.1",
     "lefthook": "^2.1.10",
     "svelte": "^5.56.8",
     "svelte-check": "^4.7.4",

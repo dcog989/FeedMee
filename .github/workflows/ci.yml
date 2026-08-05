@@ -56,6 +56,16 @@ jobs:
       - name: Check frontend lint
         run: bun run lint:frontend
 
+      - name: Check commit messages (Conventional Commits)
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            bunx commitlint --from "${{ github.event.pull_request.base.sha }}" --to "${{ github.sha }}"
+          elif [ "${{ github.event.before }}" != "0000000000000000000000000000000000000000" ]; then
+            bunx commitlint --from "${{ github.event.before }}" --to "${{ github.sha }}"
+          else
+            bunx commitlint --last
+          fi
+
       - name: Check backend
         working-directory: src-tauri
         run: cargo check --locked && cargo clippy --locked --all-targets --all-features -- -D warnings

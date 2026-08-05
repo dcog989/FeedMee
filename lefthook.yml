@@ -11,6 +11,12 @@ pre-commit:
       run: rustfmt --check {staged_files}
       fail_text: "Rust formatting check failed."
 
+commit-msg:
+  jobs:
+    - name: commitlint
+      run: bunx commitlint --edit {1}
+      fail_text: "Commit message must follow Conventional Commits (feat|fix|refactor|chore|docs|style|perf|test|build|ci|revert)."
+
 pre-push:
   jobs:
     - name: check
