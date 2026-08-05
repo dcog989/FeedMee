@@ -12,7 +12,7 @@ let { onContextMenu, onTagToggle, tagArticleId = null, onScroll: onExternalScrol
     onScroll?: () => void;
 } = $props();
 
-let listContainer: HTMLElement;
+let listContainer = $state<HTMLElement>();
 
 let thumbnailCache = $state<Record<string, string>>({});
 let thumbnailPending = new Set<string>();
@@ -41,14 +41,6 @@ $effect(() => {
     }
 });
 
-$effect(() => {
-    if (listContainer) {
-        articleStore.selectedFeedId;
-        articleStore.selectedFolderId;
-        listContainer.scrollTop = 0;
-    }
-});
-
 function onScroll() {
     if (!listContainer) return;
     const { scrollTop, scrollHeight, clientHeight } = listContainer;
@@ -59,58 +51,60 @@ function onScroll() {
 }
 </script>
 
-<section
-    class="pane"
-    bind:this={listContainer}
-    onscroll={onScroll}
->
-    {#if articleStore.articles.length > 0}
-        <ul class="article-list">
-            {#each articleStore.articles as article (article.id)}
-                <li>
-                    <ArticleCard
-                        {article}
-                        isSelected={articleStore.selectedArticle?.id === article.id}
-                        isTagOpen={tagArticleId === article.id}
-                        {thumbnailSize}
-                        {thumbnailCache}
-                        {onContextMenu}
-                        {onTagToggle}
-                    />
-                </li>
-            {/each}
-        </ul>
-        {#if articleStore.isLoadingArticles}
-            <div class="loading-more">Loading more...</div>
+{#key articleStore.selectedFeedId ?? articleStore.selectedFolderId}
+    <section
+        class="pane"
+        bind:this={listContainer}
+        onscroll={onScroll}
+    >
+        {#if articleStore.articles.length > 0}
+            <ul class="article-list">
+                {#each articleStore.articles as article (article.id)}
+                    <li>
+                        <ArticleCard
+                            {article}
+                            isSelected={articleStore.selectedArticle?.id === article.id}
+                            isTagOpen={tagArticleId === article.id}
+                            {thumbnailSize}
+                            {thumbnailCache}
+                            {onContextMenu}
+                            {onTagToggle}
+                        />
+                    </li>
+                {/each}
+            </ul>
+            {#if articleStore.isLoadingArticles}
+                <div class="loading-more">Loading more...</div>
+            {/if}
+        {:else if articleStore.isLoadingArticles}
+            <div class="loading">Loading articles...</div>
+        {:else if articleStore.selectedFeedId === FEED_ID_LATEST}
+            <div class="empty-state">
+                <p>No recent articles.</p>
+            </div>
+        {:else if articleStore.selectedFeedId === FEED_ID_TODAY}
+            <div class="empty-state">
+                <p>No articles today.</p>
+            </div>
+        {:else if articleStore.selectedFeedId === FEED_ID_SAVED}
+            <div class="empty-state">
+                <p>No saved articles.</p>
+            </div>
+        {:else if articleStore.selectedFeedId !== null}
+            <div class="empty-state">
+                <p>No articles in this feed.</p>
+            </div>
+        {:else if articleStore.selectedFolderId !== null}
+            <div class="empty-state">
+                <p>No articles in this folder.</p>
+            </div>
+        {:else}
+            <div class="empty-state">
+                <p>Select a feed to see articles.</p>
+            </div>
         {/if}
-    {:else if articleStore.isLoadingArticles}
-        <div class="loading">Loading articles...</div>
-    {:else if articleStore.selectedFeedId === FEED_ID_LATEST}
-        <div class="empty-state">
-            <p>No recent articles.</p>
-        </div>
-    {:else if articleStore.selectedFeedId === FEED_ID_TODAY}
-        <div class="empty-state">
-            <p>No articles today.</p>
-        </div>
-    {:else if articleStore.selectedFeedId === FEED_ID_SAVED}
-        <div class="empty-state">
-            <p>No saved articles.</p>
-        </div>
-    {:else if articleStore.selectedFeedId !== null}
-        <div class="empty-state">
-            <p>No articles in this feed.</p>
-        </div>
-    {:else if articleStore.selectedFolderId !== null}
-        <div class="empty-state">
-            <p>No articles in this folder.</p>
-        </div>
-    {:else}
-        <div class="empty-state">
-            <p>Select a feed to see articles.</p>
-        </div>
-    {/if}
-</section>
+    </section>
+{/key}
 
 <style>
 .pane {
