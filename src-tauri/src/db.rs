@@ -257,8 +257,8 @@ pub fn get_articles_for_feed(
         "SELECT id, feed_id, title, author, summary, url, image_url, timestamp, is_read, is_saved,
                 EXISTS (SELECT 1 FROM article_tags WHERE article_id = articles.id) AS has_tags
          FROM articles WHERE feed_id = ?1
-         ORDER BY timestamp {} LIMIT ?2 OFFSET ?3",
-        order
+         ORDER BY timestamp {}, id {} LIMIT ?2 OFFSET ?3",
+        order, order
     );
     let mut stmt = conn.prepare(&sql)?;
     map_articles(&mut stmt, params![feed_id, limit as i64, offset as i64])
@@ -278,8 +278,8 @@ pub fn get_articles_for_folder(
          FROM articles a
          JOIN feeds f ON a.feed_id = f.id
          WHERE f.folder_id = ?1
-         ORDER BY a.timestamp {} LIMIT ?2 OFFSET ?3",
-        order
+         ORDER BY a.timestamp {}, a.id {} LIMIT ?2 OFFSET ?3",
+        order, order
     );
     let mut stmt = conn.prepare(&sql)?;
     map_articles(&mut stmt, params![folder_id, limit as i64, offset as i64])
@@ -297,8 +297,8 @@ pub fn get_latest_articles(
         "SELECT id, feed_id, title, author, summary, url, image_url, timestamp, is_read, is_saved,
                 EXISTS (SELECT 1 FROM article_tags WHERE article_id = articles.id) AS has_tags
          FROM articles WHERE timestamp > ?1
-         ORDER BY timestamp {} LIMIT ?2 OFFSET ?3",
-        order
+         ORDER BY timestamp {}, id {} LIMIT ?2 OFFSET ?3",
+        order, order
     );
     let mut stmt = conn.prepare(&sql)?;
     map_articles(
@@ -318,8 +318,8 @@ pub fn get_saved_articles(
         "SELECT id, feed_id, title, author, summary, url, image_url, timestamp, is_read, is_saved,
                 EXISTS (SELECT 1 FROM article_tags WHERE article_id = articles.id) AS has_tags
          FROM articles WHERE is_saved = 1
-         ORDER BY timestamp {} LIMIT ?1 OFFSET ?2",
-        order
+         ORDER BY timestamp {}, id {} LIMIT ?1 OFFSET ?2",
+        order, order
     );
     let mut stmt = conn.prepare(&sql)?;
     map_articles(&mut stmt, params![limit as i64, offset as i64])
@@ -617,8 +617,8 @@ pub fn search_articles(
          FROM articles_fts
          JOIN articles a ON articles_fts.rowid = a.id
          WHERE articles_fts MATCH ?1
-         ORDER BY a.timestamp {} LIMIT ?2 OFFSET ?3",
-        order
+         ORDER BY a.timestamp {}, a.id {} LIMIT ?2 OFFSET ?3",
+        order, order
     );
     let mut stmt = conn.prepare(&sql)?;
     map_articles(&mut stmt, params![escaped, limit as i64, offset as i64])
