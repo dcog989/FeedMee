@@ -48,7 +48,9 @@ export function createFeedRefresher(state: RefreshStore) {
   }
 
   async function refreshAllFeeds() {
-    const staleFeeds = state.folders.flatMap((f) => f.feeds).filter((f) => !state.isFeedFresh(f.id));
+    const staleFeeds = state.folders
+      .flatMap((f) => f.feeds)
+      .filter((f) => !state.isFeedFresh(f.id) && !state.updatingFeedIds.has(f.id));
     if (staleFeeds.length === 0) return;
 
     state.isRefreshingFeeds = true;
@@ -71,7 +73,7 @@ export function createFeedRefresher(state: RefreshStore) {
   }
 
   async function requestRefreshFeed(feedId: number) {
-    if (state.isFeedFresh(feedId)) return;
+    if (state.isFeedFresh(feedId) || state.updatingFeedIds.has(feedId)) return;
 
     // Mark as updating before kicking off the refresh.
     // performSingleFeedRefresh's finally block is the single place that removes it.
@@ -90,7 +92,7 @@ export function createFeedRefresher(state: RefreshStore) {
     const folder = state.folders.find((f) => f.id === folderId);
     if (!folder || folder.feeds.length === 0) return;
 
-    const staleFeeds = folder.feeds.filter((f) => !state.isFeedFresh(f.id));
+    const staleFeeds = folder.feeds.filter((f) => !state.isFeedFresh(f.id) && !state.updatingFeedIds.has(f.id));
     if (staleFeeds.length === 0) return;
 
     const addSet = new Set(state.updatingFeedIds);
