@@ -29,6 +29,7 @@ dependencies = [
  "tauri-plugin-opener",
  "tauri-plugin-updater",
  "tauri-plugin-window-state",
+ "tokio",
  "toml 1.1.4+spec-1.1.0",
  "url",
  "webp",

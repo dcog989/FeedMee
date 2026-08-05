@@ -1,6 +1,8 @@
+use crate::AppState;
 use crate::models::Article;
 use log::debug;
 use scraper::{Html, Selector};
+use std::sync::Arc;
 use url::Url;
 
 pub fn scrape_og_image_from_html(html: &str, page_url: &str) -> Option<String> {
@@ -175,11 +177,8 @@ pub fn scrape_articles_from_page(html: &str, page_url: &str) -> Vec<Article> {
     articles
 }
 
-pub async fn backfill_og_images<F>(
-    client: &reqwest::Client,
-    articles: &mut [Article],
-    mut should_fill: F,
-) where
+pub async fn backfill_og_images<F>(state: &AppState, articles: &mut [Article], mut should_fill: F)
+where
     F: FnMut(&Article) -> bool,
 {
     const CONCURRENCY: usize = 6;
@@ -195,6 +194,8 @@ pub async fn backfill_og_images<F>(
         return;
     }
 
+    let client = state.http_client.clone();
+    let semaphore = Arc::clone(&state.http_semaphore);
     let queue = std::sync::Arc::new(std::sync::Mutex::new(std::collections::VecDeque::from(
         targets,
     )));
@@ -205,10 +206,14 @@ pub async fn backfill_og_images<F>(
         let queue = std::sync::Arc::clone(&queue);
         let results = std::sync::Arc::clone(&results);
         let client = client.clone();
+        let semaphore = Arc::clone(&semaphore);
         workers.push(tauri::async_runtime::spawn(async move {
             loop {
                 let next = queue.lock().unwrap().pop_front();
                 let Some((idx, article_url)) = next else {
+                    break;
+                };
+                let Ok(_permit) = semaphore.acquire().await else {
                     break;
                 };
                 if let Some(img) = scrape_og_image(&client, &article_url).await {

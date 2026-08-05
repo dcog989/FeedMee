@@ -6,14 +6,17 @@ pub mod paths;
 pub mod settings;
 pub mod startup;
 
-use std::sync::Mutex;
+use std::sync::{Arc, Mutex};
 use tauri::Manager;
 use tauri_plugin_window_state::StateFlags;
+
+const HTTP_FETCH_CONCURRENCY: usize = 8;
 
 pub struct AppState {
     pub db: Mutex<rusqlite::Connection>,
     pub settings: Mutex<settings::AppSettings>,
     pub http_client: reqwest::Client,
+    pub http_semaphore: Arc<tokio::sync::Semaphore>,
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -40,6 +43,7 @@ pub fn run() {
                 db: Mutex::new(conn),
                 settings: Mutex::new(app_settings),
                 http_client,
+                http_semaphore: Arc::new(tokio::sync::Semaphore::new(HTTP_FETCH_CONCURRENCY)),
             });
 
             let window = app.get_webview_window("main").unwrap();

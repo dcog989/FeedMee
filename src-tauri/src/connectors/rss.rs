@@ -204,7 +204,7 @@ async fn refresh_rss_feed(feed_url: &str, feed_id: i64, state: &AppState) -> Res
                             .collect()
                     };
 
-                    backfill_og_images(&client, &mut articles, |a| !known_urls.contains(&a.url))
+                    backfill_og_images(state, &mut articles, |a| !known_urls.contains(&a.url))
                         .await;
 
                     let conn = state.db.lock().unwrap();
