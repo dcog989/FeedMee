@@ -447,53 +447,74 @@ pub fn set_bluesky_cursor(conn: &Connection, feed_id: i64, cursor: &str) -> Resu
 
 pub fn batch_insert_articles(conn: &mut Connection, articles: &[Article]) -> Result<usize> {
     let tx = conn.transaction()?;
+    let mut inserter = ArticleInserter::new(&tx)?;
     let mut count = 0;
     for article in articles {
-        count += insert_article(&tx, article)?;
+        count += inserter.insert(article)?;
     }
+    drop(inserter);
     tx.commit()?;
     Ok(count)
 }
 
-pub fn insert_article(conn: &Connection, article: &Article) -> Result<usize> {
-    let inserted = conn.execute(
-        "INSERT OR IGNORE INTO articles (feed_id, title, author, summary, url, image_url, timestamp, is_read, is_saved)
-         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, 0, 0)",
-        params![article.feed_id, article.title, article.author, article.summary, article.url, article.image_url, article.timestamp],
-    )?;
-    Ok(inserted)
+/// Prepared statements for bulk article upserts. Reuses one statement per
+/// operation instead of re-preparing on every row; drop before committing.
+pub struct ArticleInserter<'a> {
+    insert: rusqlite::Statement<'a>,
+    update_image: rusqlite::Statement<'a>,
+    update_summary: rusqlite::Statement<'a>,
+}
+
+impl<'a> ArticleInserter<'a> {
+    pub fn new(conn: &'a Connection) -> Result<Self> {
+        Ok(Self {
+            insert: conn.prepare(
+                "INSERT OR IGNORE INTO articles (feed_id, title, author, summary, url, image_url, timestamp, is_read, is_saved)
+                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, 0, 0)",
+            )?,
+            update_image: conn.prepare(
+                "UPDATE articles SET image_url = ?1 WHERE feed_id = ?2 AND url = ?3 AND image_url = ''",
+            )?,
+            update_summary: conn.prepare(
+                "UPDATE articles SET summary = ?1 WHERE feed_id = ?2 AND url = ?3 AND summary IS NOT ?1",
+            )?,
+        })
+    }
+
+    pub fn insert(&mut self, article: &Article) -> Result<usize> {
+        let inserted = self.insert.execute(params![
+            article.feed_id,
+            article.title,
+            article.author,
+            article.summary,
+            article.url,
+            article.image_url,
+            article.timestamp,
+        ])?;
+        if inserted == 0 {
+            if !article.image_url.is_empty() {
+                self.update_image.execute(params![
+                    article.image_url,
+                    article.feed_id,
+                    article.url
+                ])?;
+            }
+            if !article.summary.is_empty() {
+                self.update_summary.execute(params![
+                    article.summary,
+                    article.feed_id,
+                    article.url
+                ])?;
+            }
+        }
+        Ok(inserted)
+    }
 }
 
 pub fn get_article_urls(conn: &Connection, feed_id: i64) -> Result<Vec<String>> {
     let mut stmt = conn.prepare("SELECT url FROM articles WHERE feed_id = ?1")?;
     let rows = stmt.query_map(params![feed_id], |row| row.get::<_, String>(0))?;
     rows.collect()
-}
-
-pub fn update_article_image(
-    conn: &Connection,
-    feed_id: i64,
-    url: &str,
-    image_url: &str,
-) -> Result<()> {
-    conn.execute(
-        "UPDATE articles SET image_url = ?1 WHERE feed_id = ?2 AND url = ?3 AND image_url = ''",
-        params![image_url, feed_id, url],
-    )?;
-    Ok(())
-}
-
-pub fn update_article_summary(
-    conn: &Connection,
-    feed_id: i64,
-    url: &str,
-    summary: &str,
-) -> Result<()> {
-    conn.execute(
-        "UPDATE articles SET summary = ?1 WHERE feed_id = ?2 AND url = ?3 AND summary IS NOT ?1",
-        params![summary, feed_id, url],
-    )?;
-    Ok(())
 }
 
 pub fn set_article_read(conn: &Connection, article_id: i64, is_read: bool) -> Result<()> {

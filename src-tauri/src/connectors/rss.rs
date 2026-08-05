@@ -209,30 +209,11 @@ async fn refresh_rss_feed(feed_url: &str, feed_id: i64, state: &AppState) -> Res
 
                     let mut conn = state.db.lock().unwrap();
                     let tx = conn.transaction().map_err(|e| e.to_string())?;
+                    let mut inserter = db::ArticleInserter::new(&tx).map_err(|e| e.to_string())?;
                     for article in &articles {
-                        let inserted =
-                            db::insert_article(&tx, article).map_err(|e| e.to_string())?;
-                        if inserted == 0 {
-                            if !article.image_url.is_empty() {
-                                db::update_article_image(
-                                    &tx,
-                                    feed_id,
-                                    &article.url,
-                                    &article.image_url,
-                                )
-                                .map_err(|e| e.to_string())?;
-                            }
-                            if !article.summary.is_empty() {
-                                db::update_article_summary(
-                                    &tx,
-                                    feed_id,
-                                    &article.url,
-                                    &article.summary,
-                                )
-                                .map_err(|e| e.to_string())?;
-                            }
-                        }
+                        inserter.insert(article).map_err(|e| e.to_string())?;
                     }
+                    drop(inserter);
                     tx.commit().map_err(|e| e.to_string())?;
                     db::update_feed_error(&conn, feed_id, false).map_err(|e| e.to_string())?;
                     let unread =
