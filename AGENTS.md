@@ -40,7 +40,7 @@
 ## File System Access
 
 - Root: `/home/bubba/Projects/FeedMee/`
-- Allowed: All subdirectories, `/tmp/FeedMee-*`
+- Allowed: All subdirectories, `/tmp/*`
 - Read-Only: `.env*`, `.git/`
 - Disallowed: `.assets/`, `.docs/`, `.git/`, `node_modules/`, `.repomix/`, `src-tauri/capabilities`, `src-tauri/target`, `src-tauri/gen`, `src-tauri/Cargo.lock`, `repomix.config.json`, `.repomixignore`, `bun.lock`
 - Require confirmation: adding/removing dependencies, changes outside `src/`, any operation outside project root
@@ -59,6 +59,8 @@
 - Decompose files over 400 lines if they mix concerns.
 - Self-documenting code via clear naming. Use comments only for complex workarounds or issues that need noting.
 - Never run git mutations (commit, push, reset, rebase, amend) unless explicitly asked.
+- Do not run full `bun run check`/`bun run test` on trivial changes (constant tweaks, one-line edits, CSS value changes). Run `bunx biome check --write <file>` on the touched file, or nothing if the change is a simple value edit. Only run the full suite on real logic changes.
+- On completion of an update or fix, print a concise conventional commit message in a fenced code block.
 
 ## Communication Style
 
