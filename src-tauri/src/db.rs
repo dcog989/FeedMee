@@ -89,6 +89,9 @@ fn migrations() -> Migrations<'static> {
         ),
         M::up("ALTER TABLE feeds ADD COLUMN bluesky_cursor TEXT;"),
         M::up("CREATE INDEX IF NOT EXISTS idx_articles_timestamp ON articles(timestamp);"),
+        M::up(
+            "CREATE INDEX IF NOT EXISTS idx_articles_feed_unread ON articles(feed_id, is_read);",
+        ),
     ])
 }
 
