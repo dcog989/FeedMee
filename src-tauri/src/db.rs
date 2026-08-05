@@ -88,6 +88,7 @@ fn migrations() -> Migrations<'static> {
              DELETE FROM folders WHERE id = 1;",
         ),
         M::up("ALTER TABLE feeds ADD COLUMN bluesky_cursor TEXT;"),
+        M::up("CREATE INDEX IF NOT EXISTS idx_articles_timestamp ON articles(timestamp);"),
     ])
 }
 
