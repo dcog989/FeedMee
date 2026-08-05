@@ -486,7 +486,7 @@ pub fn update_article_summary(
     summary: &str,
 ) -> Result<()> {
     conn.execute(
-        "UPDATE articles SET summary = ?1 WHERE feed_id = ?2 AND url = ?3",
+        "UPDATE articles SET summary = ?1 WHERE feed_id = ?2 AND url = ?3 AND summary IS NOT ?1",
         params![summary, feed_id, url],
     )?;
     Ok(())
