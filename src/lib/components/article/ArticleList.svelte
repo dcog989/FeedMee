@@ -15,30 +15,90 @@ let { onContextMenu, onTagToggle, tagArticleId = null, onScroll: onExternalScrol
 let listContainer = $state<HTMLElement>();
 
 let thumbnailCache = $state<Record<string, string>>({});
-let thumbnailPending = new Set<string>();
+const thumbnailPending = new Set<string>();
+const thumbnailFailed = new Set<string>();
+const observedArticles = new WeakMap<Element, Article>();
+let thumbnailObserver: IntersectionObserver | null = null;
+let thumbnailLoadsInFlight = 0;
+const thumbnailQueue: Array<() => void> = [];
 
 let thumbnailSize = $derived(settingsStore.settings.thumbnail_size || 0);
+let listKey = $derived(articleStore.selectedFeedId ?? articleStore.selectedFolderId);
 
-async function loadThumbnail(articleUrl: string, imageUrl: string) {
+const THUMBNAIL_CONCURRENCY = 8;
+const THUMBNAIL_PRELOAD_PX = 250;
+
+function ensureThumbnailObserver(): IntersectionObserver {
+    if (!thumbnailObserver) {
+        thumbnailObserver = new IntersectionObserver(
+            (entries) => {
+                for (const entry of entries) {
+                    if (!entry.isIntersecting) continue;
+                    const article = observedArticles.get(entry.target);
+                    if (article) requestThumbnail(article);
+                }
+            },
+            { rootMargin: `${THUMBNAIL_PRELOAD_PX}px` },
+        );
+    }
+    return thumbnailObserver;
+}
+
+function requestThumbnail(article: Article) {
     const size = thumbnailSize;
-    const cacheKey = thumbnailCacheKey(imageUrl, articleUrl, size);
-    if (cacheKey in thumbnailCache || thumbnailPending.has(cacheKey)) return;
+    if (!(size > 0)) return;
+    const cacheKey = thumbnailCacheKey(article.image_url, article.url, size);
+    if (cacheKey in thumbnailCache || thumbnailPending.has(cacheKey) || thumbnailFailed.has(cacheKey)) return;
     thumbnailPending.add(cacheKey);
-    try {
-        const dataUrl = await invoke<string>('get_thumbnail', { url: articleUrl, imageUrl, size });
-        thumbnailCache = { ...thumbnailCache, [cacheKey]: dataUrl };
-    } catch {
-        // leave absent from cache — fallback icon shows
-    } finally {
-        thumbnailPending.delete(cacheKey);
+    enqueueThumbnail(cacheKey, article.url, article.image_url, size);
+}
+
+function enqueueThumbnail(cacheKey: string, articleUrl: string, imageUrl: string, size: number) {
+    const run = async () => {
+        thumbnailLoadsInFlight += 1;
+        try {
+            const dataUrl = await invoke<string>('get_thumbnail', { url: articleUrl, imageUrl, size });
+            thumbnailCache = { ...thumbnailCache, [cacheKey]: dataUrl };
+        } catch {
+            thumbnailFailed.add(cacheKey);
+        } finally {
+            thumbnailLoadsInFlight -= 1;
+            thumbnailPending.delete(cacheKey);
+            const next = thumbnailQueue.shift();
+            if (next) next();
+        }
+    };
+    if (thumbnailLoadsInFlight < THUMBNAIL_CONCURRENCY) {
+        run();
+    } else {
+        thumbnailQueue.push(run);
     }
 }
 
+function observeThumbnails(node: HTMLElement, opts: { article: Article; thumbnailSize: number }) {
+    const setup = (article: Article, size: number) => {
+        observedArticles.set(node, article);
+        if (size > 0) {
+            ensureThumbnailObserver().observe(node);
+        } else {
+            thumbnailObserver?.unobserve(node);
+        }
+    };
+    setup(opts.article, opts.thumbnailSize);
+    return {
+        update(next: { article: Article; thumbnailSize: number }) {
+            setup(next.article, next.thumbnailSize);
+        },
+        destroy() {
+            thumbnailObserver?.unobserve(node);
+            observedArticles.delete(node);
+        },
+    };
+}
+
 $effect(() => {
-    if (!(thumbnailSize > 0)) return;
-    for (const article of articleStore.articles) {
-        loadThumbnail(article.url, article.image_url);
-    }
+    void listKey;
+    thumbnailFailed.clear();
 });
 
 function onScroll() {
@@ -51,7 +111,7 @@ function onScroll() {
 }
 </script>
 
-{#key articleStore.selectedFeedId ?? articleStore.selectedFolderId}
+{#key listKey}
     <section
         class="pane"
         bind:this={listContainer}
@@ -60,7 +120,7 @@ function onScroll() {
         {#if articleStore.articles.length > 0}
             <ul class="article-list">
                 {#each articleStore.articles as article (article.id)}
-                    <li>
+                    <li use:observeThumbnails={{ article, thumbnailSize }}>
                         <ArticleCard
                             {article}
                             isSelected={articleStore.selectedArticle?.id === article.id}

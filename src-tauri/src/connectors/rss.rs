@@ -5,7 +5,7 @@ use log::{debug, error, info};
 use scraper::{Html, Selector};
 use url::Url;
 
-use crate::commands::scraper::compute_content_hash;
+use crate::commands::scraper::{backfill_og_images, compute_content_hash};
 use crate::{AppState, db, models::Article};
 
 use super::FeedConnector;
@@ -194,7 +194,18 @@ async fn refresh_rss_feed(feed_url: &str, feed_id: i64, state: &AppState) -> Res
                         feed.entries.len()
                     );
 
-                    let articles = entries_to_articles(feed.entries, feed_id, feed_url);
+                    let mut articles = entries_to_articles(feed.entries, feed_id, feed_url);
+
+                    let known_urls: std::collections::HashSet<String> = {
+                        let conn = state.db.lock().unwrap();
+                        db::get_article_urls(&conn, feed_id)
+                            .unwrap_or_default()
+                            .into_iter()
+                            .collect()
+                    };
+
+                    backfill_og_images(&client, &mut articles, |a| !known_urls.contains(&a.url))
+                        .await;
 
                     let conn = state.db.lock().unwrap();
                     conn.execute_batch("BEGIN TRANSACTION")

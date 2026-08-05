@@ -25,7 +25,7 @@ pub(crate) async fn add_feed_with_articles(
         a.feed_id = feed_id;
     }
 
-    backfill_og_images(&state.http_client, &mut articles).await;
+    backfill_og_images(&state.http_client, &mut articles, |_| true).await;
 
     {
         let conn = state.db.lock().unwrap();

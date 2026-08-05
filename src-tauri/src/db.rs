@@ -460,6 +460,12 @@ pub fn insert_article(conn: &Connection, article: &Article) -> Result<usize> {
     Ok(inserted)
 }
 
+pub fn get_article_urls(conn: &Connection, feed_id: i64) -> Result<Vec<String>> {
+    let mut stmt = conn.prepare("SELECT url FROM articles WHERE feed_id = ?1")?;
+    let rows = stmt.query_map(params![feed_id], |row| row.get::<_, String>(0))?;
+    rows.collect()
+}
+
 pub fn update_article_image(
     conn: &Connection,
     feed_id: i64,

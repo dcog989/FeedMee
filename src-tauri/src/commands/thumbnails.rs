@@ -25,50 +25,8 @@ fn hash_url(url: &str) -> String {
     compute_content_hash(url)
 }
 
-#[tauri::command]
-pub async fn get_thumbnail(
-    url: String,
-    image_url: String,
-    size: u32,
-    app: tauri::AppHandle,
-    state: State<'_, AppState>,
-) -> Result<String, String> {
-    let size = size.clamp(16, 256);
-    let resolved = if !image_url.is_empty() {
-        image_url
-    } else {
-        scrape_og_image(&state.http_client, &url)
-            .await
-            .ok_or_else(|| "No og:image found".to_string())?
-    };
-
-    let cache_dir = thumbnail_cache_dir(&app)?;
-    let hash = hash_url(&resolved);
-    let cache_path = cache_dir.join(format!("{}_{}.webp", hash, size));
-
-    if cache_path.exists() {
-        let bytes = fs::read(&cache_path).map_err(|e| e.to_string())?;
-        let encoded = base64::engine::general_purpose::STANDARD.encode(&bytes);
-        return Ok(format!("data:image/webp;base64,{}", encoded));
-    }
-
-    let response = state
-        .http_client
-        .get(&resolved)
-        .send()
-        .await
-        .map_err(|e| format!("Failed to download thumbnail: {}", e))?;
-
-    let bytes = response.bytes().await.map_err(|e| e.to_string())?;
-
-    if bytes.len() > 50_000_000 {
-        return Err("Image too large (>50MB)".to_string());
-    }
-
-    let img = match image::load_from_memory(&bytes) {
-        Ok(img) => img,
-        Err(_) => return Err("Failed to decode image".to_string()),
-    };
+fn process_thumbnail(bytes: &[u8], size: u32) -> Result<Vec<u8>, String> {
+    let img = image::load_from_memory(bytes).map_err(|_| "Failed to decode image".to_string())?;
 
     let (w, h) = img.dimensions();
 
@@ -80,7 +38,7 @@ pub async fn get_thumbnail(
     };
 
     let resized =
-        image::imageops::resize(&img.to_rgba8(), nw.max(1), nh.max(1), FilterType::Lanczos3);
+        image::imageops::resize(&img.to_rgba8(), nw.max(1), nh.max(1), FilterType::Triangle);
 
     let mut canvas = image::RgbaImage::new(size, size);
     let x = (size - nw) / 2;
@@ -92,9 +50,67 @@ pub async fn get_thumbnail(
         .map_err(|e| format!("WebP encoder init failed: {}", e))?
         .encode(50.0);
 
-    fs::write(&cache_path, &*webp).ok();
+    Ok(webp.to_vec())
+}
 
-    let encoded = base64::engine::general_purpose::STANDARD.encode(&*webp);
+#[tauri::command]
+pub async fn get_thumbnail(
+    url: String,
+    image_url: String,
+    size: u32,
+    app: tauri::AppHandle,
+    state: State<'_, AppState>,
+) -> Result<String, String> {
+    let size = size.clamp(16, 256);
+    let client = state.http_client.clone();
+
+    let cache_dir = thumbnail_cache_dir(&app)?;
+    let source_key = if image_url.is_empty() {
+        url.as_str()
+    } else {
+        image_url.as_str()
+    };
+    let cache_path = cache_dir.join(format!("{}_{}.webp", hash_url(source_key), size));
+
+    if cache_path.exists() {
+        let bytes = tauri::async_runtime::spawn_blocking(move || fs::read(&cache_path))
+            .await
+            .map_err(|e| e.to_string())?
+            .map_err(|e| e.to_string())?;
+        let encoded = base64::engine::general_purpose::STANDARD.encode(&bytes);
+        return Ok(format!("data:image/webp;base64,{}", encoded));
+    }
+
+    let resolved = if image_url.is_empty() {
+        scrape_og_image(&client, &url)
+            .await
+            .ok_or_else(|| "No og:image found".to_string())?
+    } else {
+        image_url
+    };
+
+    let response = client
+        .get(&resolved)
+        .send()
+        .await
+        .map_err(|e| format!("Failed to download thumbnail: {}", e))?;
+
+    let bytes = response.bytes().await.map_err(|e| e.to_string())?;
+
+    if bytes.len() > 50_000_000 {
+        return Err("Image too large (>50MB)".to_string());
+    }
+
+    let write_path = cache_path.clone();
+    let webp = tauri::async_runtime::spawn_blocking(move || {
+        let webp = process_thumbnail(&bytes, size)?;
+        let _ = fs::write(&write_path, &webp);
+        Ok::<Vec<u8>, String>(webp)
+    })
+    .await
+    .map_err(|e| e.to_string())??;
+
+    let encoded = base64::engine::general_purpose::STANDARD.encode(&webp);
     Ok(format!("data:image/webp;base64,{}", encoded))
 }
 

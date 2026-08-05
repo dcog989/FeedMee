@@ -175,25 +175,55 @@ pub fn scrape_articles_from_page(html: &str, page_url: &str) -> Vec<Article> {
     articles
 }
 
-pub async fn backfill_og_images(client: &reqwest::Client, articles: &mut [Article]) {
-    let handles: Vec<(usize, tauri::async_runtime::JoinHandle<Option<String>>)> = articles
+pub async fn backfill_og_images<F>(
+    client: &reqwest::Client,
+    articles: &mut [Article],
+    mut should_fill: F,
+) where
+    F: FnMut(&Article) -> bool,
+{
+    const CONCURRENCY: usize = 6;
+
+    let targets: Vec<(usize, String)> = articles
         .iter()
         .enumerate()
-        .filter(|(_, a)| a.image_url.is_empty())
-        .map(|(idx, a)| {
-            let client = client.clone();
-            let article_url = a.url.clone();
-            let handle =
-                tauri::async_runtime::spawn(
-                    async move { scrape_og_image(&client, &article_url).await },
-                );
-            (idx, handle)
-        })
+        .filter(|(_, a)| a.image_url.is_empty() && should_fill(a))
+        .map(|(idx, a)| (idx, a.url.clone()))
         .collect();
 
-    for (idx, handle) in handles {
-        if let Ok(Some(img)) = handle.await {
-            articles[idx].image_url = img;
-        }
+    if targets.is_empty() {
+        return;
+    }
+
+    let queue = std::sync::Arc::new(std::sync::Mutex::new(std::collections::VecDeque::from(
+        targets,
+    )));
+    let results = std::sync::Arc::new(std::sync::Mutex::new(std::collections::HashMap::new()));
+
+    let mut workers = Vec::new();
+    for _ in 0..CONCURRENCY {
+        let queue = std::sync::Arc::clone(&queue);
+        let results = std::sync::Arc::clone(&results);
+        let client = client.clone();
+        workers.push(tauri::async_runtime::spawn(async move {
+            loop {
+                let next = queue.lock().unwrap().pop_front();
+                let Some((idx, article_url)) = next else {
+                    break;
+                };
+                if let Some(img) = scrape_og_image(&client, &article_url).await {
+                    results.lock().unwrap().insert(idx, img);
+                }
+            }
+        }));
+    }
+
+    for worker in workers {
+        let _ = worker.await;
+    }
+
+    let filled = std::mem::take(&mut *results.lock().unwrap());
+    for (idx, img) in filled {
+        articles[idx].image_url = img;
     }
 }
