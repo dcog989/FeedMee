@@ -113,11 +113,16 @@ export function createFeedActions(state: FeedStore) {
       try {
         await invoke('delete_feed', { id });
         removeStaleRefreshEntries(id);
-        if (state.selectedFeedId === id) {
+        const wasSelectedFeed = state.selectedFeedId === id;
+        if (wasSelectedFeed) {
           state.selectedFeedId = null;
           state.articles = [];
         }
         await state.refreshFolders();
+        // A folder view may have included this feed's articles; drop them.
+        if (!wasSelectedFeed && (state.selectedFeedId !== null || state.selectedFolderId !== null)) {
+          await state.reloadCurrentArticleList();
+        }
       } catch (e) {
         console.error(e);
       }
