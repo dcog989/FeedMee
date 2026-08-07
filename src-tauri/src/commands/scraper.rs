@@ -74,6 +74,45 @@ pub fn compute_content_hash(content: &str) -> String {
     format!("{:x}", fnv1a_64(content.as_bytes()))
 }
 
+/// Returns true when an anchor lives inside site boilerplate (footer, navigation,
+/// or an author byline) rather than article content, so it can be skipped.
+fn anchor_is_boilerplate(el: &scraper::ElementRef) -> bool {
+    let class = el.attr("class").unwrap_or("").to_lowercase();
+    if class
+        .split_whitespace()
+        .any(|c| c.contains("author") || c.contains("byline"))
+    {
+        return true;
+    }
+    let mut node = el.parent();
+    while let Some(parent) = node {
+        if let Some(element) = parent.value().as_element() {
+            let tag = element.name().to_lowercase();
+            if tag == "footer" || tag == "nav" || tag == "aside" {
+                return true;
+            }
+            let cls = element.attr("class").unwrap_or("").to_lowercase();
+            let id = element.attr("id").unwrap_or("").to_lowercase();
+            let role = element.attr("role").unwrap_or("").to_lowercase();
+            let hay = format!("{id} {cls} {role}");
+            if hay
+                .split_whitespace()
+                .any(|c| c.contains("author") || c.contains("byline"))
+                || hay.split_whitespace().any(|c| {
+                    matches!(
+                        c,
+                        "footer" | "navigation" | "contentinfo" | "nav" | "navbar"
+                    )
+                })
+            {
+                return true;
+            }
+        }
+        node = parent.parent();
+    }
+    false
+}
+
 pub fn scrape_articles_from_page(html: &str, page_url: &str) -> Vec<Article> {
     debug!("scrape_articles_from_page: url={}", page_url);
     let base = match Url::parse(page_url) {
@@ -96,6 +135,10 @@ pub fn scrape_articles_from_page(html: &str, page_url: &str) -> Vec<Article> {
     let mut articles = Vec::new();
 
     for el in document.select(&anchor_sel) {
+        if anchor_is_boilerplate(&el) {
+            continue;
+        }
+
         let href = match el.value().attr("href") {
             Some(h) => h,
             None => continue,
