@@ -162,7 +162,7 @@ class AppStateImpl {
   requestRefreshFeed = (feedId: number) => this.refresh.requestRefreshFeed(feedId);
   requestRefreshFolder = (folderId: number) => this.refresh.requestRefreshFolder(folderId);
 
-  reloadCurrentArticleList = () => this.articleOps.reloadCurrentArticleList();
+  reloadCurrentArticleList = (options?: { selectTop?: boolean }) => this.articleOps.reloadCurrentArticleList(options);
   loadMore = () => this.articleOps.loadMore();
   selectArticle = (article: Article) => this.articleOps.selectArticle(article);
   toggleSaved = (article: Article) => this.articleOps.toggleSaved(article);

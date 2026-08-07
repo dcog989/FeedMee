@@ -45,7 +45,7 @@ export interface FeedStore {
   blockedPhrases: string[];
   refreshFolders(): Promise<void>;
   refreshAllFeeds(): Promise<void>;
-  reloadCurrentArticleList(): Promise<void>;
+  reloadCurrentArticleList(options?: { selectTop?: boolean }): Promise<void>;
   alert(message: string): void;
   confirm(message: string, onConfirm: () => void | Promise<void>): void;
   persistLastRefreshed(): void;
@@ -78,7 +78,7 @@ export interface RefreshStore {
   isFolderFresh(folderId: number): boolean;
   isAllFresh(): boolean;
   refreshFolders(): Promise<void>;
-  reloadCurrentArticleList(): Promise<void>;
+  reloadCurrentArticleList(options?: { selectTop?: boolean }): Promise<void>;
   refreshAllFeeds(): Promise<void>;
   requestRefreshFeed(feedId: number): Promise<void>;
   requestRefreshFolder(folderId: number): Promise<void>;
@@ -95,7 +95,7 @@ export interface NavStore {
   isLoadingArticles: boolean;
   settings: AppSettings;
   focusedPane: 'nav' | 'list' | 'reading';
-  reloadCurrentArticleList(): Promise<void>;
+  reloadCurrentArticleList(options?: { selectTop?: boolean }): Promise<void>;
   selectFeed(feedId: number): Promise<void>;
   selectFolder(folderId: number): Promise<void>;
   selectArticle(article: Article): void;

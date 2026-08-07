@@ -72,7 +72,7 @@ export function createArticleActions(state: ArticleStore) {
 
   let reloadGeneration = 0;
 
-  async function reloadCurrentArticleList() {
+  async function reloadCurrentArticleList(options?: { selectTop?: boolean }) {
     const gen = ++reloadGeneration;
     state.articles = [];
     state.page = 0;
@@ -80,6 +80,16 @@ export function createArticleActions(state: ArticleStore) {
     if (gen !== reloadGeneration) return;
     state.articles = filterBlocked(result || []);
     state.hasMore = (result?.length || 0) === state.pageSize;
+
+    if (options?.selectTop) {
+      if (state.articles.length > 0) {
+        state.selectedArticle = state.articles[0];
+        state.focusedPane = 'reading';
+      }
+    } else if (state.selectedArticle) {
+      const fresh = state.articles.find((a) => a.id === state.selectedArticle?.id);
+      if (fresh) state.selectedArticle = fresh;
+    }
   }
 
   async function loadMore() {

@@ -26,7 +26,7 @@ export function createUI(state: {
   settings: AppSettings;
   searchQuery: string;
   autoRefreshTimer: ReturnType<typeof setInterval> | null;
-  reloadCurrentArticleList(): Promise<void>;
+  reloadCurrentArticleList(options?: { selectTop?: boolean }): Promise<void>;
   refreshAllFeeds(): Promise<void>;
 }) {
   async function setBlockedPhrases(phrases: string[]) {

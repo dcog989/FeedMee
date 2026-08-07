@@ -63,7 +63,7 @@ export function createFeedRefresher(state: RefreshStore) {
       await runWithConcurrency(staleFeeds, (feed) => performSingleFeedRefresh(feed.id), REFRESH_CONCURRENCY);
       await state.refreshFolders();
       if (state.selectedFeedId !== null || state.selectedFolderId !== null) {
-        await state.reloadCurrentArticleList();
+        await state.reloadCurrentArticleList({ selectTop: true });
       }
     } catch (e) {
       console.error('Failed to refresh all feeds:', e);
@@ -84,7 +84,7 @@ export function createFeedRefresher(state: RefreshStore) {
     await performSingleFeedRefresh(feedId);
 
     if (state.selectedFeedId === feedId) {
-      await state.reloadCurrentArticleList();
+      await state.reloadCurrentArticleList({ selectTop: true });
     }
   }
 
@@ -103,7 +103,7 @@ export function createFeedRefresher(state: RefreshStore) {
       await runWithConcurrency(staleFeeds, (feed) => performSingleFeedRefresh(feed.id), REFRESH_CONCURRENCY);
       await state.refreshFolders();
       if (state.selectedFolderId === folderId || folder.feeds.some((f) => f.id === state.selectedFeedId)) {
-        await state.reloadCurrentArticleList();
+        await state.reloadCurrentArticleList({ selectTop: true });
       }
     } catch (e) {
       console.error(`Failed to refresh folder ${folderId}:`, e);
