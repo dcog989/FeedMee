@@ -181,6 +181,17 @@ async fn refresh_rss_feed(feed_url: &str, feed_id: i64, state: &AppState) -> Res
 
     match result {
         Ok(response) => {
+            let status = response.status();
+            if !status.is_success() {
+                error!(
+                    "refresh_rss_feed: HTTP {} for {} (blocked or unavailable)",
+                    status, feed_url
+                );
+                let conn = state.db.lock().unwrap();
+                let _ = db::update_feed_error(&conn, feed_id, true);
+                return Err(format!("HTTP {} for {}", status, feed_url));
+            }
+
             let content = response
                 .bytes()
                 .await
