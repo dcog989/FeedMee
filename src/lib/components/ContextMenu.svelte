@@ -1,7 +1,13 @@
 <script lang="ts">
 import type { Snippet } from 'svelte';
 
-let { children, x = 0, y = 0, visible = false, onClose = () => {} }: {
+let {
+  children,
+  x = 0,
+  y = 0,
+  visible = false,
+  onClose = () => {},
+}: {
   children?: Snippet;
   x: number;
   y: number;

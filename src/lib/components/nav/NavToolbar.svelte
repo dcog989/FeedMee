@@ -4,92 +4,86 @@ import { tooltip } from '$lib/actions/tooltip.svelte';
 import { refreshStore, uiStore } from '$lib/store.svelte';
 
 let { onExpandAll, onCollapseAll } = $props<{
-    onExpandAll: () => void;
-    onCollapseAll: () => void;
+  onExpandAll: () => void;
+  onCollapseAll: () => void;
 }>();
 
 let isRefreshing = $derived(refreshStore.isRefreshingFeeds);
 let refreshAllTooltip = $derived(refreshStore.isAllFresh() ? 'Already fresh!' : 'Refresh All');
 
 function createFolder() {
-    uiStore.showNewFolderDialog = true;
+  uiStore.showNewFolderDialog = true;
 }
 </script>
 
 <div class="nav-toolbar">
-    <button type="button" onclick={onExpandAll} use:tooltip={'Expand All'} aria-label="Expand All">
-        <ChevronDown size={18} />
-    </button>
-    <button
-        type="button"
-        onclick={onCollapseAll}
-        use:tooltip={'Collapse All'}
-        aria-label="Collapse All"
-    >
-        <ChevronUp size={18} />
-    </button>
-    <button
-        type="button"
-        onclick={() => refreshStore.refreshAllFeeds()}
-        use:tooltip={refreshAllTooltip}
-        disabled={isRefreshing}
-        aria-label="Refresh All"
-    >
-        <RefreshCw size={18} class={isRefreshing ? 'spinning' : ''} />
-    </button>
-    <button
-        type="button"
-        onclick={createFolder}
-        use:tooltip={'New Folder'}
-        class="add-folder-btn"
-        aria-label="New Folder"
-    >
-        <FolderPlus size={18} />
-    </button>
+  <button type="button" onclick={onExpandAll} use:tooltip={'Expand All'} aria-label="Expand All">
+    <ChevronDown size={18} />
+  </button>
+  <button type="button" onclick={onCollapseAll} use:tooltip={'Collapse All'} aria-label="Collapse All">
+    <ChevronUp size={18} />
+  </button>
+  <button
+    type="button"
+    onclick={() => refreshStore.refreshAllFeeds()}
+    use:tooltip={refreshAllTooltip}
+    disabled={isRefreshing}
+    aria-label="Refresh All"
+  >
+    <RefreshCw size={18} class={isRefreshing ? 'spinning' : ''} />
+  </button>
+  <button
+    type="button"
+    onclick={createFolder}
+    use:tooltip={'New Folder'}
+    class="add-folder-btn"
+    aria-label="New Folder"
+  >
+    <FolderPlus size={18} />
+  </button>
 </div>
 
 <style>
 .nav-toolbar {
-    display: flex;
-    align-items: center;
-    padding: 4px 8px; /* Reduced vertical and horizontal padding */
-    gap: 4px;
-    border-bottom: 1px solid var(--border-color);
-    margin-bottom: 4px;
-    height: 32px;
-    box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  padding: 4px 8px; /* Reduced vertical and horizontal padding */
+  gap: 4px;
+  border-bottom: 1px solid var(--border-color);
+  margin-bottom: 4px;
+  height: 32px;
+  box-sizing: border-box;
 }
 
 .nav-toolbar button {
-    background: transparent;
-    border: none;
-    color: var(--text-secondary);
-    border-radius: 4px;
-    cursor: pointer;
-    padding: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 28px;
-    height: 28px;
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  border-radius: 4px;
+  cursor: pointer;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
 }
 
 .nav-toolbar button:hover {
-    background-color: var(--bg-hover);
-    color: var(--text-primary);
+  background-color: var(--bg-hover);
+  color: var(--text-primary);
 }
 
 .nav-toolbar button:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .add-folder-btn {
-    margin-left: auto;
+  margin-left: auto;
 }
 
 :global(.spinning) {
-    animation: spin 1s linear infinite;
+  animation: spin 1s linear infinite;
 }
-
 </style>

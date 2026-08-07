@@ -1,26 +1,26 @@
 <!doctype html>
 <html lang="en">
-    <head>
-        <meta charset="utf-8">
-        <link rel="icon" href="%sveltekit.assets%/feedmee.png">
-        <meta name="viewport" content="width=device-width, initial-scale=1">
-        <title>FeedMee</title>
+  <head>
+    <meta charset="utf-8">
+    <link rel="icon" href="%sveltekit.assets%/feedmee.png">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>FeedMee</title>
 
-        <!-- Theme Initialization: set data-theme and bg before first paint to prevent FOUC -->
-        <script>
-        (() => {
-            const saved = localStorage.getItem('theme');
-            const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-            const dark = saved === 'dark' || (saved !== 'light' && prefersDark);
-            document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
-            document.documentElement.style.background = dark ? '#1e1e1e' : '#ffffff';
-            document.documentElement.style.colorScheme = dark ? 'dark' : 'light';
-        })();
-        </script>
-        %sveltekit.head%
-    </head>
+    <!-- Theme Initialization: set data-theme and bg before first paint to prevent FOUC -->
+    <script>
+    (() => {
+      const saved = localStorage.getItem('theme');
+      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      const dark = saved === 'dark' || (saved !== 'light' && prefersDark);
+      document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
+      document.documentElement.style.background = dark ? '#1e1e1e' : '#ffffff';
+      document.documentElement.style.colorScheme = dark ? 'dark' : 'light';
+    })();
+    </script>
+    %sveltekit.head%
+  </head>
 
-    <body data-sveltekit-preload-data="hover">
-        <div style="display: contents">%sveltekit.body%</div>
-    </body>
+  <body data-sveltekit-preload-data="hover">
+    <div style="display: contents">%sveltekit.body%</div>
+  </body>
 </html>

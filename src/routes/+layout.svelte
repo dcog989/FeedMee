@@ -14,53 +14,53 @@ import '../app.css';
 let { children } = $props();
 
 function disableContextMenu(e: MouseEvent) {
-    e.preventDefault();
+  e.preventDefault();
 }
 </script>
 
 <div class="layout-wrapper" role="application" oncontextmenu={disableContextMenu}>
-    <div class="content-wrapper">
-        {@render children()}
-    </div>
-    <ThemeManager />
-    <StyleInjector />
-    <Tooltip />
+  <div class="content-wrapper">
+    {@render children()}
+  </div>
+  <ThemeManager />
+  <StyleInjector />
+  <Tooltip />
 
-    {#if appState.showSettings}
-        <SettingsModal />
-    {/if}
+  {#if appState.showSettings}
+    <SettingsModal />
+  {/if}
 
-    {#if appState.showAddDialog}
-        <ManageDialog />
-    {/if}
+  {#if appState.showAddDialog}
+    <ManageDialog />
+  {/if}
 
-    {#if appState.showAbout}
-        <AboutModal bind:isOpen={appState.showAbout} onClose={() => (appState.showAbout = false)} />
-    {/if}
+  {#if appState.showAbout}
+    <AboutModal bind:isOpen={appState.showAbout} onClose={() => (appState.showAbout = false)} />
+  {/if}
 
-    {#if appState.showNewFolderDialog}
-        <NewFolderDialog />
-    {/if}
+  {#if appState.showNewFolderDialog}
+    <NewFolderDialog />
+  {/if}
 
-    {#if appState.showEditFeedDialog}
-        <EditFeedDialog />
-    {/if}
+  {#if appState.showEditFeedDialog}
+    <EditFeedDialog />
+  {/if}
 
-    <ConfirmModal />
+  <ConfirmModal />
 </div>
 
 <style>
 .layout-wrapper {
-    display: flex;
-    flex-direction: column;
-    height: 100vh;
-    width: 100vw;
-    overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  width: 100vw;
+  overflow: hidden;
 }
 
 .content-wrapper {
-    flex: 1;
-    overflow: hidden;
-    position: relative;
+  flex: 1;
+  overflow: hidden;
+  position: relative;
 }
 </style>

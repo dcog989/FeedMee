@@ -14,292 +14,285 @@ let isValidUrl = $derived(/^https?:\/\/.+/.test(newFeedUrl.trim()));
 let canSubmit = $derived(isValidUrl && !isSubmitting);
 
 $effect(() => {
-    if (!uiStore.showAddDialog) return;
-    newFeedUrl = '';
-    selectedFolderId = null;
-    isSubmitting = false;
-    errorMessage = '';
-    successMessage = '';
-    blockedText = feedStore.blockedPhrases.join('\n');
-    try {
-        navigator.clipboard.readText().then((text) => {
-            if (newFeedUrl === '' && /^https?:\/\/.+/.test(text.trim())) {
-                newFeedUrl = text.trim();
-            }
-        });
-    } catch {
-        /* clipboard access denied */
-    }
+  if (!uiStore.showAddDialog) return;
+  newFeedUrl = '';
+  selectedFolderId = null;
+  isSubmitting = false;
+  errorMessage = '';
+  successMessage = '';
+  blockedText = feedStore.blockedPhrases.join('\n');
+  try {
+    navigator.clipboard.readText().then((text) => {
+      if (newFeedUrl === '' && /^https?:\/\/.+/.test(text.trim())) {
+        newFeedUrl = text.trim();
+      }
+    });
+  } catch {
+    /* clipboard access denied */
+  }
 });
 
 function closeDialog() {
-    feedStore.setBlockedPhrases(
-        blockedText
-            .split('\n')
-            .map((s) => s.trim())
-            .filter((s) => s.length > 0),
-    );
-    uiStore.showAddDialog = false;
+  feedStore.setBlockedPhrases(
+    blockedText
+      .split('\n')
+      .map((s) => s.trim())
+      .filter((s) => s.length > 0),
+  );
+  uiStore.showAddDialog = false;
 }
 
 async function submitAddFeed() {
-    if (!canSubmit) return;
-    isSubmitting = true;
-    errorMessage = '';
-    successMessage = '';
-    try {
-        await feedStore.addFeed(newFeedUrl.trim(), selectedFolderId);
-        successMessage = 'Feed added successfully';
-        await new Promise((r) => setTimeout(r, 1200));
-        closeDialog();
-    } catch (e) {
-        errorMessage = String(e);
-    } finally {
-        isSubmitting = false;
-    }
+  if (!canSubmit) return;
+  isSubmitting = true;
+  errorMessage = '';
+  successMessage = '';
+  try {
+    await feedStore.addFeed(newFeedUrl.trim(), selectedFolderId);
+    successMessage = 'Feed added successfully';
+    await new Promise((r) => setTimeout(r, 1200));
+    closeDialog();
+  } catch (e) {
+    errorMessage = String(e);
+  } finally {
+    isSubmitting = false;
+  }
 }
 
 function handleImport() {
-    feedStore.importOpml();
-    closeDialog();
+  feedStore.importOpml();
+  closeDialog();
 }
 
 async function handleExport() {
-    await feedStore.exportOpml();
-    closeDialog();
+  await feedStore.exportOpml();
+  closeDialog();
 }
 
 function onKeyDown(e: KeyboardEvent) {
-    if (e.key === 'Enter' && canSubmit) {
-        submitAddFeed();
-    }
+  if (e.key === 'Enter' && canSubmit) {
+    submitAddFeed();
+  }
 }
 
 function focusOnMount(node: HTMLElement) {
-    node.focus();
+  node.focus();
 }
 </script>
 
 <Modal isOpen={true} onclose={closeDialog} width="400px" class="manage-dialog">
-    <h3>Manage Content</h3>
-    <div class="input-group">
-        <input
-            type="text"
-            bind:value={newFeedUrl}
-            placeholder="Feed URL or Bluesky profile URL"
-            onkeydown={onKeyDown}
-            use:focusOnMount
-            disabled={isSubmitting}
-        >
-        <button type="button" class="primary" disabled={!canSubmit} onclick={submitAddFeed}>
-            {#if successMessage}
-                Added!
-            {:else if isSubmitting}
-                Adding Feed...
-            {:else}
-                Add Feed
-            {/if}
-        </button>
-    </div>
+  <h3>Manage Content</h3>
+  <div class="input-group">
+    <input
+      type="text"
+      bind:value={newFeedUrl}
+      placeholder="Feed URL or Bluesky profile URL"
+      onkeydown={onKeyDown}
+      use:focusOnMount
+      disabled={isSubmitting}
+    >
+    <button type="button" class="primary" disabled={!canSubmit} onclick={submitAddFeed}>
+      {#if successMessage}
+        Added!
+      {:else if isSubmitting}
+        Adding Feed...
+      {:else}
+        Add Feed
+      {/if}
+    </button>
+  </div>
 
-    <div class="hint">Supports RSS/Atom feeds, websites, and Bluesky profiles</div>
+  <div class="hint">Supports RSS/Atom feeds, websites, and Bluesky profiles</div>
 
-    {#if successMessage}
-        <div class="success-message">{successMessage}</div>
-    {:else if errorMessage}
-        <div class="error-message">{errorMessage}</div>
-    {/if}
+  {#if successMessage}
+    <div class="success-message">{successMessage}</div>
+  {:else if errorMessage}
+    <div class="error-message">{errorMessage}</div>
+  {/if}
 
-    <div class="form-group">
-        <label for="folder-select">Add to folder</label>
-        <select id="folder-select" bind:value={selectedFolderId}>
-            <option value={null}>Root (no folder)</option>
-            {#each feedStore.folders.filter(f => f.id !== 0) as folder (folder.id)}
-                <option value={folder.id}>{folder.name}</option>
-            {/each}
-        </select>
-    </div>
+  <div class="form-group">
+    <label for="folder-select">Add to folder</label>
+    <select id="folder-select" bind:value={selectedFolderId}>
+      <option value={null}>Root (no folder)</option>
+      {#each feedStore.folders.filter(f => f.id !== 0) as folder (folder.id)}
+        <option value={folder.id}>{folder.name}</option>
+      {/each}
+    </select>
+  </div>
 
-    <div class="divider">
-        <span>OR</span>
-    </div>
+  <div class="divider">
+    <span>OR</span>
+  </div>
 
-    <div class="opml-row">
-        <button type="button" class="secondary" onclick={handleImport}>Import OPML File</button>
-        <button type="button" class="secondary" onclick={handleExport}>Export OPML File</button>
-    </div>
+  <div class="opml-row">
+    <button type="button" class="secondary" onclick={handleImport}>Import OPML File</button>
+    <button type="button" class="secondary" onclick={handleExport}>Export OPML File</button>
+  </div>
 
-    <div class="divider">
-        <span>Blocked Phrases</span>
-    </div>
+  <div class="divider">
+    <span>Blocked Phrases</span>
+  </div>
 
-    <div class="form-group">
-        <label for="blocked-phrases"
-            >One phrase per line — articles matching any will be hidden</label
-        >
-        <textarea
-            id="blocked-phrases"
-            bind:value={blockedText}
-            placeholder="Bad Content"
-            rows="4"
-        ></textarea>
-    </div>
+  <div class="form-group">
+    <label for="blocked-phrases">One phrase per line — articles matching any will be hidden</label>
+    <textarea id="blocked-phrases" bind:value={blockedText} placeholder="Bad Content" rows="4"></textarea>
+  </div>
 </Modal>
 
 <style>
 h3 {
-    margin: 0 0 1rem 0;
-    font-size: 1.1rem;
-    color: var(--text-primary);
+  margin: 0 0 1rem 0;
+  font-size: 1.1rem;
+  color: var(--text-primary);
 }
 
 .input-group {
-    display: flex;
-    gap: 8px;
-    margin-bottom: 1rem;
+  display: flex;
+  gap: 8px;
+  margin-bottom: 1rem;
 }
 
 .input-group input {
-    flex: 1;
-    padding: 8px 12px;
-    background: var(--bg-app);
-    border: 1px solid var(--border-color);
-    color: var(--text-primary);
-    border-radius: 4px;
-    font-size: 0.9rem;
-    outline: none;
+  flex: 1;
+  padding: 8px 12px;
+  background: var(--bg-app);
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+  border-radius: 4px;
+  font-size: 0.9rem;
+  outline: none;
 }
 
 .input-group input:focus {
-    border-color: var(--bg-selected);
+  border-color: var(--bg-selected);
 }
 
 button.primary {
-    background-color: var(--bg-selected);
-    color: white;
-    border: none;
-    border-radius: 4px;
-    padding: 0 12px;
-    font-weight: 500;
-    cursor: pointer;
+  background-color: var(--bg-selected);
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 0 12px;
+  font-weight: 500;
+  cursor: pointer;
 }
 
 button.primary:hover {
-    opacity: 0.9;
+  opacity: 0.9;
 }
 
 button.primary:disabled {
-    background-color: var(--bg-hover, #555);
-    color: var(--text-secondary, #999);
-    cursor: not-allowed;
-    opacity: 0.6;
+  background-color: var(--bg-hover, #555);
+  color: var(--text-secondary, #999);
+  cursor: not-allowed;
+  opacity: 0.6;
 }
 
 .opml-row {
-    display: flex;
-    gap: 8px;
+  display: flex;
+  gap: 8px;
 }
 
 .opml-row button {
-    flex: 1;
+  flex: 1;
 }
 
 button.secondary {
-    padding: 8px;
-    background: transparent;
-    border: 1px solid var(--border-color);
-    color: var(--text-primary);
-    border-radius: 4px;
-    cursor: pointer;
+  padding: 8px;
+  background: transparent;
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+  border-radius: 4px;
+  cursor: pointer;
 }
 
 button.secondary:hover {
-    background-color: var(--bg-hover);
+  background-color: var(--bg-hover);
 }
 
 .form-group {
-    margin-bottom: 1rem;
+  margin-bottom: 1rem;
 }
 
 .form-group label {
-    display: block;
-    font-size: 0.8rem;
-    color: var(--text-secondary);
-    margin-bottom: 4px;
+  display: block;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  margin-bottom: 4px;
 }
 
 .form-group select {
-    width: 100%;
-    padding: 8px;
-    background: var(--bg-app);
-    border: 1px solid var(--border-color);
-    color: var(--text-primary);
-    border-radius: 4px;
-    font-size: 0.9rem;
-    cursor: pointer;
+  width: 100%;
+  padding: 8px;
+  background: var(--bg-app);
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+  border-radius: 4px;
+  font-size: 0.9rem;
+  cursor: pointer;
 }
 
 .hint {
-    font-size: 0.75rem;
-    color: var(--text-secondary, #888);
-    margin-bottom: 0.75rem;
-    padding: 0 2px;
+  font-size: 0.75rem;
+  color: var(--text-secondary, #888);
+  margin-bottom: 0.75rem;
+  padding: 0 2px;
 }
 
 .success-message {
-    color: #2ecc71;
-    font-size: 0.85rem;
-    margin-bottom: 0.75rem;
-    padding: 6px 10px;
-    background: rgba(46, 204, 113, 0.1);
-    border-radius: 4px;
+  color: #2ecc71;
+  font-size: 0.85rem;
+  margin-bottom: 0.75rem;
+  padding: 6px 10px;
+  background: rgba(46, 204, 113, 0.1);
+  border-radius: 4px;
 }
 
 .error-message {
-    color: var(--text-danger, #e74c3c);
-    font-size: 0.85rem;
-    margin-bottom: 0.75rem;
-    padding: 6px 10px;
-    background: rgba(231, 76, 60, 0.1);
-    border-radius: 4px;
-    word-break: break-word;
+  color: var(--text-danger, #e74c3c);
+  font-size: 0.85rem;
+  margin-bottom: 0.75rem;
+  padding: 6px 10px;
+  background: rgba(231, 76, 60, 0.1);
+  border-radius: 4px;
+  word-break: break-word;
 }
 
 .divider {
-    display: flex;
-    align-items: center;
-    text-align: center;
-    margin: 1rem 0;
-    color: var(--text-secondary);
-    font-size: 0.8rem;
+  display: flex;
+  align-items: center;
+  text-align: center;
+  margin: 1rem 0;
+  color: var(--text-secondary);
+  font-size: 0.8rem;
 }
 
 .divider::before,
 .divider::after {
-    content: "";
-    flex: 1;
-    border-bottom: 1px solid var(--border-color);
+  content: "";
+  flex: 1;
+  border-bottom: 1px solid var(--border-color);
 }
 
 .divider span {
-    padding: 0 10px;
+  padding: 0 10px;
 }
 
 textarea {
-    width: 100%;
-    padding: 8px;
-    background: var(--bg-app);
-    border: 1px solid var(--border-color);
-    color: var(--text-primary);
-    border-radius: 4px;
-    font-size: 0.9rem;
-    font-family: inherit;
-    resize: vertical;
-    outline: none;
-    box-sizing: border-box;
+  width: 100%;
+  padding: 8px;
+  background: var(--bg-app);
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+  border-radius: 4px;
+  font-size: 0.9rem;
+  font-family: inherit;
+  resize: vertical;
+  outline: none;
+  box-sizing: border-box;
 }
 
 textarea:focus {
-    border-color: var(--bg-selected);
+  border-color: var(--bg-selected);
 }
 </style>

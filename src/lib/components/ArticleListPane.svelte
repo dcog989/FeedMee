@@ -14,40 +14,33 @@ let tagX = $state(0);
 let tagY = $state(0);
 
 function toggleTagManager(e: MouseEvent, article: Article) {
-    e.stopPropagation();
-    if (tagArticleId === article.id) {
-        tagArticleId = null;
-    } else {
-        tooltipState.visible = false;
-        tagArticleId = article.id;
-        const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-        tagX = rect.left;
-        tagY = rect.bottom + 4;
-    }
+  e.stopPropagation();
+  if (tagArticleId === article.id) {
+    tagArticleId = null;
+  } else {
+    tooltipState.visible = false;
+    tagArticleId = article.id;
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    tagX = rect.left;
+    tagY = rect.bottom + 4;
+  }
 }
 
 function closeTagManager() {
-    tagArticleId = null;
+  tagArticleId = null;
 }
 
 function onContextMenu(e: MouseEvent, article: Article) {
-    ctxMenu.show(e, article);
+  ctxMenu.show(e, article);
 }
 </script>
 
-<svelte:window
-    onkeydown={(e) => { if (e.key === 'Escape') closeTagManager(); }}
-/>
+<svelte:window onkeydown={(e) => { if (e.key === 'Escape') closeTagManager(); }} />
 
 <div class="pane-wrapper">
-    <ArticleSearch />
-    <ArticleToolbar />
-    <ArticleList
-        onContextMenu={onContextMenu}
-        onTagToggle={toggleTagManager}
-        {tagArticleId}
-        onScroll={() => ctxMenu.close()}
-    />
+  <ArticleSearch />
+  <ArticleToolbar />
+  <ArticleList {onContextMenu} onTagToggle={toggleTagManager} {tagArticleId} onScroll={() => ctxMenu.close()} />
 </div>
 
 <ArticleContextMenu bind:this={ctxMenu} />
@@ -56,10 +49,10 @@ function onContextMenu(e: MouseEvent, article: Article) {
 
 <style>
 .pane-wrapper {
-    display: flex;
-    flex-direction: column;
-    height: 100%;
-    background-color: var(--bg-article, var(--bg-content));
-    border-right: 1px solid var(--border-color);
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background-color: var(--bg-article, var(--bg-content));
+  border-right: 1px solid var(--border-color);
 }
 </style>
