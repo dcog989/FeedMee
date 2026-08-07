@@ -235,32 +235,30 @@ class AppStateImpl {
 
     await this.refreshFolders();
 
-    this.refreshAllFeeds();
-
     const viewType = this.settings.default_view_type;
     const viewId = this.settings.default_view_id;
 
     let expandFolderId: number | null = null;
 
-    if (viewType === 'saved') this.selectFeed(FEED_ID_SAVED);
-    else if (viewType === 'latest') this.selectFeed(FEED_ID_LATEST);
+    if (viewType === 'saved') await this.selectFeed(FEED_ID_SAVED);
+    else if (viewType === 'latest') await this.selectFeed(FEED_ID_LATEST);
     else if (viewType === 'last') {
       const lastViewType = localStorage.getItem(LS_LAST_VIEW_TYPE);
       const lastViewId = parseInt(localStorage.getItem(LS_LAST_VIEW_ID) || '0', 10);
       if (lastViewType === 'folder' && lastViewId > 0) {
-        this.selectFolder(lastViewId);
+        await this.selectFolder(lastViewId);
         expandFolderId = lastViewId;
       } else if (lastViewType === 'feed' && lastViewId > 0) {
-        this.selectFeed(lastViewId);
+        await this.selectFeed(lastViewId);
         expandFolderId = this.folders.find((f) => f.feeds.some((fd) => fd.id === lastViewId))?.id ?? null;
       } else {
-        this.selectFeed(FEED_ID_LATEST);
+        await this.selectFeed(FEED_ID_LATEST);
       }
     } else if (viewType === 'folder' && viewId > 0) {
-      this.selectFolder(viewId);
+      await this.selectFolder(viewId);
       expandFolderId = viewId;
     } else if (viewType === 'feed' && viewId > 0) {
-      this.selectFeed(viewId);
+      await this.selectFeed(viewId);
       expandFolderId = this.folders.find((f) => f.feeds.some((fd) => fd.id === viewId))?.id ?? null;
     }
 
@@ -269,6 +267,11 @@ class AppStateImpl {
       if (expandFolderId !== null) newSet.add(expandFolderId);
       this.expandedFolders = newSet;
     }
+
+    // Establish the initial view first so the refresh can publish the selected
+    // folder's list as soon as its own feeds finish, rather than after the whole
+    // batch completes.
+    this.refreshAllFeeds();
   }
 }
 
