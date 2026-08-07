@@ -6,6 +6,7 @@
   },
   "formatter": {
     "indentStyle": "space",
+    "indentWidth": 2,
     "lineWidth": 120
   },
   "javascript": {
@@ -14,7 +15,8 @@
     }
   },
   "html": {
-    "experimentalFullSupportEnabled": true
+    "experimentalFullSupportEnabled": true,
+    "formatter": { "enabled": true }
   },
   "overrides": [
     {
