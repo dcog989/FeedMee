@@ -1,11 +1,14 @@
 <script lang="ts">
 import { RefreshCw, X } from 'lucide-svelte';
 import { tooltip } from '$lib/actions/tooltip.svelte';
+import { FEED_FAILURE_LIMIT } from '$lib/feedRefresh.svelte';
 import { navStore, refreshStore } from '$lib/store.svelte';
 import type { Feed } from '$lib/types';
 import { getFavicon, handleFaviconError } from '$lib/utils/favicon';
 
 let { feed, isSelected = false }: { feed: Feed; isSelected?: boolean } = $props();
+const disabled = $derived(feed.error_count >= FEED_FAILURE_LIMIT);
+const disabledTooltip = $derived(`Feed disabled after ${feed.error_count} consecutive update failures. Click to retry.`);
 </script>
 
 <span class="feed-name-wrap">
@@ -21,7 +24,7 @@ let { feed, isSelected = false }: { feed: Feed; isSelected?: boolean } = $props(
     {:else}
         <span class="feed-icon" class:icon-selected={isSelected}>#</span>
     {/if}
-    <span class="feed-name">{feed.name}</span>
+    <span class="feed-name" class:feed-disabled={disabled} use:tooltip={disabled ? disabledTooltip : ''}>{feed.name}</span>
 </span>
 
 <button
@@ -35,8 +38,8 @@ let { feed, isSelected = false }: { feed: Feed; isSelected?: boolean } = $props(
 >
     {#if refreshStore.isFeedUpdating(feed.id)}
         <div class="mini-spinner"></div>
-    {:else if feed.has_error}
-        <span class="error-badge" use:tooltip={'Feed update failed'}>
+    {:else if disabled || feed.has_error}
+        <span class="error-badge" use:tooltip={disabled ? disabledTooltip : 'Feed update failed'}>
             <X size={10} color="white" />
         </span>
     {:else if feed.unread_count > 0}
@@ -96,6 +99,11 @@ let { feed, isSelected = false }: { feed: Feed; isSelected?: boolean } = $props(
 .feed-name {
     overflow: hidden;
     text-overflow: ellipsis;
+}
+
+.feed-disabled {
+    color: #d32f2f;
+    text-decoration: line-through;
 }
 
 .feed-icon {

@@ -10,6 +10,7 @@ export interface Feed {
   folder_id: number | null;
   unread_count: number;
   has_error: boolean;
+  error_count: number;
   source_type: string;
   display_url: string;
   source_id: string;

@@ -2,6 +2,7 @@ import { invoke } from '@tauri-apps/api/core';
 import type { RefreshStore } from './storeTypes';
 
 const REFRESH_CONCURRENCY = 5;
+export const FEED_FAILURE_LIMIT = 10;
 
 async function runWithConcurrency<T>(items: T[], fn: (item: T) => Promise<void>, concurrency: number) {
   let index = 0;
@@ -50,7 +51,9 @@ export function createFeedRefresher(state: RefreshStore) {
   async function refreshAllFeeds() {
     const staleFeeds = state.folders
       .flatMap((f) => f.feeds)
-      .filter((f) => !state.isFeedFresh(f.id) && !state.updatingFeedIds.has(f.id));
+      .filter(
+        (f) => !state.isFeedFresh(f.id) && !state.updatingFeedIds.has(f.id) && f.error_count < FEED_FAILURE_LIMIT,
+      );
     if (staleFeeds.length === 0) return;
 
     state.isRefreshingFeeds = true;
@@ -82,6 +85,7 @@ export function createFeedRefresher(state: RefreshStore) {
     state.updatingFeedIds = addSet;
 
     await performSingleFeedRefresh(feedId);
+    await state.refreshFolders();
 
     if (state.selectedFeedId === feedId) {
       await state.reloadCurrentArticleList({ selectTop: true });

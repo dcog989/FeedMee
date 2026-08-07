@@ -111,6 +111,7 @@ fn migrations() -> Migrations<'static> {
                  END
              WHERE instr(url, '?access_token=') > 0 OR instr(url, '&access_token=') > 0;",
         ),
+        M::up("ALTER TABLE feeds ADD COLUMN error_count INTEGER NOT NULL DEFAULT 0;"),
     ])
 }
 
@@ -180,7 +181,8 @@ pub fn get_folders_with_feeds(conn: &Connection) -> Result<Vec<Folder>> {
 
     let mut feed_stmt = conn.prepare(
         "SELECT f.id, f.name, f.url, f.folder_id, f.has_error, f.feed_type,
-                COALESCE(uc.unread_count, 0) AS unread_count
+                COALESCE(uc.unread_count, 0) AS unread_count,
+                f.error_count
          FROM feeds f
          LEFT JOIN (
              SELECT feed_id, COUNT(*) AS unread_count
@@ -194,7 +196,8 @@ pub fn get_folders_with_feeds(conn: &Connection) -> Result<Vec<Folder>> {
 
     let mut root_feed_stmt = conn.prepare(
         "SELECT f.id, f.name, f.url, f.folder_id, f.has_error, f.feed_type,
-                COALESCE(uc.unread_count, 0) AS unread_count
+                COALESCE(uc.unread_count, 0) AS unread_count,
+                f.error_count
          FROM feeds f
          LEFT JOIN (
              SELECT feed_id, COUNT(*) AS unread_count
@@ -220,6 +223,7 @@ pub fn get_folders_with_feeds(conn: &Connection) -> Result<Vec<Folder>> {
                 has_error: r.get::<_, bool>(4).unwrap_or(false),
                 feed_type: feed_type_str,
                 unread_count: r.get(6)?,
+                error_count: r.get(7)?,
                 display_url,
                 source_id,
             })
@@ -244,6 +248,7 @@ pub fn get_folders_with_feeds(conn: &Connection) -> Result<Vec<Folder>> {
                         has_error: r.get::<_, bool>(4).unwrap_or(false),
                         feed_type: feed_type_str,
                         unread_count: r.get(6)?,
+                        error_count: r.get(7)?,
                         display_url,
                         source_id,
                     })
@@ -376,7 +381,8 @@ pub fn get_feed_unread_count(conn: &Connection, feed_id: i64) -> Result<i64> {
 pub fn get_feed(conn: &Connection, feed_id: i64) -> Result<Feed> {
     conn.query_row(
         "SELECT id, name, url, folder_id, has_error, feed_type,
-                (SELECT COUNT(*) FROM articles a WHERE a.feed_id = feeds.id AND a.is_read = 0) AS unread_count
+                (SELECT COUNT(*) FROM articles a WHERE a.feed_id = feeds.id AND a.is_read = 0) AS unread_count,
+                error_count
          FROM feeds WHERE id = ?1",
         params![feed_id],
         |r| {
@@ -392,6 +398,7 @@ pub fn get_feed(conn: &Connection, feed_id: i64) -> Result<Feed> {
                 has_error: r.get::<_, bool>(4).unwrap_or(false),
                 feed_type: feed_type_str,
                 unread_count: r.get(6)?,
+                error_count: r.get(7)?,
                 display_url,
                 source_id,
             })
@@ -440,6 +447,22 @@ pub fn update_feed_error(conn: &Connection, feed_id: i64, has_error: bool) -> Re
     conn.execute(
         "UPDATE feeds SET has_error = ?1 WHERE id = ?2",
         params![has_error, feed_id],
+    )?;
+    Ok(())
+}
+
+pub fn increment_feed_error_count(conn: &Connection, feed_id: i64) -> Result<()> {
+    conn.execute(
+        "UPDATE feeds SET error_count = error_count + 1 WHERE id = ?1",
+        params![feed_id],
+    )?;
+    Ok(())
+}
+
+pub fn reset_feed_error_count(conn: &Connection, feed_id: i64) -> Result<()> {
+    conn.execute(
+        "UPDATE feeds SET error_count = 0 WHERE id = ?1",
+        params![feed_id],
     )?;
     Ok(())
 }

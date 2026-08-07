@@ -130,7 +130,23 @@ pub async fn refresh_feed(feed_id: i64, state: State<'_, AppState>) -> Result<i6
         (feed.url, feed.feed_type)
     };
 
-    crate::connectors::registry()
+    let result = crate::connectors::registry()
         .refresh(&feed_type, &url, feed_id, &state)
-        .await
+        .await;
+
+    {
+        let conn = state.db.lock().unwrap();
+        match &result {
+            Ok(_) => {
+                let _ = db::reset_feed_error_count(&conn, feed_id);
+                let _ = db::update_feed_error(&conn, feed_id, false);
+            },
+            Err(_) => {
+                let _ = db::increment_feed_error_count(&conn, feed_id);
+                let _ = db::update_feed_error(&conn, feed_id, true);
+            },
+        }
+    }
+
+    result
 }
