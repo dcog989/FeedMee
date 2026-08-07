@@ -21,9 +21,9 @@
   - Drag-and-drop folder organization.
   - OPML Import/Export.
   - Bluesky profile support via AT Protocol.
-- **Smart Views:** "Latest" (24h) and "Read Later" (Saved) aggregation.
+- **Smart Views:** "Latest" (24h), "Today", and "Read Later" (Saved) aggregation.
 - **Article Tagging:** Color-coded tags for categorization and filtering.
-- **Search:** Full-text search across all articles or within a specific feed.
+- **Search:** Full-text search across all articles.
 - **Thumbnails:** Automatic og:image extraction with resizing, WebP caching, and configurable size.
 - **Local Privacy:** All data is stored locally in SQLite. No tracking, no accounts.
 - **Auto-Refresh:** Configurable periodic refresh (default 30 min) with 5 concurrent workers and debounce support.
