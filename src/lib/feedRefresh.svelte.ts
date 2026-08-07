@@ -62,10 +62,50 @@ export function createFeedRefresher(state: RefreshStore) {
     for (const f of staleFeeds) addSet.add(f.id);
     state.updatingFeedIds = addSet;
 
+    // Identify the currently viewed folder/feed so its list can be published as
+    // soon as its own feeds finish, instead of waiting for the whole batch.
+    const visibleFeedIds = new Set<number>();
+    if (state.selectedFolderId !== null) {
+      const folder = state.folders.find((f) => f.id === state.selectedFolderId);
+      if (folder) for (const feed of folder.feeds) visibleFeedIds.add(feed.id);
+    } else if (state.selectedFeedId !== null) {
+      visibleFeedIds.add(state.selectedFeedId);
+    }
+
+    let visibleRemaining = staleFeeds.filter((f) => visibleFeedIds.has(f.id)).length;
+    let resolveVisible: (() => void) | null = null;
+    const publishVisible = visibleRemaining > 0;
+    const visibleDone = publishVisible
+      ? new Promise<void>((resolve) => {
+          resolveVisible = resolve;
+        })
+      : Promise.resolve();
+
+    let index = 0;
+    const worker = async () => {
+      while (index < staleFeeds.length) {
+        const feed = staleFeeds[index++];
+        await performSingleFeedRefresh(feed.id);
+        if (visibleRemaining > 0 && visibleFeedIds.has(feed.id) && --visibleRemaining === 0) {
+          resolveVisible?.();
+        }
+      }
+    };
+
     try {
-      await runWithConcurrency(staleFeeds, (feed) => performSingleFeedRefresh(feed.id), REFRESH_CONCURRENCY);
+      await Promise.all([
+        ...Array.from({ length: REFRESH_CONCURRENCY }, () => worker()),
+        publishVisible
+          ? (async () => {
+              await visibleDone;
+              await state.refreshFolders();
+              await state.reloadCurrentArticleList({ selectTop: true });
+            })()
+          : Promise.resolve(),
+      ]);
       await state.refreshFolders();
-      if (state.selectedFeedId !== null || state.selectedFolderId !== null) {
+      // If the visible selection was published early, avoid clearing the list again.
+      if (!publishVisible && (state.selectedFeedId !== null || state.selectedFolderId !== null)) {
         await state.reloadCurrentArticleList({ selectTop: true });
       }
     } catch (e) {
