@@ -13,6 +13,9 @@ let loadError = $state(false);
 let loadGen = $state(0);
 
 let rawHtml = $derived(fullContent ?? articleStore.selectedArticle?.summary ?? '');
+let heroImage = $derived(articleStore.selectedArticle?.image_url ?? '');
+// Avoid duplicating an image the article body already embeds.
+let showHero = $derived(Boolean(heroImage) && !rawHtml.toLowerCase().includes(heroImage.toLowerCase()));
 
 $effect(() => {
   if (articleStore.selectedArticle) {
@@ -114,6 +117,21 @@ function getFeedDomain(feedId: number): string {
         </div>
       </header>
 
+      {#if showHero}
+        <p>
+          <img
+            class="article-hero"
+            src={heroImage}
+            alt=""
+            loading="lazy"
+            onerror={(e) => {
+              const img = e.currentTarget as HTMLImageElement;
+              img.style.display = 'none';
+            }}
+          >
+        </p>
+      {/if}
+
       <ArticleContent {rawHtml} {loadError} articleUrl={articleStore.selectedArticle.url} />
 
       <footer class="article-footer">
@@ -182,6 +200,15 @@ h1 {
   margin-bottom: 2rem;
   color: var(--text-secondary);
   font-size: 0.9rem;
+}
+
+.article-hero {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  height: auto;
+  border-radius: 6px;
+  margin-bottom: 2rem;
 }
 
 .meta-left {
