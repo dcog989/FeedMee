@@ -559,6 +559,19 @@ pub fn get_article_urls(conn: &Connection, feed_id: i64) -> Result<Vec<String>> 
     rows.collect()
 }
 
+pub fn migrate_article_url(
+    conn: &Connection,
+    feed_id: i64,
+    old_url: &str,
+    new_url: &str,
+) -> Result<()> {
+    conn.execute(
+        "UPDATE articles SET url = ?1 WHERE feed_id = ?2 AND url = ?3",
+        params![new_url, feed_id, old_url],
+    )?;
+    Ok(())
+}
+
 pub fn set_article_read(conn: &Connection, article_id: i64, is_read: bool) -> Result<()> {
     conn.execute(
         "UPDATE articles SET is_read = ?1 WHERE id = ?2",

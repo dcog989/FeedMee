@@ -78,28 +78,7 @@ pub fn entries_to_articles(
     entries
         .into_iter()
         .map(|entry| {
-            let article_url = entry
-                .links
-                .iter()
-                .find(|l| l.rel.as_deref() == Some("alternate"))
-                .or(entry.links.first())
-                .map(|l| strip_tracking_params(&l.href))
-                .unwrap_or_else(|| {
-                    let key = if !entry.id.is_empty() {
-                        entry.id.clone()
-                    } else {
-                        entry
-                            .title
-                            .as_ref()
-                            .map(|t| t.content.clone())
-                            .unwrap_or_default()
-                    };
-                    format!(
-                        "{}/#{}",
-                        feed_url.trim_end_matches('/'),
-                        compute_content_hash(&key)
-                    )
-                });
+            let article_url = resolve_article_url(&entry, feed_url);
 
             let image_url = (|| -> Option<String> {
                 if let Some(obj) = entry.media.iter().find_map(|m| m.content.first())
@@ -175,6 +154,40 @@ pub fn entries_to_articles(
         .collect()
 }
 
+fn compute_placeholder_url(feed_url: &str, entry: &feed_rs::model::Entry) -> String {
+    let key = if !entry.id.is_empty() {
+        entry.id.clone()
+    } else {
+        entry
+            .title
+            .as_ref()
+            .map(|t| t.content.clone())
+            .unwrap_or_default()
+    };
+    format!(
+        "{}/#{}",
+        feed_url.trim_end_matches('/'),
+        compute_content_hash(&key)
+    )
+}
+
+fn resolve_article_url(entry: &feed_rs::model::Entry, feed_url: &str) -> String {
+    if let Some(link) = entry
+        .links
+        .iter()
+        .find(|l| l.rel.as_deref() == Some("alternate"))
+        .or(entry.links.first())
+    {
+        return strip_tracking_params(&link.href);
+    }
+    if let Ok(parsed) = Url::parse(&entry.id)
+        && matches!(parsed.scheme(), "http" | "https")
+    {
+        return strip_tracking_params(&entry.id);
+    }
+    compute_placeholder_url(feed_url, entry)
+}
+
 async fn refresh_rss_feed(feed_url: &str, feed_id: i64, state: &AppState) -> Result<i64, String> {
     let client = state.http_client.clone();
     let result = client.get(feed_url).send().await;
@@ -205,7 +218,25 @@ async fn refresh_rss_feed(feed_url: &str, feed_id: i64, state: &AppState) -> Res
                         feed.entries.len()
                     );
 
-                    let mut articles = entries_to_articles(feed.entries, feed_id, feed_url);
+                    let mut articles = entries_to_articles(feed.entries.clone(), feed_id, feed_url);
+
+                    // Older builds stored linkless entries under a synthesized `feed_url/#hash` URL.
+                    // Entries whose id is itself an article URL now resolve to that URL instead;
+                    // rewrite the legacy rows so the refresh doesn't insert duplicates.
+                    {
+                        let conn = state.db.lock().unwrap();
+                        for (entry, article) in feed.entries.iter().zip(&articles) {
+                            let placeholder = compute_placeholder_url(feed_url, entry);
+                            if placeholder != article.url {
+                                let _ = db::migrate_article_url(
+                                    &conn,
+                                    feed_id,
+                                    &placeholder,
+                                    &article.url,
+                                );
+                            }
+                        }
+                    }
 
                     let known_urls: std::collections::HashSet<String> = {
                         let conn = state.db.lock().unwrap();
