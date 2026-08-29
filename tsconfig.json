@@ -11,7 +11,7 @@
     "moduleResolution": "bundler",
     "module": "ESNext",
     "noEmit": true,
-    "types": ["svelte"]
+    "types": ["svelte", "node"]
   },
   "exclude": ["scripts", "src-tauri", "node_modules", "build", ".svelte-kit"]
 }
