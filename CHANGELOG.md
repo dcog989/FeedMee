@@ -2,6 +2,13 @@
 All notable changes to this project will be documented in this file. See [conventional commits](https://www.conventionalcommits.org/) for commit guidelines.
 
 - - -
+## v0.22.4 - 2026-08-29
+
+#### Bug Fixes
+
+- (2aac87e) mount only .pkg dir in arch container to avoid tsconfig conflict - dcog989
+- - -
+
 ## v0.22.3 - 2026-08-29
 
 #### Bug Fixes
