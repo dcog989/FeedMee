@@ -13,8 +13,8 @@ pre-commit:
 
 commit-msg:
   jobs:
-    - name: commitlint
-      run: bunx commitlint --edit {1}
+    - name: cocogitto
+      run: cog verify --file {1}
       fail_text: "Commit message must follow Conventional Commits (feat|fix|refactor|chore|docs|style|perf|test|build|ci|revert)."
 
 pre-push:

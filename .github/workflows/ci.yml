@@ -56,14 +56,21 @@ jobs:
       - name: Check frontend lint
         run: bun run lint:frontend
 
+      - name: Install cocogitto
+        run: |
+          curl -sL https://github.com/cocogitto/cocogitto/releases/download/7.0.0/cocogitto-7.0.0-x86_64-unknown-linux-musl.tar.gz -o /tmp/cog.tar.gz
+          tar xzf /tmp/cog.tar.gz -C /tmp
+          sudo install /tmp/x86_64-unknown-linux-musl/cog /usr/local/bin/cog
+          cog --version
+
       - name: Check commit messages (Conventional Commits)
         run: |
           if [ "${{ github.event_name }}" = "pull_request" ]; then
-            bunx commitlint --from "${{ github.event.pull_request.base.sha }}" --to "${{ github.sha }}"
+            cog check "${{ github.event.pull_request.base.sha }}..${{ github.sha }}"
           elif [ "${{ github.event.before }}" != "0000000000000000000000000000000000000000" ]; then
-            bunx commitlint --from "${{ github.event.before }}" --to "${{ github.sha }}"
+            cog check "${{ github.event.before }}..${{ github.sha }}"
           else
-            bunx commitlint --last
+            git log -1 --format=%B | cog verify --file -
           fi
 
       - name: Check backend

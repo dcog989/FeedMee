@@ -1,0 +1,17 @@
+# Conventional commits enforcement with cocogitto.
+tag_prefix = "v"
+from_latest_tag = false
+ignore_merge_commits = true
+ignore_fixup_commits = false
+skip_ci = "[skip ci]"
+skip_untracked = false
+
+[git_hooks]
+
+[commit_types]
+
+[changelog]
+path = "CHANGELOG.md"
+authors = []
+
+[bump_profiles]
