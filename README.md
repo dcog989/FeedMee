@@ -4,7 +4,7 @@
 
 [Download from Latest Releases](https://github.com/dcog989/FeedMee/releases).
 
-![Version](https://img.shields.io/badge/version-0.17.1-blue.svg)
+![Version](https://img.shields.io/badge/version-0.22.0-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
 ![Tauri](https://img.shields.io/badge/built%20with-Tauri%202-24C8DB.svg)
 ![Svelte](https://img.shields.io/badge/frontend-Svelte%205-FF3E00.svg)
