@@ -120,7 +120,7 @@ pub(crate) fn setup_window(window: &tauri::WebviewWindow) {
 #[cfg(not(target_os = "linux"))]
 pub(crate) fn setup_window(window: &tauri::WebviewWindow) {
     match window.set_icon(tauri::include_image!("icons/32x32.png")) {
-        Ok(_) => info!("Window icon set successfully"),
+        Ok(_) => log::info!("Window icon set successfully"),
         Err(e) => log::warn!("Failed to set window icon: {}", e),
     }
 }
