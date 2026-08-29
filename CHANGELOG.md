@@ -2,6 +2,13 @@
 All notable changes to this project will be documented in this file. See [conventional commits](https://www.conventionalcommits.org/) for commit guidelines.
 
 - - -
+## v0.22.2 - 2026-08-29
+
+#### Bug Fixes
+
+- (f7c0eb9) build arch package on host runner and attach to release - dcog989
+- - -
+
 ## v0.22.1 - 2026-08-29
 - - -
 
