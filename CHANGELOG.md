@@ -2,6 +2,15 @@
 All notable changes to this project will be documented in this file. See [conventional commits](https://www.conventionalcommits.org/) for commit guidelines.
 
 - - -
+## v0.22.3 - 2026-08-29
+
+#### Bug Fixes
+
+- (eb5d0cb) build arch package on host runner and attach to release - dcog989
+
+- (fa99a9a) install nodejs in arch build container for pkgver - dcog989
+- - -
+
 ## v0.22.2 - 2026-08-29
 
 #### Bug Fixes
