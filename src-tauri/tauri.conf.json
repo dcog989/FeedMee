@@ -6,7 +6,7 @@
   "build": {
     "beforeDevCommand": "bunx vite dev",
     "devUrl": "http://localhost:1420",
-    "beforeBuildCommand": "bunx vite build",
+    "beforeBuildCommand": "svelte-kit sync && bunx vite build",
     "frontendDist": "../build"
   },
   "app": {
