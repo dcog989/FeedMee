@@ -2,6 +2,13 @@
 All notable changes to this project will be documented in this file. See [conventional commits](https://www.conventionalcommits.org/) for commit guidelines.
 
 - - -
+## v0.17.1 - 2026-08-29
+
+#### Bug Fixes
+
+- (3f054e5) set rust toolchain in release workflow and add node types for CI - dcog989
+- - -
+
 ## v0.17.0 - 2026-08-29
 
 #### Features
