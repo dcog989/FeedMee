@@ -1,17 +1,13 @@
 <script lang="ts">
-import { settingsStore } from '$lib/store.svelte';
+import { applyThemeToDocument, settingsStore } from '$lib/store.svelte';
 
 $effect(() => {
-  const root = document.documentElement;
+  applyThemeToDocument(settingsStore.theme);
 
-  if (settingsStore.theme !== 'system') {
-    root.setAttribute('data-theme', settingsStore.theme);
-    return;
-  }
+  if (settingsStore.theme !== 'system') return;
 
   const mq = window.matchMedia('(prefers-color-scheme: dark)');
-  const apply = () => root.setAttribute('data-theme', mq.matches ? 'dark' : 'light');
-  apply();
+  const apply = () => applyThemeToDocument('system');
   mq.addEventListener('change', apply);
   return () => mq.removeEventListener('change', apply);
 });

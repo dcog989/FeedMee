@@ -50,6 +50,16 @@ export const FEED_ID_LATEST = -1;
 export const FEED_ID_SAVED = -2;
 export const FEED_ID_TODAY = -3;
 
+export function applyThemeToDocument(theme: Theme) {
+  const root = document.documentElement;
+  if (theme !== 'system') {
+    root.setAttribute('data-theme', theme);
+    return;
+  }
+  const dark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+  root.setAttribute('data-theme', dark ? 'dark' : 'light');
+}
+
 class AppStateImpl {
   folders = $state<Folder[]>([]);
   articles = $state<Article[]>([]);
@@ -204,6 +214,7 @@ class AppStateImpl {
     if (storedList) this.listWidth = parseInt(storedList, 10);
     if (storedSort === 'asc' || storedSort === 'desc') this.sortOrder = storedSort;
     if (storedTheme === 'light' || storedTheme === 'dark' || storedTheme === 'system') this.theme = storedTheme;
+    applyThemeToDocument(this.theme);
 
     const storedBlocked = localStorage.getItem(LS_BLOCKED_PHRASES);
     if (storedBlocked) {

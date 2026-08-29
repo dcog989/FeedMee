@@ -106,11 +106,13 @@ pub fn run() {
         .plugin(tauri_plugin_fs::init())
         .plugin(
             tauri_plugin_window_state::Builder::default()
-                .with_state_flags(StateFlags::all() - StateFlags::DECORATIONS)
+                .with_state_flags(StateFlags::all() - StateFlags::DECORATIONS - StateFlags::VISIBLE)
+                .skip_initial_state("main")
                 .build(),
         )
         .invoke_handler(tauri::generate_handler![
             commands::get_app_info,
+            commands::show_main_window,
             commands::get_folders_with_feeds,
             commands::get_articles_for_feed,
             commands::get_articles_for_folder,

@@ -1,4 +1,6 @@
 ﻿<script lang="ts">
+import { invoke } from '@tauri-apps/api/core';
+import { onMount } from 'svelte';
 import AboutModal from '$lib/components/AboutModal.svelte';
 import ConfirmModal from '$lib/components/ConfirmModal.svelte';
 import EditFeedDialog from '$lib/components/EditFeedDialog.svelte';
@@ -12,6 +14,12 @@ import { appState } from '$lib/store.svelte';
 import '../app.css';
 
 let { children } = $props();
+
+// The window starts hidden (visible: false) and is only shown once the theme
+// (data-theme) has been applied, preventing a white flash on startup.
+onMount(() => {
+  invoke('show_main_window');
+});
 
 function disableContextMenu(e: MouseEvent) {
   e.preventDefault();

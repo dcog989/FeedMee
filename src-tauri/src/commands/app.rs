@@ -5,7 +5,21 @@ use crate::{
 use log::info;
 use serde::Serialize;
 use std::fs;
-use tauri::State;
+use tauri::{Manager, State};
+use tauri_plugin_window_state::{StateFlags, WindowExt};
+
+#[tauri::command]
+pub fn show_main_window(app: tauri::AppHandle) {
+    if let Some(window) = app.get_webview_window("main") {
+        let _ = window.show();
+        // Restore size/position/maximize after showing: applying them to a hidden
+        // window (as the plugin's on-window-ready restore does) is dropped on GTK
+        // and leaves the window oversized, clipping content top and bottom.
+        let _ =
+            window.restore_state(StateFlags::all() - StateFlags::DECORATIONS - StateFlags::VISIBLE);
+        let _ = window.set_focus();
+    }
+}
 
 #[derive(Serialize)]
 pub struct AppInfo {
