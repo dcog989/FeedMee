@@ -154,7 +154,7 @@ jobs:
 
   release:
     name: Publish Release
-    needs: [build-linux, build-arch, build-windows]
+    needs: [build-linux, build-windows]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -171,11 +171,6 @@ jobs:
           name: windows-nsis
           path: artifacts/windows
 
-      - uses: actions/download-artifact@v8
-        with:
-          name: linux-arch
-          path: artifacts/arch
-
       - name: Publish GitHub release
         uses: softprops/action-gh-release@v3
         with:
@@ -186,5 +181,4 @@ jobs:
             artifacts/windows/*.exe
             artifacts/windows/*.exe.zip
             artifacts/windows/*.exe.zip.sig
-            artifacts/arch/*.pkg.tar.zst
           generate_release_notes: true
