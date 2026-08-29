@@ -36,6 +36,7 @@
 - **lint**: `bun run check` (types + frontend + backend) or individually: `bun run lint:types`, `bun run lint:frontend`, `bun run lint:backend`
 - **format**: `bun run format`
 - **build**: `bun run build`
+- **version**: `bun run release` (auto), `bun run version 1.2.3` (explicit); cocogitto syncs manifests, changelog, and tags `v*` then pushes (triggers GitHub release)
 - **commits**: Conventional Commits, enforced by cocogitto via lefthook (`commit-msg` hook) and CI. Types: `feat|fix|refactor|chore|docs|style|perf|test|build|ci|revert`.
 
 ## File System Access
