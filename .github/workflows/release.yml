@@ -78,6 +78,7 @@ jobs:
             bun \
             npm \
             mold \
+            clang \
             sqlite \
             cmake \
             nasm \
