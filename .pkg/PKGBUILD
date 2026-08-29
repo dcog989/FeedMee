@@ -22,7 +22,7 @@ makedepends=(
     'nasm'
 )
 options=('!strip' '!lto')
-source=("$pkgname::git+file://${PWD}/..")
+source=("$pkgname::git+https://github.com/dcog989/FeedMee.git#tag=v$pkgver")
 sha256sums=('SKIP')
 
 prepare() {
