@@ -64,48 +64,31 @@ jobs:
   build-arch:
     name: Build (Arch Linux Package)
     runs-on: ubuntu-latest
-    container:
-      image: archlinux:latest
+
     steps:
       - uses: actions/checkout@v7
 
-      - name: Install build dependencies
+      - name: Build Arch package
         run: |
-          pacman -Syu --noconfirm
-          pacman -S --noconfirm \
-            base-devel \
-            rust \
-            bun \
-            npm \
-            mold \
-            clang \
-            sqlite \
-            cmake \
-            nasm \
-            git \
-            sudo
-
-      - name: Setup build user
-        run: |
-          useradd -m builder
-          echo "builder ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
-          chown -R builder:builder "$GITHUB_WORKSPACE"
-
-      - name: Generate SvelteKit types at workspace root
-        run: |
-          bun install --frozen-lockfile
-          bunx svelte-kit sync
-
-      - name: Build package
-        run: |
-          cd .pkg
-          sudo -u builder makepkg -s --noconfirm --force
+          docker run --rm \
+            -v "${{ github.workspace }}":/workspace \
+            -w /workspace/.pkg \
+            archlinux:latest \
+            bash -c "
+              pacman -Sy --noconfirm archlinux-keyring
+              pacman -Su --noconfirm base-devel
+              useradd -m builder
+              echo 'builder ALL=(ALL) NOPASSWD: ALL' >> /etc/sudoers
+              chown -R builder:builder /workspace
+              su builder -c 'makepkg -s --noconfirm --force'
+            "
 
       - name: Upload Arch package
         uses: actions/upload-artifact@v7
         with:
           name: linux-arch
           path: .pkg/*.pkg.tar.zst
+          if-no-files-found: error
 
   build-windows:
     name: Build (Windows)
@@ -154,7 +137,7 @@ jobs:
 
   release:
     name: Publish Release
-    needs: [build-linux, build-windows]
+    needs: [build-linux, build-windows, build-arch]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -171,6 +154,11 @@ jobs:
           name: windows-nsis
           path: artifacts/windows
 
+      - uses: actions/download-artifact@v8
+        with:
+          name: linux-arch
+          path: artifacts/arch
+
       - name: Publish GitHub release
         uses: softprops/action-gh-release@v3
         with:
@@ -181,4 +169,5 @@ jobs:
             artifacts/windows/*.exe
             artifacts/windows/*.exe.zip
             artifacts/windows/*.exe.zip.sig
+            artifacts/arch/*.pkg.tar.zst
           generate_release_notes: true
