@@ -90,6 +90,11 @@ jobs:
           echo "builder ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
           chown -R builder:builder "$GITHUB_WORKSPACE"
 
+      - name: Generate SvelteKit types at workspace root
+        run: |
+          bun install --frozen-lockfile
+          bunx svelte-kit sync
+
       - name: Build package
         run: |
           cd .pkg
