@@ -2,6 +2,13 @@
 All notable changes to this project will be documented in this file. See [conventional commits](https://www.conventionalcommits.org/) for commit guidelines.
 
 - - -
+## v0.22.5 - 2026-08-30
+
+#### Bug Fixes
+
+- (0db8355) mount package.json in arch container for pkgver resolution - dcog989
+- - -
+
 ## v0.22.4 - 2026-08-29
 
 #### Bug Fixes

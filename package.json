@@ -1,6 +1,6 @@
 {
   "name": "feedmee",
-  "version": "0.22.4",
+  "version": "0.22.5",
   "description": "The seriously fast feed reader.",
   "license": "MIT",
   "type": "module",
