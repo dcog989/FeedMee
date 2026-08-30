@@ -17,6 +17,7 @@ makedepends=(
     'bun'
     'npm'  # bun needs this for some tauri tooling
     'mold'
+    'clang'  # aws-lc-sys requires clang
     'sqlite'
     'cmake'
     'nasm'
