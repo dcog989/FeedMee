@@ -72,6 +72,7 @@ jobs:
         run: |
           docker run --rm \
             -v "${{ github.workspace }}/.pkg":/pkg \
+            -v "${{ github.workspace }}/package.json":/package.json \
             -w /pkg \
             archlinux:latest \
             bash -c "
