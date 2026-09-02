@@ -2,6 +2,17 @@
 All notable changes to this project will be documented in this file. See [conventional commits](https://www.conventionalcommits.org/) for commit guidelines.
 
 - - -
+## v0.22.7 - 2026-09-02
+
+#### Features
+
+- (fa87a75) add folder selector to edit feed dialog - dcog989
+
+#### Bug Fixes
+
+- (52235d2) package prebuilt binary for arch instead of rebuilding in container - dcog989
+- - -
+
 ## v0.22.6 - 2026-08-30
 
 #### Bug Fixes
