@@ -1,8 +1,12 @@
 {
   "$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
-  "vcs": { "enabled": true, "clientKind": "git", "useIgnoreFile": true },
+  "vcs": {
+    "enabled": true,
+    "clientKind": "git",
+    "useIgnoreFile": true
+  },
   "files": {
-    "includes": ["**", "!.assets", "!.context", "!.svelte-kit", "!node_modules", "!src-tauri"]
+    "includes": ["**", "!.assets/", "!.svelte-kit/", "!node_modules/", "!src-tauri/"]
   },
   "formatter": {
     "indentStyle": "space",
@@ -26,6 +30,10 @@
           "correctness": {
             "noUnusedVariables": "off",
             "noUnusedImports": "off"
+          },
+          "a11y": {
+            "noLabelWithoutControl": "off",
+            "useSemanticElements": "off"
           }
         }
       }

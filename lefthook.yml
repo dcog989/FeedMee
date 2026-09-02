@@ -1,24 +1,25 @@
 pre-commit:
+  parallel: true
   jobs:
     - name: biome
-      glob: "*.{js,ts,svelte}"
+      glob: "*.{js,ts,svelte,json,css}"
       run: bunx biome check --write --no-errors-on-unmatched --files-ignore-unknown=true {staged_files}
       stage_fixed: true
-      fail_text: "Biome check failed."
 
     - name: rust-fmt
       glob: "*.rs"
-      run: rustfmt --check {staged_files}
-      fail_text: "Rust formatting check failed."
-
-commit-msg:
-  jobs:
-    - name: cocogitto
-      run: cog verify --file {1}
-      fail_text: "Commit message must follow Conventional Commits (feat|fix|refactor|chore|docs|style|perf|test|build|ci|revert)."
+      run: cargo fmt --manifest-path src-tauri/Cargo.toml -- {staged_files}
+      stage_fixed: true
 
 pre-push:
-  jobs:
-    - name: check
+  parallel: true
+  commands:
+    full-check:
       run: bun run check
-      fail_text: "Full check suite failed. Push aborted."
+    tests:
+      run: bun run test
+
+commit-msg:
+  commands:
+    cog:
+      run: cog verify --file {1}

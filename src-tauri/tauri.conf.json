@@ -27,22 +27,11 @@
   },
   "bundle": {
     "active": true,
-    "targets": [
-      "deb",
-      "rpm",
-      "appimage",
-      "nsis"
-    ],
+    "targets": ["deb", "rpm", "appimage", "nsis"],
     "category": "News",
     "shortDescription": "The seriously fast feed reader.",
     "longDescription": "A desktop RSS and Atom news feed reader with a clean, minimal style. Fast performance, minimal resource usage.",
-    "icon": [
-      "icons/32x32.png",
-      "icons/128x128.png",
-      "icons/128x128@2x.png",
-      "icons/icon.icns",
-      "icons/icon.ico"
-    ],
+    "icon": ["icons/32x32.png", "icons/128x128.png", "icons/128x128@2x.png", "icons/icon.icns", "icons/icon.ico"],
     "linux": {
       "appimage": {
         "bundleMediaFramework": false
@@ -55,9 +44,7 @@
   "plugins": {
     "updater": {
       "pubkey": "",
-      "endpoints": [
-        "https://github.com/dcog989/feedmee/releases/latest/download/latest.json"
-      ]
+      "endpoints": ["https://github.com/dcog989/feedmee/releases/latest/download/latest.json"]
     }
   }
 }

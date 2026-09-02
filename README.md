@@ -94,7 +94,15 @@ Compiles the Rust backend and Svelte frontend. Output binary at `src-tauri/targe
 bun run check
 ```
 
-Runs TypeScript (`svelte-check`), frontend lint (`biome`), and backend lint (`cargo clippy`). Use `bun run check:watch` to keep running in a separate terminal during development.
+Runs TypeScript (`svelte-check`), frontend lint (`biome`), and backend lint (`cargo clippy`). Use `bun run check:types` and `bun run check:frontend` to check individual frontend layers.
+
+### Test
+
+```bash
+bun run test
+```
+
+Runs the vitest suite (frontend) and `cargo test` (backend).
 
 ## Keyboard Shortcuts
 

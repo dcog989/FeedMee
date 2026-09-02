@@ -4,6 +4,7 @@
 .feeds/
 .pkg/*.tar.zst
 .pkg/*.log
+.pkg/PKGBUILD
 .pkg/feedmee/
 .pkg/feedmee-*.zst
 .pkg/pkg/
@@ -11,6 +12,8 @@
 .repomix/
 .repomixignore
 .svelte-kit
+coverage/
+pkg/
 [Dd]ist/
 [Ll]og/
 [Ll]ogs/

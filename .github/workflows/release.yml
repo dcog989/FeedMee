@@ -3,13 +3,16 @@ name: Release
 on:
   push:
     tags: ["v*"]
-  workflow_dispatch:
 
 env:
   CARGO_TERM_COLOR: always
 
 permissions:
   contents: write
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   publish:
@@ -21,36 +24,27 @@ jobs:
           - os: windows-latest
 
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 60
 
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
 
       - name: Setup bun
-        uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: latest
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6
 
       - name: Cache node_modules
-        uses: actions/cache@v6
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
         with:
           path: node_modules
           key: bun-${{ hashFiles('bun.lock') }}-v1
+          restore-keys: |
+            bun-${{ hashFiles('bun.lock') }}-
+            bun-
 
-      - name: Cache cargo registry
-        uses: actions/cache@v6
+      - name: Cache Rust
+        uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6
         with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-          key: cargo-${{ hashFiles('src-tauri/Cargo.lock') }}
-
-      - uses: dtolnay/rust-toolchain@master
-        with:
-          toolchain: stable
-
-      - uses: Swatinem/rust-cache@v2
-        with:
-          workspaces: src-tauri
+          workspaces: './src-tauri -> target'
 
       - name: Install system dependencies (Linux)
         if: matrix.os == 'ubuntu-latest'
@@ -58,16 +52,17 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y \
             libwebkit2gtk-4.1-dev \
-            libgtk-3-dev \
-            libayatana-appindicator3-dev \
+            libappindicator3-dev \
             librsvg2-dev \
-            patchelf
+            patchelf \
+            libssl-dev \
+            libgtk-3-dev
 
       - name: Install frontend dependencies
         run: bun install
 
       - name: Build and publish
-        uses: tauri-apps/tauri-action@v1
+        uses: tauri-apps/tauri-action@1deb371b0cd8bd54025b384f1cd735e725c4060f
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
@@ -80,13 +75,15 @@ jobs:
       - name: Build Arch package
         if: matrix.os == 'ubuntu-latest'
         run: |
+          mkdir -p .pkg
+          cp PKGBUILD .pkg/
           docker run --rm \
             -v ${{ github.workspace }}:/workspace \
             -w /workspace/.pkg \
             archlinux:latest \
             bash -c "
               pacman -Sy --noconfirm archlinux-keyring
-              pacman -Su --noconfirm base-devel webkit2gtk-4.1 gtk3 libayatana-appindicator
+              pacman -Su --noconfirm base-devel webkit2gtk-4.1
               useradd -m builder
               chown -R builder:builder /workspace
               su builder -c 'makepkg -f --noconfirm'
@@ -94,7 +91,7 @@ jobs:
 
       - name: Upload Arch package
         if: matrix.os == 'ubuntu-latest'
-        uses: softprops/action-gh-release@v3
+        uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64
         with:
           draft: false
           files: .pkg/*.pkg.tar.zst
@@ -102,7 +99,7 @@ jobs:
 
       - name: Upload CHANGELOG
         if: matrix.os == 'ubuntu-latest'
-        uses: softprops/action-gh-release@v3
+        uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64
         with:
           draft: false
           files: CHANGELOG.md

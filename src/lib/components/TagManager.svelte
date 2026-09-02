@@ -128,7 +128,6 @@ function onInputKeydown(e: KeyboardEvent) {
             </span>
             <span class="tag-dot" style="background: {tag.color}"></span>
             <span class="tag-name">{tag.name}</span>
-            <!-- biome-ignore lint/a11y/useSemanticElements: nested inside <button>, cannot use nested <button> -->
             <span
               class="tag-delete"
               role="button"

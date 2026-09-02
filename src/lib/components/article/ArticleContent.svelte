@@ -65,7 +65,6 @@ async function handleContentClick(e?: MouseEvent) {
   </div>
 {/if}
 
-<!-- biome-ignore lint/a11y/useSemanticElements: contains flow content from article HTML, cannot use <button> -->
 <div
   class="summary"
   role="button"

@@ -31,7 +31,6 @@ function handleKeydown(e: KeyboardEvent) {
 }
 </script>
 
-<!-- biome-ignore lint/a11y/useSemanticElements: contains flow content + nested action buttons, can't use <button> -->
 <div
   class="article-card"
   class:selected={isSelected}

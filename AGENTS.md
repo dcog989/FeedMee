@@ -32,8 +32,8 @@
 
 - **install**: `bun install`
 - **dev**: `bun run dev`
-- **test**: (none yet)
-- **lint**: `bun run check` (types + frontend + backend) or individually: `bun run lint:types`, `bun run lint:frontend`, `bun run lint:backend`
+- **test**: `bun run test` (vitest + cargo test); coverage via `bun run coverage`
+- **lint**: `bun run check` (types + frontend + backend) or individually: `bun run check:types`, `bun run check:frontend`
 - **format**: `bun run format`
 - **build**: `bun run build`
 - **version**: `bun run release` (auto), `bun run version 1.2.3` (explicit); cocogitto syncs manifests, changelog, and tags `v*` then pushes (triggers GitHub release)
