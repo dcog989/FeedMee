@@ -12,51 +12,24 @@ depends=(
     'libayatana-appindicator'
     'sqlite'
 )
-makedepends=(
-    'rust'
-    'bun'
-    'npm'  # bun needs this for some tauri tooling
-    'mold'
-    'clang'  # aws-lc-sys requires clang
-    'sqlite'
-    'cmake'
-    'nasm'
-)
 options=('!strip' '!lto')
-source=("$pkgname::git+https://github.com/dcog989/FeedMee.git#tag=v$pkgver")
-sha256sums=('SKIP')
+source=()
+sha256sums=()
 
-prepare() {
-    cd "$pkgname"
-    git config --unset-all --local core.hooksPath || true
-    bun install --frozen-lockfile
-}
-
-build() {
-    cd "$pkgname"
-    export LIBSQLITE3_SYS_USE_PKG_CONFIG=1
-    export RUSTFLAGS="-C link-arg=-fuse-ld=mold"
-    # Arch's CFLAGS include -flto=auto which breaks ring/aws-lc-sys archive linking
-    export CFLAGS="${CFLAGS/-flto=auto/}"
-    export CFLAGS="${CFLAGS/-flto/}"
-    bunx tauri build --no-bundle
-}
-
+# Binary is already built on the host runner; this only packages it and the support files.
 package() {
-    cd "$pkgname"
-
     # Binary
-    install -Dm755 "src-tauri/target/release/FeedMee" "$pkgdir/usr/bin/feedmee"
+    install -Dm755 "$startdir/../src-tauri/target/release/FeedMee" "$pkgdir/usr/bin/feedmee"
 
     # Desktop entry
-    install -Dm644 ".pkg/feedmee.desktop" "$pkgdir/usr/share/applications/feedmee.desktop"
+    install -Dm644 "$startdir/../.pkg/feedmee.desktop" "$pkgdir/usr/share/applications/feedmee.desktop"
 
     # Icons
-    install -Dm644 "src-tauri/icons/32x32.png"      "$pkgdir/usr/share/icons/hicolor/32x32/apps/feedmee.png"
-    install -Dm644 "src-tauri/icons/64x64.png"      "$pkgdir/usr/share/icons/hicolor/64x64/apps/feedmee.png"
-    install -Dm644 "src-tauri/icons/128x128.png"    "$pkgdir/usr/share/icons/hicolor/128x128/apps/feedmee.png"
-    install -Dm644 "src-tauri/icons/icon.png"       "$pkgdir/usr/share/icons/hicolor/512x512/apps/feedmee.png"
+    install -Dm644 "$startdir/../src-tauri/icons/32x32.png"      "$pkgdir/usr/share/icons/hicolor/32x32/apps/feedmee.png"
+    install -Dm644 "$startdir/../src-tauri/icons/64x64.png"      "$pkgdir/usr/share/icons/hicolor/64x64/apps/feedmee.png"
+    install -Dm644 "$startdir/../src-tauri/icons/128x128.png"    "$pkgdir/usr/share/icons/hicolor/128x128/apps/feedmee.png"
+    install -Dm644 "$startdir/../src-tauri/icons/icon.png"       "$pkgdir/usr/share/icons/hicolor/512x512/apps/feedmee.png"
 
     # License
-    install -Dm644 "README.md" "$pkgdir/usr/share/doc/$pkgname/README.md"
+    install -Dm644 "$startdir/../README.md" "$pkgdir/usr/share/doc/$pkgname/README.md"
 }
