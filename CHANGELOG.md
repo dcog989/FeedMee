@@ -2,6 +2,13 @@
 All notable changes to this project will be documented in this file. See [conventional commits](https://www.conventionalcommits.org/) for commit guidelines.
 
 - - -
+## v0.22.10 - 2026-09-02
+
+#### Bug Fixes
+
+- (c715f85) attach appimage to release and drop raw binary - dcog989
+- - -
+
 ## v0.22.9 - 2026-09-02
 
 #### Bug Fixes
