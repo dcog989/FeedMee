@@ -28,8 +28,14 @@
   "bundle": {
     "active": true,
     "targets": [
-      "appimage"
+      "deb",
+      "rpm",
+      "appimage",
+      "nsis"
     ],
+    "category": "News",
+    "shortDescription": "The seriously fast feed reader.",
+    "longDescription": "A desktop RSS and Atom news feed reader with a clean, minimal style. Fast performance, minimal resource usage.",
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",

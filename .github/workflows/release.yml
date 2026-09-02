@@ -2,21 +2,31 @@ name: Release
 
 on:
   push:
-    tags:
-      - "v*"
+    tags: ["v*"]
   workflow_dispatch:
 
+env:
+  CARGO_TERM_COLOR: always
+
+permissions:
+  contents: write
+
 jobs:
-  build-linux:
-    name: Build (Linux AppImage)
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
+  publish:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+          - os: windows-latest
+
+    runs-on: ${{ matrix.os }}
 
     steps:
       - uses: actions/checkout@v7
 
-      - uses: oven-sh/setup-bun@v2
+      - name: Setup bun
+        uses: oven-sh/setup-bun@v2
         with:
           bun-version: latest
 
@@ -24,7 +34,15 @@ jobs:
         uses: actions/cache@v6
         with:
           path: node_modules
-          key: bun-${{ hashFiles('bun.lock') }}
+          key: bun-${{ hashFiles('bun.lock') }}-v1
+
+      - name: Cache cargo registry
+        uses: actions/cache@v6
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+          key: cargo-${{ hashFiles('src-tauri/Cargo.lock') }}
 
       - uses: dtolnay/rust-toolchain@master
         with:
@@ -34,7 +52,8 @@ jobs:
         with:
           workspaces: src-tauri
 
-      - name: Install system dependencies
+      - name: Install system dependencies (Linux)
+        if: matrix.os == 'ubuntu-latest'
         run: |
           sudo apt-get update
           sudo apt-get install -y \
@@ -44,42 +63,25 @@ jobs:
             librsvg2-dev \
             patchelf
 
-      - run: bun install
+      - name: Install frontend dependencies
+        run: bun install
 
-      - name: Build AppImage
-        run: bunx tauri build --bundles appimage
+      - name: Build and publish
+        uses: tauri-apps/tauri-action@v1
         env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
-
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v7
         with:
-          name: linux-appimage
-          path: |
-            src-tauri/target/release/FeedMee
-            src-tauri/target/release/bundle/appimage/*.AppImage
-            src-tauri/target/release/bundle/appimage/*.AppImage.tar.gz
-            src-tauri/target/release/bundle/appimage/*.AppImage.tar.gz.sig
-
-  build-arch:
-    name: Build (Arch Linux Package)
-    runs-on: ubuntu-latest
-    needs: [build-linux]
-
-    steps:
-      - uses: actions/checkout@v7
-
-      - name: Download release binary
-        uses: actions/download-artifact@v8
-        with:
-          name: linux-appimage
-          path: src-tauri/target/release
+          tagName: ${{ github.ref_name }}
+          releaseName: ${{ github.ref_name }}
+          releaseDraft: false
 
       - name: Build Arch package
+        if: matrix.os == 'ubuntu-latest'
         run: |
           docker run --rm \
-            -v "${{ github.workspace }}":/workspace \
+            -v ${{ github.workspace }}:/workspace \
             -w /workspace/.pkg \
             archlinux:latest \
             bash -c "
@@ -91,91 +93,15 @@ jobs:
             "
 
       - name: Upload Arch package
-        uses: actions/upload-artifact@v7
-        with:
-          name: linux-arch
-          path: .pkg/*.pkg.tar.zst
-          include-hidden-files: true
-          if-no-files-found: error
-
-  build-windows:
-    name: Build (Windows)
-    runs-on: windows-latest
-    permissions:
-      contents: write
-
-    steps:
-      - uses: actions/checkout@v7
-
-      - uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: latest
-
-      - name: Cache node_modules
-        uses: actions/cache@v6
-        with:
-          path: node_modules
-          key: bun-${{ hashFiles('bun.lock') }}
-
-      - uses: dtolnay/rust-toolchain@master
-        with:
-          toolchain: stable
-
-      - uses: Swatinem/rust-cache@v2
-        with:
-          workspaces: src-tauri
-
-      - run: bun install
-
-      - name: Build NSIS installer
-        run: bunx tauri build --bundles nsis
-        env:
-          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
-          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
-
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v7
-        with:
-          name: windows-nsis
-          path: |
-            src-tauri/target/release/bundle/nsis/*.exe
-            src-tauri/target/release/bundle/nsis/*.exe.zip
-            src-tauri/target/release/bundle/nsis/*.exe.zip.sig
-          if-no-files-found: error
-
-  release:
-    name: Publish Release
-    needs: [build-linux, build-windows, build-arch]
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-    if: startsWith(github.ref, 'refs/tags/')
-
-    steps:
-      - uses: actions/download-artifact@v8
-        with:
-          name: linux-appimage
-          path: artifacts/linux
-
-      - uses: actions/download-artifact@v8
-        with:
-          name: windows-nsis
-          path: artifacts/windows
-
-      - uses: actions/download-artifact@v8
-        with:
-          name: linux-arch
-          path: artifacts/arch
-
-      - name: Publish GitHub release
+        if: matrix.os == 'ubuntu-latest'
         uses: softprops/action-gh-release@v3
         with:
-          files: |
-            artifacts/linux/**/*.AppImage
-            artifacts/linux/**/*.AppImage.tar.gz
-            artifacts/linux/**/*.AppImage.tar.gz.sig
-            artifacts/windows/*.exe
-            artifacts/windows/*.exe.zip
-            artifacts/windows/*.exe.zip.sig
-            artifacts/arch/*.pkg.tar.zst
-          generate_release_notes: true
+          draft: false
+          files: .pkg/*.pkg.tar.zst
+
+      - name: Upload CHANGELOG
+        if: matrix.os == 'ubuntu-latest'
+        uses: softprops/action-gh-release@v3
+        with:
+          draft: false
+          files: CHANGELOG.md
