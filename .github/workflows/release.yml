@@ -171,10 +171,9 @@ jobs:
         uses: softprops/action-gh-release@v3
         with:
           files: |
-            artifacts/linux/FeedMee
-            artifacts/linux/*.AppImage
-            artifacts/linux/*.AppImage.tar.gz
-            artifacts/linux/*.AppImage.tar.gz.sig
+            artifacts/linux/**/*.AppImage
+            artifacts/linux/**/*.AppImage.tar.gz
+            artifacts/linux/**/*.AppImage.tar.gz.sig
             artifacts/windows/*.exe
             artifacts/windows/*.exe.zip
             artifacts/windows/*.exe.zip.sig
