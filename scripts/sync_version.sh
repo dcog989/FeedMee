@@ -7,3 +7,4 @@ sed -i "s/\"version\": \"[0-9][0-9.]*\"/\"version\": \"$version\"/" package.json
 sed -i "s/^version = \".*/version = \"$version\"/" src-tauri/Cargo.toml
 sed -i "/^name = \"FeedMee\"/{n;s/^version = \".*/version = \"$version\"/}" src-tauri/Cargo.lock
 sed -i "s/version-[0-9.]*-blue/version-$version-blue/" README.md
+sed -i "s/^pkgver=.*/pkgver=$version/" .pkg/PKGBUILD

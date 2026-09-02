@@ -1,6 +1,6 @@
 # Maintainer: dcog989
 pkgname=feedmee
-pkgver=$(node -p "require('../package.json').version")
+pkgver=0.22.10
 pkgrel=1
 pkgdesc="The seriously fast feed reader."
 arch=('x86_64')
