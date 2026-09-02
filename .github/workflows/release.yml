@@ -84,7 +84,7 @@ jobs:
             archlinux:latest \
             bash -c "
               pacman -Sy --noconfirm archlinux-keyring
-              pacman -Su --noconfirm base-devel nodejs
+              pacman -Su --noconfirm base-devel nodejs webkit2gtk-4.1 gtk3 libayatana-appindicator
               useradd -m builder
               chown -R builder:builder /workspace
               su builder -c 'makepkg -f --noconfirm'
