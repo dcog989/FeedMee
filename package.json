@@ -30,8 +30,8 @@
   },
   "dependencies": {
     "@tauri-apps/api": "^2.11.1",
-    "@tauri-apps/plugin-dialog": "^2.7.2",
-    "@tauri-apps/plugin-opener": "^2.5.4",
+    "@tauri-apps/plugin-dialog": "^2.7.3",
+    "@tauri-apps/plugin-opener": "^2.5.5",
     "dompurify": "^3.4.14",
     "lucide-svelte": "^1.0.1"
   },
@@ -41,7 +41,7 @@
     "@sveltejs/kit": "^2.70.3",
     "@sveltejs/vite-plugin-svelte": "^7.3.0",
     "@tauri-apps/cli": "^2.11.4",
-    "@types/node": "^26.0.0",
+    "@types/node": "^26.4.1",
     "lefthook": "^2.1.12",
     "svelte": "^5.57.0",
     "svelte-check": "^4.7.6",
