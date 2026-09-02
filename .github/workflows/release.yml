@@ -98,6 +98,7 @@ jobs:
         with:
           draft: false
           files: .pkg/*.pkg.tar.zst
+          fail_on_unmatched_files: true
 
       - name: Upload CHANGELOG
         if: matrix.os == 'ubuntu-latest'
