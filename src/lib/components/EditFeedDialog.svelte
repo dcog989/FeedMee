@@ -2,20 +2,31 @@
 import { feedStore, uiStore } from '$lib/store.svelte';
 import Modal from './Modal.svelte';
 
-let name = $state(uiStore.editFeedTarget?.name ?? '');
-let sourceId = $state(uiStore.editFeedTarget?.source_id ?? '');
-let sourceType = $state(uiStore.editFeedTarget?.source_type ?? '');
+let target = $state(uiStore.editFeedTarget);
+let name = $state(target?.name ?? '');
+let sourceId = $state(target?.source_id ?? '');
+let sourceType = $state(target?.source_type ?? '');
+let selectedFolderId = $state<number | null>(getFeedFolderId(target?.id));
 let isBluesky = $derived(sourceType === 'bluesky');
+
+function getFeedFolderId(feedId: number | undefined): number | null {
+  if (feedId === undefined) return null;
+  for (const folder of feedStore.folders) {
+    if (folder.feeds.some((f) => f.id === feedId)) return folder.id;
+  }
+  return null;
+}
 
 function closeDialog() {
   uiStore.showEditFeedDialog = false;
   uiStore.editFeedTarget = null;
 }
 
-function submit() {
-  if (name.trim() && sourceId.trim() && uiStore.editFeedTarget) {
+async function submit() {
+  if (name.trim() && sourceId.trim() && target) {
     const url = isBluesky ? `bsky:${sourceId.trim()}` : sourceId.trim();
-    feedStore.renameFeed(uiStore.editFeedTarget.id, name.trim(), url);
+    await feedStore.renameFeed(target.id, name.trim(), url);
+    await feedStore.moveFeed(target.id, selectedFolderId === 0 ? null : selectedFolderId);
   }
   closeDialog();
 }
@@ -52,6 +63,15 @@ function focusOnMount(node: HTMLInputElement) {
   {#if isBluesky}
     <span class="field-note">Bluesky feed identifier is fixed and cannot be edited.</span>
   {/if}
+  <div class="field">
+    <span id="feed-folder-label">Folder</span>
+    <select id="feed-folder-select" aria-labelledby="feed-folder-label" bind:value={selectedFolderId}>
+      <option value={0}>Root (no folder)</option>
+      {#each feedStore.folders.filter((f) => f.id !== 0) as folder (folder.id)}
+        <option value={folder.id}>{folder.name}</option>
+      {/each}
+    </select>
+  </div>
   <div class="modal-actions">
     <button type="button" class="secondary" onclick={closeDialog}>Cancel</button>
     <button type="button" class="primary" disabled={!name.trim() || !sourceId.trim()} onclick={submit}>Save</button>
@@ -96,6 +116,22 @@ h3 {
 .field input:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+.field select {
+  width: 100%;
+  padding: 8px 12px;
+  background: var(--bg-app);
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+  border-radius: 4px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  box-sizing: border-box;
+}
+
+.field select:focus {
+  border-color: var(--bg-selected);
 }
 
 .field-note {
