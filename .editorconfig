@@ -5,15 +5,10 @@ root = true
 [*]
 charset = utf-8
 end_of_line = lf
-indent_size = 4
+indent_size = 2
 indent_style = space
 insert_final_newline = true
 trim_trailing_whitespace = true
-
-# These use 2 spaces
-[*.{astro,bash,bash_profile,bashrc,cjs,css,fish,htm,html,js,json,json5,jsonc,jsx,less,mjs,
-  profile,sass,scss,sh,sql,svelte,svg,toml,ts,tsx,vue,xhtml,xml,xsd,xsl,yaml,yml,zsh}]
-indent_size = 2
 
 # These use tabs
 [*.{go,Makefile,makefile,GNUMakefile}]
