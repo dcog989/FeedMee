@@ -11,7 +11,6 @@
     "check:types": "echo \"Checking Frontend Types...\" && svelte-check --tsconfig ./tsconfig.json --config ./vite.config.js",
     "clean": "rm -rf .context .feeds .svelte-kit build node_modules src-tauri/gen src-tauri/target coverage .pkg/src .pkg/pkg .pkg/feedmee .pkg/*.pkg.tar.zst .pkg/*.zst .pkg/*.gz",
     "coverage": "vitest run --coverage",
-    "crates": "cd src-tauri && cargo upgrade --verbose",
     "dev": "tauri dev",
     "format": "bunx biome format --write . && cd src-tauri && cargo fmt",
     "format:check": "bunx biome format . && cd src-tauri && cargo fmt -- --check",
@@ -19,7 +18,7 @@
     "package": "bun run build && mkdir -p .pkg && cp PKGBUILD .pkg/ && cd .pkg && makepkg -si --noconfirm --force",
     "release": "cog bump --auto",
     "test": "echo \"Running Tests...\" && vitest run && cd src-tauri && cargo test",
-    "update": "bun update --latest && bun run crates",
+    "update": "bun update --latest && cd src-tauri && cargo upgrade && cargo update --verbose",
     "version": "cog bump --version"
   },
   "dependencies": {
@@ -30,21 +29,21 @@
     "lucide-svelte": "^1.0.1"
   },
   "devDependencies": {
-    "@biomejs/biome": "^2.5.11",
+    "@biomejs/biome": "^2.5.12",
     "@sveltejs/adapter-static": "^3.0.10",
     "@sveltejs/kit": "^2.70.3",
     "@sveltejs/vite-plugin-svelte": "^7.3.0",
     "@tauri-apps/cli": "^2.11.4",
     "@testing-library/svelte": "^5.4.2",
     "@types/node": "^26.4.1",
-    "@vitest/coverage-v8": "^4.1.11",
+    "@vitest/coverage-v8": "^5.0.0",
     "jsdom": "^30.0.1",
     "lefthook": "^2.1.12",
     "svelte": "^5.57.0",
     "svelte-check": "^4.7.6",
     "typescript": "6.0.3",
     "vite": "^8.2.2",
-    "vitest": "^4.1.11"
+    "vitest": "^5.0.0"
   },
   "overrides": {
     "typescript": "6.0.3"
