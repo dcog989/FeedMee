@@ -1,5 +1,4 @@
 .assets/
-.context/
 .docs/
 .feeds/
 .pkg/*.tar.zst
@@ -9,8 +8,6 @@
 .pkg/feedmee-*.zst
 .pkg/pkg/
 .pkg/src/
-.repomix/
-.repomixignore
 .svelte-kit
 coverage/
 pkg/
@@ -27,6 +24,5 @@ pkg/
 build/
 node_modules/
 publish/
-repomix.*.json
 src-tauri/gen/
 src-tauri/target/
