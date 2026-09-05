@@ -1,6 +1,6 @@
 <script lang="ts">
-import { uiStore } from '$lib/store.svelte';
-import Modal from './Modal.svelte';
+import { uiStore } from "$lib/store.svelte";
+import Modal from "./Modal.svelte";
 </script>
 
 <Modal isOpen={uiStore.modalState.isOpen} onclose={() => uiStore.closeModal()}>

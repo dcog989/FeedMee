@@ -1,7 +1,7 @@
-import { invoke } from '@tauri-apps/api/core';
-import { openUrl } from '@tauri-apps/plugin-opener';
-import type { Article, Folder } from './types';
-import { shortcutManager } from './utils/shortcuts';
+import { invoke } from "@tauri-apps/api/core";
+import { openUrl } from "@tauri-apps/plugin-opener";
+import type { Article, Folder } from "./types";
+import { shortcutManager } from "./utils/shortcuts";
 
 interface ShortcutRegDeps {
   showAddDialog: boolean;
@@ -16,63 +16,63 @@ interface ShortcutRegDeps {
 
 export function registerShortcuts(state: ShortcutRegDeps) {
   shortcutManager.register({
-    id: 'settings',
-    command: 'settings',
-    defaultKey: ',',
-    description: 'Open settings',
-    category: 'General',
+    id: "settings",
+    command: "settings",
+    defaultKey: ",",
+    description: "Open settings",
+    category: "General",
     handler: () => state.openSettings(),
   });
 
   shortcutManager.register({
-    id: 'add-feed',
-    command: 'add-feed',
-    defaultKey: 'n',
-    description: 'Add new feed',
-    category: 'General',
+    id: "add-feed",
+    command: "add-feed",
+    defaultKey: "n",
+    description: "Add new feed",
+    category: "General",
     handler: () => {
       state.showAddDialog = true;
     },
   });
 
   shortcutManager.register({
-    id: 'refresh-all',
-    command: 'refresh-all',
-    defaultKey: 'r',
-    description: 'Refresh all feeds',
-    category: 'Feeds',
+    id: "refresh-all",
+    command: "refresh-all",
+    defaultKey: "r",
+    description: "Refresh all feeds",
+    category: "Feeds",
     handler: () => state.refreshAllFeeds(),
   });
 
   shortcutManager.register({
-    id: 'focus-search',
-    command: 'focus-search',
-    defaultKey: '/',
-    description: 'Focus search',
-    category: 'General',
+    id: "focus-search",
+    command: "focus-search",
+    defaultKey: "/",
+    description: "Focus search",
+    category: "General",
     handler: () => {
-      const searchInput = document.querySelector('.search-wrapper input') as HTMLInputElement;
+      const searchInput = document.querySelector(".search-wrapper input") as HTMLInputElement;
       searchInput?.focus();
     },
   });
 
   shortcutManager.register({
-    id: 'toggle-save',
-    command: 'toggle-save',
-    defaultKey: 's',
-    description: 'Save/Read later',
-    category: 'Articles',
+    id: "toggle-save",
+    command: "toggle-save",
+    defaultKey: "s",
+    description: "Save/Read later",
+    category: "Articles",
     handler: () => {
       if (state.selectedArticle) state.toggleSaved(state.selectedArticle);
     },
   });
 
   shortcutManager.register({
-    id: 'mark-read',
-    command: 'mark-read',
-    defaultKey: 'm',
-    description: 'Mark as read/unread',
-    category: 'Articles',
+    id: "mark-read",
+    command: "mark-read",
+    defaultKey: "m",
+    description: "Mark as read/unread",
+    category: "Articles",
     handler: async () => {
       if (state.selectedArticle) {
         const article = state.selectedArticle;
@@ -84,7 +84,7 @@ export function registerShortcuts(state: ShortcutRegDeps) {
         } else if (!wasUnread && !newReadState) {
           state.adjustUnreadCount(article.feed_id, 1);
         }
-        await invoke('mark_article_read', {
+        await invoke("mark_article_read", {
           id: article.id,
           read: newReadState,
         });
@@ -93,11 +93,11 @@ export function registerShortcuts(state: ShortcutRegDeps) {
   });
 
   shortcutManager.register({
-    id: 'expand-all',
-    command: 'expand-all',
-    defaultKey: 'x',
-    description: 'Expand all folders',
-    category: 'Feeds',
+    id: "expand-all",
+    command: "expand-all",
+    defaultKey: "x",
+    description: "Expand all folders",
+    category: "Feeds",
     handler: () => {
       const newSet = new Set<number>();
       for (const f of state.folders) newSet.add(f.id);
@@ -106,22 +106,22 @@ export function registerShortcuts(state: ShortcutRegDeps) {
   });
 
   shortcutManager.register({
-    id: 'collapse-all',
-    command: 'collapse-all',
-    defaultKey: 'c',
-    description: 'Collapse all folders',
-    category: 'Feeds',
+    id: "collapse-all",
+    command: "collapse-all",
+    defaultKey: "c",
+    description: "Collapse all folders",
+    category: "Feeds",
     handler: () => {
       state.expandedFolders = new Set<number>();
     },
   });
 
   shortcutManager.register({
-    id: 'open-article',
-    command: 'open-article',
-    defaultKey: 'enter',
-    description: 'Open article in browser',
-    category: 'Articles',
+    id: "open-article",
+    command: "open-article",
+    defaultKey: "enter",
+    description: "Open article in browser",
+    category: "Articles",
     handler: () => {
       if (state.selectedArticle) openUrl(state.selectedArticle.url);
     },
@@ -130,7 +130,7 @@ export function registerShortcuts(state: ShortcutRegDeps) {
 
 interface KeyHandlerDeps {
   showSettings: boolean;
-  focusedPane: 'nav' | 'list' | 'reading';
+  focusedPane: "nav" | "list" | "reading";
   selectedArticle: Article | null;
   navUp(): void;
   navDown(): void;
@@ -143,34 +143,34 @@ export function setupKeyHandler(state: KeyHandlerDeps): () => void {
     if (state.showSettings) return;
 
     const tag = (e.target as HTMLElement)?.tagName?.toLowerCase();
-    const isInput = tag === 'input' || tag === 'textarea' || (e.target as HTMLElement)?.isContentEditable;
+    const isInput = tag === "input" || tag === "textarea" || (e.target as HTMLElement)?.isContentEditable;
     if (isInput) return;
 
     switch (e.key) {
-      case 'ArrowLeft':
+      case "ArrowLeft":
         e.preventDefault();
-        if (state.focusedPane === 'reading') state.focusedPane = 'list';
-        else if (state.focusedPane === 'list') state.focusedPane = 'nav';
+        if (state.focusedPane === "reading") state.focusedPane = "list";
+        else if (state.focusedPane === "list") state.focusedPane = "nav";
         return;
-      case 'ArrowRight':
+      case "ArrowRight":
         e.preventDefault();
-        if (state.focusedPane === 'nav') state.focusedPane = 'list';
-        else if (state.focusedPane === 'list' && state.selectedArticle) state.focusedPane = 'reading';
+        if (state.focusedPane === "nav") state.focusedPane = "list";
+        else if (state.focusedPane === "list" && state.selectedArticle) state.focusedPane = "reading";
         return;
-      case 'ArrowUp':
+      case "ArrowUp":
         e.preventDefault();
-        if (state.focusedPane === 'nav') state.navUp();
-        else if (state.focusedPane === 'list') state.articleUp();
-        else if (state.focusedPane === 'reading') {
-          document.querySelector<HTMLElement>('.reading-area .pane')?.scrollBy({ top: -80, behavior: 'smooth' });
+        if (state.focusedPane === "nav") state.navUp();
+        else if (state.focusedPane === "list") state.articleUp();
+        else if (state.focusedPane === "reading") {
+          document.querySelector<HTMLElement>(".reading-area .pane")?.scrollBy({ top: -80, behavior: "smooth" });
         }
         return;
-      case 'ArrowDown':
+      case "ArrowDown":
         e.preventDefault();
-        if (state.focusedPane === 'nav') state.navDown();
-        else if (state.focusedPane === 'list') state.articleDown();
-        else if (state.focusedPane === 'reading') {
-          document.querySelector<HTMLElement>('.reading-area .pane')?.scrollBy({ top: 80, behavior: 'smooth' });
+        if (state.focusedPane === "nav") state.navDown();
+        else if (state.focusedPane === "list") state.articleDown();
+        else if (state.focusedPane === "reading") {
+          document.querySelector<HTMLElement>(".reading-area .pane")?.scrollBy({ top: 80, behavior: "smooth" });
         }
         return;
     }
@@ -178,7 +178,7 @@ export function setupKeyHandler(state: KeyHandlerDeps): () => void {
     shortcutManager.handleKeyEvent(e);
   };
 
-  window.addEventListener('keydown', handler);
+  window.addEventListener("keydown", handler);
 
-  return () => window.removeEventListener('keydown', handler);
+  return () => window.removeEventListener("keydown", handler);
 }

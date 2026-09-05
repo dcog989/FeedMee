@@ -1,7 +1,7 @@
 // Global state for the tooltip
 export const tooltipState = $state({
   visible: false,
-  text: '',
+  text: "",
   x: 0,
   y: 0,
 });
@@ -30,18 +30,18 @@ export function tooltip(node: HTMLElement, text: string) {
     tooltipState.y = e.clientY + 15;
   }
 
-  node.addEventListener('mouseenter', onMouseEnter);
-  node.addEventListener('mousemove', onMouseMove);
-  node.addEventListener('mouseleave', onMouseLeave);
+  node.addEventListener("mouseenter", onMouseEnter);
+  node.addEventListener("mousemove", onMouseMove);
+  node.addEventListener("mouseleave", onMouseLeave);
 
   return {
     update(newText: string) {
       text = newText;
     },
     destroy() {
-      node.removeEventListener('mouseenter', onMouseEnter);
-      node.removeEventListener('mousemove', onMouseMove);
-      node.removeEventListener('mouseleave', onMouseLeave);
+      node.removeEventListener("mouseenter", onMouseEnter);
+      node.removeEventListener("mousemove", onMouseMove);
+      node.removeEventListener("mouseleave", onMouseLeave);
       tooltipState.visible = false;
     },
   };

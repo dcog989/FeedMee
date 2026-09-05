@@ -1,5 +1,5 @@
-import { sveltekit } from '@sveltejs/kit/vite';
-import { defineConfig } from 'vite';
+import { sveltekit } from "@sveltejs/kit/vite";
+import { defineConfig } from "vite";
 
 const host = process.env.TAURI_DEV_HOST;
 
@@ -13,13 +13,13 @@ export default defineConfig({
     host: host || false,
     hmr: host
       ? {
-          protocol: 'ws',
+          protocol: "ws",
           host,
           port: 1421,
         }
       : undefined,
     watch: {
-      ignored: ['**/src-tauri/**'],
+      ignored: ["**/src-tauri/**"],
     },
   },
   build: {
@@ -28,8 +28,8 @@ export default defineConfig({
       output: {
         codeSplitting: {
           groups: [
-            { name: 'svelte', test: /[\\/]node_modules[\\/]svelte[\\/]/ },
-            { name: 'tauri', test: /[\\/]node_modules[\\/]@tauri-apps[\\/]/ },
+            { name: "svelte", test: /[\\/]node_modules[\\/]svelte[\\/]/ },
+            { name: "tauri", test: /[\\/]node_modules[\\/]@tauri-apps[\\/]/ },
           ],
         },
       },
@@ -40,13 +40,13 @@ export default defineConfig({
   // Keep in sync with bare-specifier imports on the initial-render module graph.
   optimizeDeps: {
     include: [
-      'dompurify',
-      'svelte/animate',
-      'svelte/transition',
-      '@tauri-apps/api/core',
-      '@tauri-apps/plugin-opener',
-      '@tauri-apps/plugin-dialog',
+      "dompurify",
+      "svelte/animate",
+      "svelte/transition",
+      "@tauri-apps/api/core",
+      "@tauri-apps/plugin-opener",
+      "@tauri-apps/plugin-dialog",
     ],
-    exclude: ['lucide-svelte'],
+    exclude: ["lucide-svelte"],
   },
 });

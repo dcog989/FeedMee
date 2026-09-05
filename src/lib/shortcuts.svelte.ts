@@ -1,5 +1,5 @@
-import { invoke } from '@tauri-apps/api/core';
-import { shortcutManager } from './utils/shortcuts';
+import { invoke } from "@tauri-apps/api/core";
+import { shortcutManager } from "./utils/shortcuts";
 
 interface ShortcutDeps {
   customShortcuts: Record<string, string>;
@@ -22,19 +22,19 @@ export function createShortcutOps(state: ShortcutDeps) {
 
   async function saveShortcutSettings() {
     try {
-      await invoke('save_shortcuts', { shortcuts: state.customShortcuts });
+      await invoke("save_shortcuts", { shortcuts: state.customShortcuts });
     } catch (e) {
-      console.error('Failed to save shortcuts:', e);
+      console.error("Failed to save shortcuts:", e);
     }
   }
 
   async function loadShortcutSettings() {
     try {
-      const shortcuts = await invoke<Record<string, string>>('get_shortcuts');
+      const shortcuts = await invoke<Record<string, string>>("get_shortcuts");
       state.customShortcuts = shortcuts || {};
       shortcutManager.setCustomMappings(state.customShortcuts);
     } catch (e) {
-      console.error('Failed to load shortcuts:', e);
+      console.error("Failed to load shortcuts:", e);
     }
   }
 

@@ -1,6 +1,6 @@
 <script lang="ts">
-import { Search } from 'lucide-svelte';
-import { articleStore } from '$lib/store.svelte';
+import { Search } from "lucide-svelte";
+import { articleStore } from "$lib/store.svelte";
 
 let searchDebounce: ReturnType<typeof setTimeout> | null = null;
 
@@ -11,8 +11,8 @@ function onInput(e: Event) {
 }
 
 function onKeyDown(e: KeyboardEvent) {
-  if (e.key === 'Escape') {
-    articleStore.setSearch('');
+  if (e.key === "Escape") {
+    articleStore.setSearch("");
     (e.target as HTMLInputElement).blur();
   }
 }

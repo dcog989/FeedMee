@@ -1,7 +1,7 @@
-import { invoke } from '@tauri-apps/api/core';
-import type { SortOrder, Theme } from './storeTypes';
-import type { AppSettings } from './types';
-import { LS_BLOCKED_PHRASES, LS_LIST_WIDTH, LS_NAV_WIDTH, LS_SORT_ORDER, LS_THEME } from './utils/persistence';
+import { invoke } from "@tauri-apps/api/core";
+import type { SortOrder, Theme } from "./storeTypes";
+import type { AppSettings } from "./types";
+import { LS_BLOCKED_PHRASES, LS_LIST_WIDTH, LS_NAV_WIDTH, LS_SORT_ORDER, LS_THEME } from "./utils/persistence";
 
 export function createUI(state: {
   showSettings: boolean;
@@ -11,10 +11,10 @@ export function createUI(state: {
   showEditFeedDialog: boolean;
   editFeedTarget: { id: number; name: string; source_type: string; source_id: string } | null;
   renameFolderTarget: { id: number; name: string } | null;
-  focusedPane: 'nav' | 'list' | 'reading';
+  focusedPane: "nav" | "list" | "reading";
   modalState: {
     isOpen: boolean;
-    type: 'confirm' | 'alert';
+    type: "confirm" | "alert";
     message: string;
     onConfirm: () => void;
   };
@@ -77,7 +77,7 @@ export function createUI(state: {
 
   async function saveSettings(newSettings: AppSettings, closeModal = true) {
     try {
-      await invoke('save_app_settings', { newSettings });
+      await invoke("save_app_settings", { newSettings });
       state.settings = newSettings;
       if (state.autoRefreshTimer !== null) {
         clearInterval(state.autoRefreshTimer);
@@ -93,11 +93,11 @@ export function createUI(state: {
   function confirm(message: string, onConfirm: () => void | Promise<void>) {
     state.modalState = {
       isOpen: true,
-      type: 'confirm',
+      type: "confirm",
       message,
       onConfirm: () => {
         state.modalState = { ...state.modalState, isOpen: false };
-        Promise.resolve(onConfirm()).catch((e) => console.error('confirm callback failed:', e));
+        Promise.resolve(onConfirm()).catch((e) => console.error("confirm callback failed:", e));
       },
     };
   }
@@ -105,7 +105,7 @@ export function createUI(state: {
   function alert(message: string) {
     state.modalState = {
       isOpen: true,
-      type: 'alert',
+      type: "alert",
       message,
       onConfirm: () => {
         state.modalState = { ...state.modalState, isOpen: false };

@@ -1,11 +1,11 @@
-import { invoke } from '@tauri-apps/api/core';
-import { createArticleActions } from './articleActions.svelte';
-import { createFeedActions } from './feedActions.svelte';
-import { createFeedRefresher } from './feedRefresh.svelte';
-import { createFreshnessHelpers } from './freshness.svelte';
-import { registerShortcuts, setupKeyHandler } from './keyboardNav.svelte';
-import { createNavigation } from './navigation.svelte';
-import { createShortcutOps } from './shortcuts.svelte';
+import { invoke } from "@tauri-apps/api/core";
+import { createArticleActions } from "./articleActions.svelte";
+import { createFeedActions } from "./feedActions.svelte";
+import { createFeedRefresher } from "./feedRefresh.svelte";
+import { createFreshnessHelpers } from "./freshness.svelte";
+import { registerShortcuts, setupKeyHandler } from "./keyboardNav.svelte";
+import { createNavigation } from "./navigation.svelte";
+import { createShortcutOps } from "./shortcuts.svelte";
 import type {
   AppState,
   ArticleStore,
@@ -18,11 +18,11 @@ import type {
   TagStore,
   Theme,
   UIStore,
-} from './storeTypes';
-import { createTagOps } from './tags.svelte';
-import type { AppSettings, Article, Folder } from './types';
-import { DEFAULT_SETTINGS } from './types';
-import { createUI } from './ui.svelte';
+} from "./storeTypes";
+import { createTagOps } from "./tags.svelte";
+import type { AppSettings, Article, Folder } from "./types";
+import { DEFAULT_SETTINGS } from "./types";
+import { createUI } from "./ui.svelte";
 import {
   LS_BLOCKED_PHRASES,
   LS_LAST_REFRESHED,
@@ -32,7 +32,7 @@ import {
   LS_NAV_WIDTH,
   LS_SORT_ORDER,
   LS_THEME,
-} from './utils/persistence';
+} from "./utils/persistence";
 
 export type {
   AppState,
@@ -44,7 +44,7 @@ export type {
   ShortcutStore,
   TagStore,
   UIStore,
-} from './storeTypes';
+} from "./storeTypes";
 export type { Article, SortOrder, Theme };
 export const FEED_ID_LATEST = -1;
 export const FEED_ID_SAVED = -2;
@@ -52,12 +52,12 @@ export const FEED_ID_TODAY = -3;
 
 export function applyThemeToDocument(theme: Theme) {
   const root = document.documentElement;
-  if (theme !== 'system') {
-    root.setAttribute('data-theme', theme);
+  if (theme !== "system") {
+    root.setAttribute("data-theme", theme);
     return;
   }
-  const dark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-  root.setAttribute('data-theme', dark ? 'dark' : 'light');
+  const dark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+  root.setAttribute("data-theme", dark ? "dark" : "light");
 }
 
 class AppStateImpl {
@@ -68,9 +68,9 @@ class AppStateImpl {
   selectedArticle = $state<Article | null>(null);
   isLoadingArticles = $state(false);
   isRefreshingFeeds = $state(false);
-  searchQuery = $state('');
-  theme = $state<Theme>('system');
-  sortOrder = $state<SortOrder>('desc');
+  searchQuery = $state("");
+  theme = $state<Theme>("system");
+  sortOrder = $state<SortOrder>("desc");
 
   settings = $state<AppSettings>({ ...DEFAULT_SETTINGS });
 
@@ -82,7 +82,7 @@ class AppStateImpl {
   editFeedTarget = $state<{ id: number; name: string; source_type: string; source_id: string } | null>(null);
   renameFolderTarget = $state<{ id: number; name: string } | null>(null);
   expandedFolders = $state<Set<number>>(new Set());
-  focusedPane = $state<'nav' | 'list' | 'reading'>('nav');
+  focusedPane = $state<"nav" | "list" | "reading">("nav");
   blockedPhrases = $state<string[]>([]);
   customShortcuts = $state<Record<string, string>>({});
   navWidth = $state(280);
@@ -98,13 +98,13 @@ class AppStateImpl {
 
   modalState = $state<{
     isOpen: boolean;
-    type: 'confirm' | 'alert';
+    type: "confirm" | "alert";
     message: string;
     onConfirm: () => void;
   }>({
     isOpen: false,
-    type: 'confirm',
-    message: '',
+    type: "confirm",
+    message: "",
     onConfirm: () => {},
   });
 
@@ -161,10 +161,10 @@ class AppStateImpl {
 
   async refreshFolders() {
     try {
-      const result = await invoke<Folder[]>('get_folders_with_feeds');
+      const result = await invoke<Folder[]>("get_folders_with_feeds");
       this.folders = result || [];
     } catch (e) {
-      console.error('Failed to load folders:', e);
+      console.error("Failed to load folders:", e);
     }
   }
 
@@ -212,8 +212,8 @@ class AppStateImpl {
 
     if (storedNav) this.navWidth = parseInt(storedNav, 10);
     if (storedList) this.listWidth = parseInt(storedList, 10);
-    if (storedSort === 'asc' || storedSort === 'desc') this.sortOrder = storedSort;
-    if (storedTheme === 'light' || storedTheme === 'dark' || storedTheme === 'system') this.theme = storedTheme;
+    if (storedSort === "asc" || storedSort === "desc") this.sortOrder = storedSort;
+    if (storedTheme === "light" || storedTheme === "dark" || storedTheme === "system") this.theme = storedTheme;
     applyThemeToDocument(this.theme);
 
     const storedBlocked = localStorage.getItem(LS_BLOCKED_PHRASES);
@@ -230,17 +230,17 @@ class AppStateImpl {
         const parsed = JSON.parse(storedLastRefreshed);
         this.lastRefreshed = new Map(Object.entries(parsed).map(([k, v]) => [parseInt(k, 10), v as number]));
       } catch (e) {
-        console.error('Failed to parse lastRefreshed', e);
+        console.error("Failed to parse lastRefreshed", e);
       }
     }
 
     await Promise.all([
-      invoke<AppSettings>('get_app_settings')
+      invoke<AppSettings>("get_app_settings")
         .then((s) => {
           this.settings = s;
           this.ui.startAutoRefreshTimer();
         })
-        .catch((e) => console.error('Failed to load settings', e)),
+        .catch((e) => console.error("Failed to load settings", e)),
       this.shortcutOps.loadShortcutSettings(),
     ]);
 
@@ -251,24 +251,24 @@ class AppStateImpl {
 
     let expandFolderId: number | null = null;
 
-    if (viewType === 'saved') await this.selectFeed(FEED_ID_SAVED);
-    else if (viewType === 'latest') await this.selectFeed(FEED_ID_LATEST);
-    else if (viewType === 'last') {
+    if (viewType === "saved") await this.selectFeed(FEED_ID_SAVED);
+    else if (viewType === "latest") await this.selectFeed(FEED_ID_LATEST);
+    else if (viewType === "last") {
       const lastViewType = localStorage.getItem(LS_LAST_VIEW_TYPE);
-      const lastViewId = parseInt(localStorage.getItem(LS_LAST_VIEW_ID) || '0', 10);
-      if (lastViewType === 'folder' && lastViewId > 0) {
+      const lastViewId = parseInt(localStorage.getItem(LS_LAST_VIEW_ID) || "0", 10);
+      if (lastViewType === "folder" && lastViewId > 0) {
         await this.selectFolder(lastViewId);
         expandFolderId = lastViewId;
-      } else if (lastViewType === 'feed' && lastViewId > 0) {
+      } else if (lastViewType === "feed" && lastViewId > 0) {
         await this.selectFeed(lastViewId);
         expandFolderId = this.folders.find((f) => f.feeds.some((fd) => fd.id === lastViewId))?.id ?? null;
       } else {
         await this.selectFeed(FEED_ID_LATEST);
       }
-    } else if (viewType === 'folder' && viewId > 0) {
+    } else if (viewType === "folder" && viewId > 0) {
       await this.selectFolder(viewId);
       expandFolderId = viewId;
-    } else if (viewType === 'feed' && viewId > 0) {
+    } else if (viewType === "feed" && viewId > 0) {
       await this.selectFeed(viewId);
       expandFolderId = this.folders.find((f) => f.feeds.some((fd) => fd.id === viewId))?.id ?? null;
     }

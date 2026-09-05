@@ -1,29 +1,29 @@
 <script lang="ts">
-import { feedStore, uiStore } from '$lib/store.svelte';
-import Modal from './Modal.svelte';
+import { feedStore, uiStore } from "$lib/store.svelte";
+import Modal from "./Modal.svelte";
 
-let newFeedUrl = $state('');
+let newFeedUrl = $state("");
 let selectedFolderId = $state<number | null>(null);
 let isSubmitting = $state(false);
-let errorMessage = $state('');
-let successMessage = $state('');
+let errorMessage = $state("");
+let successMessage = $state("");
 
-let blockedText = $state('');
+let blockedText = $state("");
 
 let isValidUrl = $derived(/^https?:\/\/.+/.test(newFeedUrl.trim()));
 let canSubmit = $derived(isValidUrl && !isSubmitting);
 
 $effect(() => {
   if (!uiStore.showAddDialog) return;
-  newFeedUrl = '';
+  newFeedUrl = "";
   selectedFolderId = null;
   isSubmitting = false;
-  errorMessage = '';
-  successMessage = '';
-  blockedText = feedStore.blockedPhrases.join('\n');
+  errorMessage = "";
+  successMessage = "";
+  blockedText = feedStore.blockedPhrases.join("\n");
   try {
     navigator.clipboard.readText().then((text) => {
-      if (newFeedUrl === '' && /^https?:\/\/.+/.test(text.trim())) {
+      if (newFeedUrl === "" && /^https?:\/\/.+/.test(text.trim())) {
         newFeedUrl = text.trim();
       }
     });
@@ -35,7 +35,7 @@ $effect(() => {
 function closeDialog() {
   feedStore.setBlockedPhrases(
     blockedText
-      .split('\n')
+      .split("\n")
       .map((s) => s.trim())
       .filter((s) => s.length > 0),
   );
@@ -45,11 +45,11 @@ function closeDialog() {
 async function submitAddFeed() {
   if (!canSubmit) return;
   isSubmitting = true;
-  errorMessage = '';
-  successMessage = '';
+  errorMessage = "";
+  successMessage = "";
   try {
     await feedStore.addFeed(newFeedUrl.trim(), selectedFolderId);
-    successMessage = 'Feed added successfully';
+    successMessage = "Feed added successfully";
     await new Promise((r) => setTimeout(r, 1200));
     closeDialog();
   } catch (e) {
@@ -70,7 +70,7 @@ async function handleExport() {
 }
 
 function onKeyDown(e: KeyboardEvent) {
-  if (e.key === 'Enter' && canSubmit) {
+  if (e.key === "Enter" && canSubmit) {
     submitAddFeed();
   }
 }

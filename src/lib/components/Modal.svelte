@@ -1,12 +1,12 @@
 <script lang="ts">
-import type { Snippet } from 'svelte';
+import type { Snippet } from "svelte";
 
 let {
   isOpen = false,
   onclose = () => {},
-  width = 'auto',
+  width = "auto",
   zindex = 10000,
-  class: className = '',
+  class: className = "",
   children,
 }: {
   isOpen?: boolean;
@@ -22,7 +22,7 @@ function onOverlayClick(e: MouseEvent) {
 }
 
 function onKeyDown(e: KeyboardEvent) {
-  if (e.key === 'Escape' && !e.defaultPrevented) onclose();
+  if (e.key === "Escape" && !e.defaultPrevented) onclose();
 }
 </script>
 

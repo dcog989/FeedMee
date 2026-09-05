@@ -1,8 +1,8 @@
 <script lang="ts">
-import { RotateCcw, X } from 'lucide-svelte';
-import { shortcutStore } from '$lib/store.svelte';
-import { type ShortcutDefinition, shortcutManager } from '$lib/utils/shortcuts';
-import Modal from './Modal.svelte';
+import { RotateCcw, X } from "lucide-svelte";
+import { shortcutStore } from "$lib/store.svelte";
+import { type ShortcutDefinition, shortcutManager } from "$lib/utils/shortcuts";
+import Modal from "./Modal.svelte";
 
 let { isOpen = $bindable(false), onClose }: { isOpen: boolean; onClose: () => void } = $props();
 
@@ -17,13 +17,13 @@ $effect(() => {
 $effect(() => {
   if (recordingCommandId) {
     function handler(e: KeyboardEvent) {
-      if (e.key === 'Escape') {
+      if (e.key === "Escape") {
         e.preventDefault();
         stopRecording();
       }
     }
-    window.addEventListener('keydown', handler, { capture: true });
-    return () => window.removeEventListener('keydown', handler, { capture: true });
+    window.addEventListener("keydown", handler, { capture: true });
+    return () => window.removeEventListener("keydown", handler, { capture: true });
   }
 });
 
@@ -40,7 +40,7 @@ const categories = $derived(() => {
 
 function startRecording(commandId: string) {
   recordingCommandId = commandId;
-  window.addEventListener('keydown', handleRecordKey, { capture: true });
+  window.addEventListener("keydown", handleRecordKey, { capture: true });
 }
 
 function handleRecordKey(e: KeyboardEvent) {
@@ -48,28 +48,28 @@ function handleRecordKey(e: KeyboardEvent) {
   e.preventDefault();
   e.stopPropagation();
 
-  if (e.key === 'Escape') {
+  if (e.key === "Escape") {
     stopRecording();
     return;
   }
 
-  if (['Control', 'Shift', 'Alt', 'Meta'].includes(e.key)) return;
+  if (["Control", "Shift", "Alt", "Meta"].includes(e.key)) return;
 
   const parts: string[] = [];
-  if (e.ctrlKey) parts.push('ctrl');
-  if (e.altKey) parts.push('alt');
-  if (e.shiftKey) parts.push('shift');
-  if (e.metaKey) parts.push('meta');
+  if (e.ctrlKey) parts.push("ctrl");
+  if (e.altKey) parts.push("alt");
+  if (e.shiftKey) parts.push("shift");
+  if (e.metaKey) parts.push("meta");
   parts.push(e.key.toLowerCase());
 
-  const keyStr = parts.join('+');
+  const keyStr = parts.join("+");
   shortcutStore.setShortcut(recordingCommandId, keyStr);
   stopRecording();
 }
 
 function stopRecording() {
   recordingCommandId = null;
-  window.removeEventListener('keydown', handleRecordKey);
+  window.removeEventListener("keydown", handleRecordKey);
 }
 
 function resetShortcut(commandId: string) {

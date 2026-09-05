@@ -1,4 +1,4 @@
-import { LS_EXPANDED_FOLDERS } from './utils/persistence';
+import { LS_EXPANDED_FOLDERS } from "./utils/persistence";
 
 export function useExpandedFolders(state: {
   folders: { id: number }[];

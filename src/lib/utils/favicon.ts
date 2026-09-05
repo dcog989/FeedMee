@@ -12,13 +12,13 @@ export function getFavicon(url: string): string {
     faviconCache.set(domain, { url: result, time: Date.now() });
     return result;
   } catch {
-    return '';
+    return "";
   }
 }
 
 export function handleFaviconError(e: Event) {
   const img = e.currentTarget as HTMLImageElement;
-  img.style.display = 'none';
+  img.style.display = "none";
   const fallback = img.nextElementSibling;
-  if (fallback) fallback.classList.remove('favicon-fallback-hidden');
+  if (fallback) fallback.classList.remove("favicon-fallback-hidden");
 }

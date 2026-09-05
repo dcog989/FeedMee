@@ -1,7 +1,7 @@
 ﻿<script lang="ts">
-import { ChevronDown, ChevronUp, FolderPlus, RefreshCw } from 'lucide-svelte';
-import { tooltip } from '$lib/actions/tooltip.svelte';
-import { refreshStore, uiStore } from '$lib/store.svelte';
+import { ChevronDown, ChevronUp, FolderPlus, RefreshCw } from "lucide-svelte";
+import { tooltip } from "$lib/actions/tooltip.svelte";
+import { refreshStore, uiStore } from "$lib/store.svelte";
 
 let { onExpandAll, onCollapseAll } = $props<{
   onExpandAll: () => void;
@@ -9,7 +9,7 @@ let { onExpandAll, onCollapseAll } = $props<{
 }>();
 
 let isRefreshing = $derived(refreshStore.isRefreshingFeeds);
-let refreshAllTooltip = $derived(refreshStore.isAllFresh() ? 'Already fresh!' : 'Refresh All');
+let refreshAllTooltip = $derived(refreshStore.isAllFresh() ? "Already fresh!" : "Refresh All");
 
 function createFolder() {
   uiStore.showNewFolderDialog = true;

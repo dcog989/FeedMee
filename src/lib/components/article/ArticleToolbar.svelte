@@ -1,7 +1,7 @@
 <script lang="ts">
-import { ArrowUpDown, Bookmark, CalendarDays, CheckCheck, Clock } from 'lucide-svelte';
-import { tooltip } from '$lib/actions/tooltip.svelte';
-import { FEED_ID_LATEST, FEED_ID_SAVED, FEED_ID_TODAY, feedStore, settingsStore } from '$lib/store.svelte';
+import { ArrowUpDown, Bookmark, CalendarDays, CheckCheck, Clock } from "lucide-svelte";
+import { tooltip } from "$lib/actions/tooltip.svelte";
+import { FEED_ID_LATEST, FEED_ID_SAVED, FEED_ID_TODAY, feedStore, settingsStore } from "$lib/store.svelte";
 </script>
 
 <div class="list-toolbar">

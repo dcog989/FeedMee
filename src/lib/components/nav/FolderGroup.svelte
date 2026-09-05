@@ -1,17 +1,17 @@
 <script lang="ts">
-import { ChevronRight, RefreshCcwDot } from 'lucide-svelte';
-import { flip } from 'svelte/animate';
-import { tooltip } from '$lib/actions/tooltip.svelte';
-import { feedStore, navStore, refreshStore } from '$lib/store.svelte';
-import type { Feed, Folder } from '$lib/types';
-import { createDragGhost } from '$lib/utils/dragGhost';
-import FeedItem from './FeedItem.svelte';
+import { ChevronRight, RefreshCcwDot } from "lucide-svelte";
+import { flip } from "svelte/animate";
+import { tooltip } from "$lib/actions/tooltip.svelte";
+import { feedStore, navStore, refreshStore } from "$lib/store.svelte";
+import type { Feed, Folder } from "$lib/types";
+import { createDragGhost } from "$lib/utils/dragGhost";
+import FeedItem from "./FeedItem.svelte";
 
 let { folder, isExpanded, onToggle, onContextMenu, onFeedsChange } = $props<{
   folder: Folder;
   isExpanded: boolean;
   onToggle: (e: MouseEvent) => void;
-  onContextMenu: (e: MouseEvent, type: 'folder' | 'feed', id: number, name?: string) => void;
+  onContextMenu: (e: MouseEvent, type: "folder" | "feed", id: number, name?: string) => void;
   onFeedsChange: (folderId: number, feeds: Feed[]) => void;
 }>();
 
@@ -25,8 +25,8 @@ let unreadCount = $derived(getFolderUnreadCount(folder.feeds));
 function handleDragStart(e: DragEvent, feedId: number, feedName: string) {
   const dt = e.dataTransfer;
   if (!dt) return;
-  dt.effectAllowed = 'move';
-  dt.setData('text/plain', JSON.stringify({ feedId, folderId: folder.id }));
+  dt.effectAllowed = "move";
+  dt.setData("text/plain", JSON.stringify({ feedId, folderId: folder.id }));
   createDragGhost(e, feedName);
 }
 
@@ -61,7 +61,7 @@ function handleDrop(e: DragEvent) {
   e.preventDefault();
   const dt = e.dataTransfer;
   if (!dt) return;
-  const data = dt.getData('text/plain');
+  const data = dt.getData("text/plain");
   if (!data) return;
 
   const { feedId, folderId: sourceFolderId } = JSON.parse(data);

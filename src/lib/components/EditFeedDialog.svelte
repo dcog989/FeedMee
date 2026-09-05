@@ -1,13 +1,13 @@
 <script lang="ts">
-import { feedStore, uiStore } from '$lib/store.svelte';
-import Modal from './Modal.svelte';
+import { feedStore, uiStore } from "$lib/store.svelte";
+import Modal from "./Modal.svelte";
 
 let target = $state(uiStore.editFeedTarget);
-let name = $state(target?.name ?? '');
-let sourceId = $state(target?.source_id ?? '');
-let sourceType = $state(target?.source_type ?? '');
+let name = $state(target?.name ?? "");
+let sourceId = $state(target?.source_id ?? "");
+let sourceType = $state(target?.source_type ?? "");
 let selectedFolderId = $state<number | null>(getFeedFolderId(target?.id));
-let isBluesky = $derived(sourceType === 'bluesky');
+let isBluesky = $derived(sourceType === "bluesky");
 
 function getFeedFolderId(feedId: number | undefined): number | null {
   if (feedId === undefined) return null;
@@ -32,7 +32,7 @@ async function submit() {
 }
 
 function onKeyDown(e: KeyboardEvent) {
-  if (e.key === 'Enter' && name.trim() && sourceId.trim()) {
+  if (e.key === "Enter" && name.trim() && sourceId.trim()) {
     submit();
   }
 }

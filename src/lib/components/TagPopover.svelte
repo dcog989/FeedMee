@@ -1,5 +1,5 @@
 <script lang="ts">
-import TagManager from './TagManager.svelte';
+import TagManager from "./TagManager.svelte";
 
 let {
   articleId,

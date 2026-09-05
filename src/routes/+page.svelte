@@ -1,24 +1,24 @@
 <script lang="ts">
-import ArticleListPane from '$lib/components/ArticleListPane.svelte';
-import NavPane from '$lib/components/NavPane.svelte';
-import ReadingPane from '$lib/components/ReadingPane.svelte';
-import { appState } from '$lib/store.svelte';
+import ArticleListPane from "$lib/components/ArticleListPane.svelte";
+import NavPane from "$lib/components/NavPane.svelte";
+import ReadingPane from "$lib/components/ReadingPane.svelte";
+import { appState } from "$lib/store.svelte";
 
 // Resizing Logic
-let isResizing = $state<'nav' | 'list' | null>(null);
+let isResizing = $state<"nav" | "list" | null>(null);
 
-function startResize(target: 'nav' | 'list') {
+function startResize(target: "nav" | "list") {
   isResizing = target;
   // Add global cursor style and disable text selection while dragging
-  document.body.style.cursor = 'col-resize';
-  document.body.style.userSelect = 'none';
+  document.body.style.cursor = "col-resize";
+  document.body.style.userSelect = "none";
 }
 
 function stopResize() {
   if (isResizing) {
     isResizing = null;
-    document.body.style.cursor = '';
-    document.body.style.userSelect = '';
+    document.body.style.cursor = "";
+    document.body.style.userSelect = "";
     appState.persistLayoutSettings();
   }
 }
@@ -26,11 +26,11 @@ function stopResize() {
 function onMouseMove(e: MouseEvent) {
   if (!isResizing) return;
 
-  if (isResizing === 'nav') {
+  if (isResizing === "nav") {
     // Min width 150px, Max width 500px
     const newWidth = Math.max(150, Math.min(500, e.clientX));
     appState.navWidth = newWidth;
-  } else if (isResizing === 'list') {
+  } else if (isResizing === "list") {
     // Calculate width based on Nav width offset
     // Min 200px, Max 900px
     const newWidth = Math.max(200, Math.min(900, e.clientX - appState.navWidth));
@@ -38,28 +38,28 @@ function onMouseMove(e: MouseEvent) {
   }
 }
 
-function focusPane(pane: 'nav' | 'list' | 'reading') {
+function focusPane(pane: "nav" | "list" | "reading") {
   appState.focusedPane = pane;
 }
 
-function onPaneKeyDown(pane: 'nav' | 'list' | 'reading', e: KeyboardEvent) {
-  if (e.key === 'Enter' || e.key === ' ') {
+function onPaneKeyDown(pane: "nav" | "list" | "reading", e: KeyboardEvent) {
+  if (e.key === "Enter" || e.key === " ") {
     e.preventDefault();
     focusPane(pane);
   }
 }
 
-function onResizerKeyDown(target: 'nav' | 'list', e: KeyboardEvent) {
+function onResizerKeyDown(target: "nav" | "list", e: KeyboardEvent) {
   const step = 10;
-  if (e.key === 'ArrowLeft') {
-    if (target === 'nav') {
+  if (e.key === "ArrowLeft") {
+    if (target === "nav") {
       appState.navWidth = Math.max(150, appState.navWidth - step);
     } else {
       appState.listWidth = Math.max(200, appState.listWidth - step);
     }
     e.preventDefault();
-  } else if (e.key === 'ArrowRight') {
-    if (target === 'nav') {
+  } else if (e.key === "ArrowRight") {
+    if (target === "nav") {
       appState.navWidth = Math.min(500, appState.navWidth + step);
     } else {
       appState.listWidth = Math.min(900, appState.listWidth + step);

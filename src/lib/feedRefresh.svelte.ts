@@ -1,5 +1,5 @@
-import { invoke } from '@tauri-apps/api/core';
-import type { RefreshStore } from './storeTypes';
+import { invoke } from "@tauri-apps/api/core";
+import type { RefreshStore } from "./storeTypes";
 
 const REFRESH_CONCURRENCY = 5;
 export const FEED_FAILURE_LIMIT = 10;
@@ -28,7 +28,7 @@ export function createFeedRefresher(state: RefreshStore) {
 
   async function performSingleFeedRefresh(feedId: number) {
     try {
-      const unreadCount = await invoke<number>('refresh_feed', { feedId });
+      const unreadCount = await invoke<number>("refresh_feed", { feedId });
       state.lastRefreshed.set(feedId, Date.now());
       saveLastRefreshed();
       for (const folder of state.folders) {
@@ -109,7 +109,7 @@ export function createFeedRefresher(state: RefreshStore) {
         await state.reloadCurrentArticleList({ selectTop: true });
       }
     } catch (e) {
-      console.error('Failed to refresh all feeds:', e);
+      console.error("Failed to refresh all feeds:", e);
     } finally {
       state.isRefreshingFeeds = false;
     }

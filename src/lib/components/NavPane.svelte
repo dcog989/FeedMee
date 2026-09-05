@@ -1,11 +1,11 @@
 <script lang="ts">
-import { Info, Rss, Settings } from 'lucide-svelte';
-import { navStore, refreshStore, uiStore } from '$lib/store.svelte';
-import { useExpandedFolders } from '$lib/useExpandedFolders.svelte';
-import FolderGroup from './nav/FolderGroup.svelte';
-import NavContextMenu from './nav/NavContextMenu.svelte';
-import NavToolbar from './nav/NavToolbar.svelte';
-import UncategorizedFeeds from './nav/UncategorizedFeeds.svelte';
+import { Info, Rss, Settings } from "lucide-svelte";
+import { navStore, refreshStore, uiStore } from "$lib/store.svelte";
+import { useExpandedFolders } from "$lib/useExpandedFolders.svelte";
+import FolderGroup from "./nav/FolderGroup.svelte";
+import NavContextMenu from "./nav/NavContextMenu.svelte";
+import NavToolbar from "./nav/NavToolbar.svelte";
+import UncategorizedFeeds from "./nav/UncategorizedFeeds.svelte";
 
 function openAddDialog() {
   uiStore.showAddDialog = true;
@@ -40,12 +40,12 @@ $effect(() => {
     requestAnimationFrame(() => {
       let selector: string | null = null;
       if (feedId !== null && feedId > 0) {
-        selector = '.feed-item.selected';
+        selector = ".feed-item.selected";
       } else if (folderId !== null) {
-        selector = '.folder-header.selected';
+        selector = ".folder-header.selected";
       }
       if (selector) {
-        folderListEl?.querySelector<HTMLElement>(selector)?.scrollIntoView({ block: 'start' });
+        folderListEl?.querySelector<HTMLElement>(selector)?.scrollIntoView({ block: "start" });
       }
     });
   }
@@ -57,9 +57,9 @@ function handleNavDragOver(e: DragEvent) {
   const el = document.elementFromPoint(e.clientX, e.clientY);
   if (!el) return;
 
-  const folderEl = el.closest('[data-folder-id]') as HTMLElement | null;
+  const folderEl = el.closest("[data-folder-id]") as HTMLElement | null;
   if (folderEl) {
-    const folderId = parseInt(folderEl.dataset.folderId ?? '', 10);
+    const folderId = parseInt(folderEl.dataset.folderId ?? "", 10);
     if (Number.isNaN(folderId)) return;
 
     if (expandTargetId !== folderId) {

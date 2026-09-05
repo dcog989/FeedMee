@@ -1,9 +1,9 @@
 <script lang="ts">
-import { feedStore, uiStore } from '$lib/store.svelte';
-import Modal from './Modal.svelte';
+import { feedStore, uiStore } from "$lib/store.svelte";
+import Modal from "./Modal.svelte";
 
 let isRename = $derived(!!uiStore.renameFolderTarget);
-let name = $state(uiStore.renameFolderTarget?.name ?? '');
+let name = $state(uiStore.renameFolderTarget?.name ?? "");
 
 function closeDialog() {
   uiStore.showNewFolderDialog = false;
@@ -21,7 +21,7 @@ function submit() {
 }
 
 function onKeyDown(e: KeyboardEvent) {
-  if (e.key === 'Enter' && name.trim()) {
+  if (e.key === "Enter" && name.trim()) {
     submit();
   }
 }

@@ -1,11 +1,11 @@
 ﻿<script lang="ts">
-import { tooltipState } from '$lib/actions/tooltip.svelte';
-import type { Article } from '$lib/types';
-import ArticleContextMenu from './article/ArticleContextMenu.svelte';
-import ArticleList from './article/ArticleList.svelte';
-import ArticleSearch from './article/ArticleSearch.svelte';
-import ArticleToolbar from './article/ArticleToolbar.svelte';
-import TagPopover from './TagPopover.svelte';
+import { tooltipState } from "$lib/actions/tooltip.svelte";
+import type { Article } from "$lib/types";
+import ArticleContextMenu from "./article/ArticleContextMenu.svelte";
+import ArticleList from "./article/ArticleList.svelte";
+import ArticleSearch from "./article/ArticleSearch.svelte";
+import ArticleToolbar from "./article/ArticleToolbar.svelte";
+import TagPopover from "./TagPopover.svelte";
 
 let ctxMenu: ArticleContextMenu;
 

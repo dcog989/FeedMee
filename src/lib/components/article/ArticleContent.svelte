@@ -1,48 +1,48 @@
 <script module lang="ts">
-import DOMPurify from 'dompurify';
+import DOMPurify from "dompurify";
 
-DOMPurify.addHook('afterSanitizeAttributes', (node: Element) => {
-  if (node.tagName === 'A' && node.hasAttribute('href')) {
-    const href = node.getAttribute('href') || '';
-    node.setAttribute('title', href);
-    node.setAttribute('target', '_blank');
-    node.setAttribute('rel', 'noopener noreferrer');
+DOMPurify.addHook("afterSanitizeAttributes", (node: Element) => {
+  if (node.tagName === "A" && node.hasAttribute("href")) {
+    const href = node.getAttribute("href") || "";
+    node.setAttribute("title", href);
+    node.setAttribute("target", "_blank");
+    node.setAttribute("rel", "noopener noreferrer");
   }
-  if (node.tagName === 'IMG') {
-    const dataOriginal = node.getAttribute('data-original');
-    const dataSrc = node.getAttribute('data-src');
+  if (node.tagName === "IMG") {
+    const dataOriginal = node.getAttribute("data-original");
+    const dataSrc = node.getAttribute("data-src");
     if (dataOriginal) {
-      node.setAttribute('src', dataOriginal);
-      node.removeAttribute('data-original');
+      node.setAttribute("src", dataOriginal);
+      node.removeAttribute("data-original");
     } else if (dataSrc) {
-      node.setAttribute('src', dataSrc);
-      node.removeAttribute('data-src');
+      node.setAttribute("src", dataSrc);
+      node.removeAttribute("data-src");
     }
-    const dataSrcset = node.getAttribute('data-srcset');
+    const dataSrcset = node.getAttribute("data-srcset");
     if (dataSrcset) {
-      node.setAttribute('srcset', dataSrcset);
-      node.removeAttribute('data-srcset');
+      node.setAttribute("srcset", dataSrcset);
+      node.removeAttribute("data-srcset");
     }
-    node.setAttribute('loading', 'lazy');
+    node.setAttribute("loading", "lazy");
   }
 });
 </script>
 
 <script lang="ts">
-import { openUrl } from '@tauri-apps/plugin-opener';
-import { CircleAlert } from 'lucide-svelte';
+import { openUrl } from "@tauri-apps/plugin-opener";
+import { CircleAlert } from "lucide-svelte";
 
 let {
-  rawHtml = '',
+  rawHtml = "",
   loadError = false,
-  articleUrl = '',
+  articleUrl = "",
 }: {
   rawHtml?: string;
   loadError?: boolean;
   articleUrl?: string;
 } = $props();
 
-let displayHtml = $derived(rawHtml ? DOMPurify.sanitize(rawHtml) : '');
+let displayHtml = $derived(rawHtml ? DOMPurify.sanitize(rawHtml) : "");
 
 async function handleContentClick(e?: MouseEvent) {
   if (!e) {
@@ -50,7 +50,7 @@ async function handleContentClick(e?: MouseEvent) {
     return;
   }
   const target = e.target as HTMLElement;
-  const anchor = target.closest('a');
+  const anchor = target.closest("a");
   if (anchor?.href) {
     e.preventDefault();
     await openUrl(anchor.href);

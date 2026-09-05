@@ -1,10 +1,10 @@
 <script lang="ts">
-import { RefreshCw, X } from 'lucide-svelte';
-import { tooltip } from '$lib/actions/tooltip.svelte';
-import { FEED_FAILURE_LIMIT } from '$lib/feedRefresh.svelte';
-import { navStore, refreshStore } from '$lib/store.svelte';
-import type { Feed } from '$lib/types';
-import { getFavicon, handleFaviconError } from '$lib/utils/favicon';
+import { RefreshCw, X } from "lucide-svelte";
+import { tooltip } from "$lib/actions/tooltip.svelte";
+import { FEED_FAILURE_LIMIT } from "$lib/feedRefresh.svelte";
+import { navStore, refreshStore } from "$lib/store.svelte";
+import type { Feed } from "$lib/types";
+import { getFavicon, handleFaviconError } from "$lib/utils/favicon";
 
 let { feed, isSelected = false }: { feed: Feed; isSelected?: boolean } = $props();
 const disabled = $derived(feed.error_count >= FEED_FAILURE_LIMIT);

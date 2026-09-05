@@ -1,10 +1,10 @@
 <script lang="ts">
-import { openUrl } from '@tauri-apps/plugin-opener';
-import { ExternalLink } from 'lucide-svelte';
-import { tooltip } from '$lib/actions/tooltip.svelte';
-import { appState, articleStore } from '$lib/store.svelte';
-import ArticleActions from './article/ArticleActions.svelte';
-import ArticleContent from './article/ArticleContent.svelte';
+import { openUrl } from "@tauri-apps/plugin-opener";
+import { ExternalLink } from "lucide-svelte";
+import { tooltip } from "$lib/actions/tooltip.svelte";
+import { appState, articleStore } from "$lib/store.svelte";
+import ArticleActions from "./article/ArticleActions.svelte";
+import ArticleContent from "./article/ArticleContent.svelte";
 
 let paneEl: HTMLElement | undefined = $state();
 let fullContent = $state<string | null>(null);
@@ -12,8 +12,8 @@ let isLoadingFull = $state(false);
 let loadError = $state(false);
 let loadGen = $state(0);
 
-let rawHtml = $derived(fullContent ?? articleStore.selectedArticle?.summary ?? '');
-let heroImage = $derived(articleStore.selectedArticle?.image_url ?? '');
+let rawHtml = $derived(fullContent ?? articleStore.selectedArticle?.summary ?? "");
+let heroImage = $derived(articleStore.selectedArticle?.image_url ?? "");
 // Avoid duplicating an image the article body already embeds.
 let showHero = $derived(Boolean(heroImage) && !rawHtml.toLowerCase().includes(heroImage.toLowerCase()));
 
@@ -42,11 +42,11 @@ async function loadFullContent() {
 }
 
 function stripDuplicateTitle(html: string, articleTitle: string): string {
-  const doc = new DOMParser().parseFromString(html, 'text/html');
-  const normalize = (s: string) => s.toLowerCase().replace(/\s+/g, ' ').trim();
+  const doc = new DOMParser().parseFromString(html, "text/html");
+  const normalize = (s: string) => s.toLowerCase().replace(/\s+/g, " ").trim();
   const normalizedTitle = normalize(articleTitle);
-  for (const el of doc.querySelectorAll('h1, h2')) {
-    if (normalize(el.textContent ?? '').includes(normalizedTitle.slice(0, 30))) {
+  for (const el of doc.querySelectorAll("h1, h2")) {
+    if (normalize(el.textContent ?? "").includes(normalizedTitle.slice(0, 30))) {
       el.remove();
       break;
     }
@@ -57,13 +57,13 @@ function stripDuplicateTitle(html: string, articleTitle: string): string {
 function formatDate(ts: number) {
   const d = new Date(ts * 1000);
   const datePart = d.toLocaleDateString(undefined, {
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
+    day: "numeric",
+    month: "long",
+    year: "numeric",
   });
   const timePart = d.toLocaleTimeString(undefined, {
-    hour: '2-digit',
-    minute: '2-digit',
+    hour: "2-digit",
+    minute: "2-digit",
   });
   return `${datePart}, ${timePart}`;
 }
@@ -73,13 +73,13 @@ function getFeedDomain(feedId: number): string {
     const feed = folder.feeds.find((f) => f.id === feedId);
     if (feed) {
       try {
-        return new URL(feed.display_url).hostname.replace(/^www\./, '');
+        return new URL(feed.display_url).hostname.replace(/^www\./, "");
       } catch {
         return feed.name;
       }
     }
   }
-  return '';
+  return "";
 }
 </script>
 

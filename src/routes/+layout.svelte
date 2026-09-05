@@ -1,24 +1,24 @@
 ﻿<script lang="ts">
-import { invoke } from '@tauri-apps/api/core';
-import { onMount } from 'svelte';
-import AboutModal from '$lib/components/AboutModal.svelte';
-import ConfirmModal from '$lib/components/ConfirmModal.svelte';
-import EditFeedDialog from '$lib/components/EditFeedDialog.svelte';
-import ManageDialog from '$lib/components/ManageDialog.svelte';
-import NewFolderDialog from '$lib/components/NewFolderDialog.svelte';
-import SettingsModal from '$lib/components/SettingsModal.svelte';
-import StyleInjector from '$lib/components/StyleInjector.svelte';
-import ThemeManager from '$lib/components/ThemeManager.svelte';
-import Tooltip from '$lib/components/Tooltip.svelte';
-import { appState } from '$lib/store.svelte';
-import '../app.css';
+import { invoke } from "@tauri-apps/api/core";
+import { onMount } from "svelte";
+import AboutModal from "$lib/components/AboutModal.svelte";
+import ConfirmModal from "$lib/components/ConfirmModal.svelte";
+import EditFeedDialog from "$lib/components/EditFeedDialog.svelte";
+import ManageDialog from "$lib/components/ManageDialog.svelte";
+import NewFolderDialog from "$lib/components/NewFolderDialog.svelte";
+import SettingsModal from "$lib/components/SettingsModal.svelte";
+import StyleInjector from "$lib/components/StyleInjector.svelte";
+import ThemeManager from "$lib/components/ThemeManager.svelte";
+import Tooltip from "$lib/components/Tooltip.svelte";
+import { appState } from "$lib/store.svelte";
+import "../app.css";
 
 let { children } = $props();
 
 // The window starts hidden (visible: false) and is only shown once the theme
 // (data-theme) has been applied, preventing a white flash on startup.
 onMount(() => {
-  invoke('show_main_window');
+  invoke("show_main_window");
 });
 
 function disableContextMenu(e: MouseEvent) {

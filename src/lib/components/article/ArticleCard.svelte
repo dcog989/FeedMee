@@ -1,9 +1,9 @@
 <script lang="ts">
-import { Bookmark, Image, Tags } from 'lucide-svelte';
-import { tooltip } from '$lib/actions/tooltip.svelte';
-import { articleStore } from '$lib/store.svelte';
-import type { Article } from '$lib/types';
-import { thumbnailCacheKey } from '$lib/utils/thumbnail';
+import { Bookmark, Image, Tags } from "lucide-svelte";
+import { tooltip } from "$lib/actions/tooltip.svelte";
+import { articleStore } from "$lib/store.svelte";
+import type { Article } from "$lib/types";
+import { thumbnailCacheKey } from "$lib/utils/thumbnail";
 
 let {
   article,
@@ -24,7 +24,7 @@ let {
 } = $props();
 
 function handleKeydown(e: KeyboardEvent) {
-  if (e.key === 'Enter' || e.key === ' ') {
+  if (e.key === "Enter" || e.key === " ") {
     e.preventDefault();
     articleStore.selectArticle(article);
   }

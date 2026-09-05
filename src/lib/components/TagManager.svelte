@@ -1,14 +1,14 @@
 <script lang="ts">
-import { Check, Plus, Tags, Trash2, X } from 'lucide-svelte';
-import { tooltip } from '$lib/actions/tooltip.svelte';
-import { articleStore, tagStore } from '$lib/store.svelte';
-import type { Tag } from '$lib/types';
+import { Check, Plus, Tags, Trash2, X } from "lucide-svelte";
+import { tooltip } from "$lib/actions/tooltip.svelte";
+import { articleStore, tagStore } from "$lib/store.svelte";
+import type { Tag } from "$lib/types";
 
 let { articleId, onClose }: { articleId: number; onClose: () => void } = $props();
 
 let allTags = $state<Tag[]>([]);
 let activeTagIds = $state<Set<number>>(new Set());
-let inputValue = $state('');
+let inputValue = $state("");
 let loading = $state(true);
 
 $effect(() => {
@@ -22,7 +22,7 @@ async function loadAll() {
     allTags = tags;
     activeTagIds = new Set(articleTags.map((t) => t.id));
   } catch (e) {
-    console.error('Failed to load tags:', e);
+    console.error("Failed to load tags:", e);
   } finally {
     loading = false;
   }
@@ -48,7 +48,7 @@ async function toggleTag(tag: Tag) {
       activeTagIds = new Set([...activeTagIds].filter((id) => id !== tag.id));
       syncHasTags();
     } catch (e) {
-      console.error('Failed to remove tag:', e);
+      console.error("Failed to remove tag:", e);
     }
   } else {
     try {
@@ -56,7 +56,7 @@ async function toggleTag(tag: Tag) {
       activeTagIds = new Set([...activeTagIds, tag.id]);
       syncHasTags();
     } catch (e) {
-      console.error('Failed to add tag:', e);
+      console.error("Failed to add tag:", e);
     }
   }
 }
@@ -68,10 +68,10 @@ async function addNewTag() {
     const tag = await tagStore.addTag(articleId, name);
     allTags = [...allTags, tag];
     activeTagIds = new Set([...activeTagIds, tag.id]);
-    inputValue = '';
+    inputValue = "";
     syncHasTags();
   } catch (e) {
-    console.error('Failed to add tag:', e);
+    console.error("Failed to add tag:", e);
   }
 }
 
@@ -84,15 +84,15 @@ async function deleteTagPermanently(tag: Tag) {
     allTags = allTags.filter((t) => t.id !== tag.id);
     syncHasTags();
   } catch (e) {
-    console.error('Failed to delete tag:', e);
+    console.error("Failed to delete tag:", e);
   }
 }
 
 function onInputKeydown(e: KeyboardEvent) {
-  if (e.key === 'Enter') {
+  if (e.key === "Enter") {
     e.preventDefault();
     addNewTag();
-  } else if (e.key === 'Escape') {
+  } else if (e.key === "Escape") {
     onClose();
   }
 }

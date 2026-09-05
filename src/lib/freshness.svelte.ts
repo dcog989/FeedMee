@@ -1,5 +1,5 @@
-import type { Folder } from './types';
-import { LS_LAST_REFRESHED } from './utils/persistence';
+import type { Folder } from "./types";
+import { LS_LAST_REFRESHED } from "./utils/persistence";
 
 interface FreshnessDeps {
   folders: Folder[];

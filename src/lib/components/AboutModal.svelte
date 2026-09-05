@@ -1,8 +1,8 @@
 <script lang="ts">
-import { invoke } from '@tauri-apps/api/core';
-import { openPath } from '@tauri-apps/plugin-opener';
-import { tooltip } from '$lib/actions/tooltip.svelte';
-import Modal from './Modal.svelte';
+import { invoke } from "@tauri-apps/api/core";
+import { openPath } from "@tauri-apps/plugin-opener";
+import { tooltip } from "$lib/actions/tooltip.svelte";
+import Modal from "./Modal.svelte";
 
 let { isOpen = $bindable(false), onClose }: { isOpen: boolean; onClose: () => void } = $props();
 
@@ -14,15 +14,15 @@ interface AppInfo {
 }
 
 let appInfo = $state<AppInfo>({
-  version: '...',
-  data_path: '',
-  logs_path: '',
-  db_path: '',
+  version: "...",
+  data_path: "",
+  logs_path: "",
+  db_path: "",
 });
 
 $effect(() => {
   if (isOpen) {
-    invoke<AppInfo>('get_app_info')
+    invoke<AppInfo>("get_app_info")
       .then((info) => {
         appInfo = info;
       })

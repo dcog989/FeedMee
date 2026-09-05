@@ -1,5 +1,5 @@
-import { cleanup } from '@testing-library/svelte';
-import { afterEach } from 'vitest';
+import { cleanup } from "@testing-library/svelte";
+import { afterEach } from "vitest";
 
 class ResizeObserverStub {
   observe(): void {}
@@ -13,7 +13,7 @@ if (!globalThis.ResizeObserver) {
   globalThis.ResizeObserver = ResizeObserverStub as unknown as typeof ResizeObserver;
 }
 
-if (typeof HTMLElement.prototype.scrollTo !== 'function') {
+if (typeof HTMLElement.prototype.scrollTo !== "function") {
   HTMLElement.prototype.scrollTo = () => {};
 }
 

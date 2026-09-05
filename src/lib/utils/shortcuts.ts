@@ -24,22 +24,22 @@ export class KeyboardShortcutManager {
   private isInputElement(target: EventTarget | null): boolean {
     if (!target || !(target instanceof HTMLElement)) return false;
     const tagName = target.tagName.toLowerCase();
-    const isInput = tagName === 'input' || tagName === 'textarea' || tagName === 'select';
+    const isInput = tagName === "input" || tagName === "textarea" || tagName === "select";
     return isInput || target.isContentEditable;
   }
 
   private getEventKey(e: KeyboardEvent): string {
     const parts: string[] = [];
-    if (e.ctrlKey) parts.push('ctrl');
-    if (e.altKey) parts.push('alt');
-    if (e.shiftKey) parts.push('shift');
-    if (e.metaKey) parts.push('meta');
+    if (e.ctrlKey) parts.push("ctrl");
+    if (e.altKey) parts.push("alt");
+    if (e.shiftKey) parts.push("shift");
+    if (e.metaKey) parts.push("meta");
     let key = e.key.toLowerCase();
-    if (key === ' ') key = 'space';
-    if (!['control', 'shift', 'alt', 'meta'].includes(key)) {
+    if (key === " ") key = "space";
+    if (!["control", "shift", "alt", "meta"].includes(key)) {
       parts.push(key);
     }
-    return parts.join('+');
+    return parts.join("+");
   }
 
   async handleKeyEvent(e: KeyboardEvent): Promise<boolean> {
@@ -48,7 +48,7 @@ export class KeyboardShortcutManager {
     const pressedKey = this.getEventKey(e);
     const isInput = this.isInputElement(e.target);
 
-    if (isInput && e.key !== 'Escape' && e.key !== 'Enter') {
+    if (isInput && e.key !== "Escape" && e.key !== "Enter") {
       return false;
     }
 
@@ -70,12 +70,12 @@ export class KeyboardShortcutManager {
 
   getShortcutDisplay(commandId: string): string {
     const def = this.definitions.get(commandId);
-    if (!def) return '';
+    if (!def) return "";
     const key = this.customMappings[commandId] || def.defaultKey;
     return key
-      .split('+')
+      .split("+")
       .map((p) => p.charAt(0).toUpperCase() + p.slice(1))
-      .join('+');
+      .join("+");
   }
 
   clear(): void {

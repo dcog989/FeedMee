@@ -1,10 +1,10 @@
 <script lang="ts">
-import { invoke } from '@tauri-apps/api/core';
-import { Keyboard, Settings, X } from 'lucide-svelte';
-import { feedStore, settingsStore, uiStore } from '$lib/store.svelte';
-import { type AppSettings, DEFAULT_SETTINGS } from '$lib/types';
-import Modal from './Modal.svelte';
-import ShortcutsModal from './ShortcutsModal.svelte';
+import { invoke } from "@tauri-apps/api/core";
+import { Keyboard, Settings, X } from "lucide-svelte";
+import { feedStore, settingsStore, uiStore } from "$lib/store.svelte";
+import { type AppSettings, DEFAULT_SETTINGS } from "$lib/types";
+import Modal from "./Modal.svelte";
+import ShortcutsModal from "./ShortcutsModal.svelte";
 
 let settings = $state({ ...DEFAULT_SETTINGS });
 let showShortcuts = $state(false);
@@ -12,14 +12,14 @@ let initialized = $state(false);
 let prevSettings = $state<AppSettings | null>(null);
 let saveTimer: ReturnType<typeof setTimeout> | null = null;
 
-async function pickFont(target: 'title' | 'body') {
+async function pickFont(target: "title" | "body") {
   try {
-    const font = await invoke<string>('pick_system_font');
-    if (target === 'title') settings.article_title_font = font;
+    const font = await invoke<string>("pick_system_font");
+    if (target === "title") settings.article_title_font = font;
     else settings.article_body_font = font;
   } catch (e) {
     const msg = String(e);
-    if (msg !== 'Font selection cancelled') {
+    if (msg !== "Font selection cancelled") {
       uiStore.alert(msg);
     }
   }
@@ -27,13 +27,13 @@ async function pickFont(target: 'title' | 'body') {
 
 $effect(() => {
   const s = settingsStore.settings;
-  if (s && 'default_view_type' in s) {
+  if (s && "default_view_type" in s) {
     const cs = getComputedStyle(document.documentElement);
     settings = {
       ...s,
-      article_title_color: s.article_title_color || cs.getPropertyValue('--accent-muted').trim(),
-      article_body_color: s.article_body_color || cs.getPropertyValue('--text-primary').trim(),
-      article_bg_color: s.article_bg_color || cs.getPropertyValue('--bg-reading').trim(),
+      article_title_color: s.article_title_color || cs.getPropertyValue("--accent-muted").trim(),
+      article_body_color: s.article_body_color || cs.getPropertyValue("--text-primary").trim(),
+      article_bg_color: s.article_bg_color || cs.getPropertyValue("--bg-reading").trim(),
     };
     if (!initialized) {
       initialized = true;

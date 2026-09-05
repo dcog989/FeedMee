@@ -1,9 +1,9 @@
 <script lang="ts">
-import { invoke } from '@tauri-apps/api/core';
-import { articleStore, FEED_ID_LATEST, FEED_ID_SAVED, FEED_ID_TODAY, settingsStore } from '$lib/store.svelte';
-import type { Article } from '$lib/types';
-import { thumbnailCacheKey } from '$lib/utils/thumbnail';
-import ArticleCard from './ArticleCard.svelte';
+import { invoke } from "@tauri-apps/api/core";
+import { articleStore, FEED_ID_LATEST, FEED_ID_SAVED, FEED_ID_TODAY, settingsStore } from "$lib/store.svelte";
+import type { Article } from "$lib/types";
+import { thumbnailCacheKey } from "$lib/utils/thumbnail";
+import ArticleCard from "./ArticleCard.svelte";
 
 let {
   onContextMenu,
@@ -62,7 +62,7 @@ function enqueueThumbnail(cacheKey: string, articleUrl: string, imageUrl: string
   const run = async () => {
     thumbnailLoadsInFlight += 1;
     try {
-      const dataUrl = await invoke<string>('get_thumbnail', { url: articleUrl, imageUrl, size });
+      const dataUrl = await invoke<string>("get_thumbnail", { url: articleUrl, imageUrl, size });
       thumbnailCache = { ...thumbnailCache, [cacheKey]: dataUrl };
     } catch {
       thumbnailFailed.add(cacheKey);

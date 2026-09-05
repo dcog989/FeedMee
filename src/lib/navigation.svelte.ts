@@ -1,13 +1,13 @@
-import { invoke } from '@tauri-apps/api/core';
-import type { NavStore } from './storeTypes';
-import { LS_LAST_VIEW_ID, LS_LAST_VIEW_TYPE } from './utils/persistence';
+import { invoke } from "@tauri-apps/api/core";
+import type { NavStore } from "./storeTypes";
+import { LS_LAST_VIEW_ID, LS_LAST_VIEW_TYPE } from "./utils/persistence";
 
 export function createNavigation(state: NavStore) {
   async function markFeedReadOnExit(previousFeedId: number | null) {
     if (!state.settings.mark_feed_read_on_exit || !previousFeedId || previousFeedId <= 0) return;
     try {
-      await invoke('mark_all_read', { targetType: 'feed', id: previousFeedId });
-      const unreadCount = await invoke<number>('get_feed_unread_count', {
+      await invoke("mark_all_read", { targetType: "feed", id: previousFeedId });
+      const unreadCount = await invoke<number>("get_feed_unread_count", {
         feedId: previousFeedId,
       });
       for (const folder of state.folders) {
@@ -18,11 +18,11 @@ export function createNavigation(state: NavStore) {
         }
       }
     } catch (e) {
-      console.error('mark_feed_read_on_exit failed:', e);
+      console.error("mark_feed_read_on_exit failed:", e);
     }
   }
 
-  function persistLastView(type: 'feed' | 'folder', id: number) {
+  function persistLastView(type: "feed" | "folder", id: number) {
     localStorage.setItem(LS_LAST_VIEW_TYPE, type);
     localStorage.setItem(LS_LAST_VIEW_ID, id.toString());
   }
@@ -30,13 +30,13 @@ export function createNavigation(state: NavStore) {
   async function selectFolder(folderId: number) {
     if (state.selectedFolderId === folderId && !state.selectedFeedId) return;
     await markFeedReadOnExit(state.selectedFeedId);
-    state.focusedPane = 'nav';
-    state.searchQuery = '';
+    state.focusedPane = "nav";
+    state.searchQuery = "";
     state.selectedFolderId = folderId;
     state.selectedFeedId = null;
     state.selectedArticle = null;
     state.isLoadingArticles = true;
-    persistLastView('folder', folderId);
+    persistLastView("folder", folderId);
     try {
       await state.reloadCurrentArticleList();
       if (state.articles.length > 0) state.selectArticle(state.articles[0]);
@@ -48,13 +48,13 @@ export function createNavigation(state: NavStore) {
   async function selectFeed(feedId: number) {
     if (state.selectedFeedId === feedId) return;
     await markFeedReadOnExit(state.selectedFeedId);
-    state.focusedPane = 'nav';
-    state.searchQuery = '';
+    state.focusedPane = "nav";
+    state.searchQuery = "";
     state.selectedFeedId = feedId;
     state.selectedFolderId = null;
     state.selectedArticle = null;
     state.isLoadingArticles = true;
-    if (feedId > 0) persistLastView('feed', feedId);
+    if (feedId > 0) persistLastView("feed", feedId);
     try {
       await state.reloadCurrentArticleList();
       if (state.articles.length > 0) state.selectArticle(state.articles[0]);
@@ -63,13 +63,13 @@ export function createNavigation(state: NavStore) {
     }
   }
 
-  function getFlatNavItems(): { type: 'feed' | 'folder'; id: number }[] {
-    const items: { type: 'feed' | 'folder'; id: number }[] = [];
+  function getFlatNavItems(): { type: "feed" | "folder"; id: number }[] {
+    const items: { type: "feed" | "folder"; id: number }[] = [];
     for (const folder of state.folders) {
-      items.push({ type: 'folder', id: folder.id });
+      items.push({ type: "folder", id: folder.id });
       if (state.expandedFolders.has(folder.id)) {
         for (const feed of folder.feeds) {
-          items.push({ type: 'feed', id: feed.id });
+          items.push({ type: "feed", id: feed.id });
         }
       }
     }
@@ -88,12 +88,12 @@ export function createNavigation(state: NavStore) {
     if (items.length === 0) return;
     const currentIdx = items.findIndex(
       (i) =>
-        (i.type === 'feed' && i.id === state.selectedFeedId) ||
-        (i.type === 'folder' && i.id === state.selectedFolderId && !state.selectedFeedId),
+        (i.type === "feed" && i.id === state.selectedFeedId) ||
+        (i.type === "folder" && i.id === state.selectedFolderId && !state.selectedFeedId),
     );
     const nextIdx = currentIdx <= 0 ? items.length - 1 : currentIdx - 1;
     const item = items[nextIdx];
-    if (item.type === 'feed') selectFeed(item.id);
+    if (item.type === "feed") selectFeed(item.id);
     else {
       expandFolder(item.id);
       selectFolder(item.id);
@@ -105,12 +105,12 @@ export function createNavigation(state: NavStore) {
     if (items.length === 0) return;
     const currentIdx = items.findIndex(
       (i) =>
-        (i.type === 'feed' && i.id === state.selectedFeedId) ||
-        (i.type === 'folder' && i.id === state.selectedFolderId && !state.selectedFeedId),
+        (i.type === "feed" && i.id === state.selectedFeedId) ||
+        (i.type === "folder" && i.id === state.selectedFolderId && !state.selectedFeedId),
     );
     const nextIdx = currentIdx < 0 || currentIdx >= items.length - 1 ? 0 : currentIdx + 1;
     const item = items[nextIdx];
-    if (item.type === 'feed') selectFeed(item.id);
+    if (item.type === "feed") selectFeed(item.id);
     else {
       expandFolder(item.id);
       selectFolder(item.id);
@@ -119,7 +119,7 @@ export function createNavigation(state: NavStore) {
 
   function scrollSelectedIntoView(selector: string) {
     requestAnimationFrame(() => {
-      document.querySelector<HTMLElement>(selector)?.scrollIntoView({ block: 'nearest' });
+      document.querySelector<HTMLElement>(selector)?.scrollIntoView({ block: "nearest" });
     });
   }
 
@@ -128,7 +128,7 @@ export function createNavigation(state: NavStore) {
     const idx = state.articles.findIndex((a) => a.id === state.selectedArticle?.id);
     const nextIdx = idx <= 0 ? 0 : idx - 1;
     state.selectArticle(state.articles[nextIdx]);
-    scrollSelectedIntoView('.list-area .article-card.selected');
+    scrollSelectedIntoView(".list-area .article-card.selected");
   }
 
   function articleDown() {
@@ -136,7 +136,7 @@ export function createNavigation(state: NavStore) {
     const idx = state.articles.findIndex((a) => a.id === state.selectedArticle?.id);
     const nextIdx = idx < 0 ? 0 : Math.min(idx + 1, state.articles.length - 1);
     state.selectArticle(state.articles[nextIdx]);
-    scrollSelectedIntoView('.list-area .article-card.selected');
+    scrollSelectedIntoView(".list-area .article-card.selected");
   }
 
   return {

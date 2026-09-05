@@ -1,16 +1,16 @@
 <script lang="ts">
-import { flip } from 'svelte/animate';
-import { feedStore, navStore, refreshStore } from '$lib/store.svelte';
-import type { Folder } from '$lib/types';
-import { createDragGhost } from '$lib/utils/dragGhost';
-import FeedItem from './FeedItem.svelte';
+import { flip } from "svelte/animate";
+import { feedStore, navStore, refreshStore } from "$lib/store.svelte";
+import type { Folder } from "$lib/types";
+import { createDragGhost } from "$lib/utils/dragGhost";
+import FeedItem from "./FeedItem.svelte";
 
 let {
   folder,
   onContextMenu,
 }: {
   folder: Folder;
-  onContextMenu: (e: MouseEvent, type: 'feed', id: number, name?: string) => void;
+  onContextMenu: (e: MouseEvent, type: "feed", id: number, name?: string) => void;
 } = $props();
 </script>
 

@@ -1,17 +1,17 @@
 <script lang="ts">
-import { feedStore, uiStore } from '$lib/store.svelte';
-import ContextMenu from '../ContextMenu.svelte';
+import { feedStore, uiStore } from "$lib/store.svelte";
+import ContextMenu from "../ContextMenu.svelte";
 
 let cmVisible = $state(false);
 let cmX = $state(0);
 let cmY = $state(0);
 let cmTarget = $state<{
-  type: 'folder' | 'feed' | 'root';
+  type: "folder" | "feed" | "root";
   id: number;
   name?: string;
 } | null>(null);
 
-export function show(event: MouseEvent, type: 'folder' | 'feed' | 'root', id: number, name?: string) {
+export function show(event: MouseEvent, type: "folder" | "feed" | "root", id: number, name?: string) {
   event.preventDefault();
   event.stopPropagation();
   cmVisible = true;
@@ -26,20 +26,20 @@ export function close() {
 }
 
 function rename() {
-  if (cmTarget?.type !== 'folder') return;
-  uiStore.renameFolderTarget = { id: cmTarget.id, name: cmTarget.name ?? '' };
+  if (cmTarget?.type !== "folder") return;
+  uiStore.renameFolderTarget = { id: cmTarget.id, name: cmTarget.name ?? "" };
   uiStore.showNewFolderDialog = true;
   close();
 }
 
 function renameFeed() {
-  if (cmTarget?.type !== 'feed') return;
+  if (cmTarget?.type !== "feed") return;
   const feed = feedStore.folders.flatMap((f) => f.feeds).find((f) => f.id === cmTarget?.id);
   uiStore.editFeedTarget = {
     id: cmTarget?.id,
-    name: cmTarget?.name ?? '',
-    source_type: feed?.source_type ?? '',
-    source_id: feed?.source_id ?? '',
+    name: cmTarget?.name ?? "",
+    source_type: feed?.source_type ?? "",
+    source_id: feed?.source_id ?? "",
   };
   uiStore.showEditFeedDialog = true;
   close();
@@ -47,9 +47,9 @@ function renameFeed() {
 
 function deleteTarget() {
   if (!cmTarget) return;
-  if (cmTarget.type === 'folder') {
+  if (cmTarget.type === "folder") {
     feedStore.deleteFolder(cmTarget.id);
-  } else if (cmTarget.type === 'feed') {
+  } else if (cmTarget.type === "feed") {
     feedStore.deleteFeed(cmTarget.id);
   }
   close();

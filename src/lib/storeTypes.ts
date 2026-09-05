@@ -1,7 +1,7 @@
-import type { AppSettings, Article, Folder, Tag } from './types';
+import type { AppSettings, Article, Folder, Tag } from "./types";
 
-export type Theme = 'light' | 'dark' | 'system';
-export type SortOrder = 'desc' | 'asc';
+export type Theme = "light" | "dark" | "system";
+export type SortOrder = "desc" | "asc";
 
 export interface TagStore {
   getArticleTags(articleId: number): Promise<Tag[]>;
@@ -23,7 +23,7 @@ export interface ArticleStore {
   page: number;
   hasMore: boolean;
   isLoadingArticles: boolean;
-  focusedPane: 'nav' | 'list' | 'reading';
+  focusedPane: "nav" | "list" | "reading";
   selectedArticle: Article | null;
   settings: AppSettings;
   adjustUnreadCount(feedId: number, delta: number): void;
@@ -94,7 +94,7 @@ export interface NavStore {
   searchQuery: string;
   isLoadingArticles: boolean;
   settings: AppSettings;
-  focusedPane: 'nav' | 'list' | 'reading';
+  focusedPane: "nav" | "list" | "reading";
   reloadCurrentArticleList(options?: { selectTop?: boolean }): Promise<void>;
   selectFeed(feedId: number): Promise<void>;
   selectFolder(folderId: number): Promise<void>;
@@ -113,10 +113,10 @@ export interface UIStore {
   showEditFeedDialog: boolean;
   editFeedTarget: { id: number; name: string; source_type: string; source_id: string } | null;
   renameFolderTarget: { id: number; name: string } | null;
-  focusedPane: 'nav' | 'list' | 'reading';
+  focusedPane: "nav" | "list" | "reading";
   modalState: {
     isOpen: boolean;
-    type: 'confirm' | 'alert';
+    type: "confirm" | "alert";
     message: string;
     onConfirm: () => void;
   };
@@ -134,7 +134,7 @@ export interface SettingsStore {
   sortOrder: SortOrder;
   settings: AppSettings;
   showSettings: boolean;
-  focusedPane: 'nav' | 'list' | 'reading';
+  focusedPane: "nav" | "list" | "reading";
   navWidth: number;
   listWidth: number;
   openSettings(): void;

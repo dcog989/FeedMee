@@ -1,9 +1,9 @@
 <script lang="ts">
-import { invoke } from '@tauri-apps/api/core';
-import { openUrl } from '@tauri-apps/plugin-opener';
-import { articleStore } from '$lib/store.svelte';
-import type { Article } from '$lib/types';
-import ContextMenu from '../ContextMenu.svelte';
+import { invoke } from "@tauri-apps/api/core";
+import { openUrl } from "@tauri-apps/plugin-opener";
+import { articleStore } from "$lib/store.svelte";
+import type { Article } from "$lib/types";
+import ContextMenu from "../ContextMenu.svelte";
 
 let cmVisible = $state(false);
 let cmX = $state(0);
@@ -33,7 +33,7 @@ function toggleRead() {
   if (!cmArticle) return;
   const newRead = !cmArticle.is_read;
   cmArticle.is_read = newRead;
-  invoke('mark_article_read', { id: cmArticle.id, read: newRead }).catch(() => {
+  invoke("mark_article_read", { id: cmArticle.id, read: newRead }).catch(() => {
     if (cmArticle) cmArticle.is_read = !newRead;
   });
   close();
