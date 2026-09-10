@@ -1,17 +1,13 @@
 [package]
 name = "FeedMee"
-description = "The seriously fast feed reader."
-authors = ["dcog989"]
-edition = "2024"
-license = "MIT"
 version = "0.22.11"
+edition = "2024"
+description = "The seriously fast feed reader."
+license = "MIT"
 
 [lib]
-crate-type = ["staticlib", "cdylib", "rlib"]
+crate-type = ["cdylib", "rlib", "staticlib"]
 name = "feedmee_lib"
-
-[build-dependencies]
-tauri-build = { version = "2.6.3", features = [] }
 
 [dependencies]
 async-trait = "0.1"
@@ -40,11 +36,14 @@ toml = "1.1"
 url = "2.5"
 webp = "0.3.1"
 
+[build-dependencies]
+tauri-build = { version = "2.6.3", features = [] }
+
 [target.'cfg(target_os = "linux")'.dependencies]
 gtk = "0.18"
 
 [profile.release]
-codegen-units = 1
+strip = true
 lto = "thin"
 panic = "abort"
-strip = true
+codegen-units = 1
