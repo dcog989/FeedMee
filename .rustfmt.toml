@@ -2,7 +2,7 @@
 edition = "2024"
 
 # Width settings
-max_width = 100
+max_width = 120
 tab_spaces = 4
 hard_tabs = false
 newline_style = "Unix"
