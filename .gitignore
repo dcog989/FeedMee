@@ -1,28 +1,34 @@
-.assets/
-.docs/
-.feeds/
-.pkg/*.tar.zst
-.pkg/*.log
-.pkg/PKGBUILD
-.pkg/feedmee/
-.pkg/feedmee-*.zst
-.pkg/pkg/
-.pkg/src/
-.svelte-kit
-coverage/
-pkg/
-[Dd]ist/
-[Ll]og/
-[Ll]ogs/
-[Oo]bj/
-[Oo]ut/
-[Rr]elease/
-[Rr]eleasePS/
-[Rr]eleases/
-**/[Bb]in/*
-**/[Pp]ackages/*
-build/
+# Dependencies
 node_modules/
-publish/
+
+# Build output
+build/
+.svelte-kit/
 src-tauri/gen/
 src-tauri/target/
+coverage/
+
+# Project runtime data
+.assets/
+.context/
+.docs/
+.feeds/
+
+# Packaging (.pkg build workspace)
+.pkg/*.tar.zst
+.pkg/*.zst
+.pkg/*.log
+.pkg/feedmee/
+.pkg/pkg/
+.pkg/src/
+.pkg/PKGBUILD
+
+# Local environment / secrets
+.env
+.env.*
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
