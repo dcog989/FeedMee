@@ -28,6 +28,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          fetch-depth: 0
 
       - name: Setup bun
         uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6
@@ -61,6 +63,13 @@ jobs:
       - name: Install frontend dependencies
         run: bun install
 
+      - name: Generate release notes
+        id: cog
+        uses: cocogitto/cocogitto-action@390bda87a19bf627e03ad075c67a11e9ddbb7547
+        with:
+          command: changelog
+          args: --at ${{ github.ref_name }}
+
       - name: Build and publish
         uses: tauri-apps/tauri-action@1deb371b0cd8bd54025b384f1cd735e725c4060f
         env:
@@ -70,6 +79,7 @@ jobs:
         with:
           tagName: ${{ github.ref_name }}
           releaseName: ${{ github.ref_name }}
+          releaseBody: ${{ steps.cog.outputs.stdout }}
           releaseDraft: false
 
       - name: Build Arch package
