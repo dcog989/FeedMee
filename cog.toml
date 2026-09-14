@@ -10,6 +10,8 @@ tag_prefix = "v"
 pre_bump_hooks = [
   # Abort the bump if the range contains any non-conventional commit.
   "cog check --from-latest-tag",
+  "bun run check",
+  "bun run test",
   "./scripts/sync_version.sh {{version}}",
 ]
 
