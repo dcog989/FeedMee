@@ -1,7 +1,7 @@
 {
   "name": "feedmee",
   "description": "The seriously fast feed reader.",
-  "version": "0.22.11",
+  "version": "0.22.12",
   "private": true,
   "type": "module",
   "scripts": {
