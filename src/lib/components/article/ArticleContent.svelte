@@ -100,6 +100,12 @@ async function handleContentClick(e?: MouseEvent) {
   color: var(--color-body, var(--text-primary));
 }
 
+/* The body is focusable so PageUp/PageDown scroll it; outlining the whole
+   reading surface on keypress is noise, links keep their own focus rings. */
+.summary:focus-visible {
+  outline: none;
+}
+
 .summary :global(p) {
   margin-bottom: 1.5rem;
 }
