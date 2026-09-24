@@ -44,7 +44,7 @@ impl FeedConnector for RssConnector {
                 .as_ref()
                 .map(|t| t.content.clone())
                 .unwrap_or_else(|| "Untitled Feed".to_string());
-            let articles = entries_to_articles(feed.entries, 0, url);
+            let articles = entries_to_articles(&feed.entries, 0, url);
             return Ok((title, url.to_string(), articles));
         }
 
@@ -61,7 +61,7 @@ impl FeedConnector for RssConnector {
                     .as_ref()
                     .map(|t| t.content.clone())
                     .unwrap_or_else(|| "Untitled Feed".to_string());
-                let articles = entries_to_articles(feed.entries, 0, &rss_url);
+                let articles = entries_to_articles(&feed.entries, 0, &rss_url);
                 return Ok((title, rss_url, articles));
             }
         }
@@ -74,23 +74,28 @@ impl FeedConnector for RssConnector {
     }
 }
 
-pub fn entries_to_articles(entries: Vec<feed_rs::model::Entry>, feed_id: i64, feed_url: &str) -> Vec<Article> {
+pub fn entries_to_articles(entries: &[feed_rs::model::Entry], feed_id: i64, feed_url: &str) -> Vec<Article> {
     entries
-        .into_iter()
+        .iter()
         .map(|entry| {
-            let article_url = resolve_article_url(&entry, feed_url);
+            let article_url = resolve_article_url(entry, feed_url);
 
-            let (image_url, image_low_res) = resolve_image(&entry, &article_url);
+            let (image_url, image_low_res) = resolve_image(entry, &article_url);
 
             Article {
                 id: 0,
                 feed_id,
-                title: entry.title.map(|t| t.content).unwrap_or_else(|| "No Title".to_string()),
+                title: entry
+                    .title
+                    .as_ref()
+                    .map(|t| t.content.clone())
+                    .unwrap_or_else(|| "No Title".to_string()),
                 author: entry.authors.first().map(|p| p.name.clone()).unwrap_or_default(),
                 summary: entry
                     .content
-                    .and_then(|c| c.body)
-                    .or_else(|| entry.summary.map(|s| s.content))
+                    .as_ref()
+                    .and_then(|c| c.body.clone())
+                    .or_else(|| entry.summary.as_ref().map(|s| s.content.clone()))
                     .unwrap_or_default(),
                 url: article_url,
                 image_url,
@@ -221,7 +226,7 @@ async fn refresh_rss_feed(feed_url: &str, feed_id: i64, state: &AppState) -> Res
                 Ok(feed) => {
                     info!("refresh_rss_feed: feed_id={}, {} entries", feed_id, feed.entries.len());
 
-                    let mut articles = entries_to_articles(feed.entries.clone(), feed_id, feed_url);
+                    let mut articles = entries_to_articles(&feed.entries, feed_id, feed_url);
 
                     // Older builds stored linkless entries under a synthesized `feed_url/#hash` URL.
                     // Entries whose id is itself an article URL now resolve to that URL instead;
