@@ -27,11 +27,14 @@ pub fn run() {
             use log::info;
 
             let (logs_dir, db_dir) = startup::create_dirs();
-            startup::rotate_logs(&logs_dir);
 
             let app_settings = settings::load_settings();
-            let log_level = startup::parse_log_level(&app_settings.log_level);
-            startup::init_logging(&logs_dir, log_level);
+            match startup::init_logging(&logs_dir, &app_settings.log_level) {
+                Ok(handle) => {
+                    app.manage(handle);
+                },
+                Err(e) => eprintln!("[startup] logger init failed: {}", e),
+            }
 
             info!("Starting FeedMee application");
 

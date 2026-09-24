@@ -1,8 +1,13 @@
 use std::path::{Path, PathBuf};
 
-use simplelog::*;
+use flexi_logger::{Age, Cleanup, Criterion, Duplicate, FileSpec, Logger, LoggerHandle, Naming};
 
 use crate::db;
+
+const LOG_RETENTION_DAYS: usize = 5;
+const LOG_FILE_PREFIX: &str = "feedmee";
+const DEFAULT_LOG_LEVEL: &str = "info";
+const NOISY_MODULES: [&str; 4] = ["html5ever", "selectors", "scraper", "tendril"];
 
 pub(crate) fn create_dirs() -> (PathBuf, PathBuf) {
     let local_dir = crate::paths::local_data_dir();
@@ -19,60 +24,34 @@ pub(crate) fn create_dirs() -> (PathBuf, PathBuf) {
     (logs_dir, db_dir)
 }
 
-pub(crate) fn rotate_logs(logs_dir: &Path) {
-    let max_logs = 5;
-    let oldest = logs_dir.join(format!("feedmee.{}.log", max_logs));
-    if oldest.exists() {
-        let _ = std::fs::remove_file(oldest);
+pub(crate) fn log_spec(level: &str) -> String {
+    let level = match level.to_lowercase().as_str() {
+        "error" | "warn" | "info" | "debug" | "trace" => level.to_lowercase(),
+        _ => DEFAULT_LOG_LEVEL.to_string(),
+    };
+
+    let mut spec = level;
+    for module in NOISY_MODULES {
+        spec.push_str(&format!(",{}=off", module));
     }
-    for i in (1..max_logs).rev() {
-        let current = logs_dir.join(format!("feedmee.{}.log", i));
-        let next = logs_dir.join(format!("feedmee.{}.log", i + 1));
-        if current.exists() {
-            let _ = std::fs::rename(current, next);
-        }
-    }
-    let current_log = logs_dir.join("feedmee.log");
-    if current_log.exists() {
-        let _ = std::fs::rename(&current_log, logs_dir.join("feedmee.1.log"));
-    }
+    spec
 }
 
-pub(crate) fn parse_log_level(level: &str) -> LevelFilter {
-    match level.to_lowercase().as_str() {
-        "error" => LevelFilter::Error,
-        "warn" => LevelFilter::Warn,
-        "debug" => LevelFilter::Debug,
-        "trace" => LevelFilter::Trace,
-        _ => LevelFilter::Info,
-    }
-}
-
-pub(crate) fn init_logging(logs_dir: &Path, log_level: LevelFilter) {
-    let log_config = ConfigBuilder::new()
-        .add_filter_ignore_str("html5ever")
-        .add_filter_ignore_str("selectors")
-        .add_filter_ignore_str("scraper")
-        .add_filter_ignore_str("tendril")
-        .set_time_format_rfc3339()
-        .build();
-
-    let log_path = logs_dir.join("feedmee.log");
-    let mut loggers: Vec<Box<dyn SharedLogger>> = vec![TermLogger::new(
-        log_level,
-        log_config.clone(),
-        TerminalMode::Mixed,
-        ColorChoice::Auto,
-    )];
-
-    match std::fs::File::create(&log_path) {
-        Ok(file) => loggers.push(WriteLogger::new(log_level, log_config, file)),
-        Err(e) => eprintln!("[startup] could not open log file {}: {}", log_path.display(), e),
-    }
-
-    if let Err(e) = CombinedLogger::init(loggers) {
-        eprintln!("[startup] logger init failed: {}", e);
-    }
+pub(crate) fn init_logging(logs_dir: &Path, log_level: &str) -> Result<LoggerHandle, flexi_logger::FlexiLoggerError> {
+    Logger::try_with_str(log_spec(log_level))?
+        .log_to_file(
+            FileSpec::default()
+                .directory(logs_dir)
+                .basename(LOG_FILE_PREFIX)
+                .suffix("log"),
+        )
+        .rotate(
+            Criterion::Age(Age::Day),
+            Naming::Timestamps,
+            Cleanup::KeepLogFiles(LOG_RETENTION_DAYS),
+        )
+        .duplicate_to_stderr(Duplicate::All)
+        .start()
 }
 
 pub(crate) fn setup_database(db_path: &Path) -> rusqlite::Connection {

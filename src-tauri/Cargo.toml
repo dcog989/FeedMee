@@ -14,6 +14,7 @@ async-trait = "0.1"
 base64 = "0.23"
 chrono = { version = "0.4", features = [] }
 feed-rs = "2.4"
+flexi_logger = "0.31"
 image = { version = "0.25", default-features = false, features = ["jpeg", "png", "webp"] }
 log = "0.4"
 opml = "1.1"
@@ -24,7 +25,6 @@ rusqlite_migration = "2.6"
 scraper = "0.27"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
-simplelog = "0.12"
 tauri = { version = "2.11", features = [] }
 tauri-plugin-dialog = "2.7"
 tauri-plugin-fs = "2.5"
