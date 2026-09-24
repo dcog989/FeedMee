@@ -4,7 +4,7 @@ use serde::Deserialize;
 
 use crate::{AppState, db, models::Article};
 
-use super::FeedConnector;
+use super::{FeedConnector, FetchedPage};
 
 const PUBLIC_API: &str = "https://public.api.bsky.app";
 
@@ -49,7 +49,16 @@ impl FeedConnector for BlueskyConnector {
         "bluesky"
     }
 
-    async fn fetch_articles(&self, url: &str, state: &AppState) -> Result<(String, String, Vec<Article>), String> {
+    fn wants_prefetched_page(&self) -> bool {
+        false
+    }
+
+    async fn fetch_articles(
+        &self,
+        url: &str,
+        _page: Option<&FetchedPage>,
+        state: &AppState,
+    ) -> Result<(String, String, Vec<Article>), String> {
         resolve_bluesky_source(url, &state.http_client).await
     }
 

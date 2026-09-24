@@ -1,3 +1,4 @@
+use std::borrow::Cow;
 use std::io::Cursor;
 
 use async_trait::async_trait;
@@ -8,7 +9,7 @@ use url::Url;
 use crate::commands::scraper::{backfill_og_images, compute_content_hash};
 use crate::{AppState, db, models::Article};
 
-use super::FeedConnector;
+use super::{FeedConnector, FetchedPage};
 
 pub struct RssConnector;
 
@@ -18,13 +19,24 @@ impl FeedConnector for RssConnector {
         "rss"
     }
 
-    async fn fetch_articles(&self, url: &str, state: &AppState) -> Result<(String, String, Vec<Article>), String> {
+    async fn fetch_articles(
+        &self,
+        url: &str,
+        page: Option<&FetchedPage>,
+        state: &AppState,
+    ) -> Result<(String, String, Vec<Article>), String> {
         let client = &state.http_client;
-        let response = client.get(url).send().await.map_err(|e| e.to_string())?;
-        let original_url = response.url().clone();
-        let content_bytes = response.bytes().await.map_err(|e| e.to_string())?;
+        let (content_bytes, original_url): (Cow<'_, [u8]>, Url) = match page {
+            Some(p) => (Cow::Borrowed(p.bytes.as_slice()), p.final_url.clone()),
+            None => {
+                let response = client.get(url).send().await.map_err(|e| e.to_string())?;
+                let final_url = response.url().clone();
+                let bytes = response.bytes().await.map_err(|e| e.to_string())?;
+                (Cow::Owned(bytes.to_vec()), final_url)
+            },
+        };
 
-        if let Ok(feed) = feed_rs::parser::parse(Cursor::new(content_bytes.clone()))
+        if let Ok(feed) = feed_rs::parser::parse(Cursor::new(content_bytes.as_ref()))
             && !feed.entries.is_empty()
         {
             let title = feed
@@ -36,7 +48,7 @@ impl FeedConnector for RssConnector {
             return Ok((title, url.to_string(), articles));
         }
 
-        let html = String::from_utf8_lossy(&content_bytes);
+        let html = String::from_utf8_lossy(content_bytes.as_ref());
         if let Some(rss_url) = discover_rss_feed_url(&html, &original_url) {
             debug!("rss connector: discovered RSS url={}", rss_url);
             let resp = client.get(&rss_url).send().await.map_err(|e| e.to_string())?;

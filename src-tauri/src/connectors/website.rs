@@ -4,7 +4,7 @@ use scraper::{Html, Selector};
 use crate::commands::scraper::{scrape_articles_from_page, scrape_og_image_from_html};
 use crate::{AppState, db, models::Article};
 
-use super::FeedConnector;
+use super::{FeedConnector, FetchedPage};
 
 pub struct WebsiteConnector;
 
@@ -14,19 +14,30 @@ impl FeedConnector for WebsiteConnector {
         "website"
     }
 
-    async fn fetch_articles(&self, url: &str, state: &AppState) -> Result<(String, String, Vec<Article>), String> {
-        let html = state
-            .http_client
-            .get(url)
-            .send()
-            .await
-            .map_err(|e| e.to_string())?
-            .text()
-            .await
-            .map_err(|e| e.to_string())?;
+    async fn fetch_articles(
+        &self,
+        url: &str,
+        page: Option<&FetchedPage>,
+        state: &AppState,
+    ) -> Result<(String, String, Vec<Article>), String> {
+        let (html, base_url) = match page {
+            Some(p) => (String::from_utf8_lossy(&p.bytes).into_owned(), p.final_url.to_string()),
+            None => {
+                let html = state
+                    .http_client
+                    .get(url)
+                    .send()
+                    .await
+                    .map_err(|e| e.to_string())?
+                    .text()
+                    .await
+                    .map_err(|e| e.to_string())?;
+                (html, url.to_string())
+            },
+        };
 
-        let (title, articles) = extract_website_articles(&html, url)?;
-        Ok((title, url.to_string(), articles))
+        let (title, articles) = extract_website_articles(&html, &base_url)?;
+        Ok((title, base_url, articles))
     }
 
     async fn refresh(&self, feed_url: &str, feed_id: i64, state: &AppState) -> Result<i64, String> {
