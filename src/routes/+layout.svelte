@@ -43,7 +43,7 @@ function disableContextMenu(e: MouseEvent) {
   {/if}
 
   {#if appState.showAbout}
-    <AboutModal bind:isOpen={appState.showAbout} onClose={() => (appState.showAbout = false)} />
+    <AboutModal isOpen onClose={() => (appState.showAbout = false)} />
   {/if}
 
   {#if appState.showNewFolderDialog}
