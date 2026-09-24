@@ -140,6 +140,38 @@ class AppStateImpl {
     return this.settings.feed_refresh_debounce_minutes * 60 * 1000;
   }
 
+  get articleStore(): ArticleStore {
+    return this;
+  }
+
+  get feedStore(): FeedStore {
+    return this;
+  }
+
+  get navStore(): NavStore {
+    return this;
+  }
+
+  get refreshStore(): RefreshStore {
+    return this;
+  }
+
+  get uiStore(): UIStore {
+    return this;
+  }
+
+  get settingsStore(): SettingsStore {
+    return this;
+  }
+
+  get tagStore(): TagStore {
+    return this;
+  }
+
+  get shortcutStore(): ShortcutStore {
+    return this;
+  }
+
   adjustUnreadCount = (feedId: number, delta: number) => this.freshness.adjustUnreadCount(feedId, delta);
   isFeedUpdating = (feedId: number) => this.freshness.isFeedUpdating(feedId);
   isFolderUpdating = (folderId: number) => this.freshness.isFolderUpdating(folderId);
@@ -284,12 +316,7 @@ class AppStateImpl {
   }
 }
 
-export const appState: AppState = new AppStateImpl();
-export const tagStore: TagStore = appState;
-export const articleStore: ArticleStore = appState;
-export const feedStore: FeedStore = appState;
-export const refreshStore: RefreshStore = appState;
-export const navStore: NavStore = appState;
-export const uiStore: UIStore = appState;
-export const settingsStore: SettingsStore = appState;
-export const shortcutStore: ShortcutStore = appState;
+const instance = new AppStateImpl();
+export const appState: AppState = instance;
+export const { tagStore, articleStore, feedStore, refreshStore, navStore, uiStore, settingsStore, shortcutStore } =
+  instance;
