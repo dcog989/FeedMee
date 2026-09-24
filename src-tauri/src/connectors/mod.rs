@@ -51,21 +51,7 @@ pub struct Registry {
     connectors: Vec<Box<dyn FeedConnector>>,
 }
 
-impl Default for Registry {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
 impl Registry {
-    pub fn new() -> Self {
-        Self { connectors: Vec::new() }
-    }
-
-    pub fn register(&mut self, connector: Box<dyn FeedConnector>) {
-        self.connectors.push(connector);
-    }
-
     pub async fn detect_and_add(&self, url: &str, folder_id: Option<i64>, state: &AppState) -> Result<i64, String> {
         let mut page: Option<Option<FetchedPage>> = None;
         for connector in &self.connectors {
@@ -112,11 +98,11 @@ impl Registry {
 static REGISTRY: OnceLock<Registry> = OnceLock::new();
 
 pub fn registry() -> &'static Registry {
-    REGISTRY.get_or_init(|| {
-        let mut reg = Registry::new();
-        reg.register(Box::new(bluesky::BlueskyConnector));
-        reg.register(Box::new(rss::RssConnector));
-        reg.register(Box::new(website::WebsiteConnector));
-        reg
+    REGISTRY.get_or_init(|| Registry {
+        connectors: vec![
+            Box::new(bluesky::BlueskyConnector),
+            Box::new(rss::RssConnector),
+            Box::new(website::WebsiteConnector),
+        ],
     })
 }
