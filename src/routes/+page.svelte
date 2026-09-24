@@ -5,7 +5,15 @@ import ReadingPane from "$lib/components/ReadingPane.svelte";
 import { appState } from "$lib/store.svelte";
 
 // Resizing Logic
+const NAV_MIN_WIDTH = 150;
+const NAV_MAX_WIDTH = 500;
+const LIST_MIN_WIDTH = 200;
+const LIST_MAX_WIDTH = 900;
+const RESIZE_STEP = 10;
+
 let isResizing = $state<"nav" | "list" | null>(null);
+let resizeFrame: number | null = null;
+let pendingClientX = 0;
 
 function startResize(target: "nav" | "list") {
   isResizing = target;
@@ -17,6 +25,10 @@ function startResize(target: "nav" | "list") {
 function stopResize() {
   if (isResizing) {
     isResizing = null;
+    if (resizeFrame !== null) {
+      cancelAnimationFrame(resizeFrame);
+      resizeFrame = null;
+    }
     document.body.style.cursor = "";
     document.body.style.userSelect = "";
     appState.persistLayoutSettings();
@@ -26,16 +38,19 @@ function stopResize() {
 function onMouseMove(e: MouseEvent) {
   if (!isResizing) return;
 
-  if (isResizing === "nav") {
-    // Min width 150px, Max width 500px
-    const newWidth = Math.max(150, Math.min(500, e.clientX));
-    appState.navWidth = newWidth;
-  } else if (isResizing === "list") {
-    // Calculate width based on Nav width offset
-    // Min 200px, Max 900px
-    const newWidth = Math.max(200, Math.min(900, e.clientX - appState.navWidth));
-    appState.listWidth = newWidth;
-  }
+  pendingClientX = e.clientX;
+  if (resizeFrame !== null) return;
+
+  const target = isResizing;
+  resizeFrame = requestAnimationFrame(() => {
+    resizeFrame = null;
+    if (target === "nav") {
+      appState.navWidth = Math.max(NAV_MIN_WIDTH, Math.min(NAV_MAX_WIDTH, pendingClientX));
+    } else {
+      // List width is relative to the nav pane offset.
+      appState.listWidth = Math.max(LIST_MIN_WIDTH, Math.min(LIST_MAX_WIDTH, pendingClientX - appState.navWidth));
+    }
+  });
 }
 
 function focusPane(pane: "nav" | "list" | "reading") {
@@ -50,19 +65,18 @@ function onPaneKeyDown(pane: "nav" | "list" | "reading", e: KeyboardEvent) {
 }
 
 function onResizerKeyDown(target: "nav" | "list", e: KeyboardEvent) {
-  const step = 10;
   if (e.key === "ArrowLeft") {
     if (target === "nav") {
-      appState.navWidth = Math.max(150, appState.navWidth - step);
+      appState.navWidth = Math.max(NAV_MIN_WIDTH, appState.navWidth - RESIZE_STEP);
     } else {
-      appState.listWidth = Math.max(200, appState.listWidth - step);
+      appState.listWidth = Math.max(LIST_MIN_WIDTH, appState.listWidth - RESIZE_STEP);
     }
     e.preventDefault();
   } else if (e.key === "ArrowRight") {
     if (target === "nav") {
-      appState.navWidth = Math.min(500, appState.navWidth + step);
+      appState.navWidth = Math.min(NAV_MAX_WIDTH, appState.navWidth + RESIZE_STEP);
     } else {
-      appState.listWidth = Math.min(900, appState.listWidth + step);
+      appState.listWidth = Math.min(LIST_MAX_WIDTH, appState.listWidth + RESIZE_STEP);
     }
     e.preventDefault();
   }
@@ -96,8 +110,8 @@ function onResizerKeyDown(target: "nav" | "list", e: KeyboardEvent) {
     class="resizer nav-resizer"
     aria-orientation="vertical"
     aria-valuenow={appState.navWidth}
-    aria-valuemin={150}
-    aria-valuemax={500}
+    aria-valuemin={NAV_MIN_WIDTH}
+    aria-valuemax={NAV_MAX_WIDTH}
     tabindex="0"
     onmousedown={() => startResize("nav")}
     onkeydown={(e) => onResizerKeyDown("nav", e)}
@@ -122,8 +136,8 @@ function onResizerKeyDown(target: "nav" | "list", e: KeyboardEvent) {
     class="resizer list-resizer"
     aria-orientation="vertical"
     aria-valuenow={appState.listWidth}
-    aria-valuemin={200}
-    aria-valuemax={900}
+    aria-valuemin={LIST_MIN_WIDTH}
+    aria-valuemax={LIST_MAX_WIDTH}
     tabindex="0"
     onmousedown={() => startResize("list")}
     onkeydown={(e) => onResizerKeyDown("list", e)}
