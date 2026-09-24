@@ -112,15 +112,16 @@ fn import_opml_blocking(path: &str, state: &AppState) -> Result<(), String> {
     let xml_content = std::fs::read_to_string(path).map_err(|e| e.to_string())?;
     let document = opml::OPML::from_str(&xml_content).map_err(|e| e.to_string())?;
     let conn = state.db.lock().unwrap();
+    let tx = conn.unchecked_transaction().map_err(|e| e.to_string())?;
     let mut flat_feeds: Vec<(String, String)> = Vec::new();
 
     for outline in document.body.outlines {
         if !outline.outlines.is_empty() {
             let folder_name = outline.text;
-            if let Ok(folder_id) = db::create_folder(&conn, &folder_name) {
+            if let Ok(folder_id) = db::create_folder(&tx, &folder_name) {
                 for child in outline.outlines {
                     if let Some(url) = child.xml_url {
-                        let _ = db::create_feed(&conn, &child.text, &url, Some(folder_id), "rss");
+                        let _ = db::create_feed(&tx, &child.text, &url, Some(folder_id), "rss");
                     }
                 }
             }
@@ -130,8 +131,9 @@ fn import_opml_blocking(path: &str, state: &AppState) -> Result<(), String> {
     }
 
     for (name, url) in flat_feeds {
-        let _ = db::create_feed(&conn, &name, &url, None, "rss");
+        let _ = db::create_feed(&tx, &name, &url, None, "rss");
     }
+    tx.commit().map_err(|e| e.to_string())?;
     Ok(())
 }
 

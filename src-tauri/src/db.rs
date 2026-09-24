@@ -550,22 +550,30 @@ pub fn rename_feed(conn: &Connection, id: i64, new_name: &str, new_url: &str) ->
     Ok(())
 }
 
-pub fn delete_feed(conn: &Connection, id: i64) -> Result<()> {
+fn delete_feed_rows(conn: &Connection, id: i64) -> Result<()> {
     conn.execute("DELETE FROM articles WHERE feed_id = ?1", params![id])?;
     conn.execute("DELETE FROM feeds WHERE id = ?1", params![id])?;
     Ok(())
 }
 
+pub fn delete_feed(conn: &Connection, id: i64) -> Result<()> {
+    let tx = conn.unchecked_transaction()?;
+    delete_feed_rows(&tx, id)?;
+    tx.commit()
+}
+
 pub fn delete_folder(conn: &Connection, id: i64) -> Result<()> {
-    let mut stmt = conn.prepare("SELECT id FROM feeds WHERE folder_id = ?1")?;
-    let feed_ids: Vec<i64> = stmt
-        .query_map(params![id], |row| row.get(0))?
-        .collect::<Result<Vec<i64>>>()?;
+    let tx = conn.unchecked_transaction()?;
+    let feed_ids: Vec<i64> = {
+        let mut stmt = tx.prepare("SELECT id FROM feeds WHERE folder_id = ?1")?;
+        stmt.query_map(params![id], |row| row.get(0))?
+            .collect::<Result<Vec<i64>>>()?
+    };
     for feed_id in feed_ids {
-        delete_feed(conn, feed_id)?;
+        delete_feed_rows(&tx, feed_id)?;
     }
-    conn.execute("DELETE FROM folders WHERE id = ?1", params![id])?;
-    Ok(())
+    tx.execute("DELETE FROM folders WHERE id = ?1", params![id])?;
+    tx.commit()
 }
 
 pub fn move_feed(conn: &Connection, feed_id: i64, target_folder_id: Option<i64>) -> Result<()> {
@@ -633,15 +641,17 @@ pub fn get_all_tags(conn: &Connection) -> Result<Vec<Tag>> {
 }
 
 pub fn add_tag_to_article(conn: &Connection, article_id: i64, name: &str, color: &str) -> Result<Tag> {
-    conn.execute(
+    let tx = conn.unchecked_transaction()?;
+    tx.execute(
         "INSERT OR IGNORE INTO tags (name, color) VALUES (?1, ?2)",
         params![name, color],
     )?;
-    let tag_id: i64 = conn.query_row("SELECT id FROM tags WHERE name = ?1", params![name], |r| r.get(0))?;
-    conn.execute(
+    let tag_id: i64 = tx.query_row("SELECT id FROM tags WHERE name = ?1", params![name], |r| r.get(0))?;
+    tx.execute(
         "INSERT OR IGNORE INTO article_tags (article_id, tag_id) VALUES (?1, ?2)",
         params![article_id, tag_id],
     )?;
+    tx.commit()?;
     Ok(Tag {
         id: tag_id,
         name: name.to_string(),
@@ -658,9 +668,10 @@ pub fn remove_tag_from_article(conn: &Connection, article_id: i64, tag_id: i64) 
 }
 
 pub fn delete_tag(conn: &Connection, tag_id: i64) -> Result<()> {
-    conn.execute("DELETE FROM article_tags WHERE tag_id = ?1", params![tag_id])?;
-    conn.execute("DELETE FROM tags WHERE id = ?1", params![tag_id])?;
-    Ok(())
+    let tx = conn.unchecked_transaction()?;
+    tx.execute("DELETE FROM article_tags WHERE tag_id = ?1", params![tag_id])?;
+    tx.execute("DELETE FROM tags WHERE id = ?1", params![tag_id])?;
+    tx.commit()
 }
 
 #[cfg(test)]
@@ -756,5 +767,19 @@ mod tests {
 
         conn.execute("UPDATE articles SET created_at = 1", []).unwrap();
         assert_eq!(purge_old_articles(&conn, 90).unwrap(), 1);
+    }
+
+    #[test]
+    fn delete_folder_removes_nested_feeds_and_articles() {
+        let mut conn = test_conn();
+        let folder = create_folder(&conn, "News").unwrap();
+        let feed = create_feed(&conn, "Feed", "https://example.com/rss", Some(folder), "rss").unwrap();
+        batch_insert_articles(&mut conn, &[sample_article(feed)]).unwrap();
+
+        delete_folder(&conn, folder).unwrap();
+
+        assert!(get_folders_with_feeds(&conn).unwrap().is_empty());
+        assert!(get_articles_for_feed(&conn, feed, 10, 0, true).unwrap().is_empty());
+        assert!(get_feed(&conn, feed).is_err());
     }
 }
