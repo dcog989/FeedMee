@@ -25,6 +25,7 @@ import { DEFAULT_SETTINGS } from "./types";
 import { createUI } from "./ui.svelte";
 import {
   LS_BLOCKED_PHRASES,
+  LS_EXPANDED_FOLDERS,
   LS_LAST_REFRESHED,
   LS_LAST_VIEW_ID,
   LS_LAST_VIEW_TYPE,
@@ -225,6 +226,17 @@ class AppStateImpl {
       }
     }
 
+    let storedExpandedFolders: Set<number> | null = null;
+    const storedExpanded = localStorage.getItem(LS_EXPANDED_FOLDERS);
+    if (storedExpanded) {
+      try {
+        storedExpandedFolders = new Set(JSON.parse(storedExpanded) as number[]);
+        this.expandedFolders = storedExpandedFolders;
+      } catch (e) {
+        console.error("Failed to parse expanded folders", e);
+      }
+    }
+
     if (storedLastRefreshed) {
       try {
         const parsed = JSON.parse(storedLastRefreshed);
@@ -273,8 +285,10 @@ class AppStateImpl {
       expandFolderId = this.folders.find((f) => f.feeds.some((fd) => fd.id === viewId))?.id ?? null;
     }
 
+    // `expandedFolders` has a single owner here; the persistence effect in
+    // useExpandedFolders only writes the current value back to storage.
     {
-      const newSet = new Set<number>();
+      const newSet = new Set<number>(storedExpandedFolders ?? this.folders.map((f) => f.id));
       if (expandFolderId !== null) newSet.add(expandFolderId);
       this.expandedFolders = newSet;
     }
