@@ -377,24 +377,19 @@ pub fn create_feed(conn: &Connection, name: &str, url: &str, folder_id: Option<i
     Ok(conn.last_insert_rowid())
 }
 
-pub fn update_feed_error(conn: &Connection, feed_id: i64, has_error: bool) -> Result<()> {
+pub fn record_refresh_success(conn: &Connection, feed_id: i64) -> Result<()> {
     conn.execute(
-        "UPDATE feeds SET has_error = ?1 WHERE id = ?2",
-        params![has_error, feed_id],
-    )?;
-    Ok(())
-}
-
-pub fn increment_feed_error_count(conn: &Connection, feed_id: i64) -> Result<()> {
-    conn.execute(
-        "UPDATE feeds SET error_count = error_count + 1 WHERE id = ?1",
+        "UPDATE feeds SET has_error = 0, error_count = 0 WHERE id = ?1",
         params![feed_id],
     )?;
     Ok(())
 }
 
-pub fn reset_feed_error_count(conn: &Connection, feed_id: i64) -> Result<()> {
-    conn.execute("UPDATE feeds SET error_count = 0 WHERE id = ?1", params![feed_id])?;
+pub fn record_refresh_failure(conn: &Connection, feed_id: i64) -> Result<()> {
+    conn.execute(
+        "UPDATE feeds SET has_error = 1, error_count = error_count + 1 WHERE id = ?1",
+        params![feed_id],
+    )?;
     Ok(())
 }
 

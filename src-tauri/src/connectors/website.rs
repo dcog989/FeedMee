@@ -83,26 +83,16 @@ fn scrape_and_insert(html: &str, page_url: &str, feed_id: i64, state: &AppState)
     }
     let mut conn = state.db.lock().unwrap();
     let count = db::batch_insert_articles(&mut conn, &articles).map_err(|e| e.to_string())?;
-    let _ = db::update_feed_error(&conn, feed_id, false);
     Ok(count)
 }
 
 async fn refresh_website_feed(feed_url: &str, feed_id: i64, state: &AppState) -> Result<i64, String> {
     let client = state.http_client.clone();
-    let response = client.get(feed_url).send().await.map_err(|e| {
-        let conn = state.db.lock().unwrap();
-        let _ = db::update_feed_error(&conn, feed_id, true);
-        e.to_string()
-    })?;
-    let html = response.text().await.map_err(|e| {
-        let conn = state.db.lock().unwrap();
-        let _ = db::update_feed_error(&conn, feed_id, true);
-        e.to_string()
-    })?;
+    let response = client.get(feed_url).send().await.map_err(|e| e.to_string())?;
+    let html = response.text().await.map_err(|e| e.to_string())?;
 
     let _ = scrape_and_insert(&html, feed_url, feed_id, state)?;
 
     let conn = state.db.lock().unwrap();
-    let _ = db::update_feed_error(&conn, feed_id, false);
     Ok(db::get_feed_unread_count(&conn, feed_id).unwrap_or(0))
 }

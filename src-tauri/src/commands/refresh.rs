@@ -115,7 +115,6 @@ pub async fn refresh_feed(feed_id: i64, state: State<'_, AppState>) -> Result<i6
     let (url, feed_type) = {
         let conn = state.db.lock().unwrap();
         let feed = db::get_feed(&conn, feed_id).map_err(|e| e.to_string())?;
-        let _ = db::update_feed_error(&conn, feed_id, false);
         (feed.url, feed.feed_type)
     };
 
@@ -125,15 +124,12 @@ pub async fn refresh_feed(feed_id: i64, state: State<'_, AppState>) -> Result<i6
 
     {
         let conn = state.db.lock().unwrap();
-        match &result {
-            Ok(_) => {
-                let _ = db::reset_feed_error_count(&conn, feed_id);
-                let _ = db::update_feed_error(&conn, feed_id, false);
-            },
-            Err(_) => {
-                let _ = db::increment_feed_error_count(&conn, feed_id);
-                let _ = db::update_feed_error(&conn, feed_id, true);
-            },
+        let recorded = match &result {
+            Ok(_) => db::record_refresh_success(&conn, feed_id),
+            Err(_) => db::record_refresh_failure(&conn, feed_id),
+        };
+        if let Err(e) = recorded {
+            log::error!("Failed to record refresh outcome for feed {}: {}", feed_id, e);
         }
     }
 

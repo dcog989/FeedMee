@@ -296,7 +296,6 @@ pub async fn refresh_bluesky_feed(feed_url: &str, feed_id: i64, state: &AppState
 
     let mut conn = state.db.lock().unwrap();
     let _ = db::batch_insert_articles(&mut conn, &articles).map_err(|e| e.to_string())?;
-    let _ = db::update_feed_error(&conn, feed_id, false);
 
     if let Some(ref uri) = new_cursor
         && let Err(e) = db::set_bluesky_cursor(&conn, feed_id, uri)

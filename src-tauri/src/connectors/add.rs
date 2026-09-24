@@ -30,7 +30,7 @@ pub(crate) async fn add_feed_with_articles(
     {
         let mut conn = state.db.lock().unwrap();
         let count = db::batch_insert_articles(&mut conn, &articles).map_err(|e| e.to_string())?;
-        let _ = db::update_feed_error(&conn, feed_id, false);
+        let _ = db::record_refresh_success(&conn, feed_id);
         if count == 0 && feed_type == "website" {
             drop(conn);
             if let Ok(conn) = state.db.lock() {

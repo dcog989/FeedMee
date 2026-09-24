@@ -212,8 +212,6 @@ async fn refresh_rss_feed(feed_url: &str, feed_id: i64, state: &AppState) -> Res
                     "refresh_rss_feed: HTTP {} for {} (blocked or unavailable)",
                     status, feed_url
                 );
-                let conn = state.db.lock().unwrap();
-                let _ = db::update_feed_error(&conn, feed_id, true);
                 return Err(format!("HTTP {} for {}", status, feed_url));
             }
 
@@ -262,23 +260,16 @@ async fn refresh_rss_feed(feed_url: &str, feed_id: i64, state: &AppState) -> Res
                     }
                     drop(inserter);
                     tx.commit().map_err(|e| e.to_string())?;
-                    db::update_feed_error(&conn, feed_id, false).map_err(|e| e.to_string())?;
                     let unread = db::get_feed_unread_count(&conn, feed_id).map_err(|e| e.to_string())?;
                     Ok(unread)
                 },
                 Err(e) => {
                     error!("refresh_rss_feed: parse error for {}: {}", feed_url, e);
-                    let conn = state.db.lock().unwrap();
-                    let _ = db::update_feed_error(&conn, feed_id, true);
                     Err(format!("Parse error: {}", e))
                 },
             }
         },
-        Err(e) => {
-            let conn = state.db.lock().unwrap();
-            let _ = db::update_feed_error(&conn, feed_id, true);
-            Err(format!("Network error: {}", e))
-        },
+        Err(e) => Err(format!("Network error: {}", e)),
     }
 }
 
