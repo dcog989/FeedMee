@@ -31,10 +31,14 @@ function openInBrowser() {
 
 function toggleRead() {
   if (!cmArticle) return;
-  const newRead = !cmArticle.is_read;
-  cmArticle.is_read = newRead;
-  invoke("mark_article_read", { id: cmArticle.id, read: newRead }).catch(() => {
-    if (cmArticle) cmArticle.is_read = !newRead;
+  const article = cmArticle;
+  const newRead = !article.is_read;
+  article.is_read = newRead;
+  articleStore.adjustUnreadCount(article.feed_id, newRead ? -1 : 1);
+  invoke("mark_article_read", { id: article.id, read: newRead }).catch((e) => {
+    article.is_read = !newRead;
+    articleStore.adjustUnreadCount(article.feed_id, newRead ? 1 : -1);
+    console.error("mark_article_read failed:", e);
   });
   close();
 }
@@ -49,9 +53,9 @@ function toggleSaved() {
 <ContextMenu x={cmX} y={cmY} visible={cmVisible} onClose={close}>
   <button type="button" onclick={openInBrowser}>Open in Browser</button>
   <button type="button" onclick={toggleRead}>
-    {cmArticle?.is_read ? 'Mark Unread' : 'Mark Read'}
+    {cmArticle?.is_read ? "Mark Unread" : "Mark Read"}
   </button>
   <button type="button" onclick={toggleSaved}>
-    {cmArticle?.is_saved ? 'Remove Bookmark' : 'Bookmark'}
+    {cmArticle?.is_saved ? "Remove Bookmark" : "Bookmark"}
   </button>
 </ContextMenu>
