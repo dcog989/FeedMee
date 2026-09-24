@@ -45,5 +45,4 @@ gtk = "0.18"
 [profile.release]
 strip = true
 lto = "thin"
-panic = "abort"
 codegen-units = 1
