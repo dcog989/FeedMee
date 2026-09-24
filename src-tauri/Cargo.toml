@@ -18,7 +18,7 @@ image = { version = "0.25", default-features = false, features = ["jpeg", "png",
 log = "0.4"
 opml = "1.1"
 readabilityrs = "0.1"
-reqwest = { version = "0.13", features = ["json", "rustls"] }
+reqwest = { version = "0.13", features = ["json", "rustls", "gzip", "brotli"] }
 rusqlite = { version = "0.40", features = ["bundled"] }
 rusqlite_migration = "2.6"
 scraper = "0.27"
