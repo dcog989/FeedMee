@@ -12,32 +12,68 @@ import {
   writeString,
 } from "./utils/persistence";
 
-export function createUI(state: {
+export interface EditFeedTarget {
+  id: number;
+  name: string;
+  source_type: string;
+  source_id: string;
+}
+
+export interface RenameFolderTarget {
+  id: number;
+  name: string;
+}
+
+export interface ModalState {
+  isOpen: boolean;
+  type: "confirm" | "alert";
+  message: string;
+  onConfirm: () => void;
+}
+
+export interface UIState {
   showSettings: boolean;
   showAddDialog: boolean;
   showAbout: boolean;
   showNewFolderDialog: boolean;
   showEditFeedDialog: boolean;
-  editFeedTarget: { id: number; name: string; source_type: string; source_id: string } | null;
-  renameFolderTarget: { id: number; name: string } | null;
-  focusedPane: "nav" | "list" | "reading";
-  modalState: {
-    isOpen: boolean;
-    type: "confirm" | "alert";
-    message: string;
-    onConfirm: () => void;
-  };
-  blockedPhrases: string[];
+  editFeedTarget: EditFeedTarget | null;
+  renameFolderTarget: RenameFolderTarget | null;
+  modalState: ModalState;
   navWidth: number;
   listWidth: number;
+}
+
+export function createUI(state: {
+  focusedPane: "nav" | "list" | "reading";
+  blockedPhrases: string[];
   theme: Theme;
   sortOrder: SortOrder;
   settings: AppSettings;
   searchQuery: string;
-  autoRefreshTimer: ReturnType<typeof setInterval> | null;
   reloadCurrentArticleList(options?: { selectTop?: boolean }): Promise<void>;
   refreshAllFeeds(): Promise<void>;
 }) {
+  const ui = $state<UIState>({
+    showSettings: false,
+    showAddDialog: false,
+    showAbout: false,
+    showNewFolderDialog: false,
+    showEditFeedDialog: false,
+    editFeedTarget: null,
+    renameFolderTarget: null,
+    modalState: {
+      isOpen: false,
+      type: "confirm",
+      message: "",
+      onConfirm: () => {},
+    },
+    navWidth: 280,
+    listWidth: 320,
+  });
+
+  let autoRefreshTimer: ReturnType<typeof setInterval> | null = null;
+
   async function setBlockedPhrases(phrases: string[]) {
     state.blockedPhrases = phrases;
     writeJson(LS_BLOCKED_PHRASES, phrases);
@@ -45,8 +81,8 @@ export function createUI(state: {
   }
 
   function persistLayoutSettings() {
-    writeInt(LS_NAV_WIDTH, state.navWidth);
-    writeInt(LS_LIST_WIDTH, state.listWidth);
+    writeInt(LS_NAV_WIDTH, ui.navWidth);
+    writeInt(LS_LIST_WIDTH, ui.listWidth);
     writeString(LS_SORT_ORDER, state.sortOrder);
   }
 
@@ -69,19 +105,19 @@ export function createUI(state: {
   }
 
   function openSettings() {
-    state.showSettings = true;
+    ui.showSettings = true;
   }
 
   function closeSettings() {
-    state.showSettings = false;
+    ui.showSettings = false;
   }
 
   function openAbout() {
-    state.showAbout = true;
+    ui.showAbout = true;
   }
 
   function closeAbout() {
-    state.showAbout = false;
+    ui.showAbout = false;
   }
 
   async function saveSettings(newSettings: AppSettings, closeModal = true) {
@@ -97,44 +133,45 @@ export function createUI(state: {
   }
 
   function confirm(message: string, onConfirm: () => void | Promise<void>) {
-    state.modalState = {
+    ui.modalState = {
       isOpen: true,
       type: "confirm",
       message,
       onConfirm: () => {
-        state.modalState = { ...state.modalState, isOpen: false };
+        ui.modalState = { ...ui.modalState, isOpen: false };
         Promise.resolve(onConfirm()).catch((e) => console.error("confirm callback failed:", e));
       },
     };
   }
 
   function alert(message: string) {
-    state.modalState = {
+    ui.modalState = {
       isOpen: true,
       type: "alert",
       message,
       onConfirm: () => {
-        state.modalState = { ...state.modalState, isOpen: false };
+        ui.modalState = { ...ui.modalState, isOpen: false };
       },
     };
   }
 
   function closeModal() {
-    state.modalState = { ...state.modalState, isOpen: false };
+    ui.modalState = { ...ui.modalState, isOpen: false };
   }
 
   function startAutoRefreshTimer() {
-    if (state.autoRefreshTimer !== null) {
-      clearInterval(state.autoRefreshTimer);
-      state.autoRefreshTimer = null;
+    if (autoRefreshTimer !== null) {
+      clearInterval(autoRefreshTimer);
+      autoRefreshTimer = null;
     }
     if (state.settings.auto_update_interval_minutes > 0) {
       const intervalMs = state.settings.auto_update_interval_minutes * 60 * 1000;
-      state.autoRefreshTimer = setInterval(() => state.refreshAllFeeds(), intervalMs);
+      autoRefreshTimer = setInterval(() => state.refreshAllFeeds(), intervalMs);
     }
   }
 
   return {
+    ui,
     setBlockedPhrases,
     persistLayoutSettings,
     setSortOrder,

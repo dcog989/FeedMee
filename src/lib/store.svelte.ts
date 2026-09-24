@@ -22,6 +22,7 @@ import type {
 import { createTagOps } from "./tags.svelte";
 import type { AppSettings, Article, Folder } from "./types";
 import { DEFAULT_SETTINGS } from "./types";
+import type { EditFeedTarget, ModalState, RenameFolderTarget } from "./ui.svelte";
 import { createUI } from "./ui.svelte";
 import { findFeedFolderId } from "./utils/feeds";
 import {
@@ -79,19 +80,10 @@ class AppStateImpl {
 
   settings = $state<AppSettings>({ ...DEFAULT_SETTINGS });
 
-  showSettings = $state(false);
-  showAddDialog = $state(false);
-  showAbout = $state(false);
-  showNewFolderDialog = $state(false);
-  showEditFeedDialog = $state(false);
-  editFeedTarget = $state<{ id: number; name: string; source_type: string; source_id: string } | null>(null);
-  renameFolderTarget = $state<{ id: number; name: string } | null>(null);
   expandedFolders = $state<Set<number>>(new Set());
   focusedPane = $state<"nav" | "list" | "reading">("nav");
   blockedPhrases = $state<string[]>([]);
   customShortcuts = $state<Record<string, string>>({});
-  navWidth = $state(280);
-  listWidth = $state(320);
 
   page = 0;
   readonly pageSize = 50;
@@ -101,18 +93,6 @@ class AppStateImpl {
   lastRefreshed = new Map<number, number>();
   updatingFeedIds = $state(new Set<number>());
 
-  modalState = $state<{
-    isOpen: boolean;
-    type: "confirm" | "alert";
-    message: string;
-    onConfirm: () => void;
-  }>({
-    isOpen: false,
-    type: "confirm",
-    message: "",
-    onConfirm: () => {},
-  });
-
   private refresh: ReturnType<typeof createFeedRefresher>;
   private feedOps: ReturnType<typeof createFeedActions>;
   private articleOps: ReturnType<typeof createArticleActions>;
@@ -121,7 +101,6 @@ class AppStateImpl {
   private tagOps: ReturnType<typeof createTagOps>;
   private shortcutOps: ReturnType<typeof createShortcutOps>;
   private ui: ReturnType<typeof createUI>;
-  autoRefreshTimer: ReturnType<typeof setInterval> | null = null;
   constructor() {
     this.refresh = createFeedRefresher(this);
     this.feedOps = createFeedActions(this);
@@ -134,6 +113,76 @@ class AppStateImpl {
     registerShortcuts(this);
     setupKeyHandler(this);
     this.initStore();
+  }
+
+  get showSettings() {
+    return this.ui.ui.showSettings;
+  }
+  set showSettings(value: boolean) {
+    this.ui.ui.showSettings = value;
+  }
+
+  get showAddDialog() {
+    return this.ui.ui.showAddDialog;
+  }
+  set showAddDialog(value: boolean) {
+    this.ui.ui.showAddDialog = value;
+  }
+
+  get showAbout() {
+    return this.ui.ui.showAbout;
+  }
+  set showAbout(value: boolean) {
+    this.ui.ui.showAbout = value;
+  }
+
+  get showNewFolderDialog() {
+    return this.ui.ui.showNewFolderDialog;
+  }
+  set showNewFolderDialog(value: boolean) {
+    this.ui.ui.showNewFolderDialog = value;
+  }
+
+  get showEditFeedDialog() {
+    return this.ui.ui.showEditFeedDialog;
+  }
+  set showEditFeedDialog(value: boolean) {
+    this.ui.ui.showEditFeedDialog = value;
+  }
+
+  get editFeedTarget() {
+    return this.ui.ui.editFeedTarget;
+  }
+  set editFeedTarget(value: EditFeedTarget | null) {
+    this.ui.ui.editFeedTarget = value;
+  }
+
+  get renameFolderTarget() {
+    return this.ui.ui.renameFolderTarget;
+  }
+  set renameFolderTarget(value: RenameFolderTarget | null) {
+    this.ui.ui.renameFolderTarget = value;
+  }
+
+  get modalState() {
+    return this.ui.ui.modalState;
+  }
+  set modalState(value: ModalState) {
+    this.ui.ui.modalState = value;
+  }
+
+  get navWidth() {
+    return this.ui.ui.navWidth;
+  }
+  set navWidth(value: number) {
+    this.ui.ui.navWidth = value;
+  }
+
+  get listWidth() {
+    return this.ui.ui.listWidth;
+  }
+  set listWidth(value: number) {
+    this.ui.ui.listWidth = value;
   }
 
   get debounceMs() {
