@@ -1,15 +1,13 @@
+import { withAdded, withRemoved } from "./sets";
+
 export function expandFolder(current: Set<number>, folderId: number, autoCollapse: boolean): Set<number> {
   if (autoCollapse) return new Set([folderId]);
-  const next = new Set(current);
-  next.add(folderId);
-  return next;
+  return withAdded(current, folderId);
 }
 
 export function toggleFolder(current: Set<number>, folderId: number, autoCollapse: boolean): Set<number> {
   if (!current.has(folderId)) return expandFolder(current, folderId, autoCollapse);
-  const next = new Set(current);
-  next.delete(folderId);
-  return next;
+  return withRemoved(current, folderId);
 }
 
 export function expandAllFolders(folders: readonly { id: number }[]): Set<number> {

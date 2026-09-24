@@ -3,6 +3,7 @@ import { Check, Plus, Tags, Trash2, X } from "lucide-svelte";
 import { tooltip } from "$lib/actions/tooltip.svelte";
 import { articleStore, tagStore } from "$lib/store.svelte";
 import type { Tag } from "$lib/types";
+import { withAdded, withRemoved } from "$lib/utils/sets";
 
 let { articleId, onClose }: { articleId: number; onClose: () => void } = $props();
 
@@ -45,7 +46,7 @@ async function toggleTag(tag: Tag) {
   if (activeTagIds.has(tag.id)) {
     try {
       await tagStore.removeTag(articleId, tag.id);
-      activeTagIds = new Set([...activeTagIds].filter((id) => id !== tag.id));
+      activeTagIds = withRemoved(activeTagIds, tag.id);
       syncHasTags();
     } catch (e) {
       console.error("Failed to remove tag:", e);
@@ -53,7 +54,7 @@ async function toggleTag(tag: Tag) {
   } else {
     try {
       await tagStore.addTag(articleId, tag.name);
-      activeTagIds = new Set([...activeTagIds, tag.id]);
+      activeTagIds = withAdded(activeTagIds, tag.id);
       syncHasTags();
     } catch (e) {
       console.error("Failed to add tag:", e);
@@ -67,7 +68,7 @@ async function addNewTag() {
   try {
     const tag = await tagStore.addTag(articleId, name);
     allTags = [...allTags, tag];
-    activeTagIds = new Set([...activeTagIds, tag.id]);
+    activeTagIds = withAdded(activeTagIds, tag.id);
     inputValue = "";
     syncHasTags();
   } catch (e) {
@@ -80,7 +81,7 @@ async function deleteTagPermanently(tag: Tag) {
   if (!confirmed) return;
   try {
     await tagStore.deleteTag(tag.id);
-    activeTagIds = new Set([...activeTagIds].filter((id) => id !== tag.id));
+    activeTagIds = withRemoved(activeTagIds, tag.id);
     allTags = allTags.filter((t) => t.id !== tag.id);
     syncHasTags();
   } catch (e) {

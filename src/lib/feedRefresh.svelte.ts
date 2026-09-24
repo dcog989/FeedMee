@@ -1,6 +1,7 @@
 import { invoke } from "@tauri-apps/api/core";
 import type { RefreshStore } from "./storeTypes";
 import { findFeed } from "./utils/feeds";
+import { withAdded, withRemoved } from "./utils/sets";
 
 const REFRESH_CONCURRENCY = 5;
 export const FEED_FAILURE_LIMIT = 10;
@@ -38,9 +39,7 @@ export function createFeedRefresher(state: RefreshStore) {
       console.error(`Failed to refresh feed ${feedId}:`, e);
     } finally {
       // Remove from updating set — this is the single place that does it
-      const newSet = new Set(state.updatingFeedIds);
-      newSet.delete(feedId);
-      state.updatingFeedIds = newSet;
+      state.updatingFeedIds = withRemoved(state.updatingFeedIds, feedId);
     }
   }
 
@@ -54,9 +53,7 @@ export function createFeedRefresher(state: RefreshStore) {
 
     state.isRefreshingFeeds = true;
 
-    const addSet = new Set(state.updatingFeedIds);
-    for (const f of staleFeeds) addSet.add(f.id);
-    state.updatingFeedIds = addSet;
+    state.updatingFeedIds = withAdded(state.updatingFeedIds, ...staleFeeds.map((f) => f.id));
 
     // Identify the currently viewed folder/feed so its list can be published as
     // soon as its own feeds finish, instead of waiting for the whole batch.
@@ -114,9 +111,7 @@ export function createFeedRefresher(state: RefreshStore) {
 
     // Mark as updating before kicking off the refresh.
     // performSingleFeedRefresh's finally block is the single place that removes it.
-    const addSet = new Set(state.updatingFeedIds);
-    addSet.add(feedId);
-    state.updatingFeedIds = addSet;
+    state.updatingFeedIds = withAdded(state.updatingFeedIds, feedId);
 
     await performSingleFeedRefresh(feedId);
     await state.refreshFolders();
@@ -133,9 +128,7 @@ export function createFeedRefresher(state: RefreshStore) {
     const staleFeeds = folder.feeds.filter((f) => !state.isFeedFresh(f.id) && !state.updatingFeedIds.has(f.id));
     if (staleFeeds.length === 0) return;
 
-    const addSet = new Set(state.updatingFeedIds);
-    for (const f of staleFeeds) addSet.add(f.id);
-    state.updatingFeedIds = addSet;
+    state.updatingFeedIds = withAdded(state.updatingFeedIds, ...staleFeeds.map((f) => f.id));
 
     try {
       await runWithConcurrency(staleFeeds, (feed) => performSingleFeedRefresh(feed.id), REFRESH_CONCURRENCY);
