@@ -138,7 +138,16 @@ interface KeyHandlerDeps {
   articleDown(): void;
 }
 
+let activeKeyHandler: ((e: KeyboardEvent) => void) | null = null;
+
 export function setupKeyHandler(state: KeyHandlerDeps): () => void {
+  // Remove any previously bound handler (e.g. after a hot-reload that
+  // re-instantiates the store) so keydown listeners don't stack.
+  if (activeKeyHandler) {
+    window.removeEventListener("keydown", activeKeyHandler);
+    activeKeyHandler = null;
+  }
+
   const handler = (e: KeyboardEvent) => {
     if (state.showSettings) return;
 
@@ -178,7 +187,11 @@ export function setupKeyHandler(state: KeyHandlerDeps): () => void {
     shortcutManager.handleKeyEvent(e);
   };
 
+  activeKeyHandler = handler;
   window.addEventListener("keydown", handler);
 
-  return () => window.removeEventListener("keydown", handler);
+  return () => {
+    window.removeEventListener("keydown", handler);
+    if (activeKeyHandler === handler) activeKeyHandler = null;
+  };
 }

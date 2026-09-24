@@ -80,10 +80,6 @@ export function createUI(state: {
     try {
       await invoke("save_app_settings", { newSettings: settingsToSave });
       state.settings = settingsToSave;
-      if (state.autoRefreshTimer !== null) {
-        clearInterval(state.autoRefreshTimer);
-        state.autoRefreshTimer = null;
-      }
       startAutoRefreshTimer();
       if (closeModal) closeSettings();
     } catch (e) {
@@ -119,6 +115,10 @@ export function createUI(state: {
   }
 
   function startAutoRefreshTimer() {
+    if (state.autoRefreshTimer !== null) {
+      clearInterval(state.autoRefreshTimer);
+      state.autoRefreshTimer = null;
+    }
     if (state.settings.auto_update_interval_minutes > 0) {
       const intervalMs = state.settings.auto_update_interval_minutes * 60 * 1000;
       state.autoRefreshTimer = setInterval(() => state.refreshAllFeeds(), intervalMs);
