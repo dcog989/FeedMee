@@ -16,10 +16,8 @@
     "format:check": "bunx biome format . && cd src-tauri && cargo fmt -- --check",
     "gen-icons": "tauri icon src-tauri/icons/icon.png",
     "package": "bun run build && mkdir -p .pkg && cp PKGBUILD .pkg/ && cd .pkg && makepkg -si --noconfirm --force",
-    "release": "cog bump --auto",
     "test": "echo \"Running Tests...\" && vitest run && cd src-tauri && cargo test",
-    "update": "bun update --latest && cd src-tauri && cargo upgrade && cargo update --verbose",
-    "version": "cog bump --version"
+    "update": "bun update --latest && cd src-tauri && cargo upgrade && cargo update --verbose"
   },
   "dependencies": {
     "@tauri-apps/api": "^2.11.1",
