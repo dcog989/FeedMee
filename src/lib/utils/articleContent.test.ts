@@ -45,4 +45,16 @@ describe("bodyEmbedsImage", () => {
   it("returns false for an empty image url", () => {
     expect(bodyEmbedsImage("<p>Body</p>", "")).toBe(false);
   });
+
+  it("matches a body image whose query string is HTML-entity encoded", () => {
+    const html = '<img src="https://i0.wp.com/craphound.com/images/21Sep2026.jpg?w=840&#038;ssl=1">';
+    const imageUrl = "https://i0.wp.com/craphound.com/images/21Sep2026.jpg?w=840&ssl=1";
+    expect(bodyEmbedsImage(html, imageUrl)).toBe(true);
+  });
+
+  it("matches a body image referenced via srcset", () => {
+    const html =
+      '<img srcset="https://example.com/a-2x.png 2x, https://example.com/a.png 1x" src="https://example.com/a.png">';
+    expect(bodyEmbedsImage(html, "https://example.com/a-2x.png")).toBe(true);
+  });
 });
