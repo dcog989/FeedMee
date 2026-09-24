@@ -1,7 +1,7 @@
 import { invoke } from "@tauri-apps/api/core";
 import type { Tag } from "./types";
 
-export function createTagOps(_state: unknown) {
+export function createTagOps() {
   async function getArticleTags(articleId: number): Promise<Tag[]> {
     try {
       return await invoke<Tag[]>("get_tags_for_article", { articleId });

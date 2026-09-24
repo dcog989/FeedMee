@@ -128,7 +128,7 @@ class AppStateImpl {
     this.articleOps = createArticleActions(this);
     this.freshness = createFreshnessHelpers(this);
     this.nav = createNavigation(this);
-    this.tagOps = createTagOps(this);
+    this.tagOps = createTagOps();
     this.shortcutOps = createShortcutOps(this);
     this.ui = createUI(this);
     registerShortcuts(this);
