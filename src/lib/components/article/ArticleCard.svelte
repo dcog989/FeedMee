@@ -80,9 +80,7 @@ function handleKeydown(e: KeyboardEvent) {
           use:tooltip={'Tags'}
           aria-label="Tags"
         >
-          {#key article.has_tags || isTagOpen}
-            <Tags size={14} fill={article.has_tags ? 'currentColor' : 'none'} />
-          {/key}
+          <Tags size={14} fill={article.has_tags ? 'currentColor' : 'none'} />
         </button>
 
         <button

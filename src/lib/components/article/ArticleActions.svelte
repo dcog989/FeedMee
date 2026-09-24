@@ -38,9 +38,7 @@ let isSaved = $derived(article.is_saved);
     use:tooltip={'Tags'}
     aria-label="Tags"
   >
-    {#key article.has_tags || tagArticleId !== null}
-      <Tags size={18} fill={article.has_tags ? 'currentColor' : 'none'} />
-    {/key}
+    <Tags size={18} fill={article.has_tags ? 'currentColor' : 'none'} />
   </button>
 
   <button
