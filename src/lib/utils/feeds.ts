@@ -14,3 +14,29 @@ export function findFeedFolderId(folders: Folder[], feedId: number): number | nu
   }
   return null;
 }
+
+export interface FeedRefreshFilters {
+  isFeedFresh(feedId: number): boolean;
+  isFeedUpdating(feedId: number): boolean;
+  failureLimit: number;
+}
+
+export function selectStaleFeeds(folders: Folder[], filters: FeedRefreshFilters): Feed[] {
+  return folders
+    .flatMap((f) => f.feeds)
+    .filter((f) => !filters.isFeedFresh(f.id) && !filters.isFeedUpdating(f.id) && f.error_count < filters.failureLimit);
+}
+
+export function resolveVisibleFeedIds(
+  folders: Folder[],
+  selection: { selectedFolderId: number | null; selectedFeedId: number | null },
+): Set<number> {
+  const ids = new Set<number>();
+  if (selection.selectedFolderId !== null) {
+    const folder = folders.find((f) => f.id === selection.selectedFolderId);
+    if (folder) for (const feed of folder.feeds) ids.add(feed.id);
+  } else if (selection.selectedFeedId !== null) {
+    ids.add(selection.selectedFeedId);
+  }
+  return ids;
+}

@@ -3,6 +3,7 @@ import { openUrl } from "@tauri-apps/plugin-opener";
 import { ExternalLink } from "lucide-svelte";
 import { tooltip } from "$lib/actions/tooltip.svelte";
 import { appState, articleStore } from "$lib/store.svelte";
+import { bodyEmbedsImage, stripDuplicateTitle } from "$lib/utils/articleContent";
 import { findFeed } from "$lib/utils/feeds";
 import ArticleActions from "./article/ArticleActions.svelte";
 import ArticleContent from "./article/ArticleContent.svelte";
@@ -16,7 +17,7 @@ let loadGen = $state(0);
 let rawHtml = $derived(fullContent ?? articleStore.selectedArticle?.summary ?? "");
 let heroImage = $derived(articleStore.selectedArticle?.image_url ?? "");
 // Avoid duplicating an image the article body already embeds.
-let showHero = $derived(Boolean(heroImage) && !rawHtml.toLowerCase().includes(heroImage.toLowerCase()));
+let showHero = $derived(Boolean(heroImage) && !bodyEmbedsImage(rawHtml, heroImage));
 
 $effect(() => {
   if (articleStore.selectedArticle) {
@@ -40,19 +41,6 @@ async function loadFullContent() {
     loadError = true;
   }
   isLoadingFull = false;
-}
-
-function stripDuplicateTitle(html: string, articleTitle: string): string {
-  const doc = new DOMParser().parseFromString(html, "text/html");
-  const normalize = (s: string) => s.toLowerCase().replace(/\s+/g, " ").trim();
-  const normalizedTitle = normalize(articleTitle);
-  for (const el of doc.querySelectorAll("h1, h2")) {
-    if (normalize(el.textContent ?? "").includes(normalizedTitle.slice(0, 30))) {
-      el.remove();
-      break;
-    }
-  }
-  return doc.body.innerHTML;
 }
 
 function formatDate(ts: number) {

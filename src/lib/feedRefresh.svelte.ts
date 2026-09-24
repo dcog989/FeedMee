@@ -1,6 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
 import type { RefreshStore } from "./storeTypes";
-import { findFeed } from "./utils/feeds";
+import { findFeed, resolveVisibleFeedIds, selectStaleFeeds } from "./utils/feeds";
 import { withAdded, withRemoved } from "./utils/sets";
 
 const REFRESH_CONCURRENCY = 5;
@@ -44,11 +44,11 @@ export function createFeedRefresher(state: RefreshStore) {
   }
 
   async function refreshAllFeeds() {
-    const staleFeeds = state.folders
-      .flatMap((f) => f.feeds)
-      .filter(
-        (f) => !state.isFeedFresh(f.id) && !state.updatingFeedIds.has(f.id) && f.error_count < FEED_FAILURE_LIMIT,
-      );
+    const staleFeeds = selectStaleFeeds(state.folders, {
+      isFeedFresh: state.isFeedFresh,
+      isFeedUpdating: state.isFeedUpdating,
+      failureLimit: FEED_FAILURE_LIMIT,
+    });
     if (staleFeeds.length === 0) return;
 
     state.isRefreshingFeeds = true;
@@ -57,13 +57,10 @@ export function createFeedRefresher(state: RefreshStore) {
 
     // Identify the currently viewed folder/feed so its list can be published as
     // soon as its own feeds finish, instead of waiting for the whole batch.
-    const visibleFeedIds = new Set<number>();
-    if (state.selectedFolderId !== null) {
-      const folder = state.folders.find((f) => f.id === state.selectedFolderId);
-      if (folder) for (const feed of folder.feeds) visibleFeedIds.add(feed.id);
-    } else if (state.selectedFeedId !== null) {
-      visibleFeedIds.add(state.selectedFeedId);
-    }
+    const visibleFeedIds = resolveVisibleFeedIds(state.folders, {
+      selectedFolderId: state.selectedFolderId,
+      selectedFeedId: state.selectedFeedId,
+    });
 
     let visibleRemaining = staleFeeds.filter((f) => visibleFeedIds.has(f.id)).length;
     let resolveVisible: (() => void) | null = null;
