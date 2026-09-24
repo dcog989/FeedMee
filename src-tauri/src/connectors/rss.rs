@@ -9,7 +9,7 @@ use url::Url;
 use crate::commands::scraper::{backfill_og_images, compute_content_hash};
 use crate::{AppState, db, models::Article};
 
-use super::{FeedConnector, FetchedPage};
+use super::{FeedConnector, FetchedFeed, FetchedPage};
 
 pub struct RssConnector;
 
@@ -24,7 +24,7 @@ impl FeedConnector for RssConnector {
         url: &str,
         page: Option<&FetchedPage>,
         state: &AppState,
-    ) -> Result<(String, String, Vec<Article>), String> {
+    ) -> Result<FetchedFeed, String> {
         let client = &state.http_client;
         let (content_bytes, original_url): (Cow<'_, [u8]>, Url) = match page {
             Some(p) => (Cow::Borrowed(p.bytes.as_slice()), p.final_url.clone()),
@@ -45,7 +45,11 @@ impl FeedConnector for RssConnector {
                 .map(|t| t.content.clone())
                 .unwrap_or_else(|| "Untitled Feed".to_string());
             let articles = entries_to_articles(&feed.entries, 0, url);
-            return Ok((title, url.to_string(), articles));
+            return Ok(FetchedFeed {
+                title,
+                url: url.to_string(),
+                articles,
+            });
         }
 
         let html = String::from_utf8_lossy(content_bytes.as_ref());
@@ -62,7 +66,11 @@ impl FeedConnector for RssConnector {
                     .map(|t| t.content.clone())
                     .unwrap_or_else(|| "Untitled Feed".to_string());
                 let articles = entries_to_articles(&feed.entries, 0, &rss_url);
-                return Ok((title, rss_url, articles));
+                return Ok(FetchedFeed {
+                    title,
+                    url: rss_url,
+                    articles,
+                });
             }
         }
 

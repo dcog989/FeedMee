@@ -16,6 +16,13 @@ pub struct FetchedPage {
     pub final_url: url::Url,
 }
 
+/// A feed discovered by a connector, ready to be persisted.
+pub struct FetchedFeed {
+    pub title: String,
+    pub url: String,
+    pub articles: Vec<Article>,
+}
+
 async fn fetch_page(client: &reqwest::Client, url: &str) -> Option<FetchedPage> {
     let response = client.get(url).send().await.ok()?;
     if !response.status().is_success() {
@@ -42,7 +49,7 @@ pub trait FeedConnector: Send + Sync {
         url: &str,
         page: Option<&FetchedPage>,
         state: &AppState,
-    ) -> Result<(String, String, Vec<Article>), String>;
+    ) -> Result<FetchedFeed, String>;
 
     async fn refresh(&self, feed_url: &str, feed_id: i64, state: &AppState) -> Result<i64, String>;
 }
@@ -64,12 +71,12 @@ impl Registry {
                 None
             };
 
-            if let Ok((title, feed_url, articles)) = connector.fetch_articles(url, page_ref, state).await {
+            if let Ok(fetched) = connector.fetch_articles(url, page_ref, state).await {
                 return add::add_feed_with_articles(
-                    &title,
-                    &feed_url,
+                    &fetched.title,
+                    &fetched.url,
                     connector.feed_type(),
-                    articles,
+                    fetched.articles,
                     folder_id,
                     state,
                 )

@@ -4,7 +4,7 @@ use scraper::{Html, Selector};
 use crate::commands::scraper::{scrape_articles_from_page, scrape_og_image_from_html};
 use crate::{AppState, db, models::Article};
 
-use super::{FeedConnector, FetchedPage};
+use super::{FeedConnector, FetchedFeed, FetchedPage};
 
 pub struct WebsiteConnector;
 
@@ -19,7 +19,7 @@ impl FeedConnector for WebsiteConnector {
         url: &str,
         page: Option<&FetchedPage>,
         state: &AppState,
-    ) -> Result<(String, String, Vec<Article>), String> {
+    ) -> Result<FetchedFeed, String> {
         let (html, base_url) = match page {
             Some(p) => (String::from_utf8_lossy(&p.bytes).into_owned(), p.final_url.to_string()),
             None => {
@@ -37,7 +37,11 @@ impl FeedConnector for WebsiteConnector {
         };
 
         let (title, articles) = extract_website_articles(&html, &base_url)?;
-        Ok((title, base_url, articles))
+        Ok(FetchedFeed {
+            title,
+            url: base_url,
+            articles,
+        })
     }
 
     async fn refresh(&self, feed_url: &str, feed_id: i64, state: &AppState) -> Result<i64, String> {

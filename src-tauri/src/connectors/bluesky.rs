@@ -4,7 +4,7 @@ use serde::Deserialize;
 
 use crate::{AppState, db, models::Article};
 
-use super::{FeedConnector, FetchedPage};
+use super::{FeedConnector, FetchedFeed, FetchedPage};
 
 const PUBLIC_API: &str = "https://public.api.bsky.app";
 
@@ -54,7 +54,7 @@ impl FeedConnector for BlueskyConnector {
         url: &str,
         _page: Option<&FetchedPage>,
         state: &AppState,
-    ) -> Result<(String, String, Vec<Article>), String> {
+    ) -> Result<FetchedFeed, String> {
         resolve_bluesky_source(url, &state.http_client).await
     }
 
@@ -269,15 +269,16 @@ pub async fn fetch_posts(
     Ok((articles, first_uri))
 }
 
-pub async fn resolve_bluesky_source(
-    url: &str,
-    client: &reqwest::Client,
-) -> Result<(String, String, Vec<Article>), String> {
+pub async fn resolve_bluesky_source(url: &str, client: &reqwest::Client) -> Result<FetchedFeed, String> {
     let handle = extract_handle(url).ok_or_else(|| "Not a Bluesky URL".to_string())?;
     let (did, display_name) = resolve_author_info(client, &handle).await?;
     let feed_url = format!("bsky:{}", did);
     let (articles, _) = fetch_posts(client, &did, 0, None).await?;
-    Ok((display_name, feed_url, articles))
+    Ok(FetchedFeed {
+        title: display_name,
+        url: feed_url,
+        articles,
+    })
 }
 
 pub async fn refresh_bluesky_feed(feed_url: &str, feed_id: i64, state: &AppState) -> Result<i64, String> {
