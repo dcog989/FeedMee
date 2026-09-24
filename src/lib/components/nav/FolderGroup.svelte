@@ -4,7 +4,7 @@ import { flip } from "svelte/animate";
 import { tooltip } from "$lib/actions/tooltip.svelte";
 import { feedStore, navStore, refreshStore } from "$lib/store.svelte";
 import type { Feed, Folder } from "$lib/types";
-import { createDragGhost } from "$lib/utils/dragGhost";
+import { createDragGhost, parseDragData } from "$lib/utils/dragGhost";
 import FeedItem from "./FeedItem.svelte";
 
 let { folder, isExpanded, onToggle, onContextMenu, onFeedsChange } = $props<{
@@ -64,7 +64,9 @@ function handleDrop(e: DragEvent) {
   const data = dt.getData("text/plain");
   if (!data) return;
 
-  const { feedId, folderId: sourceFolderId } = JSON.parse(data);
+  const payload = parseDragData(data);
+  if (!payload) return;
+  const { feedId, folderId: sourceFolderId } = payload;
 
   const feeds = [...folder.feeds];
   const draggedIndex = feeds.findIndex((f) => f.id === feedId);
@@ -117,7 +119,7 @@ function getFolderUnreadCount(feeds: Feed[]): number {
   <div
     class="folder-header"
     class:selected={navStore.selectedFolderId === folder.id}
-    oncontextmenu={(e) => onContextMenu(e, 'folder', folder.id, folder.name)}
+    oncontextmenu={(e) => onContextMenu(e, "folder", folder.id, folder.name)}
     ondblclick={onHeaderDblClick}
   >
     <button type="button" class="toggle-icon" onclick={onToggle} aria-label="Toggle folder">
@@ -128,9 +130,9 @@ function getFolderUnreadCount(feeds: Feed[]): number {
       type="button"
       class="folder-name-area"
       onclick={(e) => {
-                navStore.selectFolder(folder.id);
-                onToggle(e);
-            }}
+  navStore.selectFolder(folder.id);
+  onToggle(e);
+}}
     >
       <span class="folder-name">{folder.name}</span>
     </button>
@@ -139,9 +141,9 @@ function getFolderUnreadCount(feeds: Feed[]): number {
       type="button"
       class="folder-action-area"
       onclick={(e) => {
-                e.stopPropagation();
-                refreshStore.requestRefreshFolder(folder.id);
-            }}
+  e.stopPropagation();
+  refreshStore.requestRefreshFolder(folder.id);
+}}
       aria-label="Refresh folder"
     >
       {#if refreshStore.isFolderUpdating(folder.id)}
@@ -149,17 +151,13 @@ function getFolderUnreadCount(feeds: Feed[]): number {
       {:else if unreadCount > 0}
         <span
           class="badge folder-badge"
-          use:tooltip={refreshStore.isFolderFresh(folder.id)
-                        ? 'Already fresh!'
-                        : 'Click to refresh folder'}
+          use:tooltip={refreshStore.isFolderFresh(folder.id) ? "Already fresh!" : "Click to refresh folder"}
           >{unreadCount}</span
         >
       {:else}
         <span
           class="refresh-icon folder-refresh"
-          use:tooltip={refreshStore.isFolderFresh(folder.id)
-                        ? 'Already fresh!'
-                        : 'Click to refresh folder'}
+          use:tooltip={refreshStore.isFolderFresh(folder.id) ? "Already fresh!" : "Click to refresh folder"}
         >
           <RefreshCcwDot size={16} />
         </span>
@@ -190,19 +188,19 @@ function getFolderUnreadCount(feeds: Feed[]): number {
             class="feed-item"
             class:selected={navStore.selectedFeedId === feed.id}
             onclick={(e) => {
-                            e.stopPropagation();
-                            navStore.selectFeed(feed.id);
-                        }}
-            oncontextmenu={(e) => onContextMenu(e, 'feed', feed.id, feed.name)}
+  e.stopPropagation();
+  navStore.selectFeed(feed.id);
+}}
+            oncontextmenu={(e) => onContextMenu(e, "feed", feed.id, feed.name)}
             role="option"
             tabindex="0"
             aria-selected={navStore.selectedFeedId === feed.id}
             onkeydown={(e) => {
-                            if (e.key === 'Enter' || e.key === ' ') {
-                                e.preventDefault();
-                                navStore.selectFeed(feed.id);
-                            }
-                        }}
+  if (e.key === "Enter" || e.key === " ") {
+    e.preventDefault();
+    navStore.selectFeed(feed.id);
+  }
+}}
           >
             <FeedItem {feed} isSelected={navStore.selectedFeedId === feed.id} />
           </div>

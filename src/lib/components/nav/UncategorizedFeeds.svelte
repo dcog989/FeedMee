@@ -2,7 +2,7 @@
 import { flip } from "svelte/animate";
 import { feedStore, navStore, refreshStore } from "$lib/store.svelte";
 import type { Folder } from "$lib/types";
-import { createDragGhost } from "$lib/utils/dragGhost";
+import { createDragGhost, parseDragData } from "$lib/utils/dragGhost";
 import FeedItem from "./FeedItem.svelte";
 
 let {
@@ -22,14 +22,15 @@ let {
     aria-label="Unfiled feeds"
     ondragover={(e) => e.preventDefault()}
     ondrop={(e) => {
-            e.preventDefault();
-            const dt = e.dataTransfer;
-            if (!dt) return;
-            const data = dt.getData('text/plain');
-            if (!data) return;
-            const { feedId } = JSON.parse(data);
-            feedStore.moveFeed(feedId, null);
-        }}
+  e.preventDefault();
+  const dt = e.dataTransfer;
+  if (!dt) return;
+  const data = dt.getData("text/plain");
+  if (!data) return;
+  const payload = parseDragData(data);
+  if (!payload) return;
+  feedStore.moveFeed(payload.feedId, null);
+}}
   >
     <div class="root-header">UNCATEGORIZED</div>
     {#each folder.feeds as feed (feed.id)}
@@ -38,27 +39,27 @@ let {
         class="feed-item"
         class:selected={navStore.selectedFeedId === feed.id}
         onclick={(e) => {
-                    e.stopPropagation();
-                    navStore.selectFeed(feed.id);
-                }}
-        oncontextmenu={(e) => onContextMenu(e, 'feed', feed.id, feed.name)}
+  e.stopPropagation();
+  navStore.selectFeed(feed.id);
+}}
+        oncontextmenu={(e) => onContextMenu(e, "feed", feed.id, feed.name)}
         draggable={true}
         ondragstart={(e) => {
-                    const dt = e.dataTransfer;
-                    if (!dt) return;
-                    dt.effectAllowed = 'move';
-                    dt.setData('text/plain', JSON.stringify({ feedId: feed.id, folderId: 0 }));
-                    createDragGhost(e, feed.name);
-                }}
+  const dt = e.dataTransfer;
+  if (!dt) return;
+  dt.effectAllowed = "move";
+  dt.setData("text/plain", JSON.stringify({ feedId: feed.id, folderId: 0 }));
+  createDragGhost(e, feed.name);
+}}
         role="option"
         tabindex="0"
         aria-selected={navStore.selectedFeedId === feed.id}
         onkeydown={(e) => {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                        e.preventDefault();
-                        navStore.selectFeed(feed.id);
-                    }
-                }}
+  if (e.key === "Enter" || e.key === " ") {
+    e.preventDefault();
+    navStore.selectFeed(feed.id);
+  }
+}}
       >
         <FeedItem {feed} isSelected={navStore.selectedFeedId === feed.id} />
       </div>

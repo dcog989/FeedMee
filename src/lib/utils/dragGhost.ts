@@ -1,3 +1,18 @@
+export interface DragPayload {
+  feedId: number;
+  folderId?: number;
+}
+
+export function parseDragData(data: string): DragPayload | null {
+  try {
+    const parsed = JSON.parse(data);
+    if (typeof parsed?.feedId !== "number") return null;
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
 export function createDragGhost(e: DragEvent, label: string) {
   const dt = e.dataTransfer;
   if (!dt) return;
