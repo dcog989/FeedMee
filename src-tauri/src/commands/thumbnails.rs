@@ -11,6 +11,8 @@ use webp::Encoder;
 
 use super::scraper::{compute_content_hash, scrape_og_image};
 
+const MAX_IMAGE_BYTES: usize = 50_000_000;
+
 fn thumbnail_cache_dir(app: &tauri::AppHandle) -> Result<PathBuf, String> {
     let dir = app.path().app_data_dir().map_err(|e| e.to_string())?.join("thumbnails");
     fs::create_dir_all(&dir).ok();
@@ -84,16 +86,25 @@ pub async fn get_thumbnail(
         image_url
     };
 
-    let response = client
+    let mut response = client
         .get(&resolved)
         .send()
         .await
         .map_err(|e| format!("Failed to download thumbnail: {}", e))?;
 
-    let bytes = response.bytes().await.map_err(|e| e.to_string())?;
+    if response
+        .content_length()
+        .is_some_and(|len| len > MAX_IMAGE_BYTES as u64)
+    {
+        return Err(format!("Image too large (>{}MB)", MAX_IMAGE_BYTES / 1_000_000));
+    }
 
-    if bytes.len() > 50_000_000 {
-        return Err("Image too large (>50MB)".to_string());
+    let mut bytes: Vec<u8> = Vec::new();
+    while let Some(chunk) = response.chunk().await.map_err(|e| e.to_string())? {
+        if bytes.len() + chunk.len() > MAX_IMAGE_BYTES {
+            return Err(format!("Image too large (>{}MB)", MAX_IMAGE_BYTES / 1_000_000));
+        }
+        bytes.extend_from_slice(&chunk);
     }
 
     let write_path = cache_path.clone();
