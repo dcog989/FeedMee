@@ -9,6 +9,11 @@ pub struct Article {
     pub author: String,
     pub url: String,
     pub image_url: String,
+    /// True when `image_url` comes from a feed-declared low-resolution source
+    /// (e.g. a small `media:content` thumbnail) and should be upgraded via
+    /// og:image scraping. Not persisted or sent to the frontend.
+    #[serde(skip)]
+    pub image_low_res: bool,
     pub timestamp: i64,
     pub is_read: bool,
     pub is_saved: bool,

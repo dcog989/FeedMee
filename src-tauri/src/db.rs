@@ -345,6 +345,7 @@ fn map_articles(stmt: &mut rusqlite::Statement, params: impl rusqlite::Params) -
             summary: row.get(4).unwrap_or_default(),
             url: row.get(5)?,
             image_url: row.get(6).unwrap_or_default(),
+            image_low_res: false,
             timestamp: row.get(7)?,
             is_read: row.get(8)?,
             is_saved: row.get(9)?,
@@ -480,7 +481,8 @@ impl<'a> ArticleInserter<'a> {
                  VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, 0, 0)",
             )?,
             update_image: conn.prepare(
-                "UPDATE articles SET image_url = ?1 WHERE feed_id = ?2 AND url = ?3 AND image_url = ''",
+                "UPDATE articles SET image_url = ?1
+                 WHERE feed_id = ?2 AND url = ?3 AND (image_url = '' OR ?4)",
             )?,
             update_summary: conn.prepare(
                 "UPDATE articles SET summary = ?1 WHERE feed_id = ?2 AND url = ?3 AND summary IS NOT ?1",
@@ -500,8 +502,12 @@ impl<'a> ArticleInserter<'a> {
         ])?;
         if inserted == 0 {
             if !article.image_url.is_empty() {
-                self.update_image
-                    .execute(params![article.image_url, article.feed_id, article.url])?;
+                self.update_image.execute(params![
+                    article.image_url,
+                    article.feed_id,
+                    article.url,
+                    !article.image_low_res,
+                ])?;
             }
             if !article.summary.is_empty() {
                 self.update_summary

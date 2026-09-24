@@ -245,6 +245,7 @@ pub async fn fetch_posts(
                 summary,
                 url: post_url,
                 image_url: String::new(),
+                image_low_res: false,
                 timestamp,
                 is_read: false,
                 is_saved: false,

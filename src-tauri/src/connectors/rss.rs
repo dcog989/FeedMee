@@ -68,44 +68,7 @@ pub fn entries_to_articles(entries: Vec<feed_rs::model::Entry>, feed_id: i64, fe
         .map(|entry| {
             let article_url = resolve_article_url(&entry, feed_url);
 
-            let image_url = (|| -> Option<String> {
-                if let Some(obj) = entry.media.iter().find_map(|m| m.content.first())
-                    && let Some(url) = &obj.url
-                {
-                    return Some(url.as_str().to_string());
-                }
-                for link in &entry.links {
-                    if link.rel.as_deref() == Some("enclosure")
-                        && link.media_type.as_deref().is_some_and(|m| m.starts_with("image/"))
-                    {
-                        return Some(link.href.clone());
-                    }
-                }
-                let html_sources = [
-                    entry.content.as_ref().and_then(|c| c.body.as_deref()),
-                    entry.summary.as_ref().map(|s| s.content.as_str()),
-                ];
-                for html in html_sources.into_iter().flatten() {
-                    if let Ok(sel) = Selector::parse("img[src]") {
-                        let doc = Html::parse_fragment(html);
-                        if let Some(el) = doc.select(&sel).next()
-                            && let Some(src) = el.value().attr("src")
-                        {
-                            let src = src.to_string();
-                            if src.starts_with("http://") || src.starts_with("https://") {
-                                return Some(src);
-                            }
-                            if let Ok(base) = Url::parse(&article_url)
-                                && let Ok(abs) = base.join(&src)
-                            {
-                                return Some(abs.to_string());
-                            }
-                        }
-                    }
-                }
-                None
-            })()
-            .unwrap_or_default();
+            let (image_url, image_low_res) = resolve_image(&entry, &article_url);
 
             Article {
                 id: 0,
@@ -119,6 +82,7 @@ pub fn entries_to_articles(entries: Vec<feed_rs::model::Entry>, feed_id: i64, fe
                     .unwrap_or_default(),
                 url: article_url,
                 image_url,
+                image_low_res,
                 timestamp: entry.published.or(entry.updated).map(|d| d.timestamp()).unwrap_or(0),
                 is_read: false,
                 is_saved: false,
@@ -126,6 +90,71 @@ pub fn entries_to_articles(entries: Vec<feed_rs::model::Entry>, feed_id: i64, fe
             }
         })
         .collect()
+}
+
+/// Images smaller than this are considered too low-resolution to render as a
+/// full-width hero and are flagged for og:image backfill.
+const MIN_ACCEPTABLE_IMAGE_WIDTH: u32 = 400;
+
+fn resolve_image(entry: &feed_rs::model::Entry, article_url: &str) -> (String, bool) {
+    let media = entry
+        .media
+        .iter()
+        .flat_map(|m| m.content.iter())
+        .filter_map(|c| c.url.as_ref().map(|url| (url.as_str(), c.width)))
+        .max_by_key(|(url, declared)| image_width_hint(url, *declared));
+
+    if let Some((url, declared)) = media {
+        let low_res = image_width_hint(url, declared).is_some_and(|w| w < MIN_ACCEPTABLE_IMAGE_WIDTH);
+        return (url.to_string(), low_res);
+    }
+
+    for link in &entry.links {
+        if link.rel.as_deref() == Some("enclosure")
+            && link.media_type.as_deref().is_some_and(|m| m.starts_with("image/"))
+        {
+            return (link.href.clone(), false);
+        }
+    }
+
+    let html_sources = [
+        entry.content.as_ref().and_then(|c| c.body.as_deref()),
+        entry.summary.as_ref().map(|s| s.content.as_str()),
+    ];
+    for html in html_sources.into_iter().flatten() {
+        if let Ok(sel) = Selector::parse("img[src]") {
+            let doc = Html::parse_fragment(html);
+            if let Some(el) = doc.select(&sel).next()
+                && let Some(src) = el.value().attr("src")
+            {
+                let src = src.to_string();
+                if src.starts_with("http://") || src.starts_with("https://") {
+                    return (src, false);
+                }
+                if let Ok(base) = Url::parse(article_url)
+                    && let Ok(abs) = base.join(&src)
+                {
+                    return (abs.to_string(), false);
+                }
+            }
+        }
+    }
+
+    (String::new(), false)
+}
+
+/// Best-effort width for an image: the feed's declared `media:content` width,
+/// falling back to a `width`/`w` query parameter used by common image CDNs.
+fn image_width_hint(url: &str, declared: Option<u32>) -> Option<u32> {
+    if declared.is_some() {
+        return declared;
+    }
+    Url::parse(url).ok().and_then(|parsed| {
+        parsed
+            .query_pairs()
+            .find(|(key, _)| key == "width" || key == "w")
+            .and_then(|(_, value)| value.parse::<u32>().ok())
+    })
 }
 
 fn compute_placeholder_url(feed_url: &str, entry: &feed_rs::model::Entry) -> String {
@@ -203,7 +232,10 @@ async fn refresh_rss_feed(feed_url: &str, feed_id: i64, state: &AppState) -> Res
                             .collect()
                     };
 
-                    backfill_og_images(state, &mut articles, |a| !known_urls.contains(&a.url)).await;
+                    backfill_og_images(state, &mut articles, |a| {
+                        a.image_low_res || !known_urls.contains(&a.url)
+                    })
+                    .await;
 
                     let mut conn = state.db.lock().unwrap();
                     let tx = conn.transaction().map_err(|e| e.to_string())?;
@@ -289,4 +321,34 @@ fn strip_tracking_params(url: &str) -> String {
         parsed.query_pairs_mut().append_pair(&key, &value);
     }
     parsed.to_string()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{MIN_ACCEPTABLE_IMAGE_WIDTH, image_width_hint};
+
+    #[test]
+    fn width_hint_prefers_declared_value() {
+        assert_eq!(
+            image_width_hint("https://example.com/img.jpg?width=9999", Some(140)),
+            Some(140)
+        );
+    }
+
+    #[test]
+    fn width_hint_falls_back_to_query_param() {
+        assert_eq!(
+            image_width_hint("https://example.com/img.jpg?width=140", None),
+            Some(140)
+        );
+        assert_eq!(image_width_hint("https://example.com/img.jpg?w=800", None), Some(800));
+        assert_eq!(image_width_hint("https://example.com/img.jpg", None), None);
+    }
+
+    #[test]
+    fn low_res_threshold_matches_guardian_thumbnail() {
+        let guardian = "https://i.guim.co.uk/img/media/abc/master/6336.jpg?width=140&quality=85&auto=format&fit=max";
+        assert_eq!(image_width_hint(guardian, Some(140)), Some(140));
+        assert!(image_width_hint(guardian, Some(140)).unwrap() < MIN_ACCEPTABLE_IMAGE_WIDTH);
+    }
 }

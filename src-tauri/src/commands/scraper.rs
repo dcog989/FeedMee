@@ -207,6 +207,7 @@ pub fn scrape_articles_from_page(html: &str, page_url: &str) -> Vec<Article> {
             summary: String::new(),
             url: url_str,
             image_url: String::new(),
+            image_low_res: false,
             timestamp: now,
             is_read: false,
             is_saved: false,
@@ -226,7 +227,7 @@ where
     let targets: Vec<(usize, String)> = articles
         .iter()
         .enumerate()
-        .filter(|(_, a)| a.image_url.is_empty() && should_fill(a))
+        .filter(|(_, a)| (a.image_url.is_empty() || a.image_low_res) && should_fill(a))
         .map(|(idx, a)| (idx, a.url.clone()))
         .collect();
 
@@ -268,5 +269,6 @@ where
     let filled = std::mem::take(&mut *results.lock().unwrap());
     for (idx, img) in filled {
         articles[idx].image_url = img;
+        articles[idx].image_low_res = false;
     }
 }
