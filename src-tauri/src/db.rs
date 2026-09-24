@@ -110,6 +110,13 @@ fn migrations() -> Migrations<'static> {
              WHERE instr(url, '?access_token=') > 0 OR instr(url, '&access_token=') > 0;",
         ),
         M::up("ALTER TABLE feeds ADD COLUMN error_count INTEGER NOT NULL DEFAULT 0;"),
+        M::up(
+            "ALTER TABLE articles ADD COLUMN created_at INTEGER NOT NULL DEFAULT 0;
+             UPDATE articles SET created_at = CASE
+                 WHEN timestamp > 0 THEN timestamp
+                 ELSE CAST(strftime('%s','now') AS INTEGER)
+             END;",
+        ),
     ])
 }
 
@@ -148,7 +155,10 @@ pub fn purge_old_articles(conn: &Connection, retention_days: u64) -> Result<usiz
         .as_secs() as i64
         - (retention_days as i64 * 86400);
     let count = conn.execute(
-        "DELETE FROM articles WHERE timestamp < ?1 AND timestamp > 0 AND is_saved = 0 AND NOT EXISTS (SELECT 1 FROM article_tags WHERE article_id = articles.id)",
+        "DELETE FROM articles
+         WHERE COALESCE(NULLIF(timestamp, 0), created_at) < ?1
+           AND is_saved = 0
+           AND NOT EXISTS (SELECT 1 FROM article_tags WHERE article_id = articles.id)",
         params![cutoff],
     )?;
     if count > 0 {
@@ -431,8 +441,8 @@ impl<'a> ArticleInserter<'a> {
     pub fn new(conn: &'a Connection) -> Result<Self> {
         Ok(Self {
             insert: conn.prepare(
-                "INSERT OR IGNORE INTO articles (feed_id, title, author, summary, url, image_url, timestamp, is_read, is_saved)
-                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, 0, 0)",
+                "INSERT OR IGNORE INTO articles (feed_id, title, author, summary, url, image_url, timestamp, created_at, is_read, is_saved)
+                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, CAST(strftime('%s','now') AS INTEGER), 0, 0)",
             )?,
             update_image: conn.prepare(
                 "UPDATE articles SET image_url = ?1
@@ -729,5 +739,21 @@ mod tests {
         assert_eq!(folders[0].id, folder);
         assert_eq!(folders[0].feeds.len(), 1);
         assert_eq!(folders[0].feeds[0].name, "Feed");
+    }
+
+    #[test]
+    fn purge_reclaims_undated_articles_by_created_at() {
+        let mut conn = test_conn();
+        let feed = create_feed(&conn, "Feed", "https://example.com/rss", None, "rss").unwrap();
+
+        let mut undated = sample_article(feed);
+        undated.timestamp = 0;
+        undated.url = "https://example.com/undated".to_string();
+        batch_insert_articles(&mut conn, &[undated]).unwrap();
+
+        assert_eq!(purge_old_articles(&conn, 90).unwrap(), 0);
+
+        conn.execute("UPDATE articles SET created_at = 1", []).unwrap();
+        assert_eq!(purge_old_articles(&conn, 90).unwrap(), 1);
     }
 }
