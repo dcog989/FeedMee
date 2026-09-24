@@ -148,10 +148,11 @@ fn post_title(text: &str) -> String {
     }
     let first_line = trimmed.lines().next().unwrap_or(trimmed);
     let cleaned = first_line.trim();
-    if cleaned.len() <= 100 {
+    if cleaned.chars().count() <= 100 {
         cleaned.to_string()
     } else {
-        format!("{}…", &cleaned[..97])
+        let truncated: String = cleaned.chars().take(97).collect();
+        format!("{}…", truncated)
     }
 }
 
@@ -295,4 +296,30 @@ pub async fn refresh_bluesky_feed(feed_url: &str, feed_id: i64, state: &AppState
     }
 
     Ok(db::get_feed_unread_count(&conn, feed_id).unwrap_or(0))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::post_title;
+
+    #[test]
+    fn short_titles_are_unchanged() {
+        assert_eq!(post_title("Hello world"), "Hello world");
+        assert_eq!(post_title("  spaced  "), "spaced");
+        assert_eq!(post_title(""), "");
+    }
+
+    #[test]
+    fn long_ascii_titles_truncate_with_ellipsis() {
+        let title = post_title(&"a".repeat(150));
+        assert_eq!(title.chars().count(), 98);
+        assert!(title.ends_with('…'));
+    }
+
+    #[test]
+    fn multibyte_titles_do_not_panic() {
+        let title = post_title(&"🎉".repeat(150));
+        assert_eq!(title.chars().count(), 98);
+        assert!(title.ends_with('…'));
+    }
 }
