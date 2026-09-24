@@ -64,25 +64,35 @@ pub fn run() {
                     (now - s.last_vacuum > 86400, s.article_retention_days)
                 };
 
-                let conn = state.db.lock().unwrap();
+                let vacuum_ok = {
+                    let conn = state.db.lock().unwrap();
 
-                if do_vacuum {
-                    if let Err(e) = db::run_vacuum(&conn) {
-                        log::error!("Maintenance VACUUM failed: {}", e);
+                    let vacuum_ok = if do_vacuum {
+                        match db::run_vacuum(&conn) {
+                            Ok(()) => true,
+                            Err(e) => {
+                                log::error!("Maintenance VACUUM failed: {}", e);
+                                false
+                            },
+                        }
                     } else {
-                        let mut s = state.settings.lock().unwrap();
-                        s.last_vacuum = now;
-                        crate::settings::save_settings(&s);
+                        false
+                    };
+
+                    if let Ok(count) = db::purge_old_articles(&conn, retention)
+                        && count > 0
+                    {
+                        log::info!("Startup: purged {} old articles", count);
                     }
-                }
 
-                if let Ok(count) = db::purge_old_articles(&conn, retention)
-                    && count > 0
-                {
-                    log::info!("Startup: purged {} old articles", count);
-                }
+                    vacuum_ok
+                };
 
-                drop(conn);
+                if do_vacuum && vacuum_ok {
+                    let mut s = state.settings.lock().unwrap();
+                    s.last_vacuum = now;
+                    crate::settings::save_settings(&s);
+                }
 
                 let _ = commands::thumbnails::cleanup_thumbnail_cache(&app_handle, 7);
             });
