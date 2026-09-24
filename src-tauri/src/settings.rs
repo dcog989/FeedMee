@@ -65,12 +65,27 @@ pub fn load_settings() -> AppSettings {
     let dir = crate::paths::config_dir();
     fs::create_dir_all(&dir).ok();
     let path = dir.join("settings.toml");
+
     if path.exists() {
-        let content = fs::read_to_string(&path).unwrap_or_default();
-        if let Ok(settings) = toml::from_str(&content) {
-            return settings;
+        match fs::read_to_string(&path) {
+            Ok(content) => match toml::from_str(&content) {
+                Ok(settings) => return settings,
+                Err(e) => {
+                    eprintln!(
+                        "[settings] failed to parse {}: {}. Keeping file and using defaults.",
+                        path.display(),
+                        e
+                    );
+                    return AppSettings::default();
+                },
+            },
+            Err(e) => {
+                eprintln!("[settings] failed to read {}: {}. Using defaults.", path.display(), e);
+                return AppSettings::default();
+            },
         }
     }
+
     let settings = AppSettings::default();
     save_settings(&settings);
     settings
