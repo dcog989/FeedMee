@@ -166,6 +166,34 @@ fn feed_derived_fields(url: &str, feed_type: &str) -> (String, String) {
     }
 }
 
+/// Shared projection for feed queries. `map_feed_row` reads columns by
+/// positional index, so every query must select exactly this list in order.
+const FEED_SELECT: &str = "SELECT f.id, f.name, f.url, f.folder_id, f.has_error, f.feed_type, \
+     COALESCE(uc.unread_count, 0) AS unread_count, f.error_count \
+     FROM feeds f \
+     LEFT JOIN ( \
+         SELECT feed_id, COUNT(*) AS unread_count FROM articles WHERE is_read = 0 GROUP BY feed_id \
+     ) uc ON f.id = uc.feed_id";
+
+fn map_feed_row(r: &rusqlite::Row) -> rusqlite::Result<Feed> {
+    let raw_fid: i64 = r.get(3)?;
+    let url_str: String = r.get(2)?;
+    let feed_type_str: String = r.get(5).unwrap_or_else(|_| "rss".to_string());
+    let (display_url, source_id) = feed_derived_fields(&url_str, &feed_type_str);
+    Ok(Feed {
+        id: r.get(0)?,
+        name: r.get(1)?,
+        url: url_str,
+        folder_id: if raw_fid == 0 { None } else { Some(raw_fid) },
+        has_error: r.get::<_, bool>(4).unwrap_or(false),
+        feed_type: feed_type_str,
+        unread_count: r.get(6)?,
+        error_count: r.get(7)?,
+        display_url,
+        source_id,
+    })
+}
+
 // --- Read Operations ---
 
 pub fn get_folders_with_feeds(conn: &Connection) -> Result<Vec<Folder>> {
@@ -173,55 +201,16 @@ pub fn get_folders_with_feeds(conn: &Connection) -> Result<Vec<Folder>> {
 
     let mut folder_stmt = conn.prepare("SELECT id, name FROM folders WHERE id != 0 ORDER BY name COLLATE NOCASE")?;
 
-    let mut feed_stmt = conn.prepare(
-        "SELECT f.id, f.name, f.url, f.folder_id, f.has_error, f.feed_type,
-                COALESCE(uc.unread_count, 0) AS unread_count,
-                f.error_count
-         FROM feeds f
-         LEFT JOIN (
-             SELECT feed_id, COUNT(*) AS unread_count
-             FROM articles
-             WHERE is_read = 0
-             GROUP BY feed_id
-         ) uc ON f.id = uc.feed_id
-         WHERE f.folder_id = ?1
-         ORDER BY f.name COLLATE NOCASE",
-    )?;
+    let mut feed_stmt = conn.prepare(&format!(
+        "{FEED_SELECT} WHERE f.folder_id = ?1 ORDER BY f.name COLLATE NOCASE"
+    ))?;
 
-    let mut root_feed_stmt = conn.prepare(
-        "SELECT f.id, f.name, f.url, f.folder_id, f.has_error, f.feed_type,
-                COALESCE(uc.unread_count, 0) AS unread_count,
-                f.error_count
-         FROM feeds f
-         LEFT JOIN (
-             SELECT feed_id, COUNT(*) AS unread_count
-             FROM articles
-             WHERE is_read = 0
-             GROUP BY feed_id
-         ) uc ON f.id = uc.feed_id
-         WHERE f.folder_id = 0
-         ORDER BY f.name COLLATE NOCASE",
-    )?;
+    let mut root_feed_stmt = conn.prepare(&format!(
+        "{FEED_SELECT} WHERE f.folder_id = 0 ORDER BY f.name COLLATE NOCASE"
+    ))?;
 
     let root_feeds: Vec<Feed> = root_feed_stmt
-        .query_map([], |r| {
-            let raw_fid: i64 = r.get(3)?;
-            let url_str: String = r.get(2)?;
-            let feed_type_str: String = r.get(5).unwrap_or_else(|_| "rss".to_string());
-            let (display_url, source_id) = feed_derived_fields(&url_str, &feed_type_str);
-            Ok(Feed {
-                id: r.get(0)?,
-                name: r.get(1)?,
-                url: url_str,
-                folder_id: if raw_fid == 0 { None } else { Some(raw_fid) },
-                has_error: r.get::<_, bool>(4).unwrap_or(false),
-                feed_type: feed_type_str,
-                unread_count: r.get(6)?,
-                error_count: r.get(7)?,
-                display_url,
-                source_id,
-            })
-        })
+        .query_map([], map_feed_row)
         .and_then(|rows| rows.collect())?;
 
     let mut folders: Vec<Folder> = folder_stmt
@@ -229,24 +218,7 @@ pub fn get_folders_with_feeds(conn: &Connection) -> Result<Vec<Folder>> {
             let id: i64 = row.get(0)?;
             let name: String = row.get(1)?;
             let feeds: Vec<Feed> = feed_stmt
-                .query_map([id], |r| {
-                    let raw_fid: i64 = r.get(3)?;
-                    let url_str: String = r.get(2)?;
-                    let feed_type_str: String = r.get(5).unwrap_or_else(|_| "rss".to_string());
-                    let (display_url, source_id) = feed_derived_fields(&url_str, &feed_type_str);
-                    Ok(Feed {
-                        id: r.get(0)?,
-                        name: r.get(1)?,
-                        url: url_str,
-                        folder_id: if raw_fid == 0 { None } else { Some(raw_fid) },
-                        has_error: r.get::<_, bool>(4).unwrap_or(false),
-                        feed_type: feed_type_str,
-                        unread_count: r.get(6)?,
-                        error_count: r.get(7)?,
-                        display_url,
-                        source_id,
-                    })
-                })
+                .query_map([id], map_feed_row)
                 .and_then(|rows| rows.collect())?;
             Ok(Folder { id, name, feeds })
         })?
@@ -263,6 +235,16 @@ pub fn get_folders_with_feeds(conn: &Connection) -> Result<Vec<Folder>> {
     Ok(folders)
 }
 
+/// Shared projection for article queries. `map_articles` reads columns by
+/// positional index, so every query must select exactly this list in order.
+const ARTICLE_COLUMNS: &str = "a.id, a.feed_id, a.title, a.author, a.summary, a.url, a.image_url, \
+     a.timestamp, a.is_read, a.is_saved, \
+     EXISTS (SELECT 1 FROM article_tags WHERE article_id = a.id) AS has_tags";
+
+fn order_clause(desc: bool) -> &'static str {
+    if desc { "DESC" } else { "ASC" }
+}
+
 pub fn get_articles_for_feed(
     conn: &Connection,
     feed_id: i64,
@@ -270,13 +252,11 @@ pub fn get_articles_for_feed(
     offset: usize,
     sort_desc: bool,
 ) -> Result<Vec<Article>> {
-    let order = if sort_desc { "DESC" } else { "ASC" };
+    let order = order_clause(sort_desc);
     let sql = format!(
-        "SELECT id, feed_id, title, author, summary, url, image_url, timestamp, is_read, is_saved,
-                EXISTS (SELECT 1 FROM article_tags WHERE article_id = articles.id) AS has_tags
-         FROM articles WHERE feed_id = ?1
-         ORDER BY timestamp {}, id {} LIMIT ?2 OFFSET ?3",
-        order, order
+        "SELECT {ARTICLE_COLUMNS}
+         FROM articles a WHERE a.feed_id = ?1
+         ORDER BY a.timestamp {order}, a.id {order} LIMIT ?2 OFFSET ?3"
     );
     let mut stmt = conn.prepare(&sql)?;
     map_articles(&mut stmt, params![feed_id, limit as i64, offset as i64])
@@ -289,15 +269,13 @@ pub fn get_articles_for_folder(
     offset: usize,
     sort_desc: bool,
 ) -> Result<Vec<Article>> {
-    let order = if sort_desc { "DESC" } else { "ASC" };
+    let order = order_clause(sort_desc);
     let sql = format!(
-        "SELECT a.id, a.feed_id, a.title, a.author, a.summary, a.url, a.image_url, a.timestamp, a.is_read, a.is_saved,
-                EXISTS (SELECT 1 FROM article_tags WHERE article_id = a.id) AS has_tags
+        "SELECT {ARTICLE_COLUMNS}
          FROM articles a
          JOIN feeds f ON a.feed_id = f.id
          WHERE f.folder_id = ?1
-         ORDER BY a.timestamp {}, a.id {} LIMIT ?2 OFFSET ?3",
-        order, order
+         ORDER BY a.timestamp {order}, a.id {order} LIMIT ?2 OFFSET ?3"
     );
     let mut stmt = conn.prepare(&sql)?;
     map_articles(&mut stmt, params![folder_id, limit as i64, offset as i64])
@@ -310,26 +288,22 @@ pub fn get_latest_articles(
     offset: usize,
     sort_desc: bool,
 ) -> Result<Vec<Article>> {
-    let order = if sort_desc { "DESC" } else { "ASC" };
+    let order = order_clause(sort_desc);
     let sql = format!(
-        "SELECT id, feed_id, title, author, summary, url, image_url, timestamp, is_read, is_saved,
-                EXISTS (SELECT 1 FROM article_tags WHERE article_id = articles.id) AS has_tags
-         FROM articles WHERE timestamp > ?1
-         ORDER BY timestamp {}, id {} LIMIT ?2 OFFSET ?3",
-        order, order
+        "SELECT {ARTICLE_COLUMNS}
+         FROM articles a WHERE a.timestamp > ?1
+         ORDER BY a.timestamp {order}, a.id {order} LIMIT ?2 OFFSET ?3"
     );
     let mut stmt = conn.prepare(&sql)?;
     map_articles(&mut stmt, params![cutoff_timestamp, limit as i64, offset as i64])
 }
 
 pub fn get_saved_articles(conn: &Connection, limit: usize, offset: usize, sort_desc: bool) -> Result<Vec<Article>> {
-    let order = if sort_desc { "DESC" } else { "ASC" };
+    let order = order_clause(sort_desc);
     let sql = format!(
-        "SELECT id, feed_id, title, author, summary, url, image_url, timestamp, is_read, is_saved,
-                EXISTS (SELECT 1 FROM article_tags WHERE article_id = articles.id) AS has_tags
-         FROM articles WHERE is_saved = 1
-         ORDER BY timestamp {}, id {} LIMIT ?1 OFFSET ?2",
-        order, order
+        "SELECT {ARTICLE_COLUMNS}
+         FROM articles a WHERE a.is_saved = 1
+         ORDER BY a.timestamp {order}, a.id {order} LIMIT ?1 OFFSET ?2"
     );
     let mut stmt = conn.prepare(&sql)?;
     map_articles(&mut stmt, params![limit as i64, offset as i64])
@@ -364,29 +338,9 @@ pub fn get_feed_unread_count(conn: &Connection, feed_id: i64) -> Result<i64> {
 }
 pub fn get_feed(conn: &Connection, feed_id: i64) -> Result<Feed> {
     conn.query_row(
-        "SELECT id, name, url, folder_id, has_error, feed_type,
-                (SELECT COUNT(*) FROM articles a WHERE a.feed_id = feeds.id AND a.is_read = 0) AS unread_count,
-                error_count
-         FROM feeds WHERE id = ?1",
+        &format!("{FEED_SELECT} WHERE f.id = ?1"),
         params![feed_id],
-        |r| {
-            let raw_fid: i64 = r.get(3)?;
-            let url_str: String = r.get(2)?;
-            let feed_type_str: String = r.get(5).unwrap_or_else(|_| "rss".to_string());
-            let (display_url, source_id) = feed_derived_fields(&url_str, &feed_type_str);
-            Ok(Feed {
-                id: r.get(0)?,
-                name: r.get(1)?,
-                url: url_str,
-                folder_id: if raw_fid == 0 { None } else { Some(raw_fid) },
-                has_error: r.get::<_, bool>(4).unwrap_or(false),
-                feed_type: feed_type_str,
-                unread_count: r.get(6)?,
-                error_count: r.get(7)?,
-                display_url,
-                source_id,
-            })
-        },
+        map_feed_row,
     )
 }
 
@@ -616,18 +570,16 @@ pub fn search_articles(
     offset: usize,
     sort_asc: bool,
 ) -> Result<Vec<Article>> {
-    let order = if sort_asc { "ASC" } else { "DESC" };
+    let order = order_clause(!sort_asc);
     // Escape the query for FTS5: wrap in quotes to treat as a literal phrase,
     // and double any embedded double quotes to prevent operator injection.
     let escaped = format!("\"{}\"", query.replace('"', "\"\""));
     let sql = format!(
-        "SELECT a.id, a.feed_id, a.title, a.author, a.summary, a.url, a.image_url, a.timestamp, a.is_read, a.is_saved,
-                EXISTS (SELECT 1 FROM article_tags WHERE article_id = a.id) AS has_tags
+        "SELECT {ARTICLE_COLUMNS}
          FROM articles_fts
          JOIN articles a ON articles_fts.rowid = a.id
          WHERE articles_fts MATCH ?1
-         ORDER BY a.timestamp {}, a.id {} LIMIT ?2 OFFSET ?3",
-        order, order
+         ORDER BY a.timestamp {order}, a.id {order} LIMIT ?2 OFFSET ?3"
     );
     let mut stmt = conn.prepare(&sql)?;
     map_articles(&mut stmt, params![escaped, limit as i64, offset as i64])
@@ -698,4 +650,84 @@ pub fn delete_tag(conn: &Connection, tag_id: i64) -> Result<()> {
     conn.execute("DELETE FROM article_tags WHERE tag_id = ?1", params![tag_id])?;
     conn.execute("DELETE FROM tags WHERE id = ?1", params![tag_id])?;
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn test_conn() -> Connection {
+        let mut conn = Connection::open_in_memory().unwrap();
+        init_db(&mut conn).unwrap();
+        conn
+    }
+
+    fn sample_article(feed_id: i64) -> Article {
+        Article {
+            id: 0,
+            feed_id,
+            title: "Title".to_string(),
+            author: "Author".to_string(),
+            summary: "Summary".to_string(),
+            url: "https://example.com/article".to_string(),
+            image_url: "https://example.com/image.jpg".to_string(),
+            image_low_res: false,
+            timestamp: 1000,
+            is_read: false,
+            is_saved: false,
+            has_tags: false,
+        }
+    }
+
+    #[test]
+    fn article_projections_map_all_columns() {
+        let mut conn = test_conn();
+        let folder = create_folder(&conn, "News").unwrap();
+        let feed = create_feed(&conn, "Feed", "https://example.com/rss", Some(folder), "rss").unwrap();
+        batch_insert_articles(&mut conn, &[sample_article(feed)]).unwrap();
+
+        let id = get_articles_for_feed(&conn, feed, 1, 0, true).unwrap()[0].id;
+        update_article_saved(&conn, id, true).unwrap();
+
+        let result_sets = [
+            get_articles_for_feed(&conn, feed, 10, 0, true).unwrap(),
+            get_articles_for_folder(&conn, folder, 10, 0, true).unwrap(),
+            get_latest_articles(&conn, 0, 10, 0, true).unwrap(),
+            get_saved_articles(&conn, 10, 0, true).unwrap(),
+            search_articles(&conn, "Title", 10, 0, false).unwrap(),
+        ];
+
+        for articles in result_sets {
+            assert_eq!(articles.len(), 1);
+            let a = &articles[0];
+            assert_eq!(a.title, "Title");
+            assert_eq!(a.author, "Author");
+            assert_eq!(a.summary, "Summary");
+            assert_eq!(a.url, "https://example.com/article");
+            assert_eq!(a.image_url, "https://example.com/image.jpg");
+            assert_eq!(a.timestamp, 1000);
+            assert!(a.is_saved);
+            assert!(!a.has_tags);
+        }
+    }
+
+    #[test]
+    fn feed_projection_maps_fields_and_groups_by_folder() {
+        let conn = test_conn();
+        let folder = create_folder(&conn, "News").unwrap();
+        let feed = create_feed(&conn, "Feed", "https://example.com/rss", Some(folder), "rss").unwrap();
+
+        let single = get_feed(&conn, feed).unwrap();
+        assert_eq!(single.name, "Feed");
+        assert_eq!(single.url, "https://example.com/rss");
+        assert_eq!(single.folder_id, Some(folder));
+        assert_eq!(single.display_url, "https://example.com/rss");
+        assert_eq!(single.unread_count, 0);
+
+        let folders = get_folders_with_feeds(&conn).unwrap();
+        assert_eq!(folders.len(), 1);
+        assert_eq!(folders[0].id, folder);
+        assert_eq!(folders[0].feeds.len(), 1);
+        assert_eq!(folders[0].feeds[0].name, "Feed");
+    }
 }
