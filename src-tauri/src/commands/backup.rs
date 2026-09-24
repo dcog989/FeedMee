@@ -39,11 +39,7 @@ fn generate_opml(conn: &rusqlite::Connection) -> Result<String, String> {
                 );
             }
         } else {
-            let _ = writeln!(
-                &mut opml,
-                r#"    <outline text="{}">"#,
-                xml_escape(&folder.name)
-            );
+            let _ = writeln!(&mut opml, r#"    <outline text="{}">"#, xml_escape(&folder.name));
             for feed in &folder.feeds {
                 let _ = writeln!(
                     &mut opml,

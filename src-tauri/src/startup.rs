@@ -60,28 +60,15 @@ pub(crate) fn init_logging(logs_dir: &Path, log_level: LevelFilter) {
 
     let log_path = logs_dir.join("feedmee.log");
     if let Err(e) = CombinedLogger::init(vec![
-        TermLogger::new(
-            log_level,
-            log_config.clone(),
-            TerminalMode::Mixed,
-            ColorChoice::Auto,
-        ),
-        WriteLogger::new(
-            log_level,
-            log_config,
-            std::fs::File::create(log_path).unwrap(),
-        ),
+        TermLogger::new(log_level, log_config.clone(), TerminalMode::Mixed, ColorChoice::Auto),
+        WriteLogger::new(log_level, log_config, std::fs::File::create(log_path).unwrap()),
     ]) {
         eprintln!("[startup] logger init failed: {}", e);
     }
 }
 
-pub(crate) fn setup_database(
-    db_path: &Path,
-    _app_settings: &mut AppSettings,
-) -> rusqlite::Connection {
-    let mut conn = rusqlite::Connection::open(db_path)
-        .unwrap_or_else(|e| panic!("Failed to open database: {}", e));
+pub(crate) fn setup_database(db_path: &Path, _app_settings: &mut AppSettings) -> rusqlite::Connection {
+    let mut conn = rusqlite::Connection::open(db_path).unwrap_or_else(|e| panic!("Failed to open database: {}", e));
 
     db::init_db(&mut conn).unwrap_or_else(|e| panic!("Schema init failed: {}", e));
 

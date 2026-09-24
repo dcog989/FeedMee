@@ -12,11 +12,7 @@ use webp::Encoder;
 use super::scraper::{compute_content_hash, scrape_og_image};
 
 fn thumbnail_cache_dir(app: &tauri::AppHandle) -> Result<PathBuf, String> {
-    let dir = app
-        .path()
-        .app_data_dir()
-        .map_err(|e| e.to_string())?
-        .join("thumbnails");
+    let dir = app.path().app_data_dir().map_err(|e| e.to_string())?.join("thumbnails");
     fs::create_dir_all(&dir).ok();
     Ok(dir)
 }
@@ -37,8 +33,7 @@ fn process_thumbnail(bytes: &[u8], size: u32) -> Result<Vec<u8>, String> {
         ((size_f * w as f64 / h as f64).round() as u32, size)
     };
 
-    let resized =
-        image::imageops::resize(&img.to_rgba8(), nw.max(1), nh.max(1), FilterType::Triangle);
+    let resized = image::imageops::resize(&img.to_rgba8(), nw.max(1), nh.max(1), FilterType::Triangle);
 
     let mut canvas = image::RgbaImage::new(size, size);
     let x = (size - nw) / 2;
@@ -116,8 +111,7 @@ pub async fn get_thumbnail(
 
 pub fn cleanup_thumbnail_cache(app: &tauri::AppHandle, max_age_days: u64) -> Result<usize, String> {
     let cache_dir = thumbnail_cache_dir(app)?;
-    let cutoff =
-        std::time::SystemTime::now() - std::time::Duration::from_secs(max_age_days * 86400);
+    let cutoff = std::time::SystemTime::now() - std::time::Duration::from_secs(max_age_days * 86400);
     let mut count = 0;
     if let Ok(entries) = fs::read_dir(&cache_dir) {
         for entry in entries.flatten() {

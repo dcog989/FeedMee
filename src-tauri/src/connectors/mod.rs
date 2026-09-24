@@ -12,11 +12,7 @@ use crate::{AppState, models::Article};
 #[async_trait]
 pub trait FeedConnector: Send + Sync {
     fn feed_type(&self) -> &'static str;
-    async fn fetch_articles(
-        &self,
-        url: &str,
-        state: &AppState,
-    ) -> Result<(String, String, Vec<Article>), String>;
+    async fn fetch_articles(&self, url: &str, state: &AppState) -> Result<(String, String, Vec<Article>), String>;
 
     async fn refresh(&self, feed_url: &str, feed_id: i64, state: &AppState) -> Result<i64, String>;
 }
@@ -33,21 +29,14 @@ impl Default for Registry {
 
 impl Registry {
     pub fn new() -> Self {
-        Self {
-            connectors: Vec::new(),
-        }
+        Self { connectors: Vec::new() }
     }
 
     pub fn register(&mut self, connector: Box<dyn FeedConnector>) {
         self.connectors.push(connector);
     }
 
-    pub async fn detect_and_add(
-        &self,
-        url: &str,
-        folder_id: Option<i64>,
-        state: &AppState,
-    ) -> Result<i64, String> {
+    pub async fn detect_and_add(&self, url: &str, folder_id: Option<i64>, state: &AppState) -> Result<i64, String> {
         for connector in &self.connectors {
             if let Ok((title, feed_url, articles)) = connector.fetch_articles(url, state).await {
                 return add::add_feed_with_articles(

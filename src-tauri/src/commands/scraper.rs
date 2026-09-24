@@ -98,12 +98,9 @@ fn anchor_is_boilerplate(el: &scraper::ElementRef) -> bool {
             if hay
                 .split_whitespace()
                 .any(|c| c.contains("author") || c.contains("byline"))
-                || hay.split_whitespace().any(|c| {
-                    matches!(
-                        c,
-                        "footer" | "navigation" | "contentinfo" | "nav" | "navbar"
-                    )
-                })
+                || hay
+                    .split_whitespace()
+                    .any(|c| matches!(c, "footer" | "navigation" | "contentinfo" | "nav" | "navbar"))
             {
                 return true;
             }
@@ -239,9 +236,7 @@ where
 
     let client = state.http_client.clone();
     let semaphore = Arc::clone(&state.http_semaphore);
-    let queue = std::sync::Arc::new(std::sync::Mutex::new(std::collections::VecDeque::from(
-        targets,
-    )));
+    let queue = std::sync::Arc::new(std::sync::Mutex::new(std::collections::VecDeque::from(targets)));
     let results = std::sync::Arc::new(std::sync::Mutex::new(std::collections::HashMap::new()));
 
     let mut workers = Vec::new();

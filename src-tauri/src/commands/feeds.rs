@@ -4,11 +4,7 @@ use tauri::State;
 use crate::AppState;
 
 #[tauri::command]
-pub async fn add_feed(
-    url: String,
-    folder_id: Option<i64>,
-    state: State<'_, AppState>,
-) -> Result<i64, String> {
+pub async fn add_feed(url: String, folder_id: Option<i64>, state: State<'_, AppState>) -> Result<i64, String> {
     let feed_id = crate::connectors::registry()
         .detect_and_add(&url, folder_id, &state)
         .await?;

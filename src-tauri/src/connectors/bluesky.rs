@@ -49,11 +49,7 @@ impl FeedConnector for BlueskyConnector {
         "bluesky"
     }
 
-    async fn fetch_articles(
-        &self,
-        url: &str,
-        state: &AppState,
-    ) -> Result<(String, String, Vec<Article>), String> {
+    async fn fetch_articles(&self, url: &str, state: &AppState) -> Result<(String, String, Vec<Article>), String> {
         resolve_bluesky_source(url, &state.http_client).await
     }
 
@@ -87,10 +83,7 @@ pub async fn resolve_handle(client: &reqwest::Client, handle: &str) -> Result<St
     if !resp.status().is_success() {
         let status = resp.status();
         let body = resp.text().await.unwrap_or_default();
-        return Err(format!(
-            "Bluesky resolve handle failed ({}): {}",
-            status, body
-        ));
+        return Err(format!("Bluesky resolve handle failed ({}): {}", status, body));
     }
     let data: ResolveHandleResponse = resp
         .json()
@@ -99,10 +92,7 @@ pub async fn resolve_handle(client: &reqwest::Client, handle: &str) -> Result<St
     Ok(data.did)
 }
 
-pub async fn resolve_author_info(
-    client: &reqwest::Client,
-    handle: &str,
-) -> Result<(String, String), String> {
+pub async fn resolve_author_info(client: &reqwest::Client, handle: &str) -> Result<(String, String), String> {
     let did = resolve_handle(client, handle).await?;
     debug!("resolve_author_info: resolved {} -> {}", handle, did);
 
@@ -220,14 +210,8 @@ pub async fn fetch_posts(
             }
 
             let record = &view.post.record;
-            let text = record
-                .get("text")
-                .and_then(|v| v.as_str())
-                .unwrap_or_default();
-            let created = record
-                .get("createdAt")
-                .and_then(|v| v.as_str())
-                .unwrap_or_default();
+            let text = record.get("text").and_then(|v| v.as_str()).unwrap_or_default();
+            let created = record.get("createdAt").and_then(|v| v.as_str()).unwrap_or_default();
             let handle = &view.post.author.handle;
             let display_name = view.post.author.display_name.as_deref().unwrap_or(handle);
 
@@ -274,11 +258,7 @@ pub async fn fetch_posts(
         }
     }
 
-    info!(
-        "fetch_posts: {} articles for actor={}",
-        articles.len(),
-        actor
-    );
+    info!("fetch_posts: {} articles for actor={}", articles.len(), actor);
     Ok((articles, first_uri))
 }
 
@@ -293,11 +273,7 @@ pub async fn resolve_bluesky_source(
     Ok((display_name, feed_url, articles))
 }
 
-pub async fn refresh_bluesky_feed(
-    feed_url: &str,
-    feed_id: i64,
-    state: &AppState,
-) -> Result<i64, String> {
+pub async fn refresh_bluesky_feed(feed_url: &str, feed_id: i64, state: &AppState) -> Result<i64, String> {
     let actor = feed_url.strip_prefix("bsky:").unwrap_or(feed_url);
 
     let last_seen = {
@@ -305,8 +281,7 @@ pub async fn refresh_bluesky_feed(
         db::get_bluesky_cursor(&conn, feed_id).unwrap_or(None)
     };
 
-    let (articles, new_cursor) =
-        fetch_posts(&state.http_client, actor, feed_id, last_seen.as_deref()).await?;
+    let (articles, new_cursor) = fetch_posts(&state.http_client, actor, feed_id, last_seen.as_deref()).await?;
 
     let mut conn = state.db.lock().unwrap();
     let _ = db::batch_insert_articles(&mut conn, &articles).map_err(|e| e.to_string())?;

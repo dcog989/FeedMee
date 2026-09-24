@@ -15,8 +15,7 @@ pub fn show_main_window(app: tauri::AppHandle) {
         // Restore size/position/maximize after showing: applying them to a hidden
         // window (as the plugin's on-window-ready restore does) is dropped on GTK
         // and leaves the window oversized, clipping content top and bottom.
-        let _ =
-            window.restore_state(StateFlags::all() - StateFlags::DECORATIONS - StateFlags::VISIBLE);
+        let _ = window.restore_state(StateFlags::all() - StateFlags::DECORATIONS - StateFlags::VISIBLE);
         let _ = window.set_focus();
     }
 }
@@ -54,10 +53,7 @@ pub fn get_app_settings(state: State<'_, AppState>) -> Result<AppSettings, Strin
 }
 
 #[tauri::command]
-pub fn save_app_settings(
-    new_settings: AppSettings,
-    state: State<'_, AppState>,
-) -> Result<(), String> {
+pub fn save_app_settings(new_settings: AppSettings, state: State<'_, AppState>) -> Result<(), String> {
     let mut settings_guard = state.settings.lock().unwrap();
     *settings_guard = new_settings.clone();
     settings::save_settings(&new_settings);
@@ -121,8 +117,7 @@ pub fn get_shortcuts() -> Result<std::collections::HashMap<String, String>, Stri
 
     if shortcuts_path.exists() {
         let content = fs::read_to_string(&shortcuts_path).map_err(|e| e.to_string())?;
-        let shortcuts: std::collections::HashMap<String, String> =
-            serde_json::from_str(&content).unwrap_or_default();
+        let shortcuts: std::collections::HashMap<String, String> = serde_json::from_str(&content).unwrap_or_default();
         Ok(shortcuts)
     } else {
         Ok(std::collections::HashMap::new())

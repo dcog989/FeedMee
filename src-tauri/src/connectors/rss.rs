@@ -18,11 +18,7 @@ impl FeedConnector for RssConnector {
         "rss"
     }
 
-    async fn fetch_articles(
-        &self,
-        url: &str,
-        state: &AppState,
-    ) -> Result<(String, String, Vec<Article>), String> {
+    async fn fetch_articles(&self, url: &str, state: &AppState) -> Result<(String, String, Vec<Article>), String> {
         let client = &state.http_client;
         let response = client.get(url).send().await.map_err(|e| e.to_string())?;
         let original_url = response.url().clone();
@@ -43,11 +39,7 @@ impl FeedConnector for RssConnector {
         let html = String::from_utf8_lossy(&content_bytes);
         if let Some(rss_url) = discover_rss_feed_url(&html, &original_url) {
             debug!("rss connector: discovered RSS url={}", rss_url);
-            let resp = client
-                .get(&rss_url)
-                .send()
-                .await
-                .map_err(|e| e.to_string())?;
+            let resp = client.get(&rss_url).send().await.map_err(|e| e.to_string())?;
             let bytes = resp.bytes().await.map_err(|e| e.to_string())?;
             if let Ok(feed) = feed_rs::parser::parse(Cursor::new(bytes))
                 && !feed.entries.is_empty()
@@ -70,11 +62,7 @@ impl FeedConnector for RssConnector {
     }
 }
 
-pub fn entries_to_articles(
-    entries: Vec<feed_rs::model::Entry>,
-    feed_id: i64,
-    feed_url: &str,
-) -> Vec<Article> {
+pub fn entries_to_articles(entries: Vec<feed_rs::model::Entry>, feed_id: i64, feed_url: &str) -> Vec<Article> {
     entries
         .into_iter()
         .map(|entry| {
@@ -88,10 +76,7 @@ pub fn entries_to_articles(
                 }
                 for link in &entry.links {
                     if link.rel.as_deref() == Some("enclosure")
-                        && link
-                            .media_type
-                            .as_deref()
-                            .is_some_and(|m| m.starts_with("image/"))
+                        && link.media_type.as_deref().is_some_and(|m| m.starts_with("image/"))
                     {
                         return Some(link.href.clone());
                     }
@@ -125,15 +110,8 @@ pub fn entries_to_articles(
             Article {
                 id: 0,
                 feed_id,
-                title: entry
-                    .title
-                    .map(|t| t.content)
-                    .unwrap_or_else(|| "No Title".to_string()),
-                author: entry
-                    .authors
-                    .first()
-                    .map(|p| p.name.clone())
-                    .unwrap_or_default(),
+                title: entry.title.map(|t| t.content).unwrap_or_else(|| "No Title".to_string()),
+                author: entry.authors.first().map(|p| p.name.clone()).unwrap_or_default(),
                 summary: entry
                     .content
                     .and_then(|c| c.body)
@@ -141,11 +119,7 @@ pub fn entries_to_articles(
                     .unwrap_or_default(),
                 url: article_url,
                 image_url,
-                timestamp: entry
-                    .published
-                    .or(entry.updated)
-                    .map(|d| d.timestamp())
-                    .unwrap_or(0),
+                timestamp: entry.published.or(entry.updated).map(|d| d.timestamp()).unwrap_or(0),
                 is_read: false,
                 is_saved: false,
                 has_tags: false,
@@ -158,17 +132,9 @@ fn compute_placeholder_url(feed_url: &str, entry: &feed_rs::model::Entry) -> Str
     let key = if !entry.id.is_empty() {
         entry.id.clone()
     } else {
-        entry
-            .title
-            .as_ref()
-            .map(|t| t.content.clone())
-            .unwrap_or_default()
+        entry.title.as_ref().map(|t| t.content.clone()).unwrap_or_default()
     };
-    format!(
-        "{}/#{}",
-        feed_url.trim_end_matches('/'),
-        compute_content_hash(&key)
-    )
+    format!("{}/#{}", feed_url.trim_end_matches('/'), compute_content_hash(&key))
 }
 
 fn resolve_article_url(entry: &feed_rs::model::Entry, feed_url: &str) -> String {
@@ -212,11 +178,7 @@ async fn refresh_rss_feed(feed_url: &str, feed_id: i64, state: &AppState) -> Res
 
             match feed_rs::parser::parse(Cursor::new(content)) {
                 Ok(feed) => {
-                    info!(
-                        "refresh_rss_feed: feed_id={}, {} entries",
-                        feed_id,
-                        feed.entries.len()
-                    );
+                    info!("refresh_rss_feed: feed_id={}, {} entries", feed_id, feed.entries.len());
 
                     let mut articles = entries_to_articles(feed.entries.clone(), feed_id, feed_url);
 
@@ -228,12 +190,7 @@ async fn refresh_rss_feed(feed_url: &str, feed_id: i64, state: &AppState) -> Res
                         for (entry, article) in feed.entries.iter().zip(&articles) {
                             let placeholder = compute_placeholder_url(feed_url, entry);
                             if placeholder != article.url {
-                                let _ = db::migrate_article_url(
-                                    &conn,
-                                    feed_id,
-                                    &placeholder,
-                                    &article.url,
-                                );
+                                let _ = db::migrate_article_url(&conn, feed_id, &placeholder, &article.url);
                             }
                         }
                     }
@@ -246,8 +203,7 @@ async fn refresh_rss_feed(feed_url: &str, feed_id: i64, state: &AppState) -> Res
                             .collect()
                     };
 
-                    backfill_og_images(state, &mut articles, |a| !known_urls.contains(&a.url))
-                        .await;
+                    backfill_og_images(state, &mut articles, |a| !known_urls.contains(&a.url)).await;
 
                     let mut conn = state.db.lock().unwrap();
                     let tx = conn.transaction().map_err(|e| e.to_string())?;
@@ -258,8 +214,7 @@ async fn refresh_rss_feed(feed_url: &str, feed_id: i64, state: &AppState) -> Res
                     drop(inserter);
                     tx.commit().map_err(|e| e.to_string())?;
                     db::update_feed_error(&conn, feed_id, false).map_err(|e| e.to_string())?;
-                    let unread =
-                        db::get_feed_unread_count(&conn, feed_id).map_err(|e| e.to_string())?;
+                    let unread = db::get_feed_unread_count(&conn, feed_id).map_err(|e| e.to_string())?;
                     Ok(unread)
                 },
                 Err(e) => {
@@ -279,11 +234,7 @@ async fn refresh_rss_feed(feed_url: &str, feed_id: i64, state: &AppState) -> Res
 }
 
 fn discover_rss_feed_url(html: &str, base_url: &Url) -> Option<String> {
-    let feed_types = [
-        "application/rss+xml",
-        "application/atom+xml",
-        "application/feed+json",
-    ];
+    let feed_types = ["application/rss+xml", "application/atom+xml", "application/feed+json"];
     let document = Html::parse_document(html);
     Selector::parse("link")
         .ok()

@@ -39,8 +39,7 @@ pub fn get_articles_for_folder(
     state: State<'_, AppState>,
 ) -> Result<Vec<Article>, String> {
     let conn = state.db.lock().unwrap();
-    db::get_articles_for_folder(&conn, folder_id, limit, offset, sort_desc)
-        .map_err(|e| e.to_string())
+    db::get_articles_for_folder(&conn, folder_id, limit, offset, sort_desc).map_err(|e| e.to_string())
 }
 
 #[tauri::command]
@@ -52,8 +51,7 @@ pub fn get_latest_articles(
     state: State<'_, AppState>,
 ) -> Result<Vec<Article>, String> {
     let conn = state.db.lock().unwrap();
-    db::get_latest_articles(&conn, cutoff_timestamp, limit, offset, sort_desc)
-        .map_err(|e| e.to_string())
+    db::get_latest_articles(&conn, cutoff_timestamp, limit, offset, sort_desc).map_err(|e| e.to_string())
 }
 
 #[tauri::command]
@@ -74,11 +72,7 @@ pub fn create_folder(name: String, state: State<'_, AppState>) -> Result<i64, St
 }
 
 #[tauri::command]
-pub fn mark_article_saved(
-    id: i64,
-    is_saved: bool,
-    state: State<'_, AppState>,
-) -> Result<(), String> {
+pub fn mark_article_saved(id: i64, is_saved: bool, state: State<'_, AppState>) -> Result<(), String> {
     let conn = state.db.lock().unwrap();
     db::update_article_saved(&conn, id, is_saved).map_err(|e| e.to_string())
 }
@@ -90,11 +84,7 @@ pub fn mark_article_read(id: i64, read: bool, state: State<'_, AppState>) -> Res
 }
 
 #[tauri::command]
-pub fn mark_all_read(
-    target_type: String,
-    id: i64,
-    state: State<'_, AppState>,
-) -> Result<(), String> {
+pub fn mark_all_read(target_type: String, id: i64, state: State<'_, AppState>) -> Result<(), String> {
     info!("Mark All Read: type={}, id={}", target_type, id);
     let conn = state.db.lock().unwrap();
     if target_type == "feed" {
@@ -171,11 +161,7 @@ pub async fn export_opml(state: State<'_, AppState>) -> Result<String, String> {
                 );
             }
         } else {
-            let _ = writeln!(
-                &mut opml,
-                "    <outline text=\"{}\">",
-                xml_escape(&folder.name)
-            );
+            let _ = writeln!(&mut opml, "    <outline text=\"{}\">", xml_escape(&folder.name));
             for feed in &folder.feeds {
                 let _ = writeln!(
                     &mut opml,
@@ -204,12 +190,7 @@ pub fn rename_folder(id: i64, new_name: String, state: State<'_, AppState>) -> R
 }
 
 #[tauri::command]
-pub fn rename_feed(
-    id: i64,
-    new_name: String,
-    new_url: String,
-    state: State<'_, AppState>,
-) -> Result<(), String> {
+pub fn rename_feed(id: i64, new_name: String, new_url: String, state: State<'_, AppState>) -> Result<(), String> {
     let conn = state.db.lock().unwrap();
     db::rename_feed(&conn, id, &new_name, &new_url).map_err(|e| e.to_string())
 }
@@ -227,11 +208,7 @@ pub fn delete_folder(id: i64, state: State<'_, AppState>) -> Result<(), String> 
 }
 
 #[tauri::command]
-pub fn move_feed(
-    feed_id: i64,
-    folder_id: Option<i64>,
-    state: State<'_, AppState>,
-) -> Result<(), String> {
+pub fn move_feed(feed_id: i64, folder_id: Option<i64>, state: State<'_, AppState>) -> Result<(), String> {
     let conn = state.db.lock().unwrap();
     db::move_feed(&conn, feed_id, folder_id).map_err(|e| e.to_string())
 }
@@ -249,10 +226,7 @@ pub fn search_articles(
 }
 
 #[tauri::command]
-pub fn get_tags_for_article(
-    article_id: i64,
-    state: State<'_, AppState>,
-) -> Result<Vec<Tag>, String> {
+pub fn get_tags_for_article(article_id: i64, state: State<'_, AppState>) -> Result<Vec<Tag>, String> {
     let conn = state.db.lock().unwrap();
     db::get_tags_for_article(&conn, article_id).map_err(|e| e.to_string())
 }
@@ -264,12 +238,7 @@ pub fn get_all_tags(state: State<'_, AppState>) -> Result<Vec<Tag>, String> {
 }
 
 #[tauri::command]
-pub fn add_tag(
-    article_id: i64,
-    name: String,
-    color: String,
-    state: State<'_, AppState>,
-) -> Result<Tag, String> {
+pub fn add_tag(article_id: i64, name: String, color: String, state: State<'_, AppState>) -> Result<Tag, String> {
     let conn = state.db.lock().unwrap();
     db::add_tag_to_article(&conn, article_id, &name, &color).map_err(|e| e.to_string())
 }

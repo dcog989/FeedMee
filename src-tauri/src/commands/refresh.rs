@@ -61,11 +61,7 @@ fn extract_with_css_selectors(html: &str) -> Option<String> {
             let inner = el.inner_html();
             let text_len = content_text_len(&inner);
             if text_len > 100 && has_paragraph_structure(&inner) {
-                debug!(
-                    "extract_with_css: matched '{}' ({} chars)",
-                    sel_str,
-                    inner.len()
-                );
+                debug!("extract_with_css: matched '{}' ({} chars)", sel_str, inner.len());
                 return Some(inner);
             }
         }
@@ -74,10 +70,7 @@ fn extract_with_css_selectors(html: &str) -> Option<String> {
 }
 
 #[tauri::command]
-pub async fn get_article_content(
-    url: String,
-    state: State<'_, AppState>,
-) -> Result<String, String> {
+pub async fn get_article_content(url: String, state: State<'_, AppState>) -> Result<String, String> {
     let html = state
         .http_client
         .get(&url)
@@ -90,16 +83,12 @@ pub async fn get_article_content(
         .map_err(|e| format!("Failed to read response: {}", e))?;
 
     let readability_ok = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-        if let Ok(readability) =
-            Readability::new(&html, Some(&url), Some(ReadabilityOptions::default()))
+        if let Ok(readability) = Readability::new(&html, Some(&url), Some(ReadabilityOptions::default()))
             && let Some(article) = readability.parse()
             && let Some(content) = article.content
         {
             if content_text_len(&content) > 100 && has_paragraph_structure(&content) {
-                debug!(
-                    "get_article_content: readabilityrs extracted {} chars",
-                    content.len()
-                );
+                debug!("get_article_content: readabilityrs extracted {} chars", content.len());
                 return Some(content);
             }
             debug!(
