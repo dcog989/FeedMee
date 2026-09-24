@@ -38,27 +38,7 @@ pub async fn scrape_og_image(client: &reqwest::Client, article_url: &str) -> Opt
         .await
         .ok()?;
 
-    let document = Html::parse_document(&html);
-    let meta_sel = Selector::parse("meta").ok()?;
-
-    let raw = document.select(&meta_sel).find_map(|el| {
-        let prop = el.value().attr("property").unwrap_or("");
-        let name = el.value().attr("name").unwrap_or("");
-        if prop == "og:image" || name == "twitter:image" || name == "twitter:image:src" {
-            el.value().attr("content").map(str::to_string)
-        } else {
-            None
-        }
-    })?;
-
-    if raw.starts_with("http://") || raw.starts_with("https://") {
-        Some(raw)
-    } else {
-        Url::parse(article_url)
-            .ok()
-            .and_then(|base| base.join(&raw).ok())
-            .map(|u| u.to_string())
-    }
+    scrape_og_image_from_html(&html, article_url)
 }
 
 pub fn compute_content_hash(content: &str) -> String {
