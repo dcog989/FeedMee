@@ -1,6 +1,7 @@
 import { invoke } from "@tauri-apps/api/core";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import type { Article, Folder } from "./types";
+import { collapseAllFolders, expandAllFolders } from "./utils/expandedFolders";
 import { shortcutManager } from "./utils/shortcuts";
 
 interface ShortcutRegDeps {
@@ -99,9 +100,7 @@ export function registerShortcuts(state: ShortcutRegDeps) {
     description: "Expand all folders",
     category: "Feeds",
     handler: () => {
-      const newSet = new Set<number>();
-      for (const f of state.folders) newSet.add(f.id);
-      state.expandedFolders = newSet;
+      state.expandedFolders = expandAllFolders(state.folders);
     },
   });
 
@@ -112,7 +111,7 @@ export function registerShortcuts(state: ShortcutRegDeps) {
     description: "Collapse all folders",
     category: "Feeds",
     handler: () => {
-      state.expandedFolders = new Set<number>();
+      state.expandedFolders = collapseAllFolders();
     },
   });
 

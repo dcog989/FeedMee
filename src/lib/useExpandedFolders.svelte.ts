@@ -1,3 +1,4 @@
+import { collapseAllFolders, expandAllFolders, toggleFolder as toggle } from "./utils/expandedFolders";
 import { LS_EXPANDED_FOLDERS } from "./utils/persistence";
 
 export function useExpandedFolders(state: {
@@ -12,24 +13,15 @@ export function useExpandedFolders(state: {
   });
 
   function toggleFolder(id: number) {
-    const newSet = new Set(state.expandedFolders);
-    if (newSet.has(id)) {
-      newSet.delete(id);
-    } else {
-      if (state.autoCollapseFolders) newSet.clear();
-      newSet.add(id);
-    }
-    state.expandedFolders = newSet;
+    state.expandedFolders = toggle(state.expandedFolders, id, state.autoCollapseFolders);
   }
 
   function expandAll() {
-    const newSet = new Set<number>();
-    for (const f of state.folders) newSet.add(f.id);
-    state.expandedFolders = newSet;
+    state.expandedFolders = expandAllFolders(state.folders);
   }
 
   function collapseAll() {
-    state.expandedFolders = new Set();
+    state.expandedFolders = collapseAllFolders();
   }
 
   return { toggleFolder, expandAll, collapseAll };

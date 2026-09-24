@@ -1,5 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
 import type { NavStore } from "./storeTypes";
+import { expandFolder as expandFolderSet } from "./utils/expandedFolders";
 import { findFeed } from "./utils/feeds";
 import { LS_LAST_VIEW_ID, LS_LAST_VIEW_TYPE } from "./utils/persistence";
 
@@ -73,10 +74,7 @@ export function createNavigation(state: NavStore) {
   }
 
   function expandFolder(folderId: number) {
-    const newSet = new Set(state.expandedFolders);
-    if (state.settings.auto_collapse_folders) newSet.clear();
-    newSet.add(folderId);
-    state.expandedFolders = newSet;
+    state.expandedFolders = expandFolderSet(state.expandedFolders, folderId, state.settings.auto_collapse_folders);
   }
 
   function navUp() {
