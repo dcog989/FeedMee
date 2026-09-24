@@ -85,7 +85,7 @@ pub(crate) fn setup_database(db_path: &Path) -> rusqlite::Connection {
 
 pub(crate) fn build_http_client() -> reqwest::Client {
     reqwest::Client::builder()
-        .user_agent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
+        .user_agent(concat!("FeedMee/", env!("CARGO_PKG_VERSION")))
         .timeout(std::time::Duration::from_secs(10))
         .build()
         .expect("failed to build HTTP client")
