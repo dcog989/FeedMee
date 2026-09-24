@@ -72,7 +72,7 @@ fn rotate_backups(dir: &Path) {
 
     entries.sort();
 
-    while entries.len() >= MAX_BACKUPS {
+    while entries.len() > MAX_BACKUPS {
         if let Some(oldest) = entries.first() {
             let _ = fs::remove_file(oldest);
             entries.remove(0);
