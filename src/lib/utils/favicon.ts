@@ -1,15 +1,12 @@
-const FAVICON_TTL = 48 * 60 * 60 * 1000;
-const faviconCache = new Map<string, { url: string; time: number }>();
+const faviconCache = new Map<string, string>();
 
 export function getFavicon(url: string): string {
   try {
     const domain = new URL(url).hostname;
     const cached = faviconCache.get(domain);
-    if (cached && Date.now() - cached.time < FAVICON_TTL) {
-      return cached.url;
-    }
+    if (cached !== undefined) return cached;
     const result = `https://icons.duckduckgo.com/ip3/${domain}.ico`;
-    faviconCache.set(domain, { url: result, time: Date.now() });
+    faviconCache.set(domain, result);
     return result;
   } catch {
     return "";
