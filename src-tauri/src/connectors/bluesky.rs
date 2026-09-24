@@ -29,15 +29,11 @@ struct PostView {
     uri: String,
     author: Actor,
     record: serde_json::Value,
-    #[allow(dead_code)]
-    indexed_at: Option<String>,
 }
 
 #[derive(Deserialize)]
 struct Actor {
     handle: String,
-    #[allow(dead_code)]
-    did: String,
     display_name: Option<String>,
 }
 
