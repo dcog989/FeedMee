@@ -23,6 +23,9 @@ let {
   onTagToggle: (e: MouseEvent, article: Article) => void;
 } = $props();
 
+let cacheKey = $derived(thumbnailSize > 0 ? thumbnailCacheKey(article.image_url, article.url, thumbnailSize) : "");
+let thumbnail = $derived(cacheKey ? thumbnailCache[cacheKey] : undefined);
+
 function handleKeydown(e: KeyboardEvent) {
   if (e.key === "Enter" || e.key === " ") {
     e.preventDefault();
@@ -44,8 +47,8 @@ function handleKeydown(e: KeyboardEvent) {
 >
   {#if thumbnailSize > 0}
     <div class="thumbnail-wrap" style="width:{thumbnailSize}px;height:{thumbnailSize}px">
-      {#if thumbnailCache[thumbnailCacheKey(article.image_url, article.url, thumbnailSize)]}
-        <img src={thumbnailCache[thumbnailCacheKey(article.image_url, article.url, thumbnailSize)]} alt="">
+      {#if thumbnail}
+        <img src={thumbnail} alt="">
       {:else}
         <div class="thumb-fallback" style="width:{thumbnailSize}px;height:{thumbnailSize}px">
           <Image size={Math.round(thumbnailSize * 0.4)} />
