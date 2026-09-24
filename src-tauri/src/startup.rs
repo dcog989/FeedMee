@@ -59,10 +59,19 @@ pub(crate) fn init_logging(logs_dir: &Path, log_level: LevelFilter) {
         .build();
 
     let log_path = logs_dir.join("feedmee.log");
-    if let Err(e) = CombinedLogger::init(vec![
-        TermLogger::new(log_level, log_config.clone(), TerminalMode::Mixed, ColorChoice::Auto),
-        WriteLogger::new(log_level, log_config, std::fs::File::create(log_path).unwrap()),
-    ]) {
+    let mut loggers: Vec<Box<dyn SharedLogger>> = vec![TermLogger::new(
+        log_level,
+        log_config.clone(),
+        TerminalMode::Mixed,
+        ColorChoice::Auto,
+    )];
+
+    match std::fs::File::create(&log_path) {
+        Ok(file) => loggers.push(WriteLogger::new(log_level, log_config, file)),
+        Err(e) => eprintln!("[startup] could not open log file {}: {}", log_path.display(), e),
+    }
+
+    if let Err(e) = CombinedLogger::init(loggers) {
         eprintln!("[startup] logger init failed: {}", e);
     }
 }
