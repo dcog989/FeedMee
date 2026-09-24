@@ -76,19 +76,24 @@ export function createArticleActions(state: ArticleStore) {
     const gen = ++reloadGeneration;
     state.articles = [];
     state.page = 0;
-    const result = await fetchPage(0);
-    if (gen !== reloadGeneration) return;
-    state.articles = filterBlocked(result || []);
-    state.hasMore = (result?.length || 0) === state.pageSize;
+    try {
+      const result = await fetchPage(0);
+      if (gen !== reloadGeneration) return;
+      state.articles = filterBlocked(result || []);
+      state.hasMore = (result?.length || 0) === state.pageSize;
 
-    if (options?.selectTop) {
-      if (state.articles.length > 0) {
-        state.selectedArticle = state.articles[0];
-        state.focusedPane = "reading";
+      if (options?.selectTop) {
+        if (state.articles.length > 0) {
+          state.selectedArticle = state.articles[0];
+          state.focusedPane = "reading";
+        }
+      } else if (state.selectedArticle) {
+        const fresh = state.articles.find((a) => a.id === state.selectedArticle?.id);
+        if (fresh) state.selectedArticle = fresh;
       }
-    } else if (state.selectedArticle) {
-      const fresh = state.articles.find((a) => a.id === state.selectedArticle?.id);
-      if (fresh) state.selectedArticle = fresh;
+    } catch (e) {
+      if (gen === reloadGeneration) state.hasMore = false;
+      console.error("Failed to reload article list:", e);
     }
   }
 
