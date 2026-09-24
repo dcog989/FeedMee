@@ -3,7 +3,6 @@ use crate::{
     models::{Article, Folder, Tag},
 };
 use log::info;
-use std::fmt::Write;
 use tauri::{Manager, State};
 
 #[tauri::command]
@@ -137,14 +136,6 @@ fn import_opml_blocking(path: &str, state: &AppState) -> Result<(), String> {
     Ok(())
 }
 
-fn xml_escape(s: &str) -> String {
-    s.replace('&', "&amp;")
-        .replace('<', "&lt;")
-        .replace('>', "&gt;")
-        .replace('"', "&quot;")
-        .replace('\'', "&apos;")
-}
-
 #[tauri::command]
 pub async fn export_opml(state: State<'_, AppState>) -> Result<String, String> {
     let folders = {
@@ -152,41 +143,7 @@ pub async fn export_opml(state: State<'_, AppState>) -> Result<String, String> {
         db::get_folders_with_feeds(&conn).map_err(|e| e.to_string())?
     };
 
-    let mut opml = String::new();
-    let _ = writeln!(&mut opml, "<?xml version=\"1.0\" encoding=\"UTF-8\"?>");
-    let _ = writeln!(&mut opml, "<opml version=\"2.0\">");
-    let _ = writeln!(&mut opml, "  <head><title>FeedMee Export</title></head>");
-    let _ = writeln!(&mut opml, "  <body>");
-
-    for folder in folders {
-        if folder.feeds.is_empty() {
-            continue;
-        }
-        if folder.id == 0 {
-            for feed in &folder.feeds {
-                let _ = writeln!(
-                    &mut opml,
-                    "      <outline type=\"rss\" text=\"{}\" xmlUrl=\"{}\" />",
-                    xml_escape(&feed.name),
-                    xml_escape(&feed.url)
-                );
-            }
-        } else {
-            let _ = writeln!(&mut opml, "    <outline text=\"{}\">", xml_escape(&folder.name));
-            for feed in &folder.feeds {
-                let _ = writeln!(
-                    &mut opml,
-                    "      <outline type=\"rss\" text=\"{}\" xmlUrl=\"{}\" />",
-                    xml_escape(&feed.name),
-                    xml_escape(&feed.url)
-                );
-            }
-            let _ = writeln!(&mut opml, "    </outline>");
-        }
-    }
-    let _ = writeln!(&mut opml, "  </body>");
-    let _ = writeln!(&mut opml, "</opml>");
-    Ok(opml)
+    Ok(crate::opml::render(&folders))
 }
 
 #[tauri::command]

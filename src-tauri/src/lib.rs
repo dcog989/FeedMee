@@ -2,6 +2,7 @@ pub mod commands;
 pub mod connectors;
 pub mod db;
 pub mod models;
+pub mod opml;
 pub mod paths;
 pub mod settings;
 pub mod startup;
