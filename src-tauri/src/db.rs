@@ -568,9 +568,9 @@ pub fn search_articles(
     query: &str,
     limit: usize,
     offset: usize,
-    sort_asc: bool,
+    sort_desc: bool,
 ) -> Result<Vec<Article>> {
-    let order = order_clause(!sort_asc);
+    let order = order_clause(sort_desc);
     // Escape the query for FTS5: wrap in quotes to treat as a literal phrase,
     // and double any embedded double quotes to prevent operator injection.
     let escaped = format!("\"{}\"", query.replace('"', "\"\""));
