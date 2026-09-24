@@ -45,20 +45,24 @@ impl FeedConnector for WebsiteConnector {
     }
 }
 
-pub fn extract_website_articles(html: &str, page_url: &str) -> Result<(String, Vec<Article>), String> {
-    let title = extract_page_title(html, page_url);
+fn scrape_page(html: &str, page_url: &str, feed_id: i64) -> Vec<Article> {
     let og_image = scrape_og_image_from_html(html, page_url);
     let mut articles = scrape_articles_from_page(html, page_url);
     for a in &mut articles {
-        a.feed_id = 0;
+        a.feed_id = feed_id;
         if a.image_url.is_empty() {
             a.image_url = og_image.clone().unwrap_or_default();
         }
     }
+    articles
+}
+
+pub fn extract_website_articles(html: &str, page_url: &str) -> Result<(String, Vec<Article>), String> {
+    let articles = scrape_page(html, page_url, 0);
     if articles.is_empty() {
         return Err("No articles found on page".to_string());
     }
-    Ok((title, articles))
+    Ok((extract_page_title(html, page_url), articles))
 }
 
 pub fn extract_page_title(html: &str, fallback_url: &str) -> String {
@@ -73,17 +77,9 @@ pub fn extract_page_title(html: &str, fallback_url: &str) -> String {
 }
 
 fn scrape_and_insert(html: &str, page_url: &str, feed_id: i64, state: &AppState) -> Result<usize, String> {
-    let og_image = scrape_og_image_from_html(html, page_url);
-    let mut articles = scrape_articles_from_page(html, page_url);
-    for a in &mut articles {
-        a.feed_id = feed_id;
-        if a.image_url.is_empty() {
-            a.image_url = og_image.clone().unwrap_or_default();
-        }
-    }
+    let articles = scrape_page(html, page_url, feed_id);
     let mut conn = state.db.lock().unwrap();
-    let count = db::batch_insert_articles(&mut conn, &articles).map_err(|e| e.to_string())?;
-    Ok(count)
+    db::batch_insert_articles(&mut conn, &articles).map_err(|e| e.to_string())
 }
 
 async fn refresh_website_feed(feed_url: &str, feed_id: i64, state: &AppState) -> Result<i64, String> {
