@@ -21,15 +21,16 @@ $effect(() => {
   errorMessage = "";
   successMessage = "";
   blockedText = feedStore.blockedPhrases.join("\n");
-  try {
-    navigator.clipboard.readText().then((text) => {
+  navigator.clipboard
+    ?.readText()
+    .then((text) => {
       if (newFeedUrl === "" && /^https?:\/\/.+/.test(text.trim())) {
         newFeedUrl = text.trim();
       }
+    })
+    .catch(() => {
+      /* clipboard access denied */
     });
-  } catch {
-    /* clipboard access denied */
-  }
 });
 
 function closeDialog() {
@@ -114,7 +115,7 @@ function focusOnMount(node: HTMLElement) {
     <label for="folder-select">Add to folder</label>
     <select id="folder-select" bind:value={selectedFolderId}>
       <option value={null}>Root (no folder)</option>
-      {#each feedStore.folders.filter(f => f.id !== 0) as folder (folder.id)}
+      {#each feedStore.folders.filter((f) => f.id !== 0) as folder (folder.id)}
         <option value={folder.id}>{folder.name}</option>
       {/each}
     </select>
