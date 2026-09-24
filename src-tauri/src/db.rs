@@ -117,6 +117,7 @@ fn migrations() -> Migrations<'static> {
                  ELSE CAST(strftime('%s','now') AS INTEGER)
              END;",
         ),
+        M::up("CREATE INDEX IF NOT EXISTS idx_articles_saved ON articles(timestamp, id) WHERE is_saved = 1;"),
     ])
 }
 
