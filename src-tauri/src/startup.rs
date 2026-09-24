@@ -3,9 +3,8 @@ use std::path::{Path, PathBuf};
 use simplelog::*;
 
 use crate::db;
-use crate::settings::AppSettings;
 
-pub(crate) fn create_dirs() -> (PathBuf, PathBuf, PathBuf, PathBuf) {
+pub(crate) fn create_dirs() -> (PathBuf, PathBuf) {
     let local_dir = crate::paths::local_data_dir();
     let config_dir = crate::paths::config_dir();
     let logs_dir = local_dir.join("Logs");
@@ -17,7 +16,7 @@ pub(crate) fn create_dirs() -> (PathBuf, PathBuf, PathBuf, PathBuf) {
         }
     }
 
-    (local_dir, config_dir, logs_dir, db_dir)
+    (logs_dir, db_dir)
 }
 
 pub(crate) fn rotate_logs(logs_dir: &Path) {
@@ -76,7 +75,7 @@ pub(crate) fn init_logging(logs_dir: &Path, log_level: LevelFilter) {
     }
 }
 
-pub(crate) fn setup_database(db_path: &Path, _app_settings: &mut AppSettings) -> rusqlite::Connection {
+pub(crate) fn setup_database(db_path: &Path) -> rusqlite::Connection {
     let mut conn = rusqlite::Connection::open(db_path).unwrap_or_else(|e| panic!("Failed to open database: {}", e));
 
     db::init_db(&mut conn).unwrap_or_else(|e| panic!("Schema init failed: {}", e));

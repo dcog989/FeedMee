@@ -26,17 +26,17 @@ pub fn run() {
         .setup(|app| {
             use log::info;
 
-            let (_local_dir, _config_dir, logs_dir, db_dir) = startup::create_dirs();
+            let (logs_dir, db_dir) = startup::create_dirs();
             startup::rotate_logs(&logs_dir);
 
-            let mut app_settings = settings::load_settings();
+            let app_settings = settings::load_settings();
             let log_level = startup::parse_log_level(&app_settings.log_level);
             startup::init_logging(&logs_dir, log_level);
 
             info!("Starting FeedMee application");
 
             let db_path = db_dir.join(db::DB_FILENAME);
-            let conn = startup::setup_database(&db_path, &mut app_settings);
+            let conn = startup::setup_database(&db_path);
 
             let http_client = startup::build_http_client();
 
