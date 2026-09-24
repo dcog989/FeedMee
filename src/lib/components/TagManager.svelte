@@ -1,7 +1,7 @@
 <script lang="ts">
 import { Check, Plus, Tags, Trash2, X } from "lucide-svelte";
 import { tooltip } from "$lib/actions/tooltip.svelte";
-import { articleStore, tagStore } from "$lib/store.svelte";
+import { articleStore, tagStore, uiStore } from "$lib/store.svelte";
 import type { Tag } from "$lib/types";
 import { withAdded, withRemoved } from "$lib/utils/sets";
 
@@ -76,17 +76,17 @@ async function addNewTag() {
   }
 }
 
-async function deleteTagPermanently(tag: Tag) {
-  const confirmed = confirm(`Delete tag "${tag.name}" from all articles?`);
-  if (!confirmed) return;
-  try {
-    await tagStore.deleteTag(tag.id);
-    activeTagIds = withRemoved(activeTagIds, tag.id);
-    allTags = allTags.filter((t) => t.id !== tag.id);
-    syncHasTags();
-  } catch (e) {
-    console.error("Failed to delete tag:", e);
-  }
+function deleteTagPermanently(tag: Tag) {
+  uiStore.confirm(`Delete tag "${tag.name}" from all articles?`, async () => {
+    try {
+      await tagStore.deleteTag(tag.id);
+      activeTagIds = withRemoved(activeTagIds, tag.id);
+      allTags = allTags.filter((t) => t.id !== tag.id);
+      syncHasTags();
+    } catch (e) {
+      console.error("Failed to delete tag:", e);
+    }
+  });
 }
 
 function onInputKeydown(e: KeyboardEvent) {
