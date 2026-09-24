@@ -74,20 +74,20 @@ export function registerShortcuts(state: ShortcutRegDeps) {
     description: "Mark as read/unread",
     category: "Articles",
     handler: async () => {
-      if (state.selectedArticle) {
-        const article = state.selectedArticle;
-        const newReadState = !article.is_read;
-        const wasUnread = !article.is_read;
-        article.is_read = newReadState;
-        if (wasUnread && newReadState) {
-          state.adjustUnreadCount(article.feed_id, -1);
-        } else if (!wasUnread && !newReadState) {
-          state.adjustUnreadCount(article.feed_id, 1);
-        }
+      if (!state.selectedArticle) return;
+      const article = state.selectedArticle;
+      const newReadState = !article.is_read;
+      article.is_read = newReadState;
+      state.adjustUnreadCount(article.feed_id, newReadState ? -1 : 1);
+      try {
         await invoke("mark_article_read", {
           id: article.id,
           read: newReadState,
         });
+      } catch (e) {
+        article.is_read = !newReadState;
+        state.adjustUnreadCount(article.feed_id, newReadState ? 1 : -1);
+        console.error("mark_article_read failed:", e);
       }
     },
   });

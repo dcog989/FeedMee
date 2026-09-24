@@ -119,10 +119,12 @@ export function createArticleActions(state: ArticleStore) {
     state.selectedArticle = article;
     if (!article.is_read) {
       article.is_read = true;
-      invoke("mark_article_read", { id: article.id, read: true }).catch(() => {
-        article.is_read = false;
-      });
       state.adjustUnreadCount(article.feed_id, -1);
+      invoke("mark_article_read", { id: article.id, read: true }).catch((e) => {
+        article.is_read = false;
+        state.adjustUnreadCount(article.feed_id, 1);
+        console.error("mark_article_read failed:", e);
+      });
     }
   }
 
