@@ -42,9 +42,16 @@ $effect(() => {
   }
 });
 
+function settingsEqual(a: AppSettings, b: AppSettings): boolean {
+  for (const key of Object.keys(a) as (keyof AppSettings)[]) {
+    if (a[key] !== b[key]) return false;
+  }
+  return true;
+}
+
 $effect(() => {
   if (!initialized || !prevSettings) return;
-  if (JSON.stringify(settings) === JSON.stringify(prevSettings)) return;
+  if (settingsEqual(settings, prevSettings)) return;
   prevSettings = { ...settings };
   if (saveTimer) clearTimeout(saveTimer);
   saveTimer = setTimeout(() => settingsStore.saveSettings(settings, false), 500);
