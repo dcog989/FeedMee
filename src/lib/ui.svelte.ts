@@ -76,9 +76,10 @@ export function createUI(state: {
   }
 
   async function saveSettings(newSettings: AppSettings, closeModal = true) {
+    const settingsToSave = { ...newSettings };
     try {
-      await invoke("save_app_settings", { newSettings });
-      state.settings = newSettings;
+      await invoke("save_app_settings", { newSettings: settingsToSave });
+      state.settings = settingsToSave;
       if (state.autoRefreshTimer !== null) {
         clearInterval(state.autoRefreshTimer);
         state.autoRefreshTimer = null;
