@@ -50,7 +50,7 @@ pub fn run() {
             startup::setup_window(&window);
 
             let app_handle = app.handle().clone();
-            tauri::async_runtime::spawn(async move {
+            tauri::async_runtime::spawn_blocking(move || {
                 let state = app_handle.state::<AppState>();
 
                 let now = std::time::SystemTime::now()

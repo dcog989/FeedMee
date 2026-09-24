@@ -72,7 +72,7 @@ pub fn extract_page_title(html: &str, fallback_url: &str) -> String {
         .unwrap_or_else(|| fallback_url.to_string())
 }
 
-async fn scrape_and_insert(html: &str, page_url: &str, feed_id: i64, state: &AppState) -> Result<usize, String> {
+fn scrape_and_insert(html: &str, page_url: &str, feed_id: i64, state: &AppState) -> Result<usize, String> {
     let og_image = scrape_og_image_from_html(html, page_url);
     let mut articles = scrape_articles_from_page(html, page_url);
     for a in &mut articles {
@@ -100,7 +100,7 @@ async fn refresh_website_feed(feed_url: &str, feed_id: i64, state: &AppState) ->
         e.to_string()
     })?;
 
-    let _ = scrape_and_insert(&html, feed_url, feed_id, state).await?;
+    let _ = scrape_and_insert(&html, feed_url, feed_id, state)?;
 
     let conn = state.db.lock().unwrap();
     let _ = db::update_feed_error(&conn, feed_id, false);

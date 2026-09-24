@@ -4,7 +4,7 @@ use crate::{
 };
 use log::info;
 use std::fmt::Write;
-use tauri::State;
+use tauri::{Manager, State};
 
 #[tauri::command]
 pub fn get_folders_with_feeds(state: State<'_, AppState>) -> Result<Vec<Folder>, String> {
@@ -99,8 +99,17 @@ pub fn mark_all_read(target_type: String, id: i64, state: State<'_, AppState>) -
 }
 
 #[tauri::command]
-pub async fn import_opml(path: String, state: State<'_, AppState>) -> Result<(), String> {
-    let xml_content = std::fs::read_to_string(&path).map_err(|e| e.to_string())?;
+pub async fn import_opml(path: String, app: tauri::AppHandle) -> Result<(), String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        let state = app.state::<AppState>();
+        import_opml_blocking(&path, &state)
+    })
+    .await
+    .map_err(|e| e.to_string())?
+}
+
+fn import_opml_blocking(path: &str, state: &AppState) -> Result<(), String> {
+    let xml_content = std::fs::read_to_string(path).map_err(|e| e.to_string())?;
     let document = opml::OPML::from_str(&xml_content).map_err(|e| e.to_string())?;
     let conn = state.db.lock().unwrap();
     let mut flat_feeds: Vec<(String, String)> = Vec::new();
