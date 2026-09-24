@@ -39,6 +39,7 @@ const categories = $derived(() => {
 });
 
 function startRecording(commandId: string) {
+  window.removeEventListener("keydown", handleRecordKey, { capture: true });
   recordingCommandId = commandId;
   window.addEventListener("keydown", handleRecordKey, { capture: true });
 }
@@ -69,7 +70,7 @@ function handleRecordKey(e: KeyboardEvent) {
 
 function stopRecording() {
   recordingCommandId = null;
-  window.removeEventListener("keydown", handleRecordKey);
+  window.removeEventListener("keydown", handleRecordKey, { capture: true });
 }
 
 function resetShortcut(commandId: string) {
@@ -90,8 +91,8 @@ function resetShortcut(commandId: string) {
       <div class="section">
         <h4>{category}</h4>
         {#each defs as def (def.command)}
-          {@const isRecording = recordingCommandId === def.command}
-          {@const hasCustom = shortcutStore.customShortcuts[def.command]}
+          {@const (isRecording = recordingCommandId === def.command)}
+          {@const (hasCustom = shortcutStore.customShortcuts[def.command])}
           <div class="shortcut-row">
             <span class="description">{def.description}</span>
             <div class="shortcut-actions">
@@ -102,9 +103,7 @@ function resetShortcut(commandId: string) {
                 onclick={() => startRecording(def.command)}
                 title="Click to change"
               >
-                {isRecording
-                                    ? 'Press keys...'
-                                    : shortcutManager.getShortcutDisplay(def.command)}
+                {isRecording ? "Press keys..." : shortcutManager.getShortcutDisplay(def.command)}
               </button>
               {#if hasCustom}
                 <button
