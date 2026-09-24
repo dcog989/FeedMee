@@ -23,6 +23,7 @@ import { createTagOps } from "./tags.svelte";
 import type { AppSettings, Article, Folder } from "./types";
 import { DEFAULT_SETTINGS } from "./types";
 import { createUI } from "./ui.svelte";
+import { findFeedFolderId } from "./utils/feeds";
 import {
   LS_BLOCKED_PHRASES,
   LS_EXPANDED_FOLDERS,
@@ -273,7 +274,7 @@ class AppStateImpl {
         expandFolderId = lastViewId;
       } else if (lastViewType === "feed" && lastViewId > 0) {
         await this.selectFeed(lastViewId);
-        expandFolderId = this.folders.find((f) => f.feeds.some((fd) => fd.id === lastViewId))?.id ?? null;
+        expandFolderId = findFeedFolderId(this.folders, lastViewId);
       } else {
         await this.selectFeed(FEED_ID_LATEST);
       }
@@ -282,7 +283,7 @@ class AppStateImpl {
       expandFolderId = viewId;
     } else if (viewType === "feed" && viewId > 0) {
       await this.selectFeed(viewId);
-      expandFolderId = this.folders.find((f) => f.feeds.some((fd) => fd.id === viewId))?.id ?? null;
+      expandFolderId = findFeedFolderId(this.folders, viewId);
     }
 
     // `expandedFolders` has a single owner here; the persistence effect in

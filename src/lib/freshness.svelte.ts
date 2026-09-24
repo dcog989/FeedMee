@@ -1,4 +1,5 @@
 import type { Folder } from "./types";
+import { findFeed } from "./utils/feeds";
 import { LS_LAST_REFRESHED } from "./utils/persistence";
 
 interface FreshnessDeps {
@@ -10,13 +11,8 @@ interface FreshnessDeps {
 
 export function createFreshnessHelpers(state: FreshnessDeps) {
   function adjustUnreadCount(feedId: number, delta: number) {
-    for (const folder of state.folders) {
-      const feed = folder.feeds.find((f) => f.id === feedId);
-      if (feed) {
-        feed.unread_count = Math.max(0, feed.unread_count + delta);
-        break;
-      }
-    }
+    const feed = findFeed(state.folders, feedId);
+    if (feed) feed.unread_count = Math.max(0, feed.unread_count + delta);
   }
 
   function isFeedUpdating(feedId: number) {

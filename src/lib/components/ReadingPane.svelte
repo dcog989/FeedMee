@@ -3,6 +3,7 @@ import { openUrl } from "@tauri-apps/plugin-opener";
 import { ExternalLink } from "lucide-svelte";
 import { tooltip } from "$lib/actions/tooltip.svelte";
 import { appState, articleStore } from "$lib/store.svelte";
+import { findFeed } from "$lib/utils/feeds";
 import ArticleActions from "./article/ArticleActions.svelte";
 import ArticleContent from "./article/ArticleContent.svelte";
 
@@ -69,17 +70,13 @@ function formatDate(ts: number) {
 }
 
 function getFeedDomain(feedId: number): string {
-  for (const folder of appState.folders) {
-    const feed = folder.feeds.find((f) => f.id === feedId);
-    if (feed) {
-      try {
-        return new URL(feed.display_url).hostname.replace(/^www\./, "");
-      } catch {
-        return feed.name;
-      }
-    }
+  const feed = findFeed(appState.folders, feedId);
+  if (!feed) return "";
+  try {
+    return new URL(feed.display_url).hostname.replace(/^www\./, "");
+  } catch {
+    return feed.name;
   }
-  return "";
 }
 </script>
 

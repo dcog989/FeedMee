@@ -1,5 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
 import type { RefreshStore } from "./storeTypes";
+import { findFeed } from "./utils/feeds";
 
 const REFRESH_CONCURRENCY = 5;
 export const FEED_FAILURE_LIMIT = 10;
@@ -31,13 +32,8 @@ export function createFeedRefresher(state: RefreshStore) {
       const unreadCount = await invoke<number>("refresh_feed", { feedId });
       state.lastRefreshed.set(feedId, Date.now());
       saveLastRefreshed();
-      for (const folder of state.folders) {
-        const feed = folder.feeds.find((f) => f.id === feedId);
-        if (feed) {
-          feed.unread_count = unreadCount;
-          break;
-        }
-      }
+      const feed = findFeed(state.folders, feedId);
+      if (feed) feed.unread_count = unreadCount;
     } catch (e) {
       console.error(`Failed to refresh feed ${feedId}:`, e);
     } finally {

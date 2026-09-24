@@ -1,5 +1,6 @@
 <script lang="ts">
 import { feedStore, uiStore } from "$lib/store.svelte";
+import { findFeedFolderId } from "$lib/utils/feeds";
 import Modal from "./Modal.svelte";
 
 let target = $state(uiStore.editFeedTarget);
@@ -11,10 +12,7 @@ let isBluesky = $derived(sourceType === "bluesky");
 
 function getFeedFolderId(feedId: number | undefined): number | null {
   if (feedId === undefined) return null;
-  for (const folder of feedStore.folders) {
-    if (folder.feeds.some((f) => f.id === feedId)) return folder.id;
-  }
-  return null;
+  return findFeedFolderId(feedStore.folders, feedId);
 }
 
 function closeDialog() {

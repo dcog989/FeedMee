@@ -1,5 +1,6 @@
 <script lang="ts">
 import { feedStore, uiStore } from "$lib/store.svelte";
+import { findFeed } from "$lib/utils/feeds";
 import ContextMenu from "../ContextMenu.svelte";
 
 let cmVisible = $state(false);
@@ -34,7 +35,7 @@ function rename() {
 
 function renameFeed() {
   if (cmTarget?.type !== "feed") return;
-  const feed = feedStore.folders.flatMap((f) => f.feeds).find((f) => f.id === cmTarget?.id);
+  const feed = findFeed(feedStore.folders, cmTarget.id);
   uiStore.editFeedTarget = {
     id: cmTarget?.id,
     name: cmTarget?.name ?? "",

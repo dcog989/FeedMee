@@ -1,5 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
 import type { NavStore } from "./storeTypes";
+import { findFeed } from "./utils/feeds";
 import { LS_LAST_VIEW_ID, LS_LAST_VIEW_TYPE } from "./utils/persistence";
 
 export function createNavigation(state: NavStore) {
@@ -10,13 +11,8 @@ export function createNavigation(state: NavStore) {
       const unreadCount = await invoke<number>("get_feed_unread_count", {
         feedId: previousFeedId,
       });
-      for (const folder of state.folders) {
-        const feed = folder.feeds.find((f) => f.id === previousFeedId);
-        if (feed) {
-          feed.unread_count = unreadCount;
-          break;
-        }
-      }
+      const feed = findFeed(state.folders, previousFeedId);
+      if (feed) feed.unread_count = unreadCount;
     } catch (e) {
       console.error("mark_feed_read_on_exit failed:", e);
     }

@@ -5,6 +5,7 @@ import { tooltip } from "$lib/actions/tooltip.svelte";
 import { feedStore, navStore, refreshStore } from "$lib/store.svelte";
 import type { Feed, Folder } from "$lib/types";
 import { createDragGhost, parseDragData } from "$lib/utils/dragGhost";
+import { findFeed } from "$lib/utils/feeds";
 import FeedItem from "./FeedItem.svelte";
 
 let { folder, isExpanded, onToggle, onContextMenu, onFeedsChange } = $props<{
@@ -77,8 +78,7 @@ function handleDrop(e: DragEvent) {
     feeds.splice(idx, 0, item);
     onFeedsChange(folder.id, feeds);
   } else {
-    const allFeeds = navStore.folders.flatMap((f) => f.feeds);
-    const feed = allFeeds.find((f) => f.id === feedId);
+    const feed = findFeed(navStore.folders, feedId);
     if (!feed) return;
     const idx = dropIndex ?? feeds.length;
     feeds.splice(idx, 0, feed);
