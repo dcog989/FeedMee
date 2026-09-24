@@ -47,10 +47,14 @@ pub(crate) fn init_logging(logs_dir: &Path, log_level: &str) -> Result<LoggerHan
         )
         .rotate(
             Criterion::Age(Age::Day),
-            Naming::Timestamps,
+            Naming::TimestampsCustomFormat {
+                current_infix: Some(""),
+                format: "-%Y-%m-%d",
+            },
             Cleanup::KeepLogFiles(LOG_RETENTION_DAYS),
         )
         .duplicate_to_stderr(Duplicate::All)
+        .append()
         .start()
 }
 
