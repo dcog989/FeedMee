@@ -91,8 +91,8 @@ function resetShortcut(commandId: string) {
       <div class="section">
         <h4>{category}</h4>
         {#each defs as def (def.command)}
-          {@const (isRecording = recordingCommandId === def.command)}
-          {@const (hasCustom = shortcutStore.customShortcuts[def.command])}
+          {@const isRecording = recordingCommandId === def.command}
+          {@const hasCustom = shortcutStore.customShortcuts[def.command]}
           <div class="shortcut-row">
             <span class="description">{def.description}</span>
             <div class="shortcut-actions">
