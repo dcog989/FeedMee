@@ -106,6 +106,21 @@ $effect(() => {
   thumbnailFailed.clear();
 });
 
+const EMPTY_STATE_BY_FEED_ID: Record<number, string> = {
+  [FEED_ID_LATEST]: "No recent articles.",
+  [FEED_ID_TODAY]: "No articles today.",
+  [FEED_ID_SAVED]: "No saved articles.",
+};
+
+let emptyStateMessage = $derived.by(() => {
+  const feedId = articleStore.selectedFeedId;
+  if (feedId !== null) {
+    return EMPTY_STATE_BY_FEED_ID[feedId] ?? "No articles in this feed.";
+  }
+  if (articleStore.selectedFolderId !== null) return "No articles in this folder.";
+  return "Select a feed to see articles.";
+});
+
 function onScroll() {
   if (!listContainer) return;
   const { scrollTop, scrollHeight, clientHeight } = listContainer;
@@ -139,29 +154,9 @@ function onScroll() {
       {/if}
     {:else if articleStore.isLoadingArticles}
       <div class="loading">Loading articles...</div>
-    {:else if articleStore.selectedFeedId === FEED_ID_LATEST}
-      <div class="empty-state">
-        <p>No recent articles.</p>
-      </div>
-    {:else if articleStore.selectedFeedId === FEED_ID_TODAY}
-      <div class="empty-state">
-        <p>No articles today.</p>
-      </div>
-    {:else if articleStore.selectedFeedId === FEED_ID_SAVED}
-      <div class="empty-state">
-        <p>No saved articles.</p>
-      </div>
-    {:else if articleStore.selectedFeedId !== null}
-      <div class="empty-state">
-        <p>No articles in this feed.</p>
-      </div>
-    {:else if articleStore.selectedFolderId !== null}
-      <div class="empty-state">
-        <p>No articles in this folder.</p>
-      </div>
     {:else}
       <div class="empty-state">
-        <p>Select a feed to see articles.</p>
+        <p>{emptyStateMessage}</p>
       </div>
     {/if}
   </section>
