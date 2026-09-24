@@ -34,6 +34,9 @@ import {
   LS_NAV_WIDTH,
   LS_SORT_ORDER,
   LS_THEME,
+  readInt,
+  readJson,
+  readString,
 } from "./utils/persistence";
 
 export type {
@@ -206,45 +209,25 @@ class AppStateImpl {
   closeModal = () => this.ui.closeModal();
 
   private async initStore() {
-    const storedNav = localStorage.getItem(LS_NAV_WIDTH);
-    const storedList = localStorage.getItem(LS_LIST_WIDTH);
-    const storedSort = localStorage.getItem(LS_SORT_ORDER);
-    const storedTheme = localStorage.getItem(LS_THEME);
-    const storedLastRefreshed = localStorage.getItem(LS_LAST_REFRESHED);
+    this.navWidth = readInt(LS_NAV_WIDTH, this.navWidth);
+    this.listWidth = readInt(LS_LIST_WIDTH, this.listWidth);
 
-    if (storedNav) this.navWidth = parseInt(storedNav, 10);
-    if (storedList) this.listWidth = parseInt(storedList, 10);
+    const storedSort = readString(LS_SORT_ORDER);
+    const storedTheme = readString(LS_THEME);
     if (storedSort === "asc" || storedSort === "desc") this.sortOrder = storedSort;
     if (storedTheme === "light" || storedTheme === "dark" || storedTheme === "system") this.theme = storedTheme;
     applyThemeToDocument(this.theme);
 
-    const storedBlocked = localStorage.getItem(LS_BLOCKED_PHRASES);
-    if (storedBlocked) {
-      try {
-        this.blockedPhrases = JSON.parse(storedBlocked);
-      } catch {
-        /* ignore */
-      }
+    this.blockedPhrases = readJson<string[]>(LS_BLOCKED_PHRASES, this.blockedPhrases);
+
+    const storedExpandedFolders = readJson<number[] | null>(LS_EXPANDED_FOLDERS, null);
+    if (storedExpandedFolders !== null) {
+      this.expandedFolders = new Set(storedExpandedFolders);
     }
 
-    let storedExpandedFolders: Set<number> | null = null;
-    const storedExpanded = localStorage.getItem(LS_EXPANDED_FOLDERS);
-    if (storedExpanded) {
-      try {
-        storedExpandedFolders = new Set(JSON.parse(storedExpanded) as number[]);
-        this.expandedFolders = storedExpandedFolders;
-      } catch (e) {
-        console.error("Failed to parse expanded folders", e);
-      }
-    }
-
-    if (storedLastRefreshed) {
-      try {
-        const parsed = JSON.parse(storedLastRefreshed);
-        this.lastRefreshed = new Map(Object.entries(parsed).map(([k, v]) => [parseInt(k, 10), v as number]));
-      } catch (e) {
-        console.error("Failed to parse lastRefreshed", e);
-      }
+    const storedLastRefreshed = readJson<Record<string, number> | null>(LS_LAST_REFRESHED, null);
+    if (storedLastRefreshed !== null) {
+      this.lastRefreshed = new Map(Object.entries(storedLastRefreshed).map(([k, v]) => [parseInt(k, 10), v]));
     }
 
     await Promise.all([
@@ -267,8 +250,8 @@ class AppStateImpl {
     if (viewType === "saved") await this.selectFeed(FEED_ID_SAVED);
     else if (viewType === "latest") await this.selectFeed(FEED_ID_LATEST);
     else if (viewType === "last") {
-      const lastViewType = localStorage.getItem(LS_LAST_VIEW_TYPE);
-      const lastViewId = parseInt(localStorage.getItem(LS_LAST_VIEW_ID) || "0", 10);
+      const lastViewType = readString(LS_LAST_VIEW_TYPE);
+      const lastViewId = readInt(LS_LAST_VIEW_ID, 0);
       if (lastViewType === "folder" && lastViewId > 0) {
         await this.selectFolder(lastViewId);
         expandFolderId = lastViewId;

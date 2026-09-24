@@ -2,7 +2,7 @@ import { invoke } from "@tauri-apps/api/core";
 import type { NavStore } from "./storeTypes";
 import { expandFolder as expandFolderSet } from "./utils/expandedFolders";
 import { findFeed } from "./utils/feeds";
-import { LS_LAST_VIEW_ID, LS_LAST_VIEW_TYPE } from "./utils/persistence";
+import { LS_LAST_VIEW_ID, LS_LAST_VIEW_TYPE, writeInt, writeString } from "./utils/persistence";
 
 export function createNavigation(state: NavStore) {
   async function markFeedReadOnExit(previousFeedId: number | null) {
@@ -20,8 +20,8 @@ export function createNavigation(state: NavStore) {
   }
 
   function persistLastView(type: "feed" | "folder", id: number) {
-    localStorage.setItem(LS_LAST_VIEW_TYPE, type);
-    localStorage.setItem(LS_LAST_VIEW_ID, id.toString());
+    writeString(LS_LAST_VIEW_TYPE, type);
+    writeInt(LS_LAST_VIEW_ID, id);
   }
 
   async function selectFolder(folderId: number) {

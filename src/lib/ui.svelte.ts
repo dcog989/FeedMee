@@ -1,7 +1,16 @@
 import { invoke } from "@tauri-apps/api/core";
 import type { SortOrder, Theme } from "./storeTypes";
 import type { AppSettings } from "./types";
-import { LS_BLOCKED_PHRASES, LS_LIST_WIDTH, LS_NAV_WIDTH, LS_SORT_ORDER, LS_THEME } from "./utils/persistence";
+import {
+  LS_BLOCKED_PHRASES,
+  LS_LIST_WIDTH,
+  LS_NAV_WIDTH,
+  LS_SORT_ORDER,
+  LS_THEME,
+  writeInt,
+  writeJson,
+  writeString,
+} from "./utils/persistence";
 
 export function createUI(state: {
   showSettings: boolean;
@@ -31,14 +40,14 @@ export function createUI(state: {
 }) {
   async function setBlockedPhrases(phrases: string[]) {
     state.blockedPhrases = phrases;
-    localStorage.setItem(LS_BLOCKED_PHRASES, JSON.stringify(phrases));
+    writeJson(LS_BLOCKED_PHRASES, phrases);
     await state.reloadCurrentArticleList();
   }
 
   function persistLayoutSettings() {
-    localStorage.setItem(LS_NAV_WIDTH, state.navWidth.toString());
-    localStorage.setItem(LS_LIST_WIDTH, state.listWidth.toString());
-    localStorage.setItem(LS_SORT_ORDER, state.sortOrder);
+    writeInt(LS_NAV_WIDTH, state.navWidth);
+    writeInt(LS_LIST_WIDTH, state.listWidth);
+    writeString(LS_SORT_ORDER, state.sortOrder);
   }
 
   async function setSortOrder(order: SortOrder) {
@@ -56,7 +65,7 @@ export function createUI(state: {
 
   function setTheme(newTheme: Theme) {
     state.theme = newTheme;
-    localStorage.setItem(LS_THEME, newTheme);
+    writeString(LS_THEME, newTheme);
   }
 
   function openSettings() {
