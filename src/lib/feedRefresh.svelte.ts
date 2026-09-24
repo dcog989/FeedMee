@@ -77,20 +77,18 @@ export function createFeedRefresher(state: RefreshStore) {
         })
       : Promise.resolve();
 
-    let index = 0;
-    const worker = async () => {
-      while (index < staleFeeds.length) {
-        const feed = staleFeeds[index++];
-        await performSingleFeedRefresh(feed.id);
-        if (visibleRemaining > 0 && visibleFeedIds.has(feed.id) && --visibleRemaining === 0) {
-          resolveVisible?.();
-        }
-      }
-    };
-
     try {
       await Promise.all([
-        ...Array.from({ length: REFRESH_CONCURRENCY }, () => worker()),
+        runWithConcurrency(
+          staleFeeds,
+          async (feed) => {
+            await performSingleFeedRefresh(feed.id);
+            if (visibleRemaining > 0 && visibleFeedIds.has(feed.id) && --visibleRemaining === 0) {
+              resolveVisible?.();
+            }
+          },
+          REFRESH_CONCURRENCY,
+        ),
         publishVisible
           ? (async () => {
               await visibleDone;
