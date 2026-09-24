@@ -17,7 +17,6 @@ interface ShortcutRegDeps {
 
 export function registerShortcuts(state: ShortcutRegDeps) {
   shortcutManager.register({
-    id: "settings",
     command: "settings",
     defaultKey: ",",
     description: "Open settings",
@@ -26,7 +25,6 @@ export function registerShortcuts(state: ShortcutRegDeps) {
   });
 
   shortcutManager.register({
-    id: "add-feed",
     command: "add-feed",
     defaultKey: "n",
     description: "Add new feed",
@@ -37,7 +35,6 @@ export function registerShortcuts(state: ShortcutRegDeps) {
   });
 
   shortcutManager.register({
-    id: "refresh-all",
     command: "refresh-all",
     defaultKey: "r",
     description: "Refresh all feeds",
@@ -46,7 +43,6 @@ export function registerShortcuts(state: ShortcutRegDeps) {
   });
 
   shortcutManager.register({
-    id: "focus-search",
     command: "focus-search",
     defaultKey: "/",
     description: "Focus search",
@@ -58,7 +54,6 @@ export function registerShortcuts(state: ShortcutRegDeps) {
   });
 
   shortcutManager.register({
-    id: "toggle-save",
     command: "toggle-save",
     defaultKey: "s",
     description: "Save/Read later",
@@ -69,7 +64,6 @@ export function registerShortcuts(state: ShortcutRegDeps) {
   });
 
   shortcutManager.register({
-    id: "mark-read",
     command: "mark-read",
     defaultKey: "m",
     description: "Mark as read/unread",
@@ -94,7 +88,6 @@ export function registerShortcuts(state: ShortcutRegDeps) {
   });
 
   shortcutManager.register({
-    id: "expand-all",
     command: "expand-all",
     defaultKey: "x",
     description: "Expand all folders",
@@ -105,7 +98,6 @@ export function registerShortcuts(state: ShortcutRegDeps) {
   });
 
   shortcutManager.register({
-    id: "collapse-all",
     command: "collapse-all",
     defaultKey: "c",
     description: "Collapse all folders",
@@ -116,7 +108,6 @@ export function registerShortcuts(state: ShortcutRegDeps) {
   });
 
   shortcutManager.register({
-    id: "open-article",
     command: "open-article",
     defaultKey: "enter",
     description: "Open article in browser",

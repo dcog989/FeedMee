@@ -1,7 +1,6 @@
 export type ShortcutHandler = (e: KeyboardEvent) => void | Promise<void>;
 
 export interface ShortcutDefinition {
-  id: string;
   command: string;
   defaultKey: string;
   description: string;
