@@ -1,5 +1,6 @@
 use std::borrow::Cow;
 use std::io::Cursor;
+use std::time::Duration;
 
 use async_trait::async_trait;
 use log::{debug, error, info};
@@ -36,41 +37,22 @@ impl FeedConnector for RssConnector {
             },
         };
 
-        if let Ok(feed) = feed_rs::parser::parse(Cursor::new(content_bytes.as_ref()))
-            && !feed.entries.is_empty()
-        {
-            let title = feed
-                .title
-                .as_ref()
-                .map(|t| t.content.clone())
-                .unwrap_or_else(|| "Untitled Feed".to_string());
-            let articles = entries_to_articles(&feed.entries, 0, url);
-            return Ok(FetchedFeed {
-                title,
-                url: url.to_string(),
-                articles,
-            });
+        if let Some(feed) = parse_feed(content_bytes.as_ref(), url) {
+            return Ok(feed);
         }
 
         let html = String::from_utf8_lossy(content_bytes.as_ref());
+        let mut candidates = Vec::new();
         if let Some(rss_url) = discover_rss_feed_url(&html, &original_url) {
             debug!("rss connector: discovered RSS url={}", rss_url);
-            let resp = client.get(&rss_url).send().await.map_err(|e| e.to_string())?;
-            let bytes = resp.bytes().await.map_err(|e| e.to_string())?;
-            if let Ok(feed) = feed_rs::parser::parse(Cursor::new(bytes))
-                && !feed.entries.is_empty()
-            {
-                let title = feed
-                    .title
-                    .as_ref()
-                    .map(|t| t.content.clone())
-                    .unwrap_or_else(|| "Untitled Feed".to_string());
-                let articles = entries_to_articles(&feed.entries, 0, &rss_url);
-                return Ok(FetchedFeed {
-                    title,
-                    url: rss_url,
-                    articles,
-                });
+            candidates.push(rss_url);
+        }
+        candidates.extend(candidate_feed_urls(&original_url));
+
+        for candidate in candidates {
+            if let Some(feed) = fetch_feed(client, &candidate).await {
+                debug!("rss connector: probed RSS url={}", candidate);
+                return Ok(feed);
             }
         }
 
@@ -80,6 +62,65 @@ impl FeedConnector for RssConnector {
     async fn refresh(&self, feed_url: &str, feed_id: i64, state: &AppState) -> Result<i64, String> {
         refresh_rss_feed(feed_url, feed_id, state).await
     }
+}
+
+/// Timeout for individual feed-probe requests, kept short so that probing many
+/// conventional paths for an unsupported site stays responsive.
+const FEED_PROBE_TIMEOUT: Duration = Duration::from_secs(5);
+
+/// Conventional feed paths, appended to a page's directory when HTML
+/// autodiscovery yields nothing (e.g. Cloudflare-protected homepages).
+const FEED_PATH_CANDIDATES: &[&str] = &[
+    "feed",
+    "feed/",
+    "rss",
+    "rss/",
+    "rss.xml",
+    "feed.xml",
+    "atom.xml",
+    "index.xml",
+];
+
+fn parse_feed(content: &[u8], feed_url: &str) -> Option<FetchedFeed> {
+    let feed = feed_rs::parser::parse(Cursor::new(content)).ok()?;
+    if feed.entries.is_empty() {
+        return None;
+    }
+    let title = feed
+        .title
+        .as_ref()
+        .map(|t| t.content.clone())
+        .unwrap_or_else(|| "Untitled Feed".to_string());
+    Some(FetchedFeed {
+        title,
+        url: feed_url.to_string(),
+        articles: entries_to_articles(&feed.entries, 0, feed_url),
+    })
+}
+
+async fn fetch_feed(client: &reqwest::Client, url: &str) -> Option<FetchedFeed> {
+    let response = client.get(url).timeout(FEED_PROBE_TIMEOUT).send().await.ok()?;
+    if !response.status().is_success() {
+        return None;
+    }
+    let bytes = response.bytes().await.ok()?;
+    parse_feed(&bytes, url)
+}
+
+/// Build the conventional feed URLs to probe for a page, relative to the
+/// page's own directory.
+fn candidate_feed_urls(base_url: &Url) -> Vec<String> {
+    let mut base = base_url.clone();
+    base.set_query(None);
+    base.set_fragment(None);
+    if !base.path().ends_with('/') {
+        let parent = base.path().rsplit_once('/').map(|(head, _)| head).unwrap_or("");
+        base.set_path(&format!("{}/", parent));
+    }
+    FEED_PATH_CANDIDATES
+        .iter()
+        .filter_map(|suffix| base.join(suffix).ok().map(|u| u.to_string()))
+        .collect()
 }
 
 pub fn entries_to_articles(entries: &[feed_rs::model::Entry], feed_id: i64, feed_url: &str) -> Vec<Article> {
@@ -341,7 +382,32 @@ fn strip_tracking_params(url: &str) -> String {
 
 #[cfg(test)]
 mod tests {
-    use super::{MIN_ACCEPTABLE_IMAGE_WIDTH, image_width_hint};
+    use super::{MIN_ACCEPTABLE_IMAGE_WIDTH, candidate_feed_urls, image_width_hint};
+
+    #[test]
+    fn candidates_are_relative_to_page_directory() {
+        let base = url::Url::parse("https://www.neowin.net/news/").unwrap();
+        let candidates = candidate_feed_urls(&base);
+        assert!(candidates.contains(&"https://www.neowin.net/news/rss/".to_string()));
+        assert!(candidates.contains(&"https://www.neowin.net/news/feed".to_string()));
+        assert!(candidates.iter().all(|u| u.starts_with("https://www.neowin.net/news/")));
+    }
+
+    #[test]
+    fn candidates_drop_filename_and_query() {
+        let base = url::Url::parse("https://example.com/blog/post?utm_source=x").unwrap();
+        let candidates = candidate_feed_urls(&base);
+        assert!(candidates.contains(&"https://example.com/blog/feed".to_string()));
+        assert!(candidates.contains(&"https://example.com/blog/rss.xml".to_string()));
+    }
+
+    #[test]
+    fn candidates_for_root_page_use_root_directory() {
+        let base = url::Url::parse("https://example.com").unwrap();
+        let candidates = candidate_feed_urls(&base);
+        assert!(candidates.contains(&"https://example.com/feed".to_string()));
+        assert!(candidates.contains(&"https://example.com/rss".to_string()));
+    }
 
     #[test]
     fn width_hint_prefers_declared_value() {
