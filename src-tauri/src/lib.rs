@@ -18,6 +18,7 @@ pub struct AppState {
     pub settings: Mutex<settings::AppSettings>,
     pub http_client: reqwest::Client,
     pub http_semaphore: Arc<tokio::sync::Semaphore>,
+    pub paths: paths::AppPaths,
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -26,10 +27,12 @@ pub fn run() {
         .setup(|app| {
             use log::info;
 
-            let (logs_dir, db_dir) = startup::create_dirs();
+            let app_handle = app.handle().clone();
+            let app_paths = paths::AppPaths::resolve(&app_handle).expect("failed to resolve app directories");
+            app_paths.create_dirs().expect("failed to create app directories");
 
-            let app_settings = settings::load_settings();
-            match startup::init_logging(&logs_dir, &app_settings.log_level) {
+            let app_settings = settings::load_settings(&app_paths.config_dir);
+            match startup::init_logging(&app_paths.logs_dir, &app_settings.log_level) {
                 Ok(handle) => {
                     app.manage(handle);
                 },
@@ -38,7 +41,7 @@ pub fn run() {
 
             info!("Starting FeedMee application");
 
-            let db_path = db_dir.join(db::DB_FILENAME);
+            let db_path = app_paths.db_path();
             let conn = startup::setup_database(&db_path);
 
             let http_client = startup::build_http_client();
@@ -48,12 +51,12 @@ pub fn run() {
                 settings: Mutex::new(app_settings),
                 http_client,
                 http_semaphore: Arc::new(tokio::sync::Semaphore::new(HTTP_FETCH_CONCURRENCY)),
+                paths: app_paths,
             });
 
             let window = app.get_webview_window("main").unwrap();
             startup::setup_window(&window);
 
-            let app_handle = app.handle().clone();
             tauri::async_runtime::spawn_blocking(move || {
                 let state = app_handle.state::<AppState>();
 
@@ -92,10 +95,10 @@ pub fn run() {
                 if do_vacuum && vacuum_ok {
                     let mut s = state.settings.lock().unwrap();
                     s.last_vacuum = now;
-                    crate::settings::save_settings(&s);
+                    crate::settings::save_settings(&state.paths.config_dir, &s);
                 }
 
-                let _ = commands::thumbnails::cleanup_thumbnail_cache(&app_handle, 7);
+                commands::thumbnails::cleanup_thumbnail_cache(&state.paths.thumbnail_dir(), 7);
             });
 
             let backup_handle = app.handle().clone();
@@ -103,7 +106,7 @@ pub fn run() {
                 std::thread::sleep(std::time::Duration::from_secs(200));
                 loop {
                     let state = backup_handle.state::<AppState>();
-                    if let Err(e) = commands::backup::run_auto_backup(&state.db) {
+                    if let Err(e) = commands::backup::run_auto_backup(&state.db, &state.paths.backup_dir()) {
                         log::error!("Auto-backup failed: {}", e);
                     }
                     std::thread::sleep(std::time::Duration::from_secs(86400));

@@ -4,20 +4,13 @@ use image::GenericImageView;
 use image::imageops::FilterType;
 use log::info;
 use std::fs;
-use std::path::PathBuf;
-use tauri::Manager;
+use std::path::Path;
 use tauri::State;
 use webp::Encoder;
 
 use super::scraper::{compute_content_hash, scrape_og_image};
 
 const MAX_IMAGE_BYTES: usize = 50_000_000;
-
-fn thumbnail_cache_dir(app: &tauri::AppHandle) -> Result<PathBuf, String> {
-    let dir = app.path().app_data_dir().map_err(|e| e.to_string())?.join("thumbnails");
-    fs::create_dir_all(&dir).ok();
-    Ok(dir)
-}
 
 fn hash_url(url: &str) -> String {
     compute_content_hash(url)
@@ -55,13 +48,13 @@ pub async fn get_thumbnail(
     url: String,
     image_url: String,
     size: u32,
-    app: tauri::AppHandle,
     state: State<'_, AppState>,
 ) -> Result<String, String> {
     let size = size.clamp(16, 256);
     let client = state.http_client.clone();
 
-    let cache_dir = thumbnail_cache_dir(&app)?;
+    let cache_dir = state.paths.thumbnail_dir();
+    fs::create_dir_all(&cache_dir).ok();
     let source_key = if image_url.is_empty() {
         url.as_str()
     } else {
@@ -120,11 +113,10 @@ pub async fn get_thumbnail(
     Ok(format!("data:image/webp;base64,{}", encoded))
 }
 
-pub fn cleanup_thumbnail_cache(app: &tauri::AppHandle, max_age_days: u64) -> Result<usize, String> {
-    let cache_dir = thumbnail_cache_dir(app)?;
+pub fn cleanup_thumbnail_cache(cache_dir: &Path, max_age_days: u64) -> usize {
     let cutoff = std::time::SystemTime::now() - std::time::Duration::from_secs(max_age_days * 86400);
     let mut count = 0;
-    if let Ok(entries) = fs::read_dir(&cache_dir) {
+    if let Ok(entries) = fs::read_dir(cache_dir) {
         for entry in entries.flatten() {
             if let Ok(metadata) = entry.metadata()
                 && metadata.is_file()
@@ -142,5 +134,5 @@ pub fn cleanup_thumbnail_cache(app: &tauri::AppHandle, max_age_days: u64) -> Res
             count, max_age_days
         );
     }
-    Ok(count)
+    count
 }

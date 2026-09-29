@@ -1,5 +1,5 @@
 use crate::{
-    AppState, db,
+    AppState,
     settings::{self, AppSettings},
 };
 use log::info;
@@ -29,20 +29,14 @@ pub struct AppInfo {
 }
 
 #[tauri::command]
-pub fn get_app_info(app: tauri::AppHandle) -> Result<AppInfo, String> {
-    let config_dir = crate::paths::config_dir();
-    let local_dir = crate::paths::local_data_dir();
+pub fn get_app_info(app: tauri::AppHandle, state: State<'_, AppState>) -> Result<AppInfo, String> {
     let version = app.package_info().version.to_string();
 
     Ok(AppInfo {
         version,
-        data_path: config_dir.to_string_lossy().to_string(),
-        logs_path: local_dir.join("Logs").to_string_lossy().to_string(),
-        db_path: config_dir
-            .join("Database")
-            .join(db::DB_FILENAME)
-            .to_string_lossy()
-            .to_string(),
+        data_path: state.paths.data_dir.to_string_lossy().to_string(),
+        logs_path: state.paths.logs_dir.to_string_lossy().to_string(),
+        db_path: state.paths.db_path().to_string_lossy().to_string(),
     })
 }
 
@@ -56,7 +50,7 @@ pub fn get_app_settings(state: State<'_, AppState>) -> Result<AppSettings, Strin
 pub fn save_app_settings(new_settings: AppSettings, state: State<'_, AppState>) -> Result<(), String> {
     let mut settings_guard = state.settings.lock().unwrap();
     *settings_guard = new_settings.clone();
-    settings::save_settings(&new_settings);
+    settings::save_settings(&state.paths.config_dir, &new_settings);
     Ok(())
 }
 
@@ -112,8 +106,8 @@ fn pick_font_platform() -> Result<String, String> {
 }
 
 #[tauri::command]
-pub fn get_shortcuts() -> Result<std::collections::HashMap<String, String>, String> {
-    let shortcuts_path = crate::paths::config_dir().join("shortcuts.json");
+pub fn get_shortcuts(state: State<'_, AppState>) -> Result<std::collections::HashMap<String, String>, String> {
+    let shortcuts_path = state.paths.shortcuts_path();
 
     if shortcuts_path.exists() {
         let content = fs::read_to_string(&shortcuts_path).map_err(|e| e.to_string())?;
@@ -125,9 +119,12 @@ pub fn get_shortcuts() -> Result<std::collections::HashMap<String, String>, Stri
 }
 
 #[tauri::command]
-pub fn save_shortcuts(shortcuts: std::collections::HashMap<String, String>) -> Result<(), String> {
-    let path = crate::paths::config_dir().join("shortcuts.json");
-    fs::create_dir_all(crate::paths::config_dir()).map_err(|e| e.to_string())?;
+pub fn save_shortcuts(
+    shortcuts: std::collections::HashMap<String, String>,
+    state: State<'_, AppState>,
+) -> Result<(), String> {
+    let path = state.paths.shortcuts_path();
+    fs::create_dir_all(&state.paths.config_dir).map_err(|e| e.to_string())?;
     let json = serde_json::to_string_pretty(&shortcuts).map_err(|e| e.to_string())?;
     fs::write(path, json).map_err(|e| e.to_string())?;
     info!("Shortcuts saved to disk");

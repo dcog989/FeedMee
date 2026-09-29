@@ -1,5 +1,6 @@
 use serde::{Deserialize, Serialize};
 use std::fs;
+use std::path::Path;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct AppSettings {
@@ -61,10 +62,9 @@ impl Default for AppSettings {
     }
 }
 
-pub fn load_settings() -> AppSettings {
-    let dir = crate::paths::config_dir();
-    fs::create_dir_all(&dir).ok();
-    let path = dir.join("settings.toml");
+pub fn load_settings(config_dir: &Path) -> AppSettings {
+    fs::create_dir_all(config_dir).ok();
+    let path = config_dir.join("settings.toml");
 
     if path.exists() {
         match fs::read_to_string(&path) {
@@ -87,14 +87,13 @@ pub fn load_settings() -> AppSettings {
     }
 
     let settings = AppSettings::default();
-    save_settings(&settings);
+    save_settings(config_dir, &settings);
     settings
 }
 
-pub fn save_settings(settings: &AppSettings) {
-    let dir = crate::paths::config_dir();
-    fs::create_dir_all(&dir).ok();
+pub fn save_settings(config_dir: &Path, settings: &AppSettings) {
+    fs::create_dir_all(config_dir).ok();
     if let Ok(toml_string) = toml::to_string_pretty(settings) {
-        let _ = fs::write(dir.join("settings.toml"), toml_string);
+        let _ = fs::write(config_dir.join("settings.toml"), toml_string);
     }
 }

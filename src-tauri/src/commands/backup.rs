@@ -3,13 +3,8 @@ use std::path::{Path, PathBuf};
 use std::sync::Mutex;
 
 use crate::db;
-use crate::paths;
 
 const MAX_BACKUPS: usize = 24;
-
-fn backup_dir() -> PathBuf {
-    paths::config_dir().join("Backup")
-}
 
 fn rotate_backups(dir: &Path) {
     let mut entries: Vec<PathBuf> = match fs::read_dir(dir) {
@@ -31,9 +26,8 @@ fn rotate_backups(dir: &Path) {
     }
 }
 
-pub fn run_auto_backup(db: &Mutex<rusqlite::Connection>) -> Result<(), String> {
-    let dir = backup_dir();
-    fs::create_dir_all(&dir).map_err(|e| format!("failed to create backup dir: {}", e))?;
+pub fn run_auto_backup(db: &Mutex<rusqlite::Connection>, backup_dir: &Path) -> Result<(), String> {
+    fs::create_dir_all(backup_dir).map_err(|e| format!("failed to create backup dir: {}", e))?;
 
     let conn = db.lock().map_err(|e| format!("db lock: {}", e))?;
     let folders = db::get_folders_with_feeds(&conn).map_err(|e| e.to_string())?;
@@ -42,13 +36,13 @@ pub fn run_auto_backup(db: &Mutex<rusqlite::Connection>) -> Result<(), String> {
 
     let timestamp = chrono::Local::now().format("%Y-%m-%d_%H%M%S");
     let filename = format!("backup-{}.opml", timestamp);
-    let filepath = dir.join(&filename);
+    let filepath = backup_dir.join(&filename);
 
     fs::write(&filepath, &opml).map_err(|e| format!("failed to write backup: {}", e))?;
 
     log::info!("Auto-backup written: {}", filepath.display());
 
-    rotate_backups(&dir);
+    rotate_backups(backup_dir);
 
     Ok(())
 }

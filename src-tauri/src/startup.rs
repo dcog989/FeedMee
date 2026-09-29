@@ -1,4 +1,4 @@
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
 use flexi_logger::{Age, Cleanup, Criterion, Duplicate, FileSpec, Logger, LoggerHandle, Naming};
 
@@ -8,21 +8,6 @@ const LOG_RETENTION_DAYS: usize = 5;
 const LOG_FILE_PREFIX: &str = "feedmee";
 const DEFAULT_LOG_LEVEL: &str = "info";
 const NOISY_MODULES: [&str; 5] = ["html5ever", "selectors", "scraper", "tendril", "reqwest"];
-
-pub(crate) fn create_dirs() -> (PathBuf, PathBuf) {
-    let local_dir = crate::paths::local_data_dir();
-    let config_dir = crate::paths::config_dir();
-    let logs_dir = local_dir.join("Logs");
-    let db_dir = config_dir.join("Database");
-
-    for dir in [&local_dir, &config_dir, &logs_dir, &db_dir] {
-        if !dir.exists() {
-            std::fs::create_dir_all(dir).expect("failed to create app data dir");
-        }
-    }
-
-    (logs_dir, db_dir)
-}
 
 pub(crate) fn log_spec(level: &str) -> String {
     let level = match level.to_lowercase().as_str() {
