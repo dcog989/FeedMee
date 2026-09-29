@@ -1,5 +1,5 @@
 <script lang="ts">
-import { RefreshCw, X } from "lucide-svelte";
+import { RefreshCw, X } from "@lucide/svelte";
 import { tooltip } from "$lib/actions/tooltip.svelte";
 import { FEED_FAILURE_LIMIT } from "$lib/feedRefresh.svelte";
 import { navStore, refreshStore } from "$lib/store.svelte";

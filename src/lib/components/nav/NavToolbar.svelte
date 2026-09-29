@@ -1,5 +1,5 @@
 ﻿<script lang="ts">
-import { ChevronDown, ChevronUp, FolderPlus, RefreshCw } from "lucide-svelte";
+import { ChevronDown, ChevronUp, FolderPlus, RefreshCw } from "@lucide/svelte";
 import { tooltip } from "$lib/actions/tooltip.svelte";
 import { refreshStore, uiStore } from "$lib/store.svelte";
 

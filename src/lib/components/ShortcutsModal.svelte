@@ -1,5 +1,5 @@
 <script lang="ts">
-import { RotateCcw, X } from "lucide-svelte";
+import { RotateCcw, X } from "@lucide/svelte";
 import { shortcutStore } from "$lib/store.svelte";
 import { type ShortcutDefinition, shortcutManager } from "$lib/utils/shortcuts";
 import Modal from "./Modal.svelte";

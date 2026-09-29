@@ -1,5 +1,5 @@
 <script lang="ts">
-import { Bookmark, Image, Tags } from "lucide-svelte";
+import { Bookmark, Image, Tags } from "@lucide/svelte";
 import { tooltip } from "$lib/actions/tooltip.svelte";
 import { articleStore } from "$lib/store.svelte";
 import type { Article } from "$lib/types";

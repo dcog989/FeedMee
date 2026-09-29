@@ -1,5 +1,5 @@
 <script lang="ts">
-import { ChevronRight, RefreshCcwDot } from "lucide-svelte";
+import { ChevronRight, RefreshCcwDot } from "@lucide/svelte";
 import { flip } from "svelte/animate";
 import { tooltip } from "$lib/actions/tooltip.svelte";
 import { feedStore, navStore, refreshStore } from "$lib/store.svelte";

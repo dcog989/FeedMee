@@ -1,5 +1,5 @@
 <script lang="ts">
-import { Check, Plus, Tags, Trash2, X } from "lucide-svelte";
+import { Check, Plus, Tags, Trash2, X } from "@lucide/svelte";
 import { tooltip } from "$lib/actions/tooltip.svelte";
 import { articleStore, tagStore, uiStore } from "$lib/store.svelte";
 import type { Tag } from "$lib/types";

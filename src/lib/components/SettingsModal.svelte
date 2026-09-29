@@ -1,6 +1,6 @@
 <script lang="ts">
+import { Keyboard, Settings, X } from "@lucide/svelte";
 import { invoke } from "@tauri-apps/api/core";
-import { Keyboard, Settings, X } from "lucide-svelte";
 import { feedStore, settingsStore, uiStore } from "$lib/store.svelte";
 import { type AppSettings, DEFAULT_SETTINGS } from "$lib/types";
 import Modal from "./Modal.svelte";

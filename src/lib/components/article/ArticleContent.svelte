@@ -30,7 +30,7 @@ DOMPurify.addHook("afterSanitizeAttributes", (node: Element) => {
 
 <script lang="ts">
 import { openUrl } from "@tauri-apps/plugin-opener";
-import { CircleAlert } from "lucide-svelte";
+import { CircleAlert } from "@lucide/svelte";
 
 let {
   rawHtml = "",

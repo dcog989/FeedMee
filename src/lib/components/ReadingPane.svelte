@@ -1,6 +1,6 @@
 <script lang="ts">
+import { ExternalLink } from "@lucide/svelte";
 import { openUrl } from "@tauri-apps/plugin-opener";
-import { ExternalLink } from "lucide-svelte";
 import { tooltip } from "$lib/actions/tooltip.svelte";
 import { appState, articleStore } from "$lib/store.svelte";
 import { bodyEmbedsImage, stripDuplicateTitle } from "$lib/utils/articleContent";

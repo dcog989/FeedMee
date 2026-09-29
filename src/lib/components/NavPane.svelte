@@ -1,5 +1,5 @@
 <script lang="ts">
-import { Info, Rss, Settings } from "lucide-svelte";
+import { Info, Rss, Settings } from "@lucide/svelte";
 import { navStore, refreshStore, uiStore } from "$lib/store.svelte";
 import { useExpandedFolders } from "$lib/useExpandedFolders.svelte";
 import { expandFolder } from "$lib/utils/expandedFolders";
