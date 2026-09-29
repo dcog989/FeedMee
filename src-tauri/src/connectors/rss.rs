@@ -275,19 +275,6 @@ async fn refresh_rss_feed(feed_url: &str, feed_id: i64, state: &AppState) -> Res
 
                     let mut articles = entries_to_articles(&feed.entries, feed_id, feed_url);
 
-                    // Older builds stored linkless entries under a synthesized `feed_url/#hash` URL.
-                    // Entries whose id is itself an article URL now resolve to that URL instead;
-                    // rewrite the legacy rows so the refresh doesn't insert duplicates.
-                    {
-                        let conn = state.db.lock().unwrap();
-                        for (entry, article) in feed.entries.iter().zip(&articles) {
-                            let placeholder = compute_placeholder_url(feed_url, entry);
-                            if placeholder != article.url {
-                                let _ = db::migrate_article_url(&conn, feed_id, &placeholder, &article.url);
-                            }
-                        }
-                    }
-
                     let known_urls: std::collections::HashSet<String> = {
                         let conn = state.db.lock().unwrap();
                         db::get_article_urls(&conn, feed_id)
