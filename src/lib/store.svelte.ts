@@ -24,6 +24,7 @@ import type { AppSettings, Article, Folder } from "./types";
 import { DEFAULT_SETTINGS } from "./types";
 import type { EditFeedTarget, ModalState, RenameFolderTarget } from "./ui.svelte";
 import { createUI } from "./ui.svelte";
+import { expandFolder } from "./utils/expandedFolders";
 import { findFeedFolderId } from "./utils/feeds";
 import {
   LS_BLOCKED_PHRASES,
@@ -351,12 +352,12 @@ class AppStateImpl {
     }
 
     // `expandedFolders` has a single owner here; the persistence effect in
-    // useExpandedFolders only writes the current value back to storage.
-    {
-      const newSet = new Set<number>(storedExpandedFolders ?? this.folders.map((f) => f.id));
-      if (expandFolderId !== null) newSet.add(expandFolderId);
-      this.expandedFolders = newSet;
-    }
+    // useExpandedFolders only writes the current value back to storage. When
+    // startup targets a specific folder, honor auto-collapse so a previously
+    // expanded folder does not linger alongside it.
+    const restored = new Set<number>(storedExpandedFolders ?? this.folders.map((f) => f.id));
+    this.expandedFolders =
+      expandFolderId !== null ? expandFolder(restored, expandFolderId, this.settings.auto_collapse_folders) : restored;
 
     // Establish the initial view first so the refresh can publish the selected
     // folder's list as soon as its own feeds finish, rather than after the whole
