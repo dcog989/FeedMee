@@ -1,5 +1,5 @@
+use dom_smoothie::{Config, Readability};
 use log::debug;
-use readabilityrs::{Readability, ReadabilityOptions};
 use scraper::{Html, Selector};
 use tauri::State;
 
@@ -69,6 +69,23 @@ fn extract_with_css_selectors(html: &str) -> Option<String> {
     None
 }
 
+fn extract_with_readability(html: &str, url: &str) -> Option<String> {
+    let mut readability = Readability::new(html, Some(url), Some(Config::default())).ok()?;
+    let article = readability.parse().ok()?;
+    let content = article.content.to_string();
+
+    if content_text_len(&content) > 100 && has_paragraph_structure(&content) {
+        debug!("get_article_content: dom_smoothie extracted {} chars", content.len());
+        return Some(content);
+    }
+
+    debug!(
+        "get_article_content: dom_smoothie content too short or no paragraphs ({} chars), falling back to CSS",
+        content.len()
+    );
+    None
+}
+
 #[tauri::command]
 pub async fn get_article_content(url: String, state: State<'_, AppState>) -> Result<String, String> {
     let html = state
@@ -82,30 +99,49 @@ pub async fn get_article_content(url: String, state: State<'_, AppState>) -> Res
         .await
         .map_err(|e| format!("Failed to read response: {}", e))?;
 
-    let readability_ok = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-        if let Ok(readability) = Readability::new(&html, Some(&url), Some(ReadabilityOptions::default()))
-            && let Some(article) = readability.parse()
-            && let Some(content) = article.content
-        {
-            if content_text_len(&content) > 100 && has_paragraph_structure(&content) {
-                debug!("get_article_content: readabilityrs extracted {} chars", content.len());
-                return Some(content);
-            }
-            debug!(
-                "get_article_content: readabilityrs content too short or no paragraphs ({} chars), falling back to CSS",
-                content.len()
-            );
-        }
-        None
-    }));
-
-    if let Ok(Some(content)) = readability_ok {
+    if let Some(content) = extract_with_readability(&html, &url) {
         return Ok(content);
     }
 
-    if readability_ok.is_err() {
-        debug!("get_article_content: readabilityrs panicked, falling back to CSS");
+    extract_with_css_selectors(&html).ok_or_else(|| "No content extracted".to_string())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{extract_with_css_selectors, extract_with_readability};
+
+    fn article_html() -> String {
+        let body = "<p>FeedMee is a desktop news feed reader that fetches RSS and Atom feeds in \
+            the background and renders every article in a clean, distraction-free layout.</p>\
+            <p>The reader keeps memory usage low by paginating results and caching thumbnails, \
+            so even feeds with thousands of entries stay responsive while you scroll.</p>";
+        format!(
+            "<html><head><title>FeedMee review</title></head>\
+             <body><nav>Home About Contact</nav>\
+             <article class=\"post-content\">{body}</article>\
+             <footer>Copyright</footer></body></html>"
+        )
     }
 
-    extract_with_css_selectors(&html).ok_or_else(|| "No content extracted".to_string())
+    #[test]
+    fn readability_extracts_article_body() {
+        let html = article_html();
+        let content = extract_with_readability(&html, "https://example.com/post")
+            .expect("readability should extract the article body");
+        assert!(content.contains("FeedMee is a desktop news feed reader"));
+        assert!(content.contains("paginating results"));
+    }
+
+    #[test]
+    fn css_fallback_extracts_known_container() {
+        let html = article_html();
+        let content = extract_with_css_selectors(&html).expect("css selector should match .post-content");
+        assert!(content.contains("renders every article"));
+    }
+
+    #[test]
+    fn css_fallback_ignores_short_fragments() {
+        let html = "<html><body><div class=\"content\">too short</div></body></html>";
+        assert!(extract_with_css_selectors(html).is_none());
+    }
 }
