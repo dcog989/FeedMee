@@ -1,5 +1,5 @@
 pkgname=feedmee
-pkgver=0.22.13
+pkgver=0.23.0
 pkgrel=1
 pkgdesc="The seriously fast feed reader."
 arch=('x86_64')

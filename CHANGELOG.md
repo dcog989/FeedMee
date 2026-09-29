@@ -2,6 +2,48 @@
 All notable changes to this project will be documented in this file. See [conventional commits](https://www.conventionalcommits.org/) for commit guidelines.
 
 - - -
+## v0.23.0 - 2026-09-29
+
+#### Features
+
+- (55ec9a8) use download icon for load full content action - dcog989
+
+- (556312f) add storage management controls - dcog989
+
+- (1d5d142) add Open Latest Log action - dcog989
+
+- (749b591) resolve app directories via Tauri PathResolver - dcog989
+
+#### Bug Fixes
+
+- (580a537) use ui-serif and normal weight for list titles - dcog989
+
+- (8e15bdb) collapse stale expanded folder on startup - dcog989
+
+- (a6822e7) treat zero article retention as "Never" - dcog989
+
+- (90c86a1) keep saved articles when deleting a feed or folder - dcog989
+
+- (f8f3053) prebundle lucide-svelte to stop dev virtual CSS race collapsing layout - dcog989
+
+- (23f1b5d) probe conventional feed paths when HTML discovery fails - dcog989
+
+#### Refactoring
+
+- (c161de0) remove custom-titlebar layout relics - dcog989
+
+- (47b6462) drop no-op gtk titlebar call in setup_window - dcog989
+
+- (e372cdc) replace readabilityrs with dom_smoothie - dcog989
+
+- (a4a30e9) collapse schema migrations into a single baseline - dcog989
+
+- (170c3b5) replace simplelog with flexi_logger for daily log rotation - dcog989
+
+- (1eb7911) replace simplelog with flexi_logger for daily log rotation - dcog989
+
+- - -
+
 ## v0.22.13 - 2026-09-24
 
 #### Bug Fixes
