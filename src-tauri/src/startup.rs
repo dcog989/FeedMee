@@ -24,6 +24,7 @@ pub(crate) fn log_spec(level: &str) -> String {
 
 pub(crate) fn init_logging(logs_dir: &Path, log_level: &str) -> Result<LoggerHandle, flexi_logger::FlexiLoggerError> {
     Logger::try_with_str(log_spec(log_level))?
+        .format(flexi_logger::opt_format)
         .log_to_file(
             FileSpec::default()
                 .directory(logs_dir)
