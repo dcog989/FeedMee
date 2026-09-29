@@ -69,6 +69,77 @@ async function openLatestLog() {
     uiStore.alert(String(e));
   }
 }
+
+interface StorageStats {
+  db_size_bytes: number;
+  cache_size_bytes: number;
+  cache_file_count: number;
+}
+
+let storage = $state<StorageStats | null>(null);
+let clearing = $state(false);
+let vacuuming = $state(false);
+
+async function refreshStorage() {
+  try {
+    storage = await invoke<StorageStats>("get_storage_stats");
+  } catch (e) {
+    console.error("Failed to load storage stats", e);
+  }
+}
+
+$effect(() => {
+  refreshStorage();
+});
+
+function formatBytes(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  const units = ["KB", "MB", "GB"];
+  let value = bytes / 1024;
+  let unit = 0;
+  while (value >= 1024 && unit < units.length - 1) {
+    value /= 1024;
+    unit++;
+  }
+  return `${value.toFixed(value >= 10 ? 0 : 1)} ${units[unit]}`;
+}
+
+function cacheLabel(): string {
+  if (!storage) return "…";
+  const files = storage.cache_file_count;
+  return `${formatBytes(storage.cache_size_bytes)} · ${files} ${files === 1 ? "file" : "files"}`;
+}
+
+function dbLabel(): string {
+  return storage ? formatBytes(storage.db_size_bytes) : "…";
+}
+
+async function clearCache() {
+  if (clearing) return;
+  clearing = true;
+  try {
+    await invoke("clear_thumbnail_cache");
+    await refreshStorage();
+  } catch (e) {
+    uiStore.alert(String(e));
+  } finally {
+    clearing = false;
+  }
+}
+
+function vacuum() {
+  uiStore.confirm("Vacuum the database now? This may take a moment.", async () => {
+    vacuuming = true;
+    try {
+      await invoke("vacuum_database");
+      await refreshStorage();
+    } catch (e) {
+      uiStore.alert(String(e));
+    } finally {
+      vacuuming = false;
+    }
+  });
+}
 </script>
 
 <Modal isOpen={true} onclose={cancel} class="settings-modal">
@@ -236,6 +307,28 @@ async function openLatestLog() {
         </div>
       </div>
 
+      <h4 class="section-label">Storage</h4>
+
+      <div class="form-group">
+        <span class="field-label">Thumbnail Cache</span>
+        <div class="storage-wrap">
+          <span class="storage-size">{cacheLabel()}</span>
+          <button type="button" class="storage-btn" onclick={clearCache} disabled={clearing || storage === null}>
+            {clearing ? 'Clearing…' : 'Clear'}
+          </button>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <span class="field-label">Database</span>
+        <div class="storage-wrap">
+          <span class="storage-size">{dbLabel()}</span>
+          <button type="button" class="storage-btn" onclick={vacuum} disabled={vacuuming}>
+            {vacuuming ? 'Vacuuming…' : 'Vacuum'}
+          </button>
+        </div>
+      </div>
+
       <hr>
 
       <div class="form-group">
@@ -322,7 +415,8 @@ async function openLatestLog() {
   margin-bottom: 0.25rem;
 }
 
-.form-group label {
+.form-group label,
+.form-group .field-label {
   flex: 0 0 180px;
   font-size: 0.9rem;
   color: var(--text-secondary);
@@ -331,6 +425,40 @@ async function openLatestLog() {
 
 .label-spacer {
   flex: 0 0 180px;
+}
+
+.storage-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+}
+
+.storage-size {
+  flex: 1;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+.storage-btn {
+  flex: 0 0 auto;
+  padding: 6px 12px;
+  border: 1px solid var(--border-color);
+  background: var(--bg-app);
+  color: var(--text-primary);
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.8rem;
+}
+
+.storage-btn:hover:not(:disabled) {
+  background: var(--bg-hover);
+}
+
+.storage-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
 }
 
 .open-log-btn {
