@@ -17,7 +17,4 @@ export default defineConfig({
       exclude: ["src/**/*.{test,spec,bench}.ts", "src/routes/**", "src/test/**", "src/app.d.ts"],
     },
   },
-  bench: {
-    include: ["src/**/*.bench.ts"],
-  },
 });

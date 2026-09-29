@@ -1,6 +1,3 @@
-import { cleanup } from "@testing-library/svelte";
-import { afterEach } from "vitest";
-
 class ResizeObserverStub {
   observe(): void {}
   unobserve(): void {}
@@ -16,7 +13,3 @@ if (!globalThis.ResizeObserver) {
 if (typeof HTMLElement.prototype.scrollTo !== "function") {
   HTMLElement.prototype.scrollTo = () => {};
 }
-
-afterEach(() => {
-  cleanup();
-});
