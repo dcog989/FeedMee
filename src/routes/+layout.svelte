@@ -26,10 +26,8 @@ function disableContextMenu(e: MouseEvent) {
 }
 </script>
 
-<div class="layout-wrapper" role="application" oncontextmenu={disableContextMenu}>
-  <div class="content-wrapper">
-    {@render children()}
-  </div>
+<div class="layout" role="application" oncontextmenu={disableContextMenu}>
+  {@render children()}
   <ThemeManager />
   <StyleInjector />
   <Tooltip />
@@ -58,17 +56,10 @@ function disableContextMenu(e: MouseEvent) {
 </div>
 
 <style>
-.layout-wrapper {
-  display: flex;
-  flex-direction: column;
+.layout {
+  position: relative;
   height: 100vh;
   width: 100vw;
   overflow: hidden;
-}
-
-.content-wrapper {
-  flex: 1;
-  overflow: hidden;
-  position: relative;
 }
 </style>

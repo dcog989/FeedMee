@@ -121,6 +121,8 @@ pub fn run() {
         .plugin(tauri_plugin_fs::init())
         .plugin(
             tauri_plugin_window_state::Builder::default()
+                // Never restore DECORATIONS (stale state from the old borderless
+                // build would re-hide the native titlebar) or VISIBLE.
                 .with_state_flags(StateFlags::all() - StateFlags::DECORATIONS - StateFlags::VISIBLE)
                 .skip_initial_state("main")
                 .build(),
