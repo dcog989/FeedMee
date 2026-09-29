@@ -3,7 +3,7 @@ use std::io::Cursor;
 use std::time::Duration;
 
 use async_trait::async_trait;
-use log::{debug, error, info};
+use log::{debug, error};
 use scraper::{Html, Selector};
 use url::Url;
 
@@ -271,7 +271,7 @@ async fn refresh_rss_feed(feed_url: &str, feed_id: i64, state: &AppState) -> Res
 
             match feed_rs::parser::parse(Cursor::new(content)) {
                 Ok(feed) => {
-                    info!("refresh_rss_feed: feed_id={}, {} entries", feed_id, feed.entries.len());
+                    debug!("refresh_rss_feed: feed_id={}, {} entries", feed_id, feed.entries.len());
 
                     let mut articles = entries_to_articles(&feed.entries, feed_id, feed_url);
 

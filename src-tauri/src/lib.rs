@@ -82,10 +82,8 @@ pub fn run() {
                         false
                     };
 
-                    if let Ok(count) = db::purge_old_articles(&conn, retention)
-                        && count > 0
-                    {
-                        log::info!("Startup: purged {} old articles", count);
+                    if let Err(e) = db::purge_old_articles(&conn, retention) {
+                        log::error!("Startup article purge failed: {}", e);
                     }
 
                     vacuum_ok

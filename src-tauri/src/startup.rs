@@ -7,7 +7,7 @@ use crate::db;
 const LOG_RETENTION_DAYS: usize = 5;
 const LOG_FILE_PREFIX: &str = "feedmee";
 const DEFAULT_LOG_LEVEL: &str = "info";
-const NOISY_MODULES: [&str; 4] = ["html5ever", "selectors", "scraper", "tendril"];
+const NOISY_MODULES: [&str; 5] = ["html5ever", "selectors", "scraper", "tendril", "reqwest"];
 
 pub(crate) fn create_dirs() -> (PathBuf, PathBuf) {
     let local_dir = crate::paths::local_data_dir();
