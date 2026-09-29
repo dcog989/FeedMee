@@ -137,6 +137,7 @@ pub fn run() {
             commands::save_app_settings,
             commands::get_shortcuts,
             commands::save_shortcuts,
+            commands::open_latest_log,
             commands::create_folder,
             commands::mark_article_saved,
             commands::mark_article_read,

@@ -61,6 +61,14 @@ function cancel() {
   (document.activeElement as HTMLElement)?.blur();
   settingsStore.closeSettings();
 }
+
+async function openLatestLog() {
+  try {
+    await invoke("open_latest_log");
+  } catch (e) {
+    uiStore.alert(String(e));
+  }
+}
 </script>
 
 <Modal isOpen={true} onclose={cancel} class="settings-modal">
@@ -240,6 +248,11 @@ function cancel() {
           <option value="trace">Trace</option>
         </select>
       </div>
+
+      <div class="form-group">
+        <span class="label-spacer" aria-hidden="true"></span>
+        <button type="button" class="open-log-btn" onclick={openLatestLog}>Open Latest Log</button>
+      </div>
     </div>
   </div>
 </Modal>
@@ -314,6 +327,26 @@ function cancel() {
   font-size: 0.9rem;
   color: var(--text-secondary);
   text-align: right;
+}
+
+.label-spacer {
+  flex: 0 0 180px;
+}
+
+.open-log-btn {
+  flex: 1;
+  padding: 8px;
+  border: 1px solid var(--border-color);
+  background: var(--bg-app);
+  color: var(--text-primary);
+  border-radius: 4px;
+  box-sizing: border-box;
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+
+.open-log-btn:hover {
+  background: var(--bg-hover);
 }
 
 select {

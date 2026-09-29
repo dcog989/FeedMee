@@ -5,7 +5,9 @@ use crate::{
 use log::info;
 use serde::Serialize;
 use std::fs;
+use std::path::{Path, PathBuf};
 use tauri::{Manager, State};
+use tauri_plugin_opener::OpenerExt;
 use tauri_plugin_window_state::{StateFlags, WindowExt};
 
 #[tauri::command]
@@ -129,4 +131,25 @@ pub fn save_shortcuts(
     fs::write(path, json).map_err(|e| e.to_string())?;
     info!("Shortcuts saved to disk");
     Ok(())
+}
+
+fn latest_log_file(dir: &Path) -> Option<PathBuf> {
+    fs::read_dir(dir)
+        .ok()?
+        .flatten()
+        .filter(|entry| entry.path().extension().is_some_and(|ext| ext == "log"))
+        .filter_map(|entry| {
+            let modified = entry.metadata().ok()?.modified().ok()?;
+            Some((modified, entry.path()))
+        })
+        .max_by_key(|(modified, _)| *modified)
+        .map(|(_, path)| path)
+}
+
+#[tauri::command]
+pub fn open_latest_log(app: tauri::AppHandle, state: State<'_, AppState>) -> Result<(), String> {
+    let latest = latest_log_file(&state.paths.logs_dir).ok_or_else(|| "No log files found".to_string())?;
+    app.opener()
+        .open_path(latest.to_string_lossy().to_string(), None::<&str>)
+        .map_err(|e| e.to_string())
 }
