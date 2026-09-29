@@ -186,7 +186,7 @@ function handleKeydown(e: KeyboardEvent) {
   font-family: var(--font-title, var(--font-serif));
   margin-bottom: 0.2rem;
   font-size: 0.95rem;
-  font-weight: 300;
+  font-weight: 400;
   line-height: 1.3;
   text-decoration: line-through;
   opacity: 0.7;

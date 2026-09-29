@@ -20,7 +20,7 @@
 
   /* Typography */
   --font-ui: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  --font-serif: serif;
+  --font-serif: ui-serif, serif;
   --font-body: sans-serif;
 }
 
