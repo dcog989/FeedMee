@@ -157,6 +157,10 @@ pub fn run_vacuum(conn: &Connection) -> Result<()> {
 }
 
 pub fn purge_old_articles(conn: &Connection, retention_days: u64) -> Result<usize> {
+    if retention_days == 0 {
+        info!("Article retention disabled; skipping purge");
+        return Ok(0);
+    }
     let cutoff = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
         .unwrap()

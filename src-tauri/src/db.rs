@@ -106,6 +106,17 @@ mod tests {
     }
 
     #[test]
+    fn purge_disabled_when_retention_zero() {
+        let mut conn = test_conn();
+        let feed = create_feed(&conn, "Feed", "https://example.com/rss", None, "rss").unwrap();
+        batch_insert_articles(&mut conn, &[sample_article(feed)]).unwrap();
+        conn.execute("UPDATE articles SET created_at = 1", []).unwrap();
+
+        assert_eq!(purge_old_articles(&conn, 0).unwrap(), 0);
+        assert_eq!(get_articles_for_feed(&conn, feed, 10, 0, true).unwrap().len(), 1);
+    }
+
+    #[test]
     fn delete_feed_preserves_saved_articles() {
         let mut conn = test_conn();
         let feed = create_feed(&conn, "Feed", "https://example.com/rss", None, "rss").unwrap();
