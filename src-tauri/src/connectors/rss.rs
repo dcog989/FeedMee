@@ -139,7 +139,16 @@ pub fn entries_to_articles(entries: &[feed_rs::model::Entry], feed_id: i64, feed
                     .as_ref()
                     .map(|t| t.content.clone())
                     .unwrap_or_else(|| "No Title".to_string()),
-                author: entry.authors.first().map(|p| p.name.clone()).unwrap_or_default(),
+                author: entry
+                    .authors
+                    .first()
+                    .and_then(|p| {
+                        p.name
+                            .clone()
+                            .filter(|name| !name.is_empty())
+                            .or_else(|| p.email.clone())
+                    })
+                    .unwrap_or_default(),
                 summary: entry
                     .content
                     .as_ref()
@@ -369,7 +378,59 @@ fn strip_tracking_params(url: &str) -> String {
 
 #[cfg(test)]
 mod tests {
-    use super::{MIN_ACCEPTABLE_IMAGE_WIDTH, candidate_feed_urls, image_width_hint};
+    use super::{MIN_ACCEPTABLE_IMAGE_WIDTH, candidate_feed_urls, entries_to_articles, image_width_hint};
+    use feed_rs::model::{Entry, Person};
+
+    fn person(name: Option<&str>, email: Option<&str>) -> Person {
+        Person {
+            name: name.map(str::to_string),
+            uri: None,
+            email: email.map(str::to_string),
+            role: None,
+        }
+    }
+
+    fn author_of(entry: Entry) -> String {
+        entries_to_articles(&[entry], 0, "https://example.com/feed")[0]
+            .author
+            .clone()
+    }
+
+    #[test]
+    fn author_prefers_name_over_email() {
+        let entry = Entry {
+            authors: vec![person(Some("Jane Doe"), Some("jane@example.com"))],
+            ..Default::default()
+        };
+        assert_eq!(author_of(entry), "Jane Doe");
+    }
+
+    #[test]
+    fn author_falls_back_to_email_when_name_missing() {
+        let entry = Entry {
+            authors: vec![person(None, Some("writer@example.com"))],
+            ..Default::default()
+        };
+        assert_eq!(author_of(entry), "writer@example.com");
+    }
+
+    #[test]
+    fn author_falls_back_to_email_when_name_blank() {
+        let entry = Entry {
+            authors: vec![person(Some(""), Some("writer@example.com"))],
+            ..Default::default()
+        };
+        assert_eq!(author_of(entry), "writer@example.com");
+    }
+
+    #[test]
+    fn author_empty_when_name_and_email_absent() {
+        let entry = Entry {
+            authors: vec![person(None, None)],
+            ..Default::default()
+        };
+        assert!(author_of(entry).is_empty());
+    }
 
     #[test]
     fn candidates_are_relative_to_page_directory() {
