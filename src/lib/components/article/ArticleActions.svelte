@@ -1,5 +1,5 @@
 <script lang="ts">
-import { Bookmark, FileText, Tags } from "lucide-svelte";
+import { Bookmark, Download, Tags } from "lucide-svelte";
 import { tooltip, tooltipState } from "$lib/actions/tooltip.svelte";
 import TagPopover from "$lib/components/TagPopover.svelte";
 import { articleStore } from "$lib/store.svelte";
@@ -63,7 +63,7 @@ let isSaved = $derived(article.is_saved);
     {#if isLoadingFull}
       <span class="spinner"></span>
     {:else}
-      <FileText size={18} />
+      <Download size={18} />
     {/if}
   </button>
 </div>
