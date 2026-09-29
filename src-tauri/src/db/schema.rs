@@ -4,6 +4,10 @@ use rusqlite_migration::{M, Migrations};
 
 pub const DB_FILENAME: &str = "feedmee.sqlite";
 
+/// Hidden feed that retains saved articles after their original feed is
+/// deleted. Never listed to the user; mirrors the `folder_id = 0` sentinel.
+pub const SAVED_FEED_ID: i64 = 0;
+
 fn migrations() -> Migrations<'static> {
     Migrations::new(vec![
         M::up(
@@ -117,6 +121,10 @@ fn migrations() -> Migrations<'static> {
              END;",
         ),
         M::up("CREATE INDEX IF NOT EXISTS idx_articles_saved ON articles(timestamp, id) WHERE is_saved = 1;"),
+        M::up(
+            "INSERT OR IGNORE INTO feeds (id, name, url, folder_id, has_error, feed_type)
+             VALUES (0, 'Saved', 'feedmee:saved', 0, 0, 'rss');",
+        ),
     ])
 }
 

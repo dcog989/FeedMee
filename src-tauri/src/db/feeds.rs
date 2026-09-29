@@ -1,3 +1,4 @@
+use super::SAVED_FEED_ID;
 use crate::models::{Feed, Folder};
 use log::debug;
 use rusqlite::{Connection, Result, params};
@@ -45,11 +46,11 @@ pub fn get_folders_with_feeds(conn: &Connection) -> Result<Vec<Folder>> {
     let mut folder_stmt = conn.prepare("SELECT id, name FROM folders WHERE id != 0 ORDER BY name COLLATE NOCASE")?;
 
     let mut feed_stmt = conn.prepare(&format!(
-        "{FEED_SELECT} WHERE f.folder_id = ?1 ORDER BY f.name COLLATE NOCASE"
+        "{FEED_SELECT} WHERE f.folder_id = ?1 AND f.id != {SAVED_FEED_ID} ORDER BY f.name COLLATE NOCASE"
     ))?;
 
     let mut root_feed_stmt = conn.prepare(&format!(
-        "{FEED_SELECT} WHERE f.folder_id = 0 ORDER BY f.name COLLATE NOCASE"
+        "{FEED_SELECT} WHERE f.folder_id = 0 AND f.id != {SAVED_FEED_ID} ORDER BY f.name COLLATE NOCASE"
     ))?;
 
     let root_feeds: Vec<Feed> = root_feed_stmt
@@ -164,6 +165,22 @@ pub fn rename_feed(conn: &Connection, id: i64, new_name: &str, new_url: &str) ->
 }
 
 fn delete_feed_rows(conn: &Connection, id: i64) -> Result<()> {
+    if id == SAVED_FEED_ID {
+        return Ok(());
+    }
+    // Drop saved articles already retained under the sentinel that share a URL
+    // with an incoming saved article, so the reassignment below cannot violate
+    // the UNIQUE(feed_id, url) constraint.
+    conn.execute(
+        "DELETE FROM articles
+         WHERE feed_id = ?2
+           AND url IN (SELECT a.url FROM articles a WHERE a.feed_id = ?1 AND a.is_saved = 1)",
+        params![id, SAVED_FEED_ID],
+    )?;
+    conn.execute(
+        "UPDATE articles SET feed_id = ?2 WHERE feed_id = ?1 AND is_saved = 1",
+        params![id, SAVED_FEED_ID],
+    )?;
     conn.execute("DELETE FROM articles WHERE feed_id = ?1", params![id])?;
     conn.execute("DELETE FROM feeds WHERE id = ?1", params![id])?;
     Ok(())

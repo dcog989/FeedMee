@@ -1,3 +1,4 @@
+use super::SAVED_FEED_ID;
 use crate::models::Article;
 use rusqlite::{Connection, Result, params};
 
@@ -40,7 +41,7 @@ pub fn get_articles_for_folder(
         "SELECT {ARTICLE_COLUMNS}
          FROM articles a
          JOIN feeds f ON a.feed_id = f.id
-         WHERE f.folder_id = ?1
+         WHERE f.folder_id = ?1 AND f.id != {SAVED_FEED_ID}
          ORDER BY a.timestamp {order}, a.id {order} LIMIT ?2 OFFSET ?3"
     );
     let mut stmt = conn.prepare(&sql)?;

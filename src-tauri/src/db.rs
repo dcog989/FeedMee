@@ -106,6 +106,45 @@ mod tests {
     }
 
     #[test]
+    fn delete_feed_preserves_saved_articles() {
+        let mut conn = test_conn();
+        let feed = create_feed(&conn, "Feed", "https://example.com/rss", None, "rss").unwrap();
+
+        let mut saved = sample_article(feed);
+        saved.url = "https://example.com/saved".to_string();
+        let mut unsaved = sample_article(feed);
+        unsaved.url = "https://example.com/unsaved".to_string();
+        batch_insert_articles(&mut conn, &[saved, unsaved]).unwrap();
+
+        let saved_id = get_articles_for_feed(&conn, feed, 10, 0, true)
+            .unwrap()
+            .into_iter()
+            .find(|a| a.url == "https://example.com/saved")
+            .unwrap()
+            .id;
+        update_article_saved(&conn, saved_id, true).unwrap();
+
+        delete_feed(&conn, feed).unwrap();
+
+        assert!(get_feed(&conn, feed).is_err());
+        assert!(get_articles_for_feed(&conn, feed, 10, 0, true).unwrap().is_empty());
+        let remaining = get_saved_articles(&conn, 10, 0, true).unwrap();
+        assert_eq!(remaining.len(), 1);
+        assert_eq!(remaining[0].id, saved_id);
+    }
+
+    #[test]
+    fn sentinel_feed_is_hidden_from_listings() {
+        let mut conn = test_conn();
+        let feed = create_feed(&conn, "Feed", "https://example.com/rss", None, "rss").unwrap();
+        batch_insert_articles(&mut conn, &[sample_article(feed)]).unwrap();
+
+        let folders = get_folders_with_feeds(&conn).unwrap();
+        let ids: Vec<i64> = folders.iter().flat_map(|f| f.feeds.iter().map(|fe| fe.id)).collect();
+        assert_eq!(ids, vec![feed]);
+    }
+
+    #[test]
     fn delete_folder_removes_nested_feeds_and_articles() {
         let mut conn = test_conn();
         let folder = create_folder(&conn, "News").unwrap();
