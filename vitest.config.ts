@@ -9,12 +9,11 @@ export default defineConfig({
   test: {
     include: ["src/**/*.{test,spec}.{js,ts}"],
     environment: "jsdom",
-    setupFiles: ["src/test/setup.ts"],
     coverage: {
       provider: "v8",
       reporter: ["text", "html"],
       include: ["src/**/*.{ts,svelte}"],
-      exclude: ["src/**/*.{test,spec,bench}.ts", "src/routes/**", "src/test/**", "src/app.d.ts"],
+      exclude: ["src/**/*.{test,spec,bench}.ts", "src/routes/**", "src/app.d.ts"],
     },
   },
 });
