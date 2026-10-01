@@ -28,7 +28,7 @@ serde_json = "1.0"
 tauri = { version = "2.12", features = [] }
 tauri-plugin-dialog = "2.8"
 tauri-plugin-fs = "2.6"
-tauri-plugin-opener = "2.6"
+tauri-plugin-opener = "2.7"
 tauri-plugin-updater = "2.13"
 tauri-plugin-window-state = "2.5"
 tokio = { version = "1", features = ["sync"] }
@@ -37,7 +37,7 @@ url = "2.5"
 webp = "0.3.1"
 
 [build-dependencies]
-tauri-build = { version = "2.7.0", features = [] }
+tauri-build = { version = "2.7.1", features = [] }
 
 [target.'cfg(target_os = "linux")'.dependencies]
 gtk = "0.18"

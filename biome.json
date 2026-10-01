@@ -8,7 +8,7 @@
     "lineWidth": 120
   },
   "html": {
-    "experimentalFullSupportEnabled": false,
+    "experimentalFullSupportEnabled": true,
     "formatter": { "enabled": true }
   },
   "vcs": {
