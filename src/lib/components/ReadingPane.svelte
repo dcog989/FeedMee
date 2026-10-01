@@ -76,9 +76,9 @@ function getFeedDomain(feedId: number): string {
           <a
             href={articleStore.selectedArticle.url}
             onclick={(e) => {
-                            e.preventDefault();
-                            if (articleStore.selectedArticle) openUrl(articleStore.selectedArticle.url);
-                        }}
+              e.preventDefault();
+              if (articleStore.selectedArticle) openUrl(articleStore.selectedArticle.url);
+            }}
             rel="noopener noreferrer"
             class="title-link"
             use:tooltip={articleStore.selectedArticle.url}
@@ -111,7 +111,7 @@ function getFeedDomain(feedId: number): string {
             loading="lazy"
             onerror={(e) => {
               const img = e.currentTarget as HTMLImageElement;
-              img.style.display = 'none';
+              img.style.display = "none";
             }}
           >
         </p>
@@ -127,9 +127,9 @@ function getFeedDomain(feedId: number): string {
           class="original-link"
           use:tooltip={articleStore.selectedArticle.url}
           onclick={(e) => {
-                        e.preventDefault();
-                        if (articleStore.selectedArticle) openUrl(articleStore.selectedArticle.url);
-                    }}
+            e.preventDefault();
+            if (articleStore.selectedArticle) openUrl(articleStore.selectedArticle.url);
+          }}
         >
           Read original article
           <ExternalLink size={12} />

@@ -29,8 +29,8 @@ DOMPurify.addHook("afterSanitizeAttributes", (node: Element) => {
 </script>
 
 <script lang="ts">
-import { openUrl } from "@tauri-apps/plugin-opener";
 import { CircleAlert } from "@lucide/svelte";
+import { openUrl } from "@tauri-apps/plugin-opener";
 
 let {
   rawHtml = "",
@@ -70,7 +70,12 @@ async function handleContentClick(e?: MouseEvent) {
   role="button"
   tabindex="0"
   onclick={handleContentClick}
-  onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleContentClick(); } }}
+  onkeydown={(e) => {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      handleContentClick();
+    }
+  }}
 >
   {@html displayHtml}
 </div>

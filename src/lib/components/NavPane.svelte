@@ -103,7 +103,7 @@ function onDragLeavePane(e: DragEvent) {
 <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
 <nav
   class="pane"
-  oncontextmenu={(e) => ctxMenu.show(e, 'root', 0)}
+  oncontextmenu={(e) => ctxMenu.show(e, "root", 0)}
   ondragover={handleNavDragOver}
   ondragleave={onDragLeavePane}
 >
@@ -115,14 +115,14 @@ function onDragLeavePane(e: DragEvent) {
         {folder}
         isExpanded={navStore.expandedFolders.has(folder.id)}
         onToggle={(e) => {
-                    e.stopPropagation();
-                    expanded.toggleFolder(folder.id);
-                }}
+          e.stopPropagation();
+          expanded.toggleFolder(folder.id);
+        }}
         onContextMenu={(e, type, id, name) => ctxMenu.show(e, type, id, name)}
         onFeedsChange={(folderId, feeds) => {
-                    const f = navStore.folders.find((x) => x.id === folderId);
-                    if (f) f.feeds = feeds;
-                }}
+          const f = navStore.folders.find((x) => x.id === folderId);
+          if (f) f.feeds = feeds;
+        }}
       />
     {/each}
     {#each navStore.folders as folder (folder.id)}

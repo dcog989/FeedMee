@@ -48,7 +48,7 @@ function focusOnMount(node: HTMLInputElement) {
     <input type="text" bind:value={name} placeholder="Feed name" onkeydown={onKeyDown} use:focusOnMount>
   </label>
   <div class="field">
-    <span id="feed-source-id-label">{isBluesky ? 'Bluesky DID' : 'URL'}</span>
+    <span id="feed-source-id-label">{isBluesky ? "Bluesky DID" : "URL"}</span>
     <input
       aria-labelledby="feed-source-id-label"
       type="text"

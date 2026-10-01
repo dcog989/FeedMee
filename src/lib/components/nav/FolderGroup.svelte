@@ -130,9 +130,9 @@ function getFolderUnreadCount(feeds: Feed[]): number {
       type="button"
       class="folder-name-area"
       onclick={(e) => {
-  navStore.selectFolder(folder.id);
-  onToggle(e);
-}}
+        navStore.selectFolder(folder.id);
+        onToggle(e);
+      }}
     >
       <span class="folder-name">{folder.name}</span>
     </button>
@@ -141,9 +141,9 @@ function getFolderUnreadCount(feeds: Feed[]): number {
       type="button"
       class="folder-action-area"
       onclick={(e) => {
-  e.stopPropagation();
-  refreshStore.requestRefreshFolder(folder.id);
-}}
+        e.stopPropagation();
+        refreshStore.requestRefreshFolder(folder.id);
+      }}
       aria-label="Refresh folder"
     >
       {#if refreshStore.isFolderUpdating(folder.id)}
@@ -188,19 +188,19 @@ function getFolderUnreadCount(feeds: Feed[]): number {
             class="feed-item"
             class:selected={navStore.selectedFeedId === feed.id}
             onclick={(e) => {
-  e.stopPropagation();
-  navStore.selectFeed(feed.id);
-}}
+              e.stopPropagation();
+              navStore.selectFeed(feed.id);
+            }}
             oncontextmenu={(e) => onContextMenu(e, "feed", feed.id, feed.name)}
             role="option"
             tabindex="0"
             aria-selected={navStore.selectedFeedId === feed.id}
             onkeydown={(e) => {
-  if (e.key === "Enter" || e.key === " ") {
-    e.preventDefault();
-    navStore.selectFeed(feed.id);
-  }
-}}
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                navStore.selectFeed(feed.id);
+              }
+            }}
           >
             <FeedItem {feed} isSelected={navStore.selectedFeedId === feed.id} />
           </div>

@@ -29,16 +29,16 @@ let isSaved = $derived(article.is_saved);
     class="action-btn"
     class:active={article.has_tags || tagArticleId !== null}
     onclick={(e) => {
-            tooltipState.visible = false;
-            const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-            tagX = rect.left;
-            tagY = rect.bottom + 4;
-            tagArticleId = tagArticleId === article.id ? null : article.id;
-        }}
-    use:tooltip={'Tags'}
+      tooltipState.visible = false;
+      const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+      tagX = rect.left;
+      tagY = rect.bottom + 4;
+      tagArticleId = tagArticleId === article.id ? null : article.id;
+    }}
+    use:tooltip={"Tags"}
     aria-label="Tags"
   >
-    <Tags size={18} fill={article.has_tags ? 'currentColor' : 'none'} />
+    <Tags size={18} fill={article.has_tags ? "currentColor" : "none"} />
   </button>
 
   <button
@@ -46,17 +46,17 @@ let isSaved = $derived(article.is_saved);
     class="action-btn"
     class:active={isSaved}
     onclick={() => articleStore.toggleSaved(article)}
-    use:tooltip={'Read Later'}
+    use:tooltip={"Read Later"}
     aria-label="Read Later"
   >
-    <Bookmark size={18} fill={isSaved ? 'currentColor' : 'none'} />
+    <Bookmark size={18} fill={isSaved ? "currentColor" : "none"} />
   </button>
 
   <button
     type="button"
     class="action-btn"
     onclick={onLoadFullContent}
-    use:tooltip={'Load Full Content'}
+    use:tooltip={"Load Full Content"}
     disabled={isLoadingFull || hasFullContent}
     aria-label="Load Full Content"
   >
@@ -68,7 +68,14 @@ let isSaved = $derived(article.is_saved);
   </button>
 </div>
 
-<TagPopover articleId={tagArticleId} x={tagX} y={tagY} onClose={() => { tagArticleId = null; }} />
+<TagPopover
+  articleId={tagArticleId}
+  x={tagX}
+  y={tagY}
+  onClose={() => {
+    tagArticleId = null;
+  }}
+/>
 
 <style>
 .meta-actions {

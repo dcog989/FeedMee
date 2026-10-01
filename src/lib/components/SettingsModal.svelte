@@ -192,20 +192,20 @@ function vacuum() {
         </select>
       </div>
 
-      {#if settings.default_view_type === 'folder'}
+      {#if settings.default_view_type === "folder"}
         <div class="form-group">
           <label for="default-folder">Default Folder</label>
           <select id="default-folder" bind:value={settings.default_view_id}>
-            {#each feedStore.folders.filter(f => f.id !== 0) as folder}
+            {#each feedStore.folders.filter((f) => f.id !== 0) as folder}
               <option value={folder.id}>{folder.name}</option>
             {/each}
           </select>
         </div>
-      {:else if settings.default_view_type === 'feed'}
+      {:else if settings.default_view_type === "feed"}
         <div class="form-group">
           <label for="default-feed">Default Feed</label>
           <select id="default-feed" bind:value={settings.default_view_id}>
-            {#each feedStore.folders.filter(f => f.id !== 0) as folder}
+            {#each feedStore.folders.filter((f) => f.id !== 0) as folder}
               {#each folder.feeds as feed}
                 <option value={feed.id}>{folder.name} / {feed.name}</option>
               {/each}
@@ -237,7 +237,7 @@ function vacuum() {
           id="title-font"
           bind:value={settings.article_title_font}
           placeholder="Default (Serif)"
-          onclick={() => pickFont('title')}
+          onclick={() => pickFont("title")}
         >
       </div>
 
@@ -248,7 +248,7 @@ function vacuum() {
           id="body-font"
           bind:value={settings.article_body_font}
           placeholder="Default (Sans)"
-          onclick={() => pickFont('body')}
+          onclick={() => pickFont("body")}
         >
       </div>
 
@@ -284,7 +284,7 @@ function vacuum() {
         <label for="thumb-size">Thumbnail Size</label>
         <div class="range-wrap">
           <input type="range" id="thumb-size" min="0" max="156" step="12" bind:value={settings.thumbnail_size}>
-          <span class="range-value">{settings.thumbnail_size > 0 ? `${settings.thumbnail_size}px` : 'Off'}</span>
+          <span class="range-value">{settings.thumbnail_size > 0 ? `${settings.thumbnail_size}px` : "Off"}</span>
         </div>
       </div>
 
@@ -302,7 +302,7 @@ function vacuum() {
             bind:value={settings.article_retention_days}
           >
           <span class="range-value"
-            >{settings.article_retention_days > 0 ? `${settings.article_retention_days} days` : 'Never'}</span
+            >{settings.article_retention_days > 0 ? `${settings.article_retention_days} days` : "Never"}</span
           >
         </div>
       </div>
@@ -314,7 +314,7 @@ function vacuum() {
         <div class="storage-wrap">
           <span class="storage-size">{cacheLabel()}</span>
           <button type="button" class="storage-btn" onclick={clearCache} disabled={clearing || storage === null}>
-            {clearing ? 'Clearing…' : 'Clear'}
+            {clearing ? "Clearing…" : "Clear"}
           </button>
         </div>
       </div>
@@ -324,7 +324,7 @@ function vacuum() {
         <div class="storage-wrap">
           <span class="storage-size">{dbLabel()}</span>
           <button type="button" class="storage-btn" onclick={vacuum} disabled={vacuuming}>
-            {vacuuming ? 'Vacuuming…' : 'Vacuum'}
+            {vacuuming ? "Vacuuming…" : "Vacuum"}
           </button>
         </div>
       </div>

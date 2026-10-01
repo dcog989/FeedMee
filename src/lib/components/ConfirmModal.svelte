@@ -5,9 +5,7 @@ import Modal from "./Modal.svelte";
 
 <Modal isOpen={uiStore.modalState.isOpen} onclose={() => uiStore.closeModal()}>
   <h3>
-    {uiStore.modalState.type === "confirm"
-            ? "Confirmation"
-            : "Alert"}
+    {uiStore.modalState.type === "confirm" ? "Confirmation" : "Alert"}
   </h3>
   <p>{uiStore.modalState.message}</p>
   <div class="modal-actions">
@@ -16,14 +14,10 @@ import Modal from "./Modal.svelte";
     {/if}
     <button
       type="button"
-      class={uiStore.modalState.type === "confirm"
-                ? "danger"
-                : "primary"}
+      class={uiStore.modalState.type === "confirm" ? "danger" : "primary"}
       onclick={uiStore.modalState.onConfirm}
     >
-      {uiStore.modalState.type === "confirm"
-                ? "Confirm"
-                : "OK"}
+      {uiStore.modalState.type === "confirm" ? "Confirm" : "OK"}
     </button>
   </div>
 </Modal>

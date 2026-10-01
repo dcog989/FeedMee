@@ -16,7 +16,12 @@ let {
 } = $props();
 </script>
 
-<svelte:window onclick={onClose} onkeydown={(e) => { if (e.key === 'Escape') onClose(); }} />
+<svelte:window
+  onclick={onClose}
+  onkeydown={(e) => {
+    if (e.key === "Escape") onClose();
+  }}
+/>
 
 {#if visible}
   <div class="context-menu" style="top: {y}px; left: {x}px" role="menu">

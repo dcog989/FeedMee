@@ -33,12 +33,12 @@ function focusOnMount(node: HTMLInputElement) {
 </script>
 
 <Modal isOpen={true} onclose={closeDialog} width="350px">
-  <h3>{isRename ? 'Rename Folder' : 'New Folder'}</h3>
+  <h3>{isRename ? "Rename Folder" : "New Folder"}</h3>
   <input type="text" bind:value={name} placeholder="Enter folder name" onkeydown={onKeyDown} use:focusOnMount>
   <div class="modal-actions">
     <button type="button" class="secondary" onclick={closeDialog}>Cancel</button>
     <button type="button" class="primary" disabled={!name.trim()} onclick={submit}>
-      {isRename ? 'Rename' : 'Create'}
+      {isRename ? "Rename" : "Create"}
     </button>
   </div>
 </Modal>

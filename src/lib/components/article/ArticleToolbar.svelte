@@ -11,7 +11,7 @@ import { FEED_ID_LATEST, FEED_ID_SAVED, FEED_ID_TODAY, feedStore, settingsStore 
       class="tool-btn"
       class:active={feedStore.selectedFeedId === FEED_ID_LATEST}
       onclick={() => feedStore.selectFeed(FEED_ID_LATEST)}
-      use:tooltip={'Latest'}
+      use:tooltip={"Latest"}
       aria-label="Latest"
     >
       <Clock size={18} />
@@ -31,7 +31,7 @@ import { FEED_ID_LATEST, FEED_ID_SAVED, FEED_ID_TODAY, feedStore, settingsStore 
       class="tool-btn"
       class:active={feedStore.selectedFeedId === FEED_ID_SAVED}
       onclick={() => feedStore.selectFeed(FEED_ID_SAVED)}
-      use:tooltip={'Read Later'}
+      use:tooltip={"Read Later"}
       aria-label="Read Later"
     >
       <Bookmark size={18} />
@@ -41,11 +41,9 @@ import { FEED_ID_LATEST, FEED_ID_SAVED, FEED_ID_TODAY, feedStore, settingsStore 
     <button
       type="button"
       class="tool-btn"
-      onclick={() => settingsStore.setSortOrder(settingsStore.sortOrder === 'desc' ? 'asc' : 'desc')}
-      use:tooltip={settingsStore.sortOrder === 'desc'
-                ? 'Sort: Newest First'
-                : 'Sort: Oldest First'}
-      aria-label={settingsStore.sortOrder === 'desc' ? 'Sort Newest First' : 'Sort Oldest First'}
+      onclick={() => settingsStore.setSortOrder(settingsStore.sortOrder === "desc" ? "asc" : "desc")}
+      use:tooltip={settingsStore.sortOrder === "desc" ? "Sort: Newest First" : "Sort: Oldest First"}
+      aria-label={settingsStore.sortOrder === "desc" ? "Sort Newest First" : "Sort Oldest First"}
     >
       <ArrowUpDown size={20} />
     </button>
@@ -54,7 +52,7 @@ import { FEED_ID_LATEST, FEED_ID_SAVED, FEED_ID_TODAY, feedStore, settingsStore 
       type="button"
       class="tool-btn"
       onclick={() => feedStore.markAllRead()}
-      use:tooltip={'Mark All Read'}
+      use:tooltip={"Mark All Read"}
       aria-label="Mark All Read"
     >
       <CheckCheck size={20} />

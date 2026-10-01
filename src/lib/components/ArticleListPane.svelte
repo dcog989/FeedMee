@@ -35,7 +35,11 @@ function onContextMenu(e: MouseEvent, article: Article) {
 }
 </script>
 
-<svelte:window onkeydown={(e) => { if (e.key === 'Escape') closeTagManager(); }} />
+<svelte:window
+  onkeydown={(e) => {
+    if (e.key === "Escape") closeTagManager();
+  }}
+/>
 
 <div class="pane-wrapper">
   <ArticleSearch />

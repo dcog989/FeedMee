@@ -17,10 +17,10 @@ function createFolder() {
 </script>
 
 <div class="nav-toolbar">
-  <button type="button" onclick={onExpandAll} use:tooltip={'Expand All'} aria-label="Expand All">
+  <button type="button" onclick={onExpandAll} use:tooltip={"Expand All"} aria-label="Expand All">
     <ChevronDown size={18} />
   </button>
-  <button type="button" onclick={onCollapseAll} use:tooltip={'Collapse All'} aria-label="Collapse All">
+  <button type="button" onclick={onCollapseAll} use:tooltip={"Collapse All"} aria-label="Collapse All">
     <ChevronUp size={18} />
   </button>
   <button
@@ -30,12 +30,12 @@ function createFolder() {
     disabled={isRefreshing}
     aria-label="Refresh All"
   >
-    <RefreshCw size={18} class={isRefreshing ? 'spinning' : ''} />
+    <RefreshCw size={18} class={isRefreshing ? "spinning" : ""} />
   </button>
   <button
     type="button"
     onclick={createFolder}
-    use:tooltip={'New Folder'}
+    use:tooltip={"New Folder"}
     class="add-folder-btn"
     aria-label="New Folder"
   >

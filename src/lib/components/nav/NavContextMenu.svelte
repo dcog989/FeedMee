@@ -63,12 +63,12 @@ function createFolder() {
 </script>
 
 <ContextMenu x={cmX} y={cmY} visible={cmVisible} onClose={close}>
-  {#if cmTarget?.type === 'root'}
+  {#if cmTarget?.type === "root"}
     <button type="button" onclick={createFolder}>New Folder</button>
-  {:else if cmTarget?.type === 'folder'}
+  {:else if cmTarget?.type === "folder"}
     <button type="button" onclick={rename}>Rename Folder</button>
     <button type="button" class="danger" onclick={deleteTarget}>Delete Folder</button>
-  {:else if cmTarget?.type === 'feed'}
+  {:else if cmTarget?.type === "feed"}
     <button type="button" onclick={renameFeed}>Edit Feed</button>
     <button type="button" class="danger" onclick={deleteTarget}>Delete Feed</button>
   {/if}

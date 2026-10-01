@@ -20,7 +20,7 @@ const disabledTooltip = $derived(
   {:else}
     <span class="feed-icon" class:icon-selected={isSelected}>#</span>
   {/if}
-  <span class="feed-name" class:feed-disabled={disabled} use:tooltip={disabled ? disabledTooltip : ''}
+  <span class="feed-name" class:feed-disabled={disabled} use:tooltip={disabled ? disabledTooltip : ""}
     >{feed.name}</span
   >
 </span>
@@ -29,33 +29,26 @@ const disabledTooltip = $derived(
   type="button"
   class="feed-action-area"
   onclick={(e) => {
-        e.stopPropagation();
-        refreshStore.requestRefreshFeed(feed.id);
-    }}
+    e.stopPropagation();
+    refreshStore.requestRefreshFeed(feed.id);
+  }}
   aria-label="Refresh feed"
 >
   {#if refreshStore.isFeedUpdating(feed.id)}
     <div class="mini-spinner"></div>
   {:else if disabled || feed.has_error}
-    <span class="error-badge" use:tooltip={disabled ? disabledTooltip : 'Feed update failed'}>
+    <span class="error-badge" use:tooltip={disabled ? disabledTooltip : "Feed update failed"}>
       <X size={10} color="white" />
     </span>
   {:else if feed.unread_count > 0}
     <span
       class="badge"
       class:badge-selected={isSelected}
-      use:tooltip={refreshStore.isFeedFresh(feed.id)
-                ? 'Already fresh!'
-                : 'Click to refresh'}
+      use:tooltip={refreshStore.isFeedFresh(feed.id) ? "Already fresh!" : "Click to refresh"}
       >{feed.unread_count}</span
     >
   {:else}
-    <span
-      class="refresh-icon"
-      use:tooltip={refreshStore.isFeedFresh(feed.id)
-                ? 'Already fresh!'
-                : 'Refresh'}
-    >
+    <span class="refresh-icon" use:tooltip={refreshStore.isFeedFresh(feed.id) ? "Already fresh!" : "Refresh"}>
       <RefreshCw size={16} />
     </span>
   {/if}

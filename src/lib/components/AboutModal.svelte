@@ -59,7 +59,7 @@ async function openLogsDir() {
           type="button"
           class="copy-btn"
           onclick={() => copyToClipboard(appInfo.data_path)}
-          use:tooltip={'Copy path'}
+          use:tooltip={"Copy path"}
         >
           Copy
         </button>
@@ -72,7 +72,7 @@ async function openLogsDir() {
           type="button"
           class="copy-btn"
           onclick={() => copyToClipboard(appInfo.logs_path)}
-          use:tooltip={'Copy path'}
+          use:tooltip={"Copy path"}
         >
           Copy
         </button>
@@ -85,7 +85,7 @@ async function openLogsDir() {
           type="button"
           class="copy-btn"
           onclick={() => copyToClipboard(appInfo.db_path)}
-          use:tooltip={'Copy path'}
+          use:tooltip={"Copy path"}
         >
           Copy
         </button>

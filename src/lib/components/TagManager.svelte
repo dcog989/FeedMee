@@ -120,7 +120,7 @@ function onInputKeydown(e: KeyboardEvent) {
             class="tag-row"
             class:active={activeTagIds.has(tag.id)}
             onclick={() => toggleTag(tag)}
-            aria-label="{activeTagIds.has(tag.id) ? 'Remove' : 'Add'} tag {tag.name}"
+            aria-label="{activeTagIds.has(tag.id) ? "Remove" : "Add"} tag {tag.name}"
           >
             <span class="tag-check">
               {#if activeTagIds.has(tag.id)}
@@ -134,9 +134,17 @@ function onInputKeydown(e: KeyboardEvent) {
               role="button"
               tabindex="0"
               aria-label="Delete tag {tag.name}"
-              onclick={(e) => { e.stopPropagation(); deleteTagPermanently(tag); }}
-              onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); deleteTagPermanently(tag); } }}
-              use:tooltip={'Delete tag'}
+              onclick={(e) => {
+                e.stopPropagation();
+                deleteTagPermanently(tag);
+              }}
+              onkeydown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  deleteTagPermanently(tag);
+                }
+              }}
+              use:tooltip={"Delete tag"}
             >
               <Trash2 size={11} />
             </span>

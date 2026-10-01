@@ -62,11 +62,7 @@ function handleKeydown(e: KeyboardEvent) {
 
     <div class="meta-line">
       <div class="meta-left">
-        <span class="date"
-          >{new Date(
-                        article.timestamp * 1000,
-                    ).toLocaleDateString()}</span
-        >
+        <span class="date">{new Date(article.timestamp * 1000).toLocaleDateString()}</span>
         <span class="separator">•</span>
         <span class="author">{article.author}</span>
       </div>
@@ -77,10 +73,10 @@ function handleKeydown(e: KeyboardEvent) {
           class="icon-btn"
           class:active={article.has_tags || isTagOpen}
           onclick={(e) => onTagToggle(e, article)}
-          use:tooltip={'Tags'}
+          use:tooltip={"Tags"}
           aria-label="Tags"
         >
-          <Tags size={14} fill={article.has_tags ? 'currentColor' : 'none'} />
+          <Tags size={14} fill={article.has_tags ? "currentColor" : "none"} />
         </button>
 
         <button
@@ -88,13 +84,13 @@ function handleKeydown(e: KeyboardEvent) {
           class="icon-btn"
           class:active={article.is_saved}
           onclick={(e) => {
-                    e.stopPropagation();
-                    articleStore.toggleSaved(article);
-                }}
-          use:tooltip={'Read Later'}
+            e.stopPropagation();
+            articleStore.toggleSaved(article);
+          }}
+          use:tooltip={"Read Later"}
           aria-label="Read Later"
         >
-          <Bookmark size={14} fill={article.is_saved ? 'currentColor' : 'none'} />
+          <Bookmark size={14} fill={article.is_saved ? "currentColor" : "none"} />
         </button>
       </div>
     </div>
