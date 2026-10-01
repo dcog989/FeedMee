@@ -42,7 +42,7 @@ mod tests {
         let mut conn = test_conn();
         let folder = create_folder(&conn, "News").unwrap();
         let feed = create_feed(&conn, "Feed", "https://example.com/rss", Some(folder), "rss").unwrap();
-        batch_insert_articles(&mut conn, &[sample_article(feed)]).unwrap();
+        batch_insert_articles(&mut conn, &[sample_article(feed)], None).unwrap();
 
         let id = get_articles_for_feed(&conn, feed, 1, 0, true).unwrap()[0].id;
         update_article_saved(&conn, id, true).unwrap();
@@ -97,7 +97,7 @@ mod tests {
         let mut undated = sample_article(feed);
         undated.timestamp = 0;
         undated.url = "https://example.com/undated".to_string();
-        batch_insert_articles(&mut conn, &[undated]).unwrap();
+        batch_insert_articles(&mut conn, &[undated], None).unwrap();
 
         assert_eq!(purge_old_articles(&conn, 90).unwrap(), 0);
 
@@ -106,10 +106,48 @@ mod tests {
     }
 
     #[test]
+    fn expired_articles_are_not_reinserted_on_refresh() {
+        let mut conn = test_conn();
+        let feed = create_feed(&conn, "Feed", "https://example.com/rss", None, "rss").unwrap();
+
+        let cutoff = 1_000_000;
+
+        let mut expired = sample_article(feed);
+        expired.timestamp = cutoff - 1;
+        expired.url = "https://example.com/expired".to_string();
+
+        let mut current = sample_article(feed);
+        current.timestamp = cutoff + 1;
+        current.url = "https://example.com/current".to_string();
+
+        let mut undated = sample_article(feed);
+        undated.timestamp = 0;
+        undated.url = "https://example.com/undated".to_string();
+
+        let inserted = batch_insert_articles(&mut conn, &[expired, current, undated], Some(cutoff)).unwrap();
+
+        assert_eq!(inserted, 2);
+        let urls: Vec<String> = get_articles_for_feed(&conn, feed, 10, 0, true)
+            .unwrap()
+            .into_iter()
+            .map(|a| a.url)
+            .collect();
+        assert!(!urls.contains(&"https://example.com/expired".to_string()));
+        assert!(urls.contains(&"https://example.com/current".to_string()));
+        assert!(urls.contains(&"https://example.com/undated".to_string()));
+    }
+
+    #[test]
+    fn retention_cutoff_is_none_when_disabled() {
+        assert_eq!(retention_cutoff(0), None);
+        assert!(retention_cutoff(30).is_some());
+    }
+
+    #[test]
     fn purge_disabled_when_retention_zero() {
         let mut conn = test_conn();
         let feed = create_feed(&conn, "Feed", "https://example.com/rss", None, "rss").unwrap();
-        batch_insert_articles(&mut conn, &[sample_article(feed)]).unwrap();
+        batch_insert_articles(&mut conn, &[sample_article(feed)], None).unwrap();
         conn.execute("UPDATE articles SET created_at = 1", []).unwrap();
 
         assert_eq!(purge_old_articles(&conn, 0).unwrap(), 0);
@@ -125,7 +163,7 @@ mod tests {
         saved.url = "https://example.com/saved".to_string();
         let mut unsaved = sample_article(feed);
         unsaved.url = "https://example.com/unsaved".to_string();
-        batch_insert_articles(&mut conn, &[saved, unsaved]).unwrap();
+        batch_insert_articles(&mut conn, &[saved, unsaved], None).unwrap();
 
         let saved_id = get_articles_for_feed(&conn, feed, 10, 0, true)
             .unwrap()
@@ -148,7 +186,7 @@ mod tests {
     fn sentinel_feed_is_hidden_from_listings() {
         let mut conn = test_conn();
         let feed = create_feed(&conn, "Feed", "https://example.com/rss", None, "rss").unwrap();
-        batch_insert_articles(&mut conn, &[sample_article(feed)]).unwrap();
+        batch_insert_articles(&mut conn, &[sample_article(feed)], None).unwrap();
 
         let folders = get_folders_with_feeds(&conn).unwrap();
         let ids: Vec<i64> = folders.iter().flat_map(|f| f.feeds.iter().map(|fe| fe.id)).collect();
@@ -160,7 +198,7 @@ mod tests {
         let mut conn = test_conn();
         let folder = create_folder(&conn, "News").unwrap();
         let feed = create_feed(&conn, "Feed", "https://example.com/rss", Some(folder), "rss").unwrap();
-        batch_insert_articles(&mut conn, &[sample_article(feed)]).unwrap();
+        batch_insert_articles(&mut conn, &[sample_article(feed)], None).unwrap();
 
         delete_folder(&conn, folder).unwrap();
 

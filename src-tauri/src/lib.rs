@@ -21,6 +21,15 @@ pub struct AppState {
     pub paths: paths::AppPaths,
 }
 
+impl AppState {
+    /// Cutoff before which timestamped articles are expired, per current
+    /// retention settings. `None` when retention is disabled.
+    pub fn article_retention_cutoff(&self) -> Option<i64> {
+        let days = self.settings.lock().unwrap().article_retention_days;
+        db::retention_cutoff(days)
+    }
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()

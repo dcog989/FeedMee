@@ -82,8 +82,9 @@ pub fn extract_page_title(html: &str, fallback_url: &str) -> String {
 
 fn scrape_and_insert(html: &str, page_url: &str, feed_id: i64, state: &AppState) -> Result<usize, String> {
     let articles = scrape_page(html, page_url, feed_id);
+    let cutoff = state.article_retention_cutoff();
     let mut conn = state.db.lock().unwrap();
-    db::batch_insert_articles(&mut conn, &articles).map_err(|e| e.to_string())
+    db::batch_insert_articles(&mut conn, &articles, cutoff).map_err(|e| e.to_string())
 }
 
 async fn refresh_website_feed(feed_url: &str, feed_id: i64, state: &AppState) -> Result<i64, String> {

@@ -297,9 +297,10 @@ async fn refresh_rss_feed(feed_url: &str, feed_id: i64, state: &AppState) -> Res
                     })
                     .await;
 
+                    let cutoff = state.article_retention_cutoff();
                     let mut conn = state.db.lock().unwrap();
                     let tx = conn.transaction().map_err(|e| e.to_string())?;
-                    let mut inserter = db::ArticleInserter::new(&tx).map_err(|e| e.to_string())?;
+                    let mut inserter = db::ArticleInserter::new(&tx, cutoff).map_err(|e| e.to_string())?;
                     for article in &articles {
                         inserter.insert(article).map_err(|e| e.to_string())?;
                     }

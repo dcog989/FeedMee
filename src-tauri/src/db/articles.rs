@@ -96,9 +96,9 @@ fn map_articles(stmt: &mut rusqlite::Statement, params: impl rusqlite::Params) -
     .collect::<Result<Vec<Article>>>()
 }
 
-pub fn batch_insert_articles(conn: &mut Connection, articles: &[Article]) -> Result<usize> {
+pub fn batch_insert_articles(conn: &mut Connection, articles: &[Article], cutoff: Option<i64>) -> Result<usize> {
     let tx = conn.transaction()?;
-    let mut inserter = ArticleInserter::new(&tx)?;
+    let mut inserter = ArticleInserter::new(&tx, cutoff)?;
     let mut count = 0;
     for article in articles {
         count += inserter.insert(article)?;
@@ -114,11 +114,13 @@ pub struct ArticleInserter<'a> {
     insert: rusqlite::Statement<'a>,
     update_image: rusqlite::Statement<'a>,
     update_summary: rusqlite::Statement<'a>,
+    cutoff: Option<i64>,
 }
 
 impl<'a> ArticleInserter<'a> {
-    pub fn new(conn: &'a Connection) -> Result<Self> {
+    pub fn new(conn: &'a Connection, cutoff: Option<i64>) -> Result<Self> {
         Ok(Self {
+            cutoff,
             insert: conn.prepare(
                 "INSERT OR IGNORE INTO articles (feed_id, title, author, summary, url, image_url, timestamp, created_at, is_read, is_saved)
                  VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, CAST(strftime('%s','now') AS INTEGER), 0, 0)",
@@ -134,6 +136,14 @@ impl<'a> ArticleInserter<'a> {
     }
 
     pub fn insert(&mut self, article: &Article) -> Result<usize> {
+        // Never resurrect articles that are past the retention window; refresh
+        // would otherwise re-add rows the startup purge just removed.
+        if let Some(cutoff) = self.cutoff
+            && article.timestamp != 0
+            && article.timestamp < cutoff
+        {
+            return Ok(0);
+        }
         let inserted = self.insert.execute(params![
             article.feed_id,
             article.title,

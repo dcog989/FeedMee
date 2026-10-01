@@ -113,16 +113,24 @@ pub fn run_vacuum(conn: &Connection) -> Result<()> {
     Ok(())
 }
 
-pub fn purge_old_articles(conn: &Connection, retention_days: u64) -> Result<usize> {
+/// Unix timestamp (seconds) before which timestamped articles are considered
+/// expired. `None` means retention is disabled and nothing should be filtered.
+pub fn retention_cutoff(retention_days: u64) -> Option<i64> {
     if retention_days == 0 {
-        info!("Article retention disabled; skipping purge");
-        return Ok(0);
+        return None;
     }
-    let cutoff = std::time::SystemTime::now()
+    let now = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
         .unwrap()
-        .as_secs() as i64
-        - (retention_days as i64 * 86400);
+        .as_secs() as i64;
+    Some(now - retention_days as i64 * 86400)
+}
+
+pub fn purge_old_articles(conn: &Connection, retention_days: u64) -> Result<usize> {
+    let Some(cutoff) = retention_cutoff(retention_days) else {
+        info!("Article retention disabled; skipping purge");
+        return Ok(0);
+    };
     let count = conn.execute(
         "DELETE FROM articles
          WHERE COALESCE(NULLIF(timestamp, 0), created_at) < ?1
