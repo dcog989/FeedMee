@@ -1,11 +1,11 @@
 # FeedMee
 
-*FeedMee* is an RSS/Atom news reader built for the desktop, cross-platform and Linux-first. It is fast, can handle many thousands of feeds and articles while remaining lightweight and responsive.
+*FeedMee* is a cross-platform desktop RSS/Atom news reader. It offers a clean, simple UI and excellent performance.
 
-[Download from Latest Releases](https://github.com/dcog989/FeedMee/releases).
+[Download latest release](https://github.com/dcog989/FeedMee/releases).
 
 ![Version](https://img.shields.io/badge/version-0.23.0-blue.svg)
-![License](https://img.shields.io/badge/license-MIT-blue.svg)
+![License](https://img.shields.io/badge/license-GPL--3.0--or--later-blue.svg)
 ![Tauri](https://img.shields.io/badge/built%20with-Tauri%202-24C8DB.svg)
 ![Svelte](https://img.shields.io/badge/frontend-Svelte%205-FF3E00.svg)
 
@@ -129,4 +129,4 @@ Runs the vitest suite (frontend) and `cargo test` (backend).
 
 ## License
 
-GNU General Public License v3.0
+GNU General Public License v3.0 or later (GPL-3.0-or-later). See [LICENSE](LICENSE) for the full text.

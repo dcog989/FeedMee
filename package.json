@@ -3,6 +3,7 @@
   "description": "The seriously fast feed reader.",
   "version": "0.23.0",
   "private": true,
+  "license": "GPL-3.0-or-later",
   "type": "module",
   "scripts": {
     "build": "tauri build --no-bundle",

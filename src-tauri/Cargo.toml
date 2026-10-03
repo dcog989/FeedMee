@@ -3,7 +3,7 @@ name = "FeedMee"
 version = "0.23.0"
 edition = "2024"
 description = "The seriously fast feed reader."
-license = "MIT"
+license = "GPL-3.0-or-later"
 
 [lib]
 crate-type = ["cdylib", "rlib", "staticlib"]
@@ -19,7 +19,7 @@ flexi_logger = "0.31"
 image = { version = "0.25", default-features = false, features = ["jpeg", "png", "webp"] }
 log = "0.4"
 opml = "1.1"
-reqwest = { version = "0.13", features = ["json", "rustls", "gzip", "brotli"] }
+reqwest = { version = "0.13", features = ["brotli", "gzip", "json", "rustls"] }
 rusqlite = { version = "0.40", features = ["bundled"] }
 rusqlite_migration = "2.6"
 scraper = "0.27"
