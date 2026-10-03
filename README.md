@@ -32,7 +32,28 @@
 - **Auto-Updater:** Auto-update via GitHub Releases.
 - **Customizable:** Dark/Light/System themes, configurable refresh intervals, thumbnail size, keyboard shortcut remapping, and log rotation.
 
-## Tech Stack
+## Keyboard Shortcuts
+
+All shortcuts are customizable from Settings.
+
+| Key     | Action                     |
+| ------- | -------------------------- |
+| `/`     | Focus search               |
+| `r`     | Refresh all feeds          |
+| `n`     | Add new feed               |
+| `,`     | Open settings              |
+| `s`     | Save/Read later            |
+| `m`     | Mark as read/unread        |
+| `Enter` | Open article in browser    |
+| `x`     | Expand all folders         |
+| `c`     | Collapse all folders       |
+| `Esc`   | Close modal / Clear search |
+
+---
+
+## Technical
+
+### Tech Stack
 
 | Layer | Technology |
 |---|---|
@@ -48,9 +69,9 @@
 | **Bundling** | Vite |
 | **Packaging** | AppImage (Linux), makepkg (Arch/CachyOS) |
 
-## Getting Started
+### Build
 
-### Prerequisites
+#### Prerequisites
 
 1. **Rust:** [Install Rust](https://www.rust-lang.org/tools/install)
 2. **Bun:** [Install Bun](https://bun.sh)
@@ -104,19 +125,8 @@ bun run test
 
 Runs the vitest suite (frontend) and `cargo test` (backend).
 
-## Keyboard Shortcuts
+---
 
-All shortcuts are customizable from Settings.
+## License
 
-| Key     | Action                     |
-| ------- | -------------------------- |
-| `/`     | Focus search               |
-| `r`     | Refresh all feeds          |
-| `n`     | Add new feed               |
-| `,`     | Open settings              |
-| `s`     | Save/Read later            |
-| `m`     | Mark as read/unread        |
-| `Enter` | Open article in browser    |
-| `x`     | Expand all folders         |
-| `c`     | Collapse all folders       |
-| `Esc`   | Close modal / Clear search |
+GNU General Public License v3.0
