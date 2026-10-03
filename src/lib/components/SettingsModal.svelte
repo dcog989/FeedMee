@@ -1,8 +1,8 @@
 <script lang="ts">
 import { Keyboard, Settings, X } from "@lucide/svelte";
 import { invoke } from "@tauri-apps/api/core";
-import { feedStore, settingsStore, uiStore } from "$lib/store.svelte";
-import { type AppSettings, DEFAULT_SETTINGS } from "$lib/types";
+import { feedStore, settingsStore, uiStore } from "#lib/store.svelte.js";
+import { type AppSettings, DEFAULT_SETTINGS } from "#lib/types.js";
 import Modal from "./Modal.svelte";
 import ShortcutsModal from "./ShortcutsModal.svelte";
 

@@ -1,5 +1,5 @@
 <script lang="ts">
-import { feedStore, uiStore } from "$lib/store.svelte";
+import { feedStore, uiStore } from "#lib/store.svelte.js";
 import Modal from "./Modal.svelte";
 
 let isRename = $derived(!!uiStore.renameFolderTarget);

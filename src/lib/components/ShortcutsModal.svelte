@@ -1,7 +1,7 @@
 <script lang="ts">
 import { RotateCcw, X } from "@lucide/svelte";
-import { shortcutStore } from "$lib/store.svelte";
-import { type ShortcutDefinition, shortcutManager } from "$lib/utils/shortcuts";
+import { shortcutStore } from "#lib/store.svelte.js";
+import { type ShortcutDefinition, shortcutManager } from "#lib/utils/shortcuts.js";
 import Modal from "./Modal.svelte";
 
 let { isOpen = $bindable(false), onClose }: { isOpen: boolean; onClose: () => void } = $props();

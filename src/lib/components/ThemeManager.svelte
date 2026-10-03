@@ -1,5 +1,5 @@
 <script lang="ts">
-import { applyThemeToDocument, settingsStore } from "$lib/store.svelte";
+import { applyThemeToDocument, settingsStore } from "#lib/store.svelte.js";
 
 $effect(() => {
   applyThemeToDocument(settingsStore.theme);

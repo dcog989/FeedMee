@@ -1,6 +1,6 @@
 <script lang="ts">
-import { feedStore, uiStore } from "$lib/store.svelte";
-import { findFeedFolderId } from "$lib/utils/feeds";
+import { feedStore, uiStore } from "#lib/store.svelte.js";
+import { findFeedFolderId } from "#lib/utils/feeds.js";
 import Modal from "./Modal.svelte";
 
 let target = $state(uiStore.editFeedTarget);

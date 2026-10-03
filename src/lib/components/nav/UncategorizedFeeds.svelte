@@ -1,8 +1,8 @@
 <script lang="ts">
 import { flip } from "svelte/animate";
-import { feedStore, navStore, refreshStore } from "$lib/store.svelte";
-import type { Folder } from "$lib/types";
-import { createDragGhost, parseDragData } from "$lib/utils/dragGhost";
+import { feedStore, navStore, refreshStore } from "#lib/store.svelte.js";
+import type { Folder } from "#lib/types.js";
+import { createDragGhost, parseDragData } from "#lib/utils/dragGhost.js";
 import FeedItem from "./FeedItem.svelte";
 
 let {

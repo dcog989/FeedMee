@@ -1,11 +1,11 @@
 <script lang="ts">
 import { ChevronRight, RefreshCcwDot } from "@lucide/svelte";
 import { flip } from "svelte/animate";
-import { tooltip } from "$lib/actions/tooltip.svelte";
-import { feedStore, navStore, refreshStore } from "$lib/store.svelte";
-import type { Feed, Folder } from "$lib/types";
-import { createDragGhost, parseDragData } from "$lib/utils/dragGhost";
-import { findFeed } from "$lib/utils/feeds";
+import { tooltip } from "#lib/actions/tooltip.svelte.js";
+import { feedStore, navStore, refreshStore } from "#lib/store.svelte.js";
+import type { Feed, Folder } from "#lib/types.js";
+import { createDragGhost, parseDragData } from "#lib/utils/dragGhost.js";
+import { findFeed } from "#lib/utils/feeds.js";
 import FeedItem from "./FeedItem.svelte";
 
 let { folder, isExpanded, onToggle, onContextMenu, onFeedsChange } = $props<{

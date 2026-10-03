@@ -1,8 +1,8 @@
 <script lang="ts">
 import { invoke } from "@tauri-apps/api/core";
-import { articleStore, FEED_ID_LATEST, FEED_ID_SAVED, FEED_ID_TODAY, settingsStore } from "$lib/store.svelte";
-import type { Article } from "$lib/types";
-import { thumbnailCacheKey } from "$lib/utils/thumbnail";
+import { articleStore, FEED_ID_LATEST, FEED_ID_SAVED, FEED_ID_TODAY, settingsStore } from "#lib/store.svelte.js";
+import type { Article } from "#lib/types.js";
+import { thumbnailCacheKey } from "#lib/utils/thumbnail.js";
 import ArticleCard from "./ArticleCard.svelte";
 
 let {

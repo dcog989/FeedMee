@@ -1,6 +1,6 @@
 ﻿<script lang="ts">
-import { tooltipState } from "$lib/actions/tooltip.svelte";
-import type { Article } from "$lib/types";
+import { tooltipState } from "#lib/actions/tooltip.svelte.js";
+import type { Article } from "#lib/types.js";
 import ArticleContextMenu from "./article/ArticleContextMenu.svelte";
 import ArticleList from "./article/ArticleList.svelte";
 import ArticleSearch from "./article/ArticleSearch.svelte";

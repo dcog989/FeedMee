@@ -1,9 +1,9 @@
 <script lang="ts">
 import { Bookmark, Image, Tags } from "@lucide/svelte";
-import { tooltip } from "$lib/actions/tooltip.svelte";
-import { articleStore } from "$lib/store.svelte";
-import type { Article } from "$lib/types";
-import { thumbnailCacheKey } from "$lib/utils/thumbnail";
+import { tooltip } from "#lib/actions/tooltip.svelte.js";
+import { articleStore } from "#lib/store.svelte.js";
+import type { Article } from "#lib/types.js";
+import { thumbnailCacheKey } from "#lib/utils/thumbnail.js";
 
 let {
   article,

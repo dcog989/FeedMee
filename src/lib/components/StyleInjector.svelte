@@ -1,5 +1,5 @@
 <script lang="ts">
-import { settingsStore } from "$lib/store.svelte";
+import { settingsStore } from "#lib/store.svelte.js";
 
 $effect(() => {
   const s = settingsStore.settings;

@@ -1,8 +1,8 @@
 <script lang="ts">
 import { Info, Rss, Settings } from "@lucide/svelte";
-import { navStore, refreshStore, uiStore } from "$lib/store.svelte";
-import { useExpandedFolders } from "$lib/useExpandedFolders.svelte";
-import { expandFolder } from "$lib/utils/expandedFolders";
+import { navStore, refreshStore, uiStore } from "#lib/store.svelte.js";
+import { useExpandedFolders } from "#lib/useExpandedFolders.svelte.js";
+import { expandFolder } from "#lib/utils/expandedFolders.js";
 import FolderGroup from "./nav/FolderGroup.svelte";
 import NavContextMenu from "./nav/NavContextMenu.svelte";
 import NavToolbar from "./nav/NavToolbar.svelte";

@@ -1,8 +1,8 @@
 <script lang="ts">
 import { invoke } from "@tauri-apps/api/core";
 import { openUrl } from "@tauri-apps/plugin-opener";
-import { articleStore } from "$lib/store.svelte";
-import type { Article } from "$lib/types";
+import { articleStore } from "#lib/store.svelte.js";
+import type { Article } from "#lib/types.js";
 import ContextMenu from "../ContextMenu.svelte";
 
 let cmVisible = $state(false);

@@ -1,17 +1,10 @@
 {
-  "extends": "./.svelte-kit/tsconfig.json",
+  "extends": "$app/tsconfig",
   "compilerOptions": {
-    "allowJs": true,
-    "checkJs": true,
-    "esModuleInterop": true,
-    "forceConsistentCasingInFileNames": true,
-    "resolveJsonModule": true,
-    "skipLibCheck": true,
     "strict": true,
-    "moduleResolution": "bundler",
     "module": "ESNext",
-    "noEmit": true,
-    "types": ["svelte", "node"]
+    "types": ["svelte", "node", "$app/types"]
   },
-  "exclude": ["scripts", "src-tauri", "node_modules", "build", ".svelte-kit"]
+  "exclude": ["scripts", "src-tauri", "node_modules", "build", ".svelte-kit"],
+  "include": ["src"]
 }

@@ -1,10 +1,10 @@
 <script lang="ts">
 import { ExternalLink } from "@lucide/svelte";
 import { openUrl } from "@tauri-apps/plugin-opener";
-import { tooltip } from "$lib/actions/tooltip.svelte";
-import { appState, articleStore } from "$lib/store.svelte";
-import { bodyEmbedsImage, stripDuplicateTitle } from "$lib/utils/articleContent";
-import { findFeed } from "$lib/utils/feeds";
+import { tooltip } from "#lib/actions/tooltip.svelte.js";
+import { appState, articleStore } from "#lib/store.svelte.js";
+import { bodyEmbedsImage, stripDuplicateTitle } from "#lib/utils/articleContent.js";
+import { findFeed } from "#lib/utils/feeds.js";
 import ArticleActions from "./article/ArticleActions.svelte";
 import ArticleContent from "./article/ArticleContent.svelte";
 

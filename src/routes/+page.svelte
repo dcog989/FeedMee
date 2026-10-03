@@ -1,8 +1,8 @@
 <script lang="ts">
-import ArticleListPane from "$lib/components/ArticleListPane.svelte";
-import NavPane from "$lib/components/NavPane.svelte";
-import ReadingPane from "$lib/components/ReadingPane.svelte";
-import { appState } from "$lib/store.svelte";
+import ArticleListPane from "#lib/components/ArticleListPane.svelte";
+import NavPane from "#lib/components/NavPane.svelte";
+import ReadingPane from "#lib/components/ReadingPane.svelte";
+import { appState } from "#lib/store.svelte.js";
 
 // Resizing Logic
 const NAV_MIN_WIDTH = 150;

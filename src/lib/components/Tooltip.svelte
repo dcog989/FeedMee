@@ -2,7 +2,7 @@
 // Safety check to keep tooltip on screen would be nice, but simple fixed positioning for MVP
 // We add a transition for ease-in
 import { fade } from "svelte/transition";
-import { tooltipState } from "$lib/actions/tooltip.svelte";
+import { tooltipState } from "#lib/actions/tooltip.svelte.js";
 </script>
 
 {#if tooltipState.visible}

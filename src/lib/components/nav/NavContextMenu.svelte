@@ -1,6 +1,6 @@
 <script lang="ts">
-import { feedStore, uiStore } from "$lib/store.svelte";
-import { findFeed } from "$lib/utils/feeds";
+import { feedStore, uiStore } from "#lib/store.svelte.js";
+import { findFeed } from "#lib/utils/feeds.js";
 import ContextMenu from "../ContextMenu.svelte";
 
 let cmVisible = $state(false);

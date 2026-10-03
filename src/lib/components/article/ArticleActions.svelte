@@ -1,9 +1,9 @@
 <script lang="ts">
 import { Bookmark, Eye, Tags } from "@lucide/svelte";
-import { tooltip, tooltipState } from "$lib/actions/tooltip.svelte";
-import TagPopover from "$lib/components/TagPopover.svelte";
-import { articleStore } from "$lib/store.svelte";
-import type { Article } from "$lib/types";
+import { tooltip, tooltipState } from "#lib/actions/tooltip.svelte.js";
+import TagPopover from "#lib/components/TagPopover.svelte";
+import { articleStore } from "#lib/store.svelte.js";
+import type { Article } from "#lib/types.js";
 
 let {
   article,

@@ -1,7 +1,7 @@
 ﻿<script lang="ts">
 import { ChevronDown, ChevronUp, FolderPlus, RefreshCw } from "@lucide/svelte";
-import { tooltip } from "$lib/actions/tooltip.svelte";
-import { refreshStore, uiStore } from "$lib/store.svelte";
+import { tooltip } from "#lib/actions/tooltip.svelte.js";
+import { refreshStore, uiStore } from "#lib/store.svelte.js";
 
 let { onExpandAll, onCollapseAll } = $props<{
   onExpandAll: () => void;

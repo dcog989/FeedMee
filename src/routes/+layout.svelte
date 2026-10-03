@@ -1,16 +1,16 @@
 ﻿<script lang="ts">
 import { invoke } from "@tauri-apps/api/core";
 import { onMount } from "svelte";
-import AboutModal from "$lib/components/AboutModal.svelte";
-import ConfirmModal from "$lib/components/ConfirmModal.svelte";
-import EditFeedDialog from "$lib/components/EditFeedDialog.svelte";
-import ManageDialog from "$lib/components/ManageDialog.svelte";
-import NewFolderDialog from "$lib/components/NewFolderDialog.svelte";
-import SettingsModal from "$lib/components/SettingsModal.svelte";
-import StyleInjector from "$lib/components/StyleInjector.svelte";
-import ThemeManager from "$lib/components/ThemeManager.svelte";
-import Tooltip from "$lib/components/Tooltip.svelte";
-import { appState } from "$lib/store.svelte";
+import AboutModal from "#lib/components/AboutModal.svelte";
+import ConfirmModal from "#lib/components/ConfirmModal.svelte";
+import EditFeedDialog from "#lib/components/EditFeedDialog.svelte";
+import ManageDialog from "#lib/components/ManageDialog.svelte";
+import NewFolderDialog from "#lib/components/NewFolderDialog.svelte";
+import SettingsModal from "#lib/components/SettingsModal.svelte";
+import StyleInjector from "#lib/components/StyleInjector.svelte";
+import ThemeManager from "#lib/components/ThemeManager.svelte";
+import Tooltip from "#lib/components/Tooltip.svelte";
+import { appState } from "#lib/store.svelte.js";
 import "../app.css";
 
 let { children } = $props();

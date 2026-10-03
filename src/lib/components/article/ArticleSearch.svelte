@@ -1,6 +1,6 @@
 <script lang="ts">
 import { Search } from "@lucide/svelte";
-import { articleStore } from "$lib/store.svelte";
+import { articleStore } from "#lib/store.svelte.js";
 
 let searchDebounce: ReturnType<typeof setTimeout> | null = null;
 

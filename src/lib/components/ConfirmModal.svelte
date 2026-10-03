@@ -1,5 +1,5 @@
 <script lang="ts">
-import { uiStore } from "$lib/store.svelte";
+import { uiStore } from "#lib/store.svelte.js";
 import Modal from "./Modal.svelte";
 </script>
 

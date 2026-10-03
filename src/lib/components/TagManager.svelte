@@ -1,9 +1,9 @@
 <script lang="ts">
 import { Check, Plus, Tags, Trash2, X } from "@lucide/svelte";
-import { tooltip } from "$lib/actions/tooltip.svelte";
-import { articleStore, tagStore, uiStore } from "$lib/store.svelte";
-import type { Tag } from "$lib/types";
-import { withAdded, withRemoved } from "$lib/utils/sets";
+import { tooltip } from "#lib/actions/tooltip.svelte.js";
+import { articleStore, tagStore, uiStore } from "#lib/store.svelte.js";
+import type { Tag } from "#lib/types.js";
+import { withAdded, withRemoved } from "#lib/utils/sets.js";
 
 let { articleId, onClose }: { articleId: number; onClose: () => void } = $props();
 
