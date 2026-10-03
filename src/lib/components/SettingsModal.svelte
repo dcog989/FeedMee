@@ -344,7 +344,7 @@ function vacuum() {
 
       <div class="form-group">
         <span class="label-spacer" aria-hidden="true"></span>
-        <button type="button" class="open-log-btn" onclick={openLatestLog}>Open Latest Log</button>
+        <button type="button" class="open-log-link" onclick={openLatestLog}>Open Latest Log</button>
       </div>
     </div>
   </div>
@@ -461,20 +461,21 @@ function vacuum() {
   cursor: default;
 }
 
-.open-log-btn {
+.open-log-link {
   flex: 1;
-  padding: 8px;
-  border: 1px solid var(--border-color);
-  background: var(--bg-app);
-  color: var(--text-primary);
-  border-radius: 4px;
-  box-sizing: border-box;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--accent-muted);
   cursor: pointer;
   font-size: 0.85rem;
+  text-align: left;
+  text-decoration: none;
 }
 
-.open-log-btn:hover {
-  background: var(--bg-hover);
+.open-log-link:hover {
+  text-decoration: underline;
+  text-decoration-color: var(--accent-muted);
 }
 
 select {
