@@ -57,4 +57,36 @@ describe("bodyEmbedsImage", () => {
       '<img srcset="https://example.com/a-2x.png 2x, https://example.com/a.png 1x" src="https://example.com/a.png">';
     expect(bodyEmbedsImage(html, "https://example.com/a-2x.png")).toBe(true);
   });
+
+  it("matches a body image served from a different CDN size variant", () => {
+    const ogImage =
+      "https://ichef.bbci.co.uk/ace/branded_news/1200/cpsprodpb/1255/live/cd194e30-be43-11f1-beff-83dd12d67cca.jpg";
+    const html =
+      '<img src="https://ichef.bbci.co.uk/ace/standard/1800/cpsprodpb/1255/live/cd194e30-be43-11f1-beff-83dd12d67cca.jpg">';
+    expect(bodyEmbedsImage(html, ogImage)).toBe(true);
+  });
+
+  it("matches a body image with different resize query parameters", () => {
+    const ogImage =
+      "https://static0.howtogeekimages.com/wordpress/wp-content/uploads/wm/2026/09/linux-hero-2.jpeg?w=1600&h=900&fit=crop";
+    const html =
+      '<img src="https://static0.howtogeekimages.com/wordpress/wp-content/uploads/wm/2026/09/linux-hero-2.jpeg?q=49&amp;fit=crop&amp;w=1600&amp;h=1200&amp;dpr=2">';
+    expect(bodyEmbedsImage(html, ogImage)).toBe(true);
+  });
+
+  it("matches a body image served in an alternate format", () => {
+    const ogImage = "https://example.com/photo.jpg";
+    const html = '<img src="https://example.com/photo.jpg.webp">';
+    expect(bodyEmbedsImage(html, ogImage)).toBe(true);
+  });
+
+  it("does not match a different image with the same host", () => {
+    const html = '<img src="https://example.com/b.png">';
+    expect(bodyEmbedsImage(html, "https://example.com/a.png")).toBe(false);
+  });
+
+  it("does not match the same file name on a different host", () => {
+    const html = '<img src="https://cdn-a.example.com/a.png">';
+    expect(bodyEmbedsImage(html, "https://cdn-b.example.com/a.png")).toBe(false);
+  });
 });
