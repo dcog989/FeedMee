@@ -6,6 +6,9 @@ ignore = [
   "RUSTSEC-2024-0415",  # gtk-rs GTK3 bindings unmaintained — Tauri 2.x dep, no alternative
   "RUSTSEC-2026-0194",  # quick-xml quadratic attribute check — blocked on feed-rs/plist upgrades
   "RUSTSEC-2026-0195",  # quick-xml unbounded namespace allocation — blocked on feed-rs/plist upgrades
+  "RUSTSEC-2026-0367",  # zip SUID/SGID bits on extract — Windows-only tauri-plugin-updater dep pinned at zip ^4, fixed only in 9.x
+  "RUSTSEC-2026-0368",  # zip symlink target escape — same pin; updater archives are minisign-verified before extraction
+  "RUSTSEC-2026-0369",  # zip stream extract permissions — same pin; revisit when tauri-plugin-updater allows zip >= 9
 ]
 
 [licenses]
