@@ -2,6 +2,20 @@
 All notable changes to this project will be documented in this file. See [conventional commits](https://www.conventionalcommits.org/) for commit guidelines.
 
 - - -
+## v0.23.1 - 2026-10-17
+
+#### Bug Fixes
+
+- (bef3509) use props type annotation instead of $props type argument - dcog989
+
+- (7b7c1c1) dedupe hero image against CDN-resized body variants - dcog989
+
+- (2beb02d) prevent refresh from re-inserting expired articles - dcog989
+
+- (f62487f) add timestamps to log entries - dcog989
+
+- - -
+
 ## v0.23.0 - 2026-09-29
 
 #### Features
