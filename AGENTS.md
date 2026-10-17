@@ -53,6 +53,11 @@
 - Require confirmation: adding/removing dependencies, any operation outside project root
 - Do not delete files or make destructive changes without permission / confirmation.
 
+### Verification
+
+- Do not run test, lint, format, or type-check commands; the user builds, tests, and lints manually.
+- Run them only when the user explicitly asks.
+
 ---
 
 ## General Guidelines

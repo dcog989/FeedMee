@@ -1,6 +1,6 @@
 # FeedMee
 
-*FeedMee* is a cross-platform desktop RSS/Atom news reader. It offers a clean, simple UI and excellent performance.
+*FeedMee* is a cross-platform desktop RSS/Atom news reader. Focused on performance and a clean UI.
 
 [Download latest release](https://github.com/dcog989/FeedMee/releases).
 
@@ -13,9 +13,9 @@
 
 ## Features
 
-- **Cross-Platform:** Native performance on Windows, macOS, and Linux (via Tauri v2).
+- **Cross-Platform:** Native performance on Windows and Linux (via Tauri v2).
 - **Three-Pane Layout:** Classic, responsive interface with keyboard-driven pane navigation.
-- **Reader Mode:** Extracts full article content using `readabilityrs`, stripping clutter.
+- **Reader Mode:** Extracts full article content using `dom_smoothie` (Readability), stripping clutter.
 - **Feed Management:**
   - Auto-discovery of RSS/Atom links from URLs.
   - Drag-and-drop folder organization.
@@ -34,7 +34,7 @@
 
 ## Keyboard Shortcuts
 
-All shortcuts are customizable from Settings.
+All letter and punctuation shortcuts are customizable from Settings.
 
 | Key     | Action                     |
 | ------- | -------------------------- |
@@ -48,6 +48,8 @@ All shortcuts are customizable from Settings.
 | `x`     | Expand all folders         |
 | `c`     | Collapse all folders       |
 | `Esc`   | Close modal / Clear search |
+
+Arrow keys move focus between panes (`←`/`→`) and through the article list (`↑`/`↓`); these are fixed and not remappable.
 
 ---
 
@@ -63,70 +65,34 @@ All shortcuts are customizable from Settings.
 | **Database** | SQLite via `rusqlite` |
 | **HTTP Client** | `reqwest` (rustls) |
 | **Feed Parsing** | `feed-rs` |
-| **Content Extraction** | `readabilityrs`, `scraper` |
+| **Content Extraction** | `dom_smoothie`, `scraper` |
 | **Image Processing** | `image` + `webp` |
 | **Linting** | Biome (frontend), Clippy (backend) |
 | **Bundling** | Vite |
-| **Packaging** | AppImage (Linux), makepkg (Arch/CachyOS) |
-
-### Build
-
-#### Prerequisites
-
-1. **Rust:** [Install Rust](https://www.rust-lang.org/tools/install)
-2. **Bun:** [Install Bun](https://bun.sh)
-3. **OS Dependencies:** Follow the [Tauri Prerequisites guide](https://v2.tauri.app/start/prerequisites/)
-
-```bash
-bun install
-```
+| **Packaging** | AppImage, deb, rpm (Linux), NSIS (Windows), makepkg (Arch/CachyOS) |
 
 ### Development
 
-```bash
-bun run dev
+```sh
+bun install         # install prerequisites
+bun run dev         # Starts the Vite dev server and Tauri with HMR.
+bun run build       # Build release binary (no installers)
+bun run package     # Build + install via makepkg (Arch / CachyOS)
+bun run check       # Types, lint, and Clippy
+bun run format      # Biome + rustfmt
+bun run test        # Vitest + cargo test
 ```
 
-Starts the Vite dev server and Tauri with HMR.
+Build / run dependencies: Bun, Rust (edition 2024, 1.85+).
 
-### Install on Arch / CachyOS
+Linux: WebKitGTK 4.1, GTK 3, librsvg, patchelf, OpenSSL headers. Arch/CachyOS: `webkit2gtk-4.1 gtk3 librsvg patchelf openssl`. Debian/Ubuntu: `libwebkit2gtk-4.1-dev libgtk-3-dev librsvg2-dev patchelf libssl-dev`.
 
-```bash
-bun run package
-```
+Windows: WebView2 runtime and the MSVC build tools.
 
-Runs `makepkg -si` from `.pkg/`, compiling from source and installing FeedMee to `/usr/bin/feedmee`.
-
-**Build dependencies:** `rust`, `bun`, `npm`, `sqlite`, `cmake`, `nasm`
-
-**Runtime dependencies:** `webkit2gtk-4.1`, `gtk3`, `libayatana-appindicator`, `sqlite`
-
-### Build Release Binary
-
-```bash
-bun run build
-```
-
-Compiles the Rust backend and Svelte frontend. Output binary at `src-tauri/target/release/FeedMee`. No installer is produced locally — AppImage and Windows installer are built via GitHub Actions on tag push.
-
-### Validate
-
-```bash
-bun run check
-```
-
-Runs TypeScript (`svelte-check`), frontend lint (`biome`), and backend lint (`cargo clippy`). Use `bun run check:types` and `bun run check:frontend` to check individual frontend layers.
-
-### Test
-
-```bash
-bun run test
-```
-
-Runs the vitest suite (frontend) and `cargo test` (backend).
+Installers (AppImage/deb/rpm/NSIS) are produced by the release workflow or `bunx tauri build`; `bun run build` stops at the binary.
 
 ---
 
 ## License
 
-GNU General Public License v3.0 or later (GPL-3.0-or-later). See [LICENSE](LICENSE) for the full text.
+[GNU GPL v3 or later](LICENSE).
