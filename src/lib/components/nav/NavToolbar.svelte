@@ -3,10 +3,7 @@ import { ChevronDown, ChevronUp, FolderPlus, RefreshCw } from "@lucide/svelte";
 import { tooltip } from "#lib/actions/tooltip.svelte.js";
 import { refreshStore, uiStore } from "#lib/store.svelte.js";
 
-let { onExpandAll, onCollapseAll } = $props<{
-  onExpandAll: () => void;
-  onCollapseAll: () => void;
-}>();
+let { onExpandAll, onCollapseAll }: { onExpandAll: () => void; onCollapseAll: () => void } = $props();
 
 let isRefreshing = $derived(refreshStore.isRefreshingFeeds);
 let refreshAllTooltip = $derived(refreshStore.isAllFresh() ? "Already fresh!" : "Refresh All");

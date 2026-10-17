@@ -8,13 +8,19 @@ import { createDragGhost, parseDragData } from "#lib/utils/dragGhost.js";
 import { findFeed } from "#lib/utils/feeds.js";
 import FeedItem from "./FeedItem.svelte";
 
-let { folder, isExpanded, onToggle, onContextMenu, onFeedsChange } = $props<{
+let {
+  folder,
+  isExpanded,
+  onToggle,
+  onContextMenu,
+  onFeedsChange,
+}: {
   folder: Folder;
   isExpanded: boolean;
   onToggle: (e: MouseEvent) => void;
   onContextMenu: (e: MouseEvent, type: "folder" | "feed", id: number, name?: string) => void;
   onFeedsChange: (folderId: number, feeds: Feed[]) => void;
-}>();
+} = $props();
 
 const FLIP_DURATION = 200;
 
