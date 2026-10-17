@@ -75,12 +75,12 @@ Arrow keys move focus between panes (`←`/`→`) and through the article list (
 
 ```sh
 bun install         # install prerequisites
-bun run dev         # Starts the Vite dev server and Tauri with HMR.
 bun run build       # Build release binary (no installers)
-bun run package     # Build + install via makepkg (Arch / CachyOS)
 bun run check       # Types, lint, and Clippy
 bun run format      # Biome + rustfmt
 bun run test        # Vitest + cargo test
+bun run dev         # Starts the Vite dev server and Tauri with HMR.
+bun run package     # Build + install via makepkg (Arch / CachyOS)
 ```
 
 Build / run dependencies: Bun, Rust (edition 2024, 1.85+).
