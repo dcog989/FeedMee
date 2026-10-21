@@ -46,7 +46,7 @@ jobs:
       - name: Cache Rust
         uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0
         with:
-          workspaces: './src-tauri -> target'
+          workspaces: "./src-tauri -> target"
 
       - name: Install system dependencies (Linux)
         if: matrix.os == 'ubuntu-latest'
