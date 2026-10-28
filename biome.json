@@ -11,13 +11,6 @@
     "experimentalFullSupportEnabled": true,
     "formatter": { "enabled": true }
   },
-  "linter": {
-    "rules": {
-      "correctness": {
-        "noInvalidGridAreas": "off"
-      }
-    }
-  },
   "vcs": {
     "enabled": true,
     "clientKind": "git",
