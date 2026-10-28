@@ -38,6 +38,15 @@ mod tests {
     }
 
     #[test]
+    fn init_db_is_idempotent() {
+        let mut conn = Connection::open_in_memory().unwrap();
+        init_db(&mut conn).unwrap();
+        init_db(&mut conn).unwrap();
+        let version: i64 = conn.query_row("PRAGMA user_version", [], |r| r.get(0)).unwrap();
+        assert_eq!(version, 1);
+    }
+
+    #[test]
     fn article_projections_map_all_columns() {
         let mut conn = test_conn();
         let folder = create_folder(&conn, "News").unwrap();

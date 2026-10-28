@@ -1,6 +1,5 @@
 use log::info;
 use rusqlite::{Connection, Result, params};
-use rusqlite_migration::{M, Migrations};
 
 pub const DB_FILENAME: &str = "feedmee.sqlite";
 
@@ -8,12 +7,14 @@ pub const DB_FILENAME: &str = "feedmee.sqlite";
 /// deleted. Never listed to the user; mirrors the `folder_id = 0` sentinel.
 pub const SAVED_FEED_ID: i64 = 0;
 
+/// Schema batches in application order. `PRAGMA user_version` records how many
+/// have run, so existing batches must never be edited — append a new one.
+const MIGRATIONS: &[&str] = &[BASELINE_SCHEMA];
+
 /// Consolidated baseline schema. Earlier incremental migrations were collapsed
 /// into this single migration; fresh installs only. Existing databases must be
 /// recreated (the app does not upgrade pre-baseline DBs).
-fn migrations() -> Migrations<'static> {
-    Migrations::new(vec![M::up(
-        "CREATE TABLE IF NOT EXISTS folders (
+const BASELINE_SCHEMA: &str = "CREATE TABLE IF NOT EXISTS folders (
             id   INTEGER PRIMARY KEY,
             name TEXT NOT NULL UNIQUE
         );
@@ -81,9 +82,7 @@ fn migrations() -> Migrations<'static> {
         CREATE INDEX IF NOT EXISTS idx_articles_saved ON articles(timestamp, id) WHERE is_saved = 1;
         INSERT OR IGNORE INTO folders (id, name) VALUES (0, '');
         INSERT OR IGNORE INTO feeds (id, name, url, folder_id, has_error, feed_type)
-            VALUES (0, 'Saved', 'feedmee:saved', 0, 0, 'rss');",
-    )])
-}
+            VALUES (0, 'Saved', 'feedmee:saved', 0, 0, 'rss');";
 
 pub fn init_db(conn: &mut Connection) -> Result<(), Box<dyn std::error::Error>> {
     info!("Initializing database");
@@ -97,13 +96,29 @@ pub fn init_db(conn: &mut Connection) -> Result<(), Box<dyn std::error::Error>> 
          PRAGMA journal_size_limit = 67108864;",
     )?;
 
-    let m = migrations();
-    m.to_latest(conn)?;
+    migrate(conn)?;
 
     let version: i64 = conn.query_row("PRAGMA user_version", [], |r| r.get(0))?;
     info!("Database schema at version {}", version);
 
     Ok(())
+}
+
+/// Applies pending `MIGRATIONS` entries in one transaction and records progress
+/// in `PRAGMA user_version`.
+fn migrate(conn: &mut Connection) -> Result<()> {
+    let applied: i64 = conn.query_row("PRAGMA user_version", [], |r| r.get(0))?;
+    let applied = usize::try_from(applied).unwrap_or(0);
+    if applied >= MIGRATIONS.len() {
+        return Ok(());
+    }
+
+    let tx = conn.transaction()?;
+    for sql in &MIGRATIONS[applied..] {
+        tx.execute_batch(sql)?;
+    }
+    tx.pragma_update(None, "user_version", MIGRATIONS.len() as i64)?;
+    tx.commit()
 }
 
 pub fn run_vacuum(conn: &Connection) -> Result<()> {
