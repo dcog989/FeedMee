@@ -44,4 +44,3 @@ gtk = "0.18"
 [profile.release]
 strip = true
 lto = "thin"
-codegen-units = 1
