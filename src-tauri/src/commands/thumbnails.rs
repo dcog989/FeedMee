@@ -10,6 +10,9 @@ use webp::Encoder;
 
 use super::scraper::{scrape_og_image, short_hash};
 
+/// Sources above this are skipped, not downloaded: some sites publish only the
+/// full-resolution original (NASA's are 100 MB+), which a feed list must not
+/// fetch per tile. Those articles keep the placeholder icon.
 const MAX_IMAGE_BYTES: usize = 10_000_000;
 /// A feed image bigger than this is not a thumbnail source; refuse it before
 /// decoding, so a compressed image cannot expand into gigabytes of pixels.
