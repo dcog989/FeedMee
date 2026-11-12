@@ -1,59 +1,56 @@
-use std::fmt::Write;
+use opml::{Body, Head, OPML, Outline};
 
-use crate::models::Folder;
+use crate::models::{Feed, Folder};
 
-pub fn escape(s: &str) -> String {
-    s.replace('&', "&amp;")
-        .replace('<', "&lt;")
-        .replace('>', "&gt;")
-        .replace('"', "&quot;")
-        .replace('\'', "&apos;")
+const OPML_VERSION: &str = "2.0";
+const EXPORT_TITLE: &str = "FeedMee Export";
+
+pub fn render(folders: &[Folder]) -> Result<String, String> {
+    let document = OPML {
+        version: OPML_VERSION.to_string(),
+        head: Some(Head {
+            title: Some(EXPORT_TITLE.to_string()),
+            ..Head::default()
+        }),
+        body: Body {
+            outlines: folders.iter().flat_map(outlines_for_folder).collect(),
+        },
+    };
+    let xml = document
+        .to_string()
+        .map_err(|e| format!("Failed to write OPML: {}", e))?;
+    Ok(format!("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n{}", xml))
 }
 
-pub fn render(folders: &[Folder]) -> String {
-    let mut opml = String::new();
-    let _ = writeln!(&mut opml, "<?xml version=\"1.0\" encoding=\"UTF-8\"?>");
-    let _ = writeln!(&mut opml, "<opml version=\"2.0\">");
-    let _ = writeln!(&mut opml, "  <head><title>FeedMee Export</title></head>");
-    let _ = writeln!(&mut opml, "  <body>");
-
-    for folder in folders {
-        if folder.feeds.is_empty() {
-            continue;
-        }
-        if folder.id == 0 {
-            for feed in &folder.feeds {
-                let _ = writeln!(
-                    &mut opml,
-                    "      <outline type=\"rss\" text=\"{}\" xmlUrl=\"{}\" />",
-                    escape(&feed.name),
-                    escape(&feed.url)
-                );
-            }
-        } else {
-            let _ = writeln!(&mut opml, "    <outline text=\"{}\">", escape(&folder.name));
-            for feed in &folder.feeds {
-                let _ = writeln!(
-                    &mut opml,
-                    "      <outline type=\"rss\" text=\"{}\" xmlUrl=\"{}\" />",
-                    escape(&feed.name),
-                    escape(&feed.url)
-                );
-            }
-            let _ = writeln!(&mut opml, "    </outline>");
-        }
+/// Folder 0 is the synthetic bucket for unfiled feeds; it is flattened into the
+/// top level instead of being written as a folder.
+fn outlines_for_folder(folder: &Folder) -> Vec<Outline> {
+    if folder.id == 0 {
+        return folder.feeds.iter().map(feed_outline).collect();
     }
-    let _ = writeln!(&mut opml, "  </body>");
-    let _ = writeln!(&mut opml, "</opml>");
-    opml
+    vec![Outline {
+        text: folder.name.clone(),
+        outlines: folder.feeds.iter().map(feed_outline).collect(),
+        ..Outline::default()
+    }]
+}
+
+fn feed_outline(feed: &Feed) -> Outline {
+    Outline {
+        text: feed.name.clone(),
+        r#type: Some(feed.feed_type.clone()),
+        xml_url: Some(feed.url.clone()),
+        ..Outline::default()
+    }
 }
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-    use crate::models::Feed;
+    use crate::models::{Feed, Folder};
 
-    fn feed(name: &str, url: &str) -> Feed {
+    use super::render;
+
+    fn feed(name: &str, url: &str, feed_type: &str) -> Feed {
         Feed {
             id: 1,
             name: name.to_string(),
@@ -62,40 +59,55 @@ mod tests {
             unread_count: 0,
             has_error: false,
             error_count: 0,
-            feed_type: "rss".to_string(),
+            feed_type: feed_type.to_string(),
             display_url: url.to_string(),
             source_id: url.to_string(),
         }
     }
 
-    #[test]
-    fn escapes_xml_special_characters() {
-        assert_eq!(
-            escape("a & b < c > d \" e ' f"),
-            "a &amp; b &lt; c &gt; d &quot; e &apos; f"
-        );
+    fn folder(id: i64, name: &str, feeds: Vec<Feed>) -> Folder {
+        Folder {
+            id,
+            name: name.to_string(),
+            feeds,
+        }
     }
 
     #[test]
-    fn renders_folders_and_root_feeds() {
+    fn keeps_types_escaping_and_empty_folders() {
         let folders = vec![
-            Folder {
-                id: 1,
-                name: "News".to_string(),
-                feeds: vec![feed("F&F", "https://example.com/f")],
-            },
-            Folder {
-                id: 0,
-                name: String::new(),
-                feeds: vec![feed("Root", "https://example.com/r")],
-            },
+            folder(1, "News", vec![feed("F&F", "https://example.com/f", "rss")]),
+            folder(0, "", vec![feed("Root", "https://example.com/r", "website")]),
+            folder(2, "Empty", vec![]),
         ];
 
-        let out = render(&folders);
-        assert!(out.contains("<outline text=\"News\">"));
-        assert!(out.contains("text=\"F&amp;F\""));
-        assert!(out.contains("xmlUrl=\"https://example.com/f\""));
-        assert!(out.contains("text=\"Root\""));
-        assert!(out.trim_end().ends_with("</opml>"));
+        let xml = render(&folders).unwrap();
+        let parsed = opml::OPML::from_str(&xml).unwrap();
+
+        let news = parsed
+            .body
+            .outlines
+            .iter()
+            .find(|o| o.text == "News")
+            .expect("folder outline");
+        assert_eq!(news.outlines[0].text, "F&F");
+        assert_eq!(news.outlines[0].xml_url.as_deref(), Some("https://example.com/f"));
+        assert_eq!(news.outlines[0].r#type.as_deref(), Some("rss"));
+
+        let root = parsed
+            .body
+            .outlines
+            .iter()
+            .find(|o| o.text == "Root")
+            .expect("unfiled feed");
+        assert_eq!(root.r#type.as_deref(), Some("website"));
+
+        let empty = parsed
+            .body
+            .outlines
+            .iter()
+            .find(|o| o.text == "Empty")
+            .expect("empty folder");
+        assert!(empty.outlines.is_empty());
     }
 }

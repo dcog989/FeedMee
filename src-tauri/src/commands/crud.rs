@@ -110,24 +110,60 @@ pub async fn import_opml(path: String, app: tauri::AppHandle) -> Result<(), Stri
 
 /// Insert an OPML feed unless the same URL is already subscribed, including
 /// another outline earlier in the same file.
-fn insert_opml_feed(conn: &Connection, name: &str, url: &str, folder_id: Option<i64>) -> Result<(), String> {
-    let Some(url) = normalize_opml_url(url) else {
+fn insert_opml_feed(
+    conn: &Connection,
+    name: &str,
+    url: &str,
+    folder_id: Option<i64>,
+    declared_type: Option<&str>,
+) -> Result<(), String> {
+    let Some((url, feed_type)) = normalize_opml_feed(url, declared_type) else {
         return Ok(());
     };
     if db::feed_exists_by_url(conn, &url, None).map_err(|e| e.to_string())? {
         return Ok(());
     }
-    db::create_feed(conn, name, &url, folder_id, "rss").map_err(|e| e.to_string())?;
+    db::create_feed(conn, name, &url, folder_id, &feed_type).map_err(|e| e.to_string())?;
     Ok(())
 }
 
-/// `feed://` is a common reader-specific spelling of the same HTTP feed.
-fn normalize_opml_url(url: &str) -> Option<String> {
+/// Map an outline URL to the URL and source type FeedMee stores. Bluesky URLs
+/// and the `feed://` spelling identify themselves; the outline's declared type
+/// only separates website feeds from plain RSS.
+fn normalize_opml_feed(url: &str, declared_type: Option<&str>) -> Option<(String, String)> {
+    if let Some(handle) = url.strip_prefix("bsky:") {
+        if !handle.is_empty() {
+            return Some((format!("bsky:{}", handle), "bluesky".to_string()));
+        }
+    }
     if let Some(rest) = url.strip_prefix("feed://") {
-        return Some(format!("https://{}", rest));
+        return Some((format!("https://{}", rest), "rss".to_string()));
     }
     let is_http = url.starts_with("http://") || url.starts_with("https://");
-    if is_http { Some(url.to_string()) } else { None }
+    if !is_http {
+        return None;
+    }
+    let feed_type = if declared_type == Some("website") {
+        "website"
+    } else {
+        "rss"
+    };
+    Some((url.to_string(), feed_type.to_string()))
+}
+
+fn insert_opml_outline(conn: &Connection, outline: &opml::Outline, folder_id: Option<i64>) -> Result<(), String> {
+    if let Some(url) = &outline.xml_url {
+        return insert_opml_feed(conn, &outline.text, url, folder_id, outline.r#type.as_deref());
+    }
+    // The app has one folder level, so nested folders collapse into their parent.
+    let folder_id = match folder_id {
+        Some(id) => id,
+        None => db::create_folder(conn, &outline.text).map_err(|e| e.to_string())?,
+    };
+    for child in &outline.outlines {
+        insert_opml_outline(conn, child, Some(folder_id))?;
+    }
+    Ok(())
 }
 
 fn import_opml_blocking(path: &str, state: &AppState) -> Result<(), String> {
@@ -135,25 +171,11 @@ fn import_opml_blocking(path: &str, state: &AppState) -> Result<(), String> {
     let document = opml::OPML::from_str(&xml_content).map_err(|e| e.to_string())?;
     let conn = state.db.lock().unwrap();
     let tx = conn.unchecked_transaction().map_err(|e| e.to_string())?;
-    let mut flat_feeds: Vec<(String, String)> = Vec::new();
 
-    for outline in document.body.outlines {
-        if !outline.outlines.is_empty() {
-            let folder_name = outline.text;
-            let folder_id = db::create_folder(&tx, &folder_name).map_err(|e| e.to_string())?;
-            for child in outline.outlines {
-                if let Some(url) = child.xml_url {
-                    insert_opml_feed(&tx, &child.text, &url, Some(folder_id))?;
-                }
-            }
-        } else if let Some(url) = outline.xml_url {
-            flat_feeds.push((outline.text, url));
-        }
+    for outline in &document.body.outlines {
+        insert_opml_outline(&tx, outline, None)?;
     }
 
-    for (name, url) in flat_feeds {
-        insert_opml_feed(&tx, &name, &url, None)?;
-    }
     tx.commit().map_err(|e| e.to_string())?;
     Ok(())
 }
@@ -165,7 +187,7 @@ pub async fn export_opml(state: State<'_, AppState>) -> Result<String, String> {
         db::get_folders_with_feeds(&conn).map_err(|e| e.to_string())?
     };
 
-    Ok(crate::opml::render(&folders))
+    crate::opml::render(&folders)
 }
 
 #[tauri::command]
@@ -259,7 +281,7 @@ pub fn delete_tag(tag_id: i64, state: State<'_, AppState>) -> Result<(), String>
 
 #[cfg(test)]
 mod tests {
-    use super::insert_opml_feed;
+    use super::{insert_opml_feed, insert_opml_outline};
     use crate::db;
     use rusqlite::Connection;
 
@@ -268,8 +290,8 @@ mod tests {
         let mut conn = Connection::open_in_memory().unwrap();
         db::init_db(&mut conn).unwrap();
 
-        insert_opml_feed(&conn, "One", "https://example.com/feed", None).unwrap();
-        insert_opml_feed(&conn, "Two", "https://example.com/feed", None).unwrap();
+        insert_opml_feed(&conn, "One", "https://example.com/feed", None, None).unwrap();
+        insert_opml_feed(&conn, "Two", "https://example.com/feed", None, None).unwrap();
 
         let count: i64 = conn
             .query_row(
@@ -286,7 +308,7 @@ mod tests {
         let mut conn = Connection::open_in_memory().unwrap();
         db::init_db(&mut conn).unwrap();
 
-        insert_opml_feed(&conn, "One", "feed://example.com/rss", None).unwrap();
+        insert_opml_feed(&conn, "One", "feed://example.com/rss", None, None).unwrap();
 
         let url: String = conn
             .query_row("SELECT url FROM feeds WHERE name = 'One'", [], |r| r.get(0))
@@ -299,11 +321,59 @@ mod tests {
         let mut conn = Connection::open_in_memory().unwrap();
         db::init_db(&mut conn).unwrap();
 
-        insert_opml_feed(&conn, "Bad", "ftp://example.com/rss", None).unwrap();
+        insert_opml_feed(&conn, "Bad", "ftp://example.com/rss", None, None).unwrap();
 
         let count: i64 = conn
             .query_row("SELECT COUNT(*) FROM feeds WHERE name = 'Bad'", [], |r| r.get(0))
             .unwrap();
         assert_eq!(count, 0);
+    }
+
+    #[test]
+    fn opml_import_keeps_non_rss_types() {
+        let mut conn = Connection::open_in_memory().unwrap();
+        db::init_db(&mut conn).unwrap();
+
+        insert_opml_feed(&conn, "Bsky", "bsky:did:plc:abc", None, Some("bluesky")).unwrap();
+        insert_opml_feed(&conn, "Site", "https://example.com/", None, Some("website")).unwrap();
+
+        let feed_type = |name: &str| -> String {
+            conn.query_row("SELECT feed_type FROM feeds WHERE name = ?1", [name], |r| r.get(0))
+                .unwrap()
+        };
+        assert_eq!(feed_type("Bsky"), "bluesky");
+        assert_eq!(feed_type("Site"), "website");
+    }
+
+    #[test]
+    fn opml_import_flattens_nested_folders() {
+        let mut conn = Connection::open_in_memory().unwrap();
+        db::init_db(&mut conn).unwrap();
+
+        let folder = opml::Outline {
+            text: "Tech".to_string(),
+            outlines: vec![opml::Outline {
+                text: "AI".to_string(),
+                outlines: vec![opml::Outline {
+                    text: "AI feed".to_string(),
+                    xml_url: Some("https://example.com/ai".to_string()),
+                    ..Default::default()
+                }],
+                ..Default::default()
+            }],
+            ..Default::default()
+        };
+        insert_opml_outline(&conn, &folder, None).unwrap();
+
+        let (folder_name, feed_name): (String, String) = conn
+            .query_row(
+                "SELECT folders.name, feeds.name FROM feeds JOIN folders ON feeds.folder_id = folders.id \
+                 WHERE feeds.url = 'https://example.com/ai'",
+                [],
+                |r| Ok((r.get(0)?, r.get(1)?)),
+            )
+            .unwrap();
+        assert_eq!(folder_name, "Tech");
+        assert_eq!(feed_name, "AI feed");
     }
 }

@@ -32,7 +32,7 @@ pub fn run_auto_backup(db: &Mutex<rusqlite::Connection>, backup_dir: &Path) -> R
     let conn = db.lock().map_err(|e| format!("db lock: {}", e))?;
     let folders = db::get_folders_with_feeds(&conn).map_err(|e| e.to_string())?;
     drop(conn);
-    let opml = crate::opml::render(&folders);
+    let opml = crate::opml::render(&folders)?;
 
     let timestamp = chrono::Local::now().format("%Y-%m-%d_%H%M%S");
     let filename = format!("backup-{}.opml", timestamp);
