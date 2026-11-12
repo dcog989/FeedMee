@@ -25,7 +25,7 @@
 - **Article Tagging:** Color-coded tags for categorization and filtering.
 - **Search:** Full-text search across article titles, authors, and summaries.
 - **Thumbnails:** Automatic og:image extraction with resizing, WebP caching, and configurable size.
-- **Local Privacy:** All data is stored locally in SQLite. No tracking, no accounts.
+- **Local Privacy:** Feeds, articles, settings and tags stay on your machine. No accounts, no telemetry. Feed icons load from DuckDuckGo's icon service.
 - **Auto-Refresh:** Configurable periodic refresh (default 30 min) with 5 concurrent workers and debounce support.
 - **Blocked Phrases:** Filter out articles containing unwanted phrases.
 - **Article Retention:** Configurable auto-pruning of old articles (default 90 days).
@@ -93,7 +93,7 @@ Build from source with `bun run package` (Arch/CachyOS) or `bunx tauri build` (s
 bun install         # install prerequisites
 bun run build       # Build release binary (no installers)
 bun run check       # Types, lint, and Clippy
-bun run clean       # Remove build artifacts, node_modules, and bun.lock
+bun run clean       # Remove build artifacts and node_modules
 bun run format      # Biome + rustfmt
 bun run test        # Vitest + cargo test
 bun run dev         # Starts the Vite dev server and Tauri with HMR.
@@ -102,7 +102,7 @@ bun run package     # Build + install via makepkg (Arch / CachyOS)
 
 Dependencies: Bun, Rust (edition 2024, 1.85+).
 
-Linux: WebKitGTK 4.1, GTK 3, librsvg, patchelf, OpenSSL headers. Arch/CachyOS: `webkit2gtk-4.1 gtk3 librsvg patchelf openssl`. Debian/Ubuntu: `libwebkit2gtk-4.1-dev libgtk-3-dev librsvg2-dev patchelf libssl-dev`.
+Linux: WebKitGTK 4.1, GTK 3, librsvg, patchelf. Arch/CachyOS: `webkit2gtk-4.1 gtk3 librsvg patchelf`. Debian/Ubuntu: `libwebkit2gtk-4.1-dev libgtk-3-dev librsvg2-dev patchelf`.
 
 Windows: WebView2 runtime and the MSVC build tools.
 

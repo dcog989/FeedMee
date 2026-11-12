@@ -10,12 +10,10 @@ coverage/
 
 # Project runtime data
 .assets/
-.context/
-.docs/
-.feeds/
+.docs/*
+!.docs/Review.md
 
 # Packaging (.pkg build workspace)
-.pkg/*.tar.zst
 .pkg/*.zst
 .pkg/*.log
 .pkg/feedmee/
