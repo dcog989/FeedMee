@@ -1,4 +1,5 @@
 import type { AppSettings, Article, Folder, Tag } from "./types";
+import type { UIState } from "./ui.svelte";
 
 export type Theme = "light" | "dark" | "system";
 export type SortOrder = "desc" | "asc";
@@ -156,25 +157,11 @@ export interface RefreshStore
   isFeedFresh(feedId: number): boolean;
   isFeedUpdating(feedId: number): boolean;
   isFolderUpdating(folderId: number): boolean;
-  isFolderFresh(folderId: number): boolean;
-  isAllFresh(): boolean;
   requestRefreshFeed(feedId: number): Promise<void>;
   requestRefreshFolder(folderId: number): Promise<void>;
 }
 
-export interface UIStore extends PaneFocus, SettingsDialog, UserPrompt {
-  showAddDialog: boolean;
-  showAbout: boolean;
-  showNewFolderDialog: boolean;
-  showEditFeedDialog: boolean;
-  editFeedTarget: { id: number; name: string; source_type: string; source_id: string } | null;
-  renameFolderTarget: { id: number; name: string } | null;
-  modalState: {
-    isOpen: boolean;
-    type: "confirm" | "alert";
-    message: string;
-    onConfirm: () => void;
-  };
+export interface UIStore extends UIState, PaneFocus, SettingsDialog, UserPrompt {
   openAbout(): void;
   closeAbout(): void;
   closeModal(): void;

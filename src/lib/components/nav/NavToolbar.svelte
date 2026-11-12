@@ -6,7 +6,6 @@ import { refreshStore, uiStore } from "#lib/store.svelte.js";
 let { onExpandAll, onCollapseAll }: { onExpandAll: () => void; onCollapseAll: () => void } = $props();
 
 let isRefreshing = $derived(refreshStore.isRefreshingFeeds);
-let refreshAllTooltip = $derived(refreshStore.isAllFresh() ? "Already fresh!" : "Refresh All");
 
 function createFolder() {
   uiStore.showNewFolderDialog = true;
@@ -23,7 +22,7 @@ function createFolder() {
   <button
     type="button"
     onclick={() => refreshStore.refreshAllFeeds()}
-    use:tooltip={refreshAllTooltip}
+    use:tooltip={"Refresh All"}
     disabled={isRefreshing}
     aria-label="Refresh All"
   >

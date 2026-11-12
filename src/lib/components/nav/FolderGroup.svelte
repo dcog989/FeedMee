@@ -155,16 +155,9 @@ function getFolderUnreadCount(feeds: Feed[]): number {
       {#if refreshStore.isFolderUpdating(folder.id)}
         <div class="mini-spinner"></div>
       {:else if unreadCount > 0}
-        <span
-          class="badge folder-badge"
-          use:tooltip={refreshStore.isFolderFresh(folder.id) ? "Already fresh!" : "Click to refresh folder"}
-          >{unreadCount}</span
-        >
+        <span class="badge folder-badge" use:tooltip={"Click to refresh folder"}>{unreadCount}</span>
       {:else}
-        <span
-          class="refresh-icon folder-refresh"
-          use:tooltip={refreshStore.isFolderFresh(folder.id) ? "Already fresh!" : "Click to refresh folder"}
-        >
+        <span class="refresh-icon folder-refresh" use:tooltip={"Click to refresh folder"}>
           <RefreshCcwDot size={16} />
         </span>
       {/if}
