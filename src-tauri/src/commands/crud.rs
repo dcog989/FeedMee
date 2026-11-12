@@ -3,6 +3,7 @@ use crate::{
     models::{Article, Folder, Tag},
 };
 use log::info;
+use rusqlite::Connection;
 use tauri::{Manager, State};
 
 #[tauri::command]
@@ -107,6 +108,16 @@ pub async fn import_opml(path: String, app: tauri::AppHandle) -> Result<(), Stri
     .map_err(|e| e.to_string())?
 }
 
+/// Insert an OPML feed unless the same URL is already subscribed, including
+/// another outline earlier in the same file.
+fn insert_opml_feed(conn: &Connection, name: &str, url: &str, folder_id: Option<i64>) -> Result<(), String> {
+    if db::feed_exists_by_url(conn, url, None).map_err(|e| e.to_string())? {
+        return Ok(());
+    }
+    db::create_feed(conn, name, url, folder_id, "rss").map_err(|e| e.to_string())?;
+    Ok(())
+}
+
 fn import_opml_blocking(path: &str, state: &AppState) -> Result<(), String> {
     let xml_content = std::fs::read_to_string(path).map_err(|e| e.to_string())?;
     let document = opml::OPML::from_str(&xml_content).map_err(|e| e.to_string())?;
@@ -117,11 +128,10 @@ fn import_opml_blocking(path: &str, state: &AppState) -> Result<(), String> {
     for outline in document.body.outlines {
         if !outline.outlines.is_empty() {
             let folder_name = outline.text;
-            if let Ok(folder_id) = db::create_folder(&tx, &folder_name) {
-                for child in outline.outlines {
-                    if let Some(url) = child.xml_url {
-                        let _ = db::create_feed(&tx, &child.text, &url, Some(folder_id), "rss");
-                    }
+            let folder_id = db::create_folder(&tx, &folder_name).map_err(|e| e.to_string())?;
+            for child in outline.outlines {
+                if let Some(url) = child.xml_url {
+                    insert_opml_feed(&tx, &child.text, &url, Some(folder_id))?;
                 }
             }
         } else if let Some(url) = outline.xml_url {
@@ -130,7 +140,7 @@ fn import_opml_blocking(path: &str, state: &AppState) -> Result<(), String> {
     }
 
     for (name, url) in flat_feeds {
-        let _ = db::create_feed(&tx, &name, &url, None, "rss");
+        insert_opml_feed(&tx, &name, &url, None)?;
     }
     tx.commit().map_err(|e| e.to_string())?;
     Ok(())
@@ -224,4 +234,29 @@ pub fn remove_tag(article_id: i64, tag_id: i64, state: State<'_, AppState>) -> R
 pub fn delete_tag(tag_id: i64, state: State<'_, AppState>) -> Result<(), String> {
     let conn = state.db.lock().unwrap();
     db::delete_tag(&conn, tag_id).map_err(|e| e.to_string())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::insert_opml_feed;
+    use crate::db;
+    use rusqlite::Connection;
+
+    #[test]
+    fn opml_import_skips_a_feed_url_that_already_exists() {
+        let mut conn = Connection::open_in_memory().unwrap();
+        db::init_db(&mut conn).unwrap();
+
+        insert_opml_feed(&conn, "One", "https://example.com/feed", None).unwrap();
+        insert_opml_feed(&conn, "Two", "https://example.com/feed", None).unwrap();
+
+        let count: i64 = conn
+            .query_row(
+                "SELECT COUNT(*) FROM feeds WHERE url = ?1",
+                ["https://example.com/feed"],
+                |r| r.get(0),
+            )
+            .unwrap();
+        assert_eq!(count, 1);
+    }
 }
