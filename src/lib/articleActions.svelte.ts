@@ -132,18 +132,23 @@ export function createArticleActions(state: ArticleStore) {
     }
   }
 
+  function markRead(article: Article) {
+    if (article.is_read) return;
+    article.is_read = true;
+    state.adjustUnreadCount(article.feed_id, -1);
+    invoke("mark_article_read", { id: article.id, read: true }).catch((e) => {
+      article.is_read = false;
+      state.adjustUnreadCount(article.feed_id, 1);
+      console.error("mark_article_read failed:", e);
+    });
+  }
+
   function selectArticle(article: Article) {
     state.focusedPane = "list";
+    const previous = state.selectedArticle;
     state.selectedArticle = article;
-    if (!article.is_read) {
-      article.is_read = true;
-      state.adjustUnreadCount(article.feed_id, -1);
-      invoke("mark_article_read", { id: article.id, read: true }).catch((e) => {
-        article.is_read = false;
-        state.adjustUnreadCount(article.feed_id, 1);
-        console.error("mark_article_read failed:", e);
-      });
-    }
+    // Mark the article you leave, not the one you open, so the open one stays unread.
+    if (previous && previous.id !== article.id) markRead(previous);
   }
 
   async function toggleSaved(article: Article) {
