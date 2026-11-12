@@ -31,25 +31,6 @@
 - **Article Retention:** Configurable auto-pruning of old articles (default 90 days).
 - **Customizable:** Dark/Light/System themes, configurable refresh intervals, thumbnail size, keyboard shortcut remapping, and log rotation.
 
-## Keyboard Shortcuts
-
-All letter, punctuation, and `Enter` shortcuts are customizable from Settings.
-
-| Key     | Action                     |
-| ------- | -------------------------- |
-| `/`     | Focus search               |
-| `r`     | Refresh all feeds          |
-| `n`     | Add new feed               |
-| `,`     | Open settings              |
-| `s`     | Save/Read later            |
-| `m`     | Mark as read/unread        |
-| `Enter` | Open article in browser    |
-| `x`     | Expand all folders         |
-| `c`     | Collapse all folders       |
-| `Esc`   | Close modal / Clear search |
-
-Arrow keys move focus between panes (`←`/`→`) and through the article list (`↑`/`↓`); these are fixed and not remappable.
-
 ---
 
 ## Install
