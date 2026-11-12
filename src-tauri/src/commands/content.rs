@@ -5,32 +5,12 @@ use tauri::State;
 
 use crate::AppState;
 
+/// Text below this is site chrome, not an article body.
+const MIN_CONTENT_CHARS: usize = 100;
+
 fn content_text_len(html: &str) -> usize {
     let doc = Html::parse_fragment(html);
     doc.root_element().text().collect::<String>().trim().len()
-}
-
-fn has_paragraph_structure(html: &str) -> bool {
-    let bytes = html.as_bytes();
-    let mut i = 0;
-    let mut count = 0i32;
-    while i < bytes.len() {
-        if bytes[i] == b'<' {
-            if i + 2 < bytes.len() && bytes[i + 1] == b'p' {
-                let next = bytes[i + 2];
-                if next == b'>' || next == b' ' {
-                    count += 1;
-                }
-            } else if i + 3 < bytes.len() && bytes[i + 1] == b'b' && bytes[i + 2] == b'r' {
-                let next = bytes[i + 3];
-                if next == b'>' || next == b' ' || next == b'/' {
-                    count += 1;
-                }
-            }
-        }
-        i += 1;
-    }
-    count >= 2
 }
 
 fn extract_with_css_selectors(html: &str) -> Option<String> {
@@ -59,8 +39,7 @@ fn extract_with_css_selectors(html: &str) -> Option<String> {
         };
         if let Some(el) = document.select(&selector).next() {
             let inner = el.inner_html();
-            let text_len = content_text_len(&inner);
-            if text_len > 100 && has_paragraph_structure(&inner) {
+            if content_text_len(&inner) > MIN_CONTENT_CHARS {
                 debug!("extract_with_css: matched '{}' ({} chars)", sel_str, inner.len());
                 return Some(inner);
             }
@@ -74,16 +53,20 @@ fn extract_with_readability(html: &str, url: &str) -> Option<String> {
     let article = readability.parse().ok()?;
     let content = article.content.to_string();
 
-    if content_text_len(&content) > 100 && has_paragraph_structure(&content) {
+    if content_text_len(&content) > MIN_CONTENT_CHARS {
         debug!("get_article_content: dom_smoothie extracted {} chars", content.len());
         return Some(content);
     }
 
     debug!(
-        "get_article_content: dom_smoothie content too short or no paragraphs ({} chars), falling back to CSS",
+        "get_article_content: dom_smoothie content too short ({} chars), falling back to CSS",
         content.len()
     );
     None
+}
+
+fn extract_content(html: &str, url: &str) -> Option<String> {
+    extract_with_readability(html, url).or_else(|| extract_with_css_selectors(html))
 }
 
 #[tauri::command]
@@ -92,27 +75,28 @@ pub async fn get_article_content(url: String, state: State<'_, AppState>) -> Res
         return Err("Article URL is not a public address".to_string());
     }
 
-    let html = state
+    let response = state
         .http_client
         .get(&url)
         .timeout(std::time::Duration::from_secs(30))
         .send()
         .await
-        .map_err(|e| format!("Failed to fetch: {}", e))?
-        .text()
+        .map_err(|e| format!("Failed to fetch: {}", e))?;
+    let charset = crate::connectors::response_charset(&response);
+    let bytes = crate::connectors::read_body(response)
         .await
         .map_err(|e| format!("Failed to read response: {}", e))?;
+    let html = crate::connectors::decode_html(&bytes, charset.as_deref());
 
-    if let Some(content) = extract_with_readability(&html, &url) {
-        return Ok(content);
-    }
-
-    extract_with_css_selectors(&html).ok_or_else(|| "No content extracted".to_string())
+    tauri::async_runtime::spawn_blocking(move || extract_content(&html, &url))
+        .await
+        .map_err(|e| e.to_string())?
+        .ok_or_else(|| "No content extracted".to_string())
 }
 
 #[cfg(test)]
 mod tests {
-    use super::{extract_with_css_selectors, extract_with_readability};
+    use super::{extract_content, extract_with_css_selectors, extract_with_readability};
 
     fn article_html() -> String {
         let body = "<p>FeedMee is a desktop news feed reader that fetches RSS and Atom feeds in \
@@ -147,5 +131,21 @@ mod tests {
     fn css_fallback_ignores_short_fragments() {
         let html = "<html><body><div class=\"content\">too short</div></body></html>";
         assert!(extract_with_css_selectors(html).is_none());
+    }
+
+    #[test]
+    fn single_paragraph_article_is_accepted() {
+        let html = "<html><body><article><p>One paragraph is enough. The reader should show this \
+            text instead of failing, because short posts still carry real content worth reading.</p>\
+            </article></body></html>";
+        assert!(extract_content(html, "https://example.com/note").is_some());
+    }
+
+    #[test]
+    fn uppercase_markup_is_accepted() {
+        let html = "<HTML><BODY><ARTICLE><P>Uppercase tags are valid HTML and must not be treated \
+            as a missing paragraph structure, otherwise the reading pane reports no content.</P>\
+            </ARTICLE></BODY></HTML>";
+        assert!(extract_with_css_selectors(html).is_some());
     }
 }
