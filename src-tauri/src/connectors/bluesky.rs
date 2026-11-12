@@ -1,16 +1,28 @@
 use async_trait::async_trait;
 use log::{debug, info, warn};
 use serde::Deserialize;
+use serde::de::DeserializeOwned;
 
 use crate::{AppState, db, models::Article};
 
 use super::{FeedConnector, FetchedFeed, FetchedPage};
 
 const PUBLIC_API: &str = "https://public.api.bsky.app";
+const PAGE_SIZE: &str = "50";
+/// Pages fetched when a feed is first added, before a cursor exists.
+const INITIAL_PAGES: usize = 2;
+/// Page cap for a refresh that has to catch up to its stored cursor.
+const MAX_CATCHUP_PAGES: usize = 20;
 
 #[derive(Deserialize)]
 struct ResolveHandleResponse {
     did: String,
+}
+
+#[derive(Deserialize)]
+struct ProfileResponse {
+    #[serde(rename = "displayName")]
+    display_name: Option<String>,
 }
 
 #[derive(Deserialize)]
@@ -76,39 +88,54 @@ pub fn extract_handle(url: &str) -> Option<String> {
 }
 
 pub async fn resolve_handle(client: &reqwest::Client, handle: &str) -> Result<String, String> {
-    let url = format!(
-        "{}/xrpc/com.atproto.identity.resolveHandle?handle={}",
-        PUBLIC_API, handle
-    );
-    let resp = client
-        .get(&url)
-        .send()
-        .await
-        .map_err(|e| format!("Bluesky resolve handle network error: {}", e))?;
-    if !resp.status().is_success() {
-        let status = resp.status();
-        let body = resp.text().await.unwrap_or_default();
-        return Err(format!("Bluesky resolve handle failed ({}): {}", status, body));
-    }
-    let data: ResolveHandleResponse = resp
-        .json()
-        .await
-        .map_err(|e| format!("Bluesky resolve handle parse error: {}", e))?;
+    let data: ResolveHandleResponse = get_json(
+        client,
+        "/xrpc/com.atproto.identity.resolveHandle",
+        &[("handle", handle)],
+    )
+    .await?;
     Ok(data.did)
 }
 
 pub async fn resolve_author_info(client: &reqwest::Client, handle: &str) -> Result<(String, String), String> {
-    let did = resolve_handle(client, handle).await?;
+    let did = if handle.starts_with("did:") {
+        handle.to_string()
+    } else {
+        resolve_handle(client, handle).await?
+    };
     debug!("resolve_author_info: resolved {} -> {}", handle, did);
 
-    let feed = fetch_author_feed(client, &did, None).await?;
-    let display_name = feed
-        .feed
-        .first()
-        .and_then(|v| v.post.author.display_name.clone())
+    let profile: ProfileResponse =
+        get_json(client, "/xrpc/app.bsky.actor.getProfile", &[("actor", did.as_str())]).await?;
+    let display_name = profile
+        .display_name
+        .filter(|name| !name.is_empty())
         .unwrap_or_else(|| handle.to_string());
 
     Ok((did, display_name))
+}
+
+/// Send one XRPC query and deserialize the JSON response. `reqwest` encodes the
+/// query values, so cursors and handles containing reserved characters survive.
+async fn get_json<T: DeserializeOwned>(
+    client: &reqwest::Client,
+    path: &str,
+    query: &[(&str, &str)],
+) -> Result<T, String> {
+    let resp = client
+        .get(format!("{}{}", PUBLIC_API, path))
+        .query(query)
+        .send()
+        .await
+        .map_err(|e| format!("Bluesky request to {} failed: {}", path, e))?;
+    if !resp.status().is_success() {
+        let status = resp.status();
+        let body = resp.text().await.unwrap_or_default();
+        return Err(format!("Bluesky request to {} failed ({}): {}", path, status, body));
+    }
+    resp.json()
+        .await
+        .map_err(|e| format!("Bluesky response from {} parse error: {}", path, e))
 }
 
 async fn fetch_author_feed(
@@ -116,26 +143,11 @@ async fn fetch_author_feed(
     actor: &str,
     cursor: Option<&str>,
 ) -> Result<AuthorFeedResponse, String> {
-    let mut url = format!(
-        "{}/xrpc/app.bsky.feed.getAuthorFeed?actor={}&limit=50",
-        PUBLIC_API, actor
-    );
+    let mut query = vec![("actor", actor), ("limit", PAGE_SIZE)];
     if let Some(c) = cursor {
-        url.push_str(&format!("&cursor={}", c));
+        query.push(("cursor", c));
     }
-    let resp = client
-        .get(&url)
-        .send()
-        .await
-        .map_err(|e| format!("Bluesky fetch feed network error: {}", e))?;
-    if !resp.status().is_success() {
-        let status = resp.status();
-        let body = resp.text().await.unwrap_or_default();
-        return Err(format!("Bluesky fetch feed failed ({}): {}", status, body));
-    }
-    resp.json()
-        .await
-        .map_err(|e| format!("Bluesky fetch feed parse error: {}", e))
+    get_json(client, "/xrpc/app.bsky.feed.getAuthorFeed", &query).await
 }
 
 fn extract_rkey(uri: &str) -> String {
@@ -144,6 +156,14 @@ fn extract_rkey(uri: &str) -> String {
 
 fn build_post_url(handle: &str, rkey: &str) -> String {
     format!("https://bsky.app/profile/{}/post/{}", handle, rkey)
+}
+
+/// Post text is plain text, but the reading pane renders the summary as HTML.
+fn escape_post_text(text: &str) -> String {
+    text.replace('&', "&amp;")
+        .replace('<', "&lt;")
+        .replace('>', "&gt;")
+        .replace('\n', "<br>")
 }
 
 fn post_title(text: &str) -> String {
@@ -195,7 +215,15 @@ pub async fn fetch_posts(
     let mut cursor: Option<String> = None;
     let mut first_uri: Option<String> = None;
 
-    'outer: for page in 0..2 {
+    // First add grabs a short history; a refresh keeps paging until it reaches
+    // the stored cursor so a long break does not drop posts.
+    let max_pages = if last_seen_uri.is_some() {
+        MAX_CATCHUP_PAGES
+    } else {
+        INITIAL_PAGES
+    };
+
+    'outer: for page in 0..max_pages {
         let response = fetch_author_feed(client, actor, cursor.as_deref()).await?;
 
         if response.feed.is_empty() {
@@ -235,7 +263,7 @@ pub async fn fetch_posts(
                 }
             };
 
-            let summary = text.to_string();
+            let summary = escape_post_text(text);
 
             let timestamp = if !created.is_empty() {
                 parse_timestamp(created)
@@ -273,11 +301,12 @@ pub async fn resolve_bluesky_source(url: &str, client: &reqwest::Client) -> Resu
     let handle = extract_handle(url).ok_or_else(|| "Not a Bluesky URL".to_string())?;
     let (did, display_name) = resolve_author_info(client, &handle).await?;
     let feed_url = format!("bsky:{}", did);
-    let (articles, _) = fetch_posts(client, &did, 0, None).await?;
+    let (articles, cursor) = fetch_posts(client, &did, 0, None).await?;
     Ok(FetchedFeed {
         title: display_name,
         url: feed_url,
         articles,
+        cursor,
     })
 }
 
@@ -306,7 +335,7 @@ pub async fn refresh_bluesky_feed(feed_url: &str, feed_id: i64, state: &AppState
 
 #[cfg(test)]
 mod tests {
-    use super::post_title;
+    use super::{escape_post_text, extract_handle, post_title};
 
     #[test]
     fn short_titles_are_unchanged() {
@@ -327,5 +356,35 @@ mod tests {
         let title = post_title(&"🎉".repeat(150));
         assert_eq!(title.chars().count(), 98);
         assert!(title.ends_with('…'));
+    }
+
+    #[test]
+    fn post_text_is_escaped_for_html() {
+        assert_eq!(escape_post_text("a < b & c\nd"), "a &lt; b &amp; c<br>d");
+    }
+
+    #[test]
+    fn extract_handle_accepts_profile_urls() {
+        assert_eq!(
+            extract_handle("https://bsky.app/profile/alice.bsky.social").as_deref(),
+            Some("alice.bsky.social")
+        );
+        assert_eq!(
+            extract_handle("https://bsky.app/profile/alice.bsky.social/").as_deref(),
+            Some("alice.bsky.social")
+        );
+        assert_eq!(
+            extract_handle("https://bsky.app/profile/did:plc:abc123").as_deref(),
+            Some("did:plc:abc123")
+        );
+    }
+
+    #[test]
+    fn extract_handle_rejects_other_urls() {
+        assert_eq!(
+            extract_handle("https://bsky.app/profile/alice.bsky.social/post/3kabc"),
+            None
+        );
+        assert_eq!(extract_handle("https://example.com/profile/alice"), None);
     }
 }

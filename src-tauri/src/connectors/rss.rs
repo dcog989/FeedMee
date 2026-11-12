@@ -85,6 +85,7 @@ fn parse_feed(content: &[u8], feed_url: &str) -> Option<FetchedFeed> {
         title,
         url: feed_url.to_string(),
         articles: entries_to_articles(&feed.entries, 0, feed_url),
+        cursor: None,
     })
 }
 

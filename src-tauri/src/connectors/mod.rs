@@ -24,6 +24,8 @@ pub struct FetchedFeed {
     pub title: String,
     pub url: String,
     pub articles: Vec<Article>,
+    /// Position marker for paged sources, stored with the feed on add.
+    pub cursor: Option<String>,
 }
 
 /// Refuse oversized pages and feeds so a mis-pasted link or broken server
@@ -132,6 +134,7 @@ impl Registry {
                         &fetched.url,
                         connector.feed_type(),
                         fetched.articles,
+                        fetched.cursor,
                         folder_id,
                         state,
                     )

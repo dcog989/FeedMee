@@ -29,6 +29,7 @@ impl FeedConnector for WebsiteConnector {
             title,
             url: base_url,
             articles,
+            cursor: None,
         })
     }
 

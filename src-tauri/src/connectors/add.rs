@@ -6,6 +6,7 @@ pub(crate) async fn add_feed_with_articles(
     feed_url: &str,
     feed_type: &str,
     mut articles: Vec<Article>,
+    cursor: Option<String>,
     folder_id: Option<i64>,
     state: &AppState,
 ) -> Result<i64, String> {
@@ -37,6 +38,11 @@ pub(crate) async fn add_feed_with_articles(
         let conn = state.db.lock().unwrap();
         let _ = db::delete_feed(&conn, feed_id);
         return Err("No articles found on page".to_string());
+    }
+
+    if let Some(cursor) = cursor {
+        let conn = state.db.lock().unwrap();
+        let _ = db::set_bluesky_cursor(&conn, feed_id, &cursor);
     }
 
     // Images land after the articles, so a crash or slow site cannot leave an
