@@ -130,7 +130,7 @@ interface KeyHandlerDeps {
 
 let activeKeyHandler: ((e: KeyboardEvent) => void) | null = null;
 
-export function setupKeyHandler(state: KeyHandlerDeps): () => void {
+export function setupKeyHandler(state: KeyHandlerDeps): void {
   // Remove any previously bound handler (e.g. after a hot-reload that
   // re-instantiates the store) so keydown listeners don't stack.
   if (activeKeyHandler) {
@@ -142,8 +142,12 @@ export function setupKeyHandler(state: KeyHandlerDeps): () => void {
     if (state.showSettings) return;
 
     const tag = (e.target as HTMLElement)?.tagName?.toLowerCase();
-    const isInput = tag === "input" || tag === "textarea" || (e.target as HTMLElement)?.isContentEditable;
+    const isInput =
+      tag === "input" || tag === "textarea" || tag === "select" || (e.target as HTMLElement)?.isContentEditable;
     if (isInput) return;
+
+    // Holding an arrow scrolls the article, but must not rerun the list queries.
+    if (e.repeat && state.focusedPane !== "reading") return;
 
     switch (e.key) {
       case "ArrowLeft":
@@ -179,9 +183,4 @@ export function setupKeyHandler(state: KeyHandlerDeps): () => void {
 
   activeKeyHandler = handler;
   window.addEventListener("keydown", handler);
-
-  return () => {
-    window.removeEventListener("keydown", handler);
-    if (activeKeyHandler === handler) activeKeyHandler = null;
-  };
 }
