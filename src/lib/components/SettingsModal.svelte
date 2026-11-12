@@ -3,6 +3,7 @@ import { Keyboard, Settings, X } from "@lucide/svelte";
 import { invoke } from "@tauri-apps/api/core";
 import { feedStore, settingsStore, uiStore } from "#lib/store.svelte.js";
 import { type AppSettings, DEFAULT_SETTINGS } from "#lib/types.js";
+import ArticleAppearanceSettings from "./ArticleAppearanceSettings.svelte";
 import Modal from "./Modal.svelte";
 import ShortcutsModal from "./ShortcutsModal.svelte";
 
@@ -11,19 +12,6 @@ let showShortcuts = $state(false);
 let initialized = $state(false);
 let prevSettings = $state<AppSettings | null>(null);
 let saveTimer: ReturnType<typeof setTimeout> | null = null;
-
-async function pickFont(target: "title" | "body") {
-  try {
-    const font = await invoke<string>("pick_system_font");
-    if (target === "title") settings.article_title_font = font;
-    else settings.article_body_font = font;
-  } catch (e) {
-    const msg = String(e);
-    if (msg !== "Font selection cancelled") {
-      uiStore.alert(msg);
-    }
-  }
-}
 
 const COLOR_KEYS = ["article_title_color", "article_body_color", "article_bg_color"] as const;
 
@@ -247,55 +235,7 @@ function vacuum() {
         </div>
       </div>
 
-      <h4 class="section-label">Typography</h4>
-
-      <div class="form-group">
-        <label for="title-font">Article Title Font</label>
-        <input
-          type="text"
-          id="title-font"
-          bind:value={settings.article_title_font}
-          placeholder="Default (Serif)"
-          onclick={() => pickFont("title")}
-        >
-      </div>
-
-      <div class="form-group">
-        <label for="body-font">Article Body Font</label>
-        <input
-          type="text"
-          id="body-font"
-          bind:value={settings.article_body_font}
-          placeholder="Default (Sans)"
-          onclick={() => pickFont("body")}
-        >
-      </div>
-
-      <h4 class="section-label">Colors</h4>
-
-      <div class="form-group">
-        <label for="title-color">Article Title FG</label>
-        <div class="color-input-wrap">
-          <input type="color" id="title-color" bind:value={settings.article_title_color}>
-          <input type="text" bind:value={settings.article_title_color}>
-        </div>
-      </div>
-
-      <div class="form-group">
-        <label for="body-color">Article Body FG</label>
-        <div class="color-input-wrap">
-          <input type="color" id="body-color" bind:value={settings.article_body_color}>
-          <input type="text" bind:value={settings.article_body_color}>
-        </div>
-      </div>
-
-      <div class="form-group">
-        <label for="bg-color">Article Body BG</label>
-        <div class="color-input-wrap">
-          <input type="color" id="bg-color" bind:value={settings.article_bg_color}>
-          <input type="text" bind:value={settings.article_bg_color}>
-        </div>
-      </div>
+      <ArticleAppearanceSettings {settings} onchange={(next) => (settings = next)} />
 
       <h4 class="section-label">Display</h4>
 
@@ -427,15 +367,15 @@ function vacuum() {
   min-width: 0;
 }
 
-.form-group {
+:global(.settings-modal .form-group) {
   display: flex;
   align-items: center;
   gap: 0.75rem;
   margin-bottom: 0.25rem;
 }
 
-.form-group label,
-.form-group .field-label {
+:global(.settings-modal .form-group label),
+:global(.settings-modal .form-group .field-label) {
   flex: 0 0 180px;
   font-size: 0.9rem;
   color: var(--text-secondary);
@@ -502,8 +442,8 @@ select {
   overflow-y: auto;
 }
 
-.form-group input:not([type="color"]),
-.form-group select {
+:global(.settings-modal .form-group input:not([type="color"])),
+:global(.settings-modal .form-group select) {
   flex: 1;
   padding: 8px;
   border: 1px solid var(--border-color);
@@ -512,11 +452,6 @@ select {
   border-radius: 4px;
   box-sizing: border-box;
   min-width: 160px;
-}
-
-.form-group input[type="text"]#title-font,
-.form-group input[type="text"]#body-font {
-  cursor: pointer;
 }
 
 .checkbox-wrap {
@@ -559,7 +494,7 @@ select {
   text-align: right;
 }
 
-.section-label {
+:global(.settings-modal .section-label) {
   margin: 0.35rem 0 0;
   font-size: 0.8rem;
   color: var(--text-secondary);
@@ -569,39 +504,9 @@ select {
   padding-bottom: 0.25rem;
 }
 
-.color-input-wrap {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex: 1;
-}
-
-.color-input-wrap input[type="color"] {
-  width: 32px;
-  height: 32px;
-  padding: 2px;
-  border: 1px solid var(--border-color);
-  border-radius: 4px;
-  background: var(--bg-app);
-  cursor: pointer;
-  flex: 0 0 auto;
-}
-
 hr {
   border: none;
   border-top: 1px solid var(--border-color);
   margin: 0.5rem 0;
-}
-
-.color-input-wrap input[type="text"] {
-  flex: 1;
-  padding: 8px;
-  border: 1px solid var(--border-color);
-  background: var(--bg-app);
-  color: var(--text-primary);
-  border-radius: 4px;
-  box-sizing: border-box;
-  font-family: var(--font-mono);
-  font-size: 0.8rem;
 }
 </style>
