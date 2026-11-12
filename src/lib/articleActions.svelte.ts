@@ -3,6 +3,9 @@ import { FEED_ID_LATEST, FEED_ID_SAVED, FEED_ID_TODAY } from "./store.svelte";
 import type { ArticleStore } from "./storeTypes";
 import type { Article } from "./types";
 
+/** Pages to scan for one visible page; blocked phrases can hide whole pages. */
+export const BLOCKED_SCAN_LIMIT = 10;
+
 function matchesBlockedPhrases(article: Article, phrases: string[]): boolean {
   if (phrases.length === 0) return false;
   const text = `${article.title} ${article.summary} ${article.author}`.toLowerCase();
@@ -74,18 +77,23 @@ export function createArticleActions(state: ArticleStore) {
 
   // Fetches pages until one has articles left after blocked-phrase filtering.
   // Without this, a fully filtered page leaves an empty list, so the scroll
-  // handler that owns pagination never fires again.
-  async function fetchVisiblePage(fromPage: number): Promise<{ articles: Article[]; page: number; hasMore: boolean }> {
+  // handler that owns pagination never fires again. Scans at most
+  // BLOCKED_SCAN_LIMIT pages and reports hasMore so scrolling can continue.
+  async function fetchVisiblePage(
+    fromPage: number,
+    gen: number,
+  ): Promise<{ articles: Article[]; page: number; hasMore: boolean }> {
     let page = fromPage;
-    for (;;) {
+    for (let scanned = 0; scanned < BLOCKED_SCAN_LIMIT; scanned += 1) {
       const result = (await fetchPage(page)) ?? [];
+      // A newer reload superseded this scan; stop querying.
+      if (gen !== reloadGeneration) return { articles: [], page, hasMore: false };
       const hasMore = result.length === state.pageSize;
       const articles = filterBlocked(result);
-      if (articles.length > 0 || !hasMore) {
-        return { articles, page, hasMore };
-      }
+      if (articles.length > 0 || !hasMore) return { articles, page, hasMore };
       page += 1;
     }
+    return { articles: [], page, hasMore: true };
   }
 
   async function reloadCurrentArticleList() {
@@ -93,7 +101,7 @@ export function createArticleActions(state: ArticleStore) {
     state.articles = [];
     state.page = 0;
     try {
-      const page = await fetchVisiblePage(0);
+      const page = await fetchVisiblePage(0, gen);
       if (gen !== reloadGeneration) return;
       state.articles = page.articles;
       state.page = page.page;
@@ -115,7 +123,7 @@ export function createArticleActions(state: ArticleStore) {
     state.isLoadingArticles = true;
     const gen = reloadGeneration;
     try {
-      const page = await fetchVisiblePage(state.page + 1);
+      const page = await fetchVisiblePage(state.page + 1, gen);
       if (gen !== reloadGeneration) return;
       state.articles = [...state.articles, ...page.articles];
       state.page = page.page;
