@@ -9,10 +9,16 @@ pub mod settings;
 pub mod startup;
 
 use std::sync::{Arc, Mutex};
+use std::time::Duration;
 use tauri::Manager;
 use tauri_plugin_window_state::StateFlags;
 
 const HTTP_FETCH_CONCURRENCY: usize = 8;
+/// First maintenance pass waits so it never competes with the first paint.
+const MAINTENANCE_START_DELAY_SECS: u64 = 200;
+const MAINTENANCE_INTERVAL: Duration = Duration::from_secs(86400);
+const VACUUM_INTERVAL_SECS: i64 = 86400;
+const THUMBNAIL_CACHE_MAX_AGE_DAYS: u64 = 7;
 
 pub struct AppState {
     pub db: Mutex<rusqlite::Connection>,
@@ -31,9 +37,59 @@ impl AppState {
     }
 }
 
+/// Purge expired articles, VACUUM at most once a day, and drop stale cached
+/// thumbnails. Runs off the UI thread so the DB lock is never held during a
+/// paint.
+fn run_maintenance(state: &AppState) {
+    let now = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap()
+        .as_secs() as i64;
+
+    let (do_vacuum, retention) = {
+        let s = state.settings.lock().unwrap();
+        (now - s.last_vacuum > VACUUM_INTERVAL_SECS, s.article_retention_days)
+    };
+
+    let vacuum_ok = {
+        let conn = state.db.lock().unwrap();
+
+        if let Err(e) = db::purge_old_articles(&conn, retention) {
+            log::error!("Article purge failed: {}", e);
+        }
+
+        if do_vacuum {
+            match db::run_vacuum(&conn) {
+                Ok(()) => true,
+                Err(e) => {
+                    log::error!("Maintenance VACUUM failed: {}", e);
+                    false
+                },
+            }
+        } else {
+            false
+        }
+    };
+
+    if vacuum_ok {
+        let mut s = state.settings.lock().unwrap();
+        s.last_vacuum = now;
+        crate::settings::save_settings(&state.paths.config_dir, &s);
+    }
+
+    commands::thumbnails::cleanup_thumbnail_cache(&state.paths.thumbnail_dir(), THUMBNAIL_CACHE_MAX_AGE_DAYS);
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
+        .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
+            if let Some(window) = app.get_webview_window("main") {
+                let _ = window.unminimize();
+                let _ = window.show();
+                let _ = window.set_focus();
+            }
+        }))
         .setup(|app| {
             use log::info;
 
@@ -68,59 +124,16 @@ pub fn run() {
             startup::setup_window(&window);
             startup::reveal_window_fallback(&window);
 
-            tauri::async_runtime::spawn_blocking(move || {
-                let state = app_handle.state::<AppState>();
-
-                let now = std::time::SystemTime::now()
-                    .duration_since(std::time::UNIX_EPOCH)
-                    .unwrap()
-                    .as_secs() as i64;
-
-                let (do_vacuum, retention) = {
-                    let s = state.settings.lock().unwrap();
-                    (now - s.last_vacuum > 86400, s.article_retention_days)
-                };
-
-                let vacuum_ok = {
-                    let conn = state.db.lock().unwrap();
-
-                    let vacuum_ok = if do_vacuum {
-                        match db::run_vacuum(&conn) {
-                            Ok(()) => true,
-                            Err(e) => {
-                                log::error!("Maintenance VACUUM failed: {}", e);
-                                false
-                            },
-                        }
-                    } else {
-                        false
-                    };
-
-                    if let Err(e) = db::purge_old_articles(&conn, retention) {
-                        log::error!("Startup article purge failed: {}", e);
-                    }
-
-                    vacuum_ok
-                };
-
-                if do_vacuum && vacuum_ok {
-                    let mut s = state.settings.lock().unwrap();
-                    s.last_vacuum = now;
-                    crate::settings::save_settings(&state.paths.config_dir, &s);
-                }
-
-                commands::thumbnails::cleanup_thumbnail_cache(&state.paths.thumbnail_dir(), 7);
-            });
-
-            let backup_handle = app.handle().clone();
+            let maintenance_handle = app.handle().clone();
             std::thread::spawn(move || {
-                std::thread::sleep(std::time::Duration::from_secs(200));
+                std::thread::sleep(std::time::Duration::from_secs(MAINTENANCE_START_DELAY_SECS));
                 loop {
-                    let state = backup_handle.state::<AppState>();
+                    let state = maintenance_handle.state::<AppState>();
+                    run_maintenance(&state);
                     if let Err(e) = commands::backup::run_auto_backup(&state.db, &state.paths.backup_dir()) {
                         log::error!("Auto-backup failed: {}", e);
                     }
-                    std::thread::sleep(std::time::Duration::from_secs(86400));
+                    std::thread::sleep(MAINTENANCE_INTERVAL);
                 }
             });
 

@@ -37,8 +37,12 @@ pub fn run_auto_backup(db: &Mutex<rusqlite::Connection>, backup_dir: &Path) -> R
     let timestamp = chrono::Local::now().format("%Y-%m-%d_%H%M%S");
     let filename = format!("backup-{}.opml", timestamp);
     let filepath = backup_dir.join(&filename);
+    let partial = filepath.with_extension("opml.tmp");
 
-    fs::write(&filepath, &opml).map_err(|e| format!("failed to write backup: {}", e))?;
+    // Write beside the target and rename, so a crash cannot leave a truncated
+    // backup that rotation then keeps as the newest one.
+    fs::write(&partial, &opml).map_err(|e| format!("failed to write backup: {}", e))?;
+    fs::rename(&partial, &filepath).map_err(|e| format!("failed to finalize backup: {}", e))?;
 
     log::info!("Auto-backup written: {}", filepath.display());
 

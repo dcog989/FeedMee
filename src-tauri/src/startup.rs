@@ -1,4 +1,5 @@
-use std::path::Path;
+use std::fs;
+use std::path::{Path, PathBuf};
 
 use flexi_logger::{Age, Cleanup, Criterion, Duplicate, FileSpec, Logger, LoggerHandle, Naming};
 
@@ -47,11 +48,29 @@ pub(crate) fn init_logging(logs_dir: &Path, log_level: &str) -> Result<LoggerHan
 }
 
 pub(crate) fn setup_database(db_path: &Path) -> rusqlite::Connection {
-    let mut conn = rusqlite::Connection::open(db_path).unwrap_or_else(|e| panic!("Failed to open database: {}", e));
+    match open_database(db_path) {
+        Ok(conn) => conn,
+        Err(e) => {
+            log::error!("Database open/init failed: {}. Starting with a fresh database.", e);
+            let stamp = chrono::Local::now().format("%Y%m%d_%H%M%S").to_string();
+            for suffix in ["", "-wal", "-shm"] {
+                let from = PathBuf::from(format!("{}{}", db_path.display(), suffix));
+                if from.exists() {
+                    let to = PathBuf::from(format!("{}.corrupt-{}", from.display(), stamp));
+                    if let Err(rename_err) = fs::rename(&from, &to) {
+                        panic!("Failed to move unreadable database aside: {}", rename_err);
+                    }
+                }
+            }
+            open_database(db_path).unwrap_or_else(|e| panic!("Failed to create a fresh database: {}", e))
+        },
+    }
+}
 
-    db::init_db(&mut conn).unwrap_or_else(|e| panic!("Schema init failed: {}", e));
-
-    conn
+fn open_database(db_path: &Path) -> Result<rusqlite::Connection, Box<dyn std::error::Error>> {
+    let mut conn = rusqlite::Connection::open(db_path)?;
+    db::init_db(&mut conn)?;
+    Ok(conn)
 }
 
 pub(crate) fn build_http_client() -> reqwest::Client {

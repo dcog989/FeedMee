@@ -47,6 +47,22 @@ mod tests {
     }
 
     #[test]
+    fn init_db_restamps_pre_baseline_user_version() {
+        let mut conn = test_conn();
+        let feed = create_feed(&conn, "Feed", "https://example.com/rss", None, "rss").unwrap();
+        batch_insert_articles(&mut conn, &[sample_article(feed)], None).unwrap();
+
+        // Pre-baseline databases carried a higher counter than the collapsed list.
+        conn.pragma_update(None, "user_version", 12).unwrap();
+        init_db(&mut conn).unwrap();
+
+        let version: i64 = conn.query_row("PRAGMA user_version", [], |r| r.get(0)).unwrap();
+        assert_eq!(version, 1);
+        assert_eq!(get_articles_for_feed(&conn, feed, 10, 0, true).unwrap().len(), 1);
+        assert_eq!(search_articles(&conn, "Title", 10, 0, true).unwrap().len(), 1);
+    }
+
+    #[test]
     fn article_projections_map_all_columns() {
         let mut conn = test_conn();
         let folder = create_folder(&conn, "News").unwrap();
