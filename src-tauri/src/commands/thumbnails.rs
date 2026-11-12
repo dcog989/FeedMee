@@ -10,7 +10,7 @@ use webp::Encoder;
 
 use super::scraper::{compute_content_hash, scrape_og_image};
 
-const MAX_IMAGE_BYTES: usize = 50_000_000;
+const MAX_IMAGE_BYTES: usize = 10_000_000;
 
 fn hash_url(url: &str) -> String {
     compute_content_hash(url)
