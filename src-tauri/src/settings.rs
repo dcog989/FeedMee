@@ -3,39 +3,22 @@ use std::fs;
 use std::path::Path;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
+#[serde(default)]
 pub struct AppSettings {
     pub feed_refresh_debounce_minutes: u64,
     pub auto_update_interval_minutes: u64,
     pub log_level: String,
-    #[serde(default)]
     pub default_view_type: String,
-    #[serde(default)]
     pub default_view_id: i64,
-    #[serde(default)]
     pub auto_collapse_folders: bool,
-    #[serde(default)]
     pub mark_feed_read_on_exit: bool,
-    #[serde(default)]
     pub article_title_font: String,
-    #[serde(default)]
     pub article_body_font: String,
-    #[serde(default)]
     pub article_title_color: String,
-    #[serde(default)]
     pub article_body_color: String,
-    #[serde(default)]
     pub article_bg_color: String,
-    #[serde(default = "default_thumbnail_size")]
     pub thumbnail_size: u64,
-    #[serde(default = "default_retention_days")]
     pub article_retention_days: u64,
-}
-
-fn default_thumbnail_size() -> u64 {
-    56
-}
-fn default_retention_days() -> u64 {
-    90
 }
 
 impl Default for AppSettings {
@@ -100,6 +83,24 @@ pub fn save_settings(config_dir: &Path, settings: &AppSettings) -> Result<(), St
 #[cfg(test)]
 mod tests {
     use super::{AppSettings, load_settings, save_settings};
+
+    #[test]
+    fn missing_keys_fall_back_to_defaults() {
+        let dir = std::env::temp_dir().join(format!("feedmee-settings-partial-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).unwrap();
+        std::fs::write(dir.join("settings.toml"), "log_level = \"debug\"\n").unwrap();
+
+        let loaded = load_settings(&dir);
+        assert_eq!(loaded.log_level, "debug");
+        assert_eq!(loaded.thumbnail_size, AppSettings::default().thumbnail_size);
+        assert_eq!(
+            loaded.article_retention_days,
+            AppSettings::default().article_retention_days
+        );
+
+        let _ = std::fs::remove_dir_all(&dir);
+    }
 
     #[test]
     fn settings_survive_a_save_and_load() {
