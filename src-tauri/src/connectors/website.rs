@@ -16,25 +16,13 @@ impl FeedConnector for WebsiteConnector {
 
     async fn fetch_articles(
         &self,
-        url: &str,
+        _url: &str,
         page: Option<&FetchedPage>,
-        state: &AppState,
+        _state: &AppState,
     ) -> Result<FetchedFeed, String> {
-        let (html, base_url) = match page {
-            Some(p) => (String::from_utf8_lossy(&p.bytes).into_owned(), p.final_url.to_string()),
-            None => {
-                let html = state
-                    .http_client
-                    .get(url)
-                    .send()
-                    .await
-                    .map_err(|e| e.to_string())?
-                    .text()
-                    .await
-                    .map_err(|e| e.to_string())?;
-                (html, url.to_string())
-            },
-        };
+        let page = page.ok_or("Website connector requires a prefetched page")?;
+        let html = decode_html(&page.bytes, page.charset.as_deref());
+        let base_url = page.final_url.to_string();
 
         let (title, articles) = extract_website_articles(&html, &base_url)?;
         Ok(FetchedFeed {
@@ -47,6 +35,13 @@ impl FeedConnector for WebsiteConnector {
     async fn refresh(&self, feed_url: &str, feed_id: i64, state: &AppState) -> Result<i64, String> {
         refresh_website_feed(feed_url, feed_id, state).await
     }
+}
+
+fn decode_html(bytes: &[u8], charset: Option<&str>) -> String {
+    let encoding = charset
+        .and_then(|label| encoding_rs::Encoding::for_label(label.as_bytes()))
+        .unwrap_or(encoding_rs::UTF_8);
+    encoding.decode(bytes).0.into_owned()
 }
 
 fn scrape_page(html: &str, page_url: &str, feed_id: i64) -> Vec<Article> {
@@ -90,7 +85,13 @@ fn scrape_and_insert(html: &str, page_url: &str, feed_id: i64, state: &AppState)
 async fn refresh_website_feed(feed_url: &str, feed_id: i64, state: &AppState) -> Result<i64, String> {
     let client = state.http_client.clone();
     let response = client.get(feed_url).send().await.map_err(|e| e.to_string())?;
-    let html = response.text().await.map_err(|e| e.to_string())?;
+    let status = response.status();
+    if !status.is_success() {
+        return Err(format!("HTTP {} for {}", status, feed_url));
+    }
+    let charset = super::response_charset(&response);
+    let bytes = super::read_body(response).await?;
+    let html = decode_html(&bytes, charset.as_deref());
 
     let _ = scrape_and_insert(&html, feed_url, feed_id, state)?;
 

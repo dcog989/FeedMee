@@ -15,6 +15,7 @@ async-trait = "0.1"
 base64 = "0.23"
 chrono = { version = "0.4", features = [] }
 dom_smoothie = "0.19"
+encoding_rs = "0.8"
 feed-rs = "3.0"
 flexi_logger = "0.31"
 image = { version = "0.25", default-features = false, features = ["gif", "jpeg", "png", "webp"] }

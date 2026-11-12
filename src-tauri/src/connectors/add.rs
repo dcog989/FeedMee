@@ -1,10 +1,6 @@
 use crate::commands::scraper::backfill_og_images;
 use crate::{AppState, db, models::Article};
 
-/// Only the newest entries get an og:image lookup when a feed is added; older
-/// entries rarely need a hero, and each lookup is a network request.
-const ADD_BACKFILL_LIMIT: usize = 10;
-
 pub(crate) async fn add_feed_with_articles(
     title: &str,
     feed_url: &str,
@@ -45,7 +41,7 @@ pub(crate) async fn add_feed_with_articles(
 
     // Images land after the articles, so a crash or slow site cannot leave an
     // empty feed behind.
-    let limit = articles.len().min(ADD_BACKFILL_LIMIT);
+    let limit = articles.len().min(super::BACKFILL_LIMIT);
     backfill_og_images(state, &mut articles[..limit], |_| true).await;
 
     if articles[..limit].iter().any(|a| !a.image_url.is_empty()) {

@@ -1,4 +1,3 @@
-use std::borrow::Cow;
 use std::io::Cursor;
 use std::time::Duration;
 
@@ -22,32 +21,26 @@ impl FeedConnector for RssConnector {
 
     async fn fetch_articles(
         &self,
-        url: &str,
+        _url: &str,
         page: Option<&FetchedPage>,
         state: &AppState,
     ) -> Result<FetchedFeed, String> {
-        let client = &state.http_client;
-        let (content_bytes, original_url): (Cow<'_, [u8]>, Url) = match page {
-            Some(p) => (Cow::Borrowed(p.bytes.as_slice()), p.final_url.clone()),
-            None => {
-                let response = client.get(url).send().await.map_err(|e| e.to_string())?;
-                let final_url = response.url().clone();
-                let bytes = response.bytes().await.map_err(|e| e.to_string())?;
-                (Cow::Owned(bytes.to_vec()), final_url)
-            },
-        };
+        let page = page.ok_or("RSS connector requires a prefetched page")?;
+        let content_bytes = page.bytes.as_slice();
+        let original_url = &page.final_url;
 
-        if let Some(feed) = parse_feed(content_bytes.as_ref(), original_url.as_str()) {
+        if let Some(feed) = parse_feed(content_bytes, original_url.as_str()) {
             return Ok(feed);
         }
 
-        let html = String::from_utf8_lossy(content_bytes.as_ref());
+        let client = &state.http_client;
+        let html = String::from_utf8_lossy(content_bytes);
         let mut candidates = Vec::new();
-        if let Some(rss_url) = discover_rss_feed_url(&html, &original_url) {
+        if let Some(rss_url) = discover_rss_feed_url(&html, original_url) {
             debug!("rss connector: discovered RSS url={}", rss_url);
             candidates.push(rss_url);
         }
-        candidates.extend(candidate_feed_urls(&original_url));
+        candidates.extend(candidate_feed_urls(original_url));
 
         for candidate in candidates {
             if let Some(feed) = fetch_feed(client, &candidate).await {
@@ -83,9 +76,6 @@ const FEED_PATH_CANDIDATES: &[&str] = &[
 
 fn parse_feed(content: &[u8], feed_url: &str) -> Option<FetchedFeed> {
     let feed = feed_rs::parser::parse(Cursor::new(content)).ok()?;
-    if feed.entries.is_empty() {
-        return None;
-    }
     let title = feed
         .title
         .as_ref()
@@ -107,7 +97,7 @@ async fn fetch_feed(client: &reqwest::Client, url: &str) -> Option<FetchedFeed> 
         return None;
     }
     let final_url = response.url().clone();
-    let bytes = response.bytes().await.ok()?;
+    let bytes = super::read_body(response).await.ok()?;
     parse_feed(&bytes, final_url.as_str())
 }
 
@@ -277,10 +267,7 @@ async fn refresh_rss_feed(feed_url: &str, feed_id: i64, state: &AppState) -> Res
                 return Err(format!("HTTP {} for {}", status, feed_url));
             }
 
-            let content = response
-                .bytes()
-                .await
-                .map_err(|e| format!("Failed to read response: {}", e))?;
+            let content = super::read_body(response).await?;
 
             match feed_rs::parser::parse(Cursor::new(content)) {
                 Ok(feed) => {
@@ -294,7 +281,8 @@ async fn refresh_rss_feed(feed_url: &str, feed_id: i64, state: &AppState) -> Res
                         db::get_known_urls(&conn, feed_id, &batch_urls).map_err(|e| e.to_string())?
                     };
 
-                    backfill_og_images(state, &mut articles, |a| {
+                    let limit = articles.len().min(super::BACKFILL_LIMIT);
+                    backfill_og_images(state, &mut articles[..limit], |a| {
                         a.image_low_res || !known_urls.contains(&a.url)
                     })
                     .await;
@@ -316,37 +304,21 @@ async fn refresh_rss_feed(feed_url: &str, feed_id: i64, state: &AppState) -> Res
 }
 
 fn discover_rss_feed_url(html: &str, base_url: &Url) -> Option<String> {
-    let feed_types = ["application/rss+xml", "application/atom+xml", "application/feed+json"];
+    let feed_types = ["application/rss+xml", "application/atom+xml"];
     let document = Html::parse_document(html);
-    Selector::parse("link")
-        .ok()
-        .map(|sel| {
-            document
-                .select(&sel)
-                .filter_map(|el| {
-                    let t = el.value().attr("type").unwrap_or("");
-                    if feed_types.iter().any(|ft| t.contains(ft)) {
-                        el.value()
-                            .attr("href")
-                            .and_then(|href| base_url.join(href).ok().map(|u| u.to_string()))
-                    } else {
-                        None
-                    }
-                })
-                .collect::<Vec<_>>()
-        })
-        .and_then(|urls| {
-            if urls.is_empty() {
-                None
-            } else {
-                urls.into_iter().max_by_key(|u| u.len())
-            }
-        })
+    let sel = Selector::parse("link").ok()?;
+    document.select(&sel).find_map(|el| {
+        let feed_type = el.value().attr("type")?;
+        if !feed_types.iter().any(|ft| feed_type.contains(ft)) {
+            return None;
+        }
+        el.value()
+            .attr("href")
+            .and_then(|href| base_url.join(href).ok().map(|u| u.to_string()))
+    })
 }
 
 const TRACKING_PARAMS: &[&str] = &[
-    "access_token",
-    "token",
     "utm_source",
     "utm_medium",
     "utm_campaign",
@@ -375,7 +347,10 @@ fn strip_tracking_params(url: &str) -> String {
 
 #[cfg(test)]
 mod tests {
-    use super::{MIN_ACCEPTABLE_IMAGE_WIDTH, candidate_feed_urls, entries_to_articles, image_width_hint};
+    use super::{
+        MIN_ACCEPTABLE_IMAGE_WIDTH, candidate_feed_urls, discover_rss_feed_url, entries_to_articles, image_width_hint,
+        parse_feed,
+    };
     use feed_rs::model::{Entry, Person};
 
     fn person(name: Option<&str>, email: Option<&str>) -> Person {
@@ -477,5 +452,38 @@ mod tests {
         let guardian = "https://i.guim.co.uk/img/media/abc/master/6336.jpg?width=140&quality=85&auto=format&fit=max";
         assert_eq!(image_width_hint(guardian, Some(140)), Some(140));
         assert!(image_width_hint(guardian, Some(140)).unwrap() < MIN_ACCEPTABLE_IMAGE_WIDTH);
+    }
+
+    #[test]
+    fn autodiscovery_prefers_the_first_feed_link() {
+        let html = r#"
+            <html><head>
+            <link rel="alternate" type="application/rss+xml" href="/feed/">
+            <link rel="alternate" type="application/rss+xml" href="/comments/feed/">
+            </head></html>
+        "#;
+        let base = url::Url::parse("https://example.com/").unwrap();
+        assert_eq!(
+            discover_rss_feed_url(html, &base).as_deref(),
+            Some("https://example.com/feed/")
+        );
+    }
+
+    #[test]
+    fn autodiscovery_ignores_json_feeds() {
+        let html = r#"<link rel="alternate" type="application/feed+json" href="/feed.json">"#;
+        let base = url::Url::parse("https://example.com/").unwrap();
+        assert_eq!(discover_rss_feed_url(html, &base), None);
+    }
+
+    #[test]
+    fn empty_feed_still_parses() {
+        let xml = r#"<?xml version="1.0"?>
+            <rss version="2.0"><channel>
+            <title>Empty</title><link>https://example.com/</link><description>none</description>
+            </channel></rss>"#;
+        let feed = parse_feed(xml.as_bytes(), "https://example.com/feed").expect("empty feed should parse");
+        assert_eq!(feed.title, "Empty");
+        assert!(feed.articles.is_empty());
     }
 }

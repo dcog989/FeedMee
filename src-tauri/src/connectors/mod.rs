@@ -14,6 +14,9 @@ use crate::{AppState, models::Article};
 pub struct FetchedPage {
     pub bytes: Vec<u8>,
     pub final_url: url::Url,
+    /// Charset declared by the response, for HTML consumers that must decode
+    /// the bytes themselves.
+    pub charset: Option<String>,
 }
 
 /// A feed discovered by a connector, ready to be persisted.
@@ -23,8 +26,34 @@ pub struct FetchedFeed {
     pub articles: Vec<Article>,
 }
 
-/// Refuse oversized pages so a mis-pasted link cannot exhaust memory.
-const MAX_PAGE_BYTES: u64 = 10 * 1024 * 1024;
+/// Refuse oversized pages and feeds so a mis-pasted link or broken server
+/// cannot exhaust memory.
+const MAX_PAGE_BYTES: usize = 10 * 1024 * 1024;
+
+/// Only the newest entries get an og:image lookup; older entries rarely need a
+/// hero, and each lookup is a network request.
+const BACKFILL_LIMIT: usize = 10;
+
+async fn read_body(mut response: reqwest::Response) -> Result<Vec<u8>, String> {
+    let mut body = Vec::new();
+    while let Some(chunk) = response.chunk().await.map_err(|e| e.to_string())? {
+        if body.len() + chunk.len() > MAX_PAGE_BYTES {
+            return Err(format!("Response is larger than {} bytes", MAX_PAGE_BYTES));
+        }
+        body.extend_from_slice(&chunk);
+    }
+    Ok(body)
+}
+
+fn response_charset(response: &reqwest::Response) -> Option<String> {
+    let content_type = response.headers().get(reqwest::header::CONTENT_TYPE)?.to_str().ok()?;
+    content_type.split(';').find_map(|part| {
+        let (key, value) = part.split_once('=')?;
+        key.trim()
+            .eq_ignore_ascii_case("charset")
+            .then(|| value.trim().trim_matches('"').to_string())
+    })
+}
 
 async fn fetch_page(client: &reqwest::Client, url: &str) -> Option<FetchedPage> {
     if !crate::net::is_public_url(url) {
@@ -34,12 +63,14 @@ async fn fetch_page(client: &reqwest::Client, url: &str) -> Option<FetchedPage> 
     if !response.status().is_success() {
         return None;
     }
-    if response.content_length().is_some_and(|len| len > MAX_PAGE_BYTES) {
-        return None;
-    }
     let final_url = response.url().clone();
-    let bytes = response.bytes().await.ok()?.to_vec();
-    Some(FetchedPage { bytes, final_url })
+    let charset = response_charset(&response);
+    let bytes = read_body(response).await.ok()?;
+    Some(FetchedPage {
+        bytes,
+        final_url,
+        charset,
+    })
 }
 
 #[async_trait]
