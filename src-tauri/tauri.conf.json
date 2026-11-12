@@ -15,6 +15,7 @@
         "title": "FeedMee",
         "width": 1024,
         "height": 768,
+        "minWidth": 900,
         "resizable": true,
         "decorations": true,
         "transparent": false,

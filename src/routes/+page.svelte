@@ -230,41 +230,4 @@ function onResizerKeyDown(target: "nav" | "list", e: KeyboardEvent) {
 .list-resizer {
   grid-area: resizer2;
 }
-
-/* Tablet: Collapsed Navigation (Overrides variables) */
-@media (max-width: 1200px) {
-  .app-container {
-    /* Force specific widths, hiding the resizers effectively */
-    grid-template-columns: 200px 0px 300px 0px 1fr;
-  }
-
-  /* Hide visual handles on smaller screens */
-  .resizer {
-    display: none;
-    pointer-events: none;
-  }
-}
-
-/* Mobile: Single Pane */
-@media (max-width: 768px) {
-  .app-container {
-    grid-template-columns: 1fr;
-    grid-template-rows: auto 1fr;
-    grid-template-areas:
-      "nav"
-      "list";
-  }
-
-  .reading-area {
-    display: none;
-  }
-  .resizer {
-    display: none;
-  }
-
-  .nav-area {
-    height: 60px;
-    border-bottom: 1px solid var(--border-color);
-  }
-}
 </style>
