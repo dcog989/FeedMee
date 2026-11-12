@@ -50,10 +50,22 @@ pub fn get_app_settings(state: State<'_, AppState>) -> Result<AppSettings, Strin
 }
 
 #[tauri::command]
-pub fn save_app_settings(new_settings: AppSettings, state: State<'_, AppState>) -> Result<(), String> {
+pub fn save_app_settings(
+    new_settings: AppSettings,
+    app: tauri::AppHandle,
+    state: State<'_, AppState>,
+) -> Result<(), String> {
     let mut settings_guard = state.settings.lock().unwrap();
-    *settings_guard = new_settings.clone();
-    settings::save_settings(&state.paths.config_dir, &new_settings);
+    let mut updated = new_settings;
+    // The frontend cannot know this server-only field; keep the current value.
+    updated.last_vacuum = settings_guard.last_vacuum;
+    settings::save_settings(&state.paths.config_dir, &updated)?;
+    if let Some(logger) = app.try_state::<flexi_logger::LoggerHandle>()
+        && let Err(e) = logger.parse_new_spec(crate::startup::log_spec(&updated.log_level))
+    {
+        log::error!("Failed to apply log level: {}", e);
+    }
+    *settings_guard = updated;
     Ok(())
 }
 
@@ -79,21 +91,15 @@ fn pick_font_platform() -> Result<String, String> {
     let res = dialog.run();
 
     let result = if res == gtk::ResponseType::Ok {
-        match dialog.font() {
-            Some(font_desc) => {
-                let name = font_desc
-                    .rsplitn(2, ' ')
-                    .last()
-                    .unwrap_or(&font_desc)
-                    .trim()
-                    .to_string();
-                if name.is_empty() {
-                    Err("No font selected".to_string())
-                } else {
-                    Ok(name)
-                }
-            },
-            None => Err("No font selected".to_string()),
+        let name = dialog
+            .font_desc()
+            .and_then(|desc| desc.family())
+            .map(|family| family.trim().to_string())
+            .unwrap_or_default();
+        if name.is_empty() {
+            Err("No font selected".to_string())
+        } else {
+            Ok(name)
         }
     } else {
         Err("Font selection cancelled".to_string())
@@ -111,13 +117,22 @@ fn pick_font_platform() -> Result<String, String> {
 #[tauri::command]
 pub fn get_shortcuts(state: State<'_, AppState>) -> Result<std::collections::HashMap<String, String>, String> {
     let shortcuts_path = state.paths.shortcuts_path();
+    if !shortcuts_path.exists() {
+        return Ok(std::collections::HashMap::new());
+    }
 
-    if shortcuts_path.exists() {
-        let content = fs::read_to_string(&shortcuts_path).map_err(|e| e.to_string())?;
-        let shortcuts: std::collections::HashMap<String, String> = serde_json::from_str(&content).unwrap_or_default();
-        Ok(shortcuts)
-    } else {
-        Ok(std::collections::HashMap::new())
+    let content = fs::read_to_string(&shortcuts_path).map_err(|e| e.to_string())?;
+    match serde_json::from_str::<std::collections::HashMap<String, String>>(&content) {
+        Ok(shortcuts) => Ok(shortcuts),
+        Err(e) => {
+            log::error!("Failed to parse shortcuts file {}: {}", shortcuts_path.display(), e);
+            let stamp = chrono::Local::now().format("%Y%m%d_%H%M%S");
+            let backup = PathBuf::from(format!("{}.corrupt-{}", shortcuts_path.display(), stamp));
+            if let Err(rename_err) = fs::rename(&shortcuts_path, &backup) {
+                log::error!("Failed to move unreadable shortcuts file aside: {}", rename_err);
+            }
+            Ok(std::collections::HashMap::new())
+        },
     }
 }
 
@@ -129,7 +144,9 @@ pub fn save_shortcuts(
     let path = state.paths.shortcuts_path();
     fs::create_dir_all(&state.paths.config_dir).map_err(|e| e.to_string())?;
     let json = serde_json::to_string_pretty(&shortcuts).map_err(|e| e.to_string())?;
-    fs::write(path, json).map_err(|e| e.to_string())?;
+    let temp = path.with_extension("json.tmp");
+    fs::write(&temp, json).map_err(|e| e.to_string())?;
+    fs::rename(&temp, &path).map_err(|e| e.to_string())?;
     info!("Shortcuts saved to disk");
     Ok(())
 }

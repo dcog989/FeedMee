@@ -74,7 +74,9 @@ fn run_maintenance(state: &AppState) {
     if vacuum_ok {
         let mut s = state.settings.lock().unwrap();
         s.last_vacuum = now;
-        crate::settings::save_settings(&state.paths.config_dir, &s);
+        if let Err(e) = crate::settings::save_settings(&state.paths.config_dir, &s) {
+            log::error!("Failed to save maintenance settings: {}", e);
+        }
     }
 
     commands::thumbnails::cleanup_thumbnail_cache(&state.paths.thumbnail_dir(), THUMBNAIL_CACHE_MAX_AGE_DAYS);

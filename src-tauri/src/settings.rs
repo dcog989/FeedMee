@@ -87,13 +87,37 @@ pub fn load_settings(config_dir: &Path) -> AppSettings {
     }
 
     let settings = AppSettings::default();
-    save_settings(config_dir, &settings);
+    let _ = save_settings(config_dir, &settings);
     settings
 }
 
-pub fn save_settings(config_dir: &Path, settings: &AppSettings) {
-    fs::create_dir_all(config_dir).ok();
-    if let Ok(toml_string) = toml::to_string_pretty(settings) {
-        let _ = fs::write(config_dir.join("settings.toml"), toml_string);
+pub fn save_settings(config_dir: &Path, settings: &AppSettings) -> Result<(), String> {
+    fs::create_dir_all(config_dir).map_err(|e| format!("Failed to create config directory: {}", e))?;
+    let toml_string = toml::to_string_pretty(settings).map_err(|e| format!("Failed to serialize settings: {}", e))?;
+    let path = config_dir.join("settings.toml");
+    let temp = config_dir.join("settings.toml.tmp");
+    fs::write(&temp, toml_string).map_err(|e| format!("Failed to write settings: {}", e))?;
+    fs::rename(&temp, &path).map_err(|e| format!("Failed to replace settings: {}", e))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{AppSettings, load_settings, save_settings};
+
+    #[test]
+    fn settings_survive_a_save_and_load() {
+        let dir = std::env::temp_dir().join(format!("feedmee-settings-test-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+
+        let mut settings = AppSettings::default();
+        settings.log_level = "debug".to_string();
+        settings.article_retention_days = 7;
+        save_settings(&dir, &settings).unwrap();
+
+        let loaded = load_settings(&dir);
+        assert_eq!(loaded.log_level, "debug");
+        assert_eq!(loaded.article_retention_days, 7);
+
+        let _ = std::fs::remove_dir_all(&dir);
     }
 }

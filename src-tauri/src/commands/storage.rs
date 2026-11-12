@@ -94,7 +94,7 @@ pub async fn vacuum_database(app: AppHandle) -> Result<(), String> {
 
         let mut settings = state.settings.lock().map_err(|e| e.to_string())?;
         settings.last_vacuum = now;
-        crate::settings::save_settings(&state.paths.config_dir, &settings);
+        crate::settings::save_settings(&state.paths.config_dir, &settings).map_err(|e| e.to_string())?;
         Ok(())
     })
     .await
