@@ -58,6 +58,15 @@ function focusPane(pane: "nav" | "list" | "reading") {
 }
 
 function onPaneKeyDown(pane: "nav" | "list" | "reading", e: KeyboardEvent) {
+  const target = e.target as HTMLElement;
+  // Let inputs keep space/enter; nothing to focus while typing.
+  if (
+    target.tagName === "INPUT" ||
+    target.tagName === "TEXTAREA" ||
+    target.tagName === "SELECT" ||
+    target.isContentEditable
+  )
+    return;
   if (e.key === "Enter" || e.key === " ") {
     e.preventDefault();
     focusPane(pane);
