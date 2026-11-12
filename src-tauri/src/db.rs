@@ -131,6 +131,95 @@ mod tests {
     }
 
     #[test]
+    fn duplicate_articles_upgrade_image_and_summary_without_duplicating() {
+        let mut conn = test_conn();
+        let feed = create_feed(&conn, "Feed", "https://example.com/rss", None, "rss").unwrap();
+
+        let mut first = sample_article(feed);
+        first.image_url = "https://example.com/low.jpg".to_string();
+        first.image_low_res = true;
+        first.summary = "Old".to_string();
+        assert_eq!(batch_insert_articles(&mut conn, &[first], None).unwrap(), 1);
+
+        let mut second = sample_article(feed);
+        second.image_url = "https://example.com/high.jpg".to_string();
+        second.summary = "New".to_string();
+        assert_eq!(batch_insert_articles(&mut conn, &[second], None).unwrap(), 0);
+
+        let mut third = sample_article(feed);
+        third.image_url = "https://example.com/other-low.jpg".to_string();
+        third.image_low_res = true;
+        batch_insert_articles(&mut conn, &[third], None).unwrap();
+
+        let articles = get_articles_for_feed(&conn, feed, 10, 0, true).unwrap();
+        assert_eq!(articles.len(), 1);
+        assert_eq!(articles[0].image_url, "https://example.com/high.jpg");
+        assert_eq!(articles[0].summary, "New");
+    }
+
+    #[test]
+    fn bulk_mark_read_spares_saved_and_tagged_articles() {
+        let mut conn = test_conn();
+        let feed = create_feed(&conn, "Feed", "https://example.com/rss", None, "rss").unwrap();
+
+        let mut plain = sample_article(feed);
+        plain.url = "https://example.com/plain".to_string();
+        let mut saved = sample_article(feed);
+        saved.url = "https://example.com/saved".to_string();
+        let mut tagged = sample_article(feed);
+        tagged.url = "https://example.com/tagged".to_string();
+        batch_insert_articles(&mut conn, &[plain, saved, tagged], None).unwrap();
+
+        let id_for = |url: &str| {
+            get_articles_for_feed(&conn, feed, 10, 0, true)
+                .unwrap()
+                .into_iter()
+                .find(|a| a.url == url)
+                .unwrap()
+                .id
+        };
+        update_article_saved(&conn, id_for("https://example.com/saved"), true).unwrap();
+        add_tag_to_article(&conn, id_for("https://example.com/tagged"), "Tag", "#4899ec").unwrap();
+
+        mark_feed_read(&conn, feed).unwrap();
+
+        let read_state = |url: &str| {
+            get_articles_for_feed(&conn, feed, 10, 0, true)
+                .unwrap()
+                .into_iter()
+                .find(|a| a.url == url)
+                .unwrap()
+                .is_read
+        };
+        assert!(read_state("https://example.com/plain"));
+        assert!(!read_state("https://example.com/saved"));
+        assert!(!read_state("https://example.com/tagged"));
+    }
+
+    #[test]
+    fn unsaving_a_sentinel_article_removes_the_orphan() {
+        let mut conn = test_conn();
+        let feed = create_feed(&conn, "Feed", "https://example.com/rss", None, "rss").unwrap();
+        batch_insert_articles(&mut conn, &[sample_article(feed)], None).unwrap();
+
+        let id = get_articles_for_feed(&conn, feed, 10, 0, true).unwrap()[0].id;
+        update_article_saved(&conn, id, true).unwrap();
+        delete_feed(&conn, feed).unwrap();
+
+        update_article_saved(&conn, id, false).unwrap();
+
+        assert!(get_saved_articles(&conn, 10, 0, true).unwrap().is_empty());
+        let remaining: i64 = conn
+            .query_row(
+                "SELECT COUNT(*) FROM articles WHERE id = ?1",
+                rusqlite::params![id],
+                |r| r.get(0),
+            )
+            .unwrap();
+        assert_eq!(remaining, 0);
+    }
+
+    #[test]
     fn expired_articles_are_not_reinserted_on_refresh() {
         let mut conn = test_conn();
         let feed = create_feed(&conn, "Feed", "https://example.com/rss", None, "rss").unwrap();

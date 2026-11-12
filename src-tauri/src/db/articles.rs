@@ -1,6 +1,7 @@
 use super::SAVED_FEED_ID;
 use crate::models::Article;
 use rusqlite::{Connection, Result, params};
+use std::collections::HashSet;
 
 /// Shared projection for article queries. `map_articles` reads columns by
 /// positional index, so every query must select exactly this list in order.
@@ -110,7 +111,7 @@ pub fn batch_insert_articles(conn: &mut Connection, articles: &[Article], cutoff
 
 /// Prepared statements for bulk article upserts. Reuses one statement per
 /// operation instead of re-preparing on every row; drop before committing.
-pub struct ArticleInserter<'a> {
+struct ArticleInserter<'a> {
     insert: rusqlite::Statement<'a>,
     update_image: rusqlite::Statement<'a>,
     update_summary: rusqlite::Statement<'a>,
@@ -118,7 +119,7 @@ pub struct ArticleInserter<'a> {
 }
 
 impl<'a> ArticleInserter<'a> {
-    pub fn new(conn: &'a Connection, cutoff: Option<i64>) -> Result<Self> {
+    fn new(conn: &'a Connection, cutoff: Option<i64>) -> Result<Self> {
         Ok(Self {
             cutoff,
             insert: conn.prepare(
@@ -135,7 +136,7 @@ impl<'a> ArticleInserter<'a> {
         })
     }
 
-    pub fn insert(&mut self, article: &Article) -> Result<usize> {
+    fn insert(&mut self, article: &Article) -> Result<usize> {
         // Never resurrect articles that are past the retention window; refresh
         // would otherwise re-add rows the startup purge just removed.
         if let Some(cutoff) = self.cutoff
@@ -171,10 +172,26 @@ impl<'a> ArticleInserter<'a> {
     }
 }
 
-pub fn get_article_urls(conn: &Connection, feed_id: i64) -> Result<Vec<String>> {
-    let mut stmt = conn.prepare("SELECT url FROM articles WHERE feed_id = ?1")?;
-    let rows = stmt.query_map(params![feed_id], |row| row.get::<_, String>(0))?;
-    rows.collect()
+/// Subset of `urls` that is already stored for the feed. Only the fetched batch
+/// is looked up, so a refresh never loads every URL the feed has stored.
+pub fn get_known_urls(conn: &Connection, feed_id: i64, urls: &[String]) -> Result<HashSet<String>> {
+    // Chunked because SQLite caps the number of bound parameters.
+    const CHUNK: usize = 500;
+
+    let mut known = HashSet::new();
+    for chunk in urls.chunks(CHUNK) {
+        let placeholders = std::iter::repeat_n("?", chunk.len()).collect::<Vec<_>>().join(",");
+        let sql = format!("SELECT url FROM articles WHERE feed_id = ?1 AND url IN ({placeholders})");
+        let mut stmt = conn.prepare(&sql)?;
+
+        let mut values: Vec<&dyn rusqlite::ToSql> = Vec::with_capacity(chunk.len() + 1);
+        values.push(&feed_id);
+        values.extend(chunk.iter().map(|url| url as &dyn rusqlite::ToSql));
+
+        let rows = stmt.query_map(values.as_slice(), |row| row.get::<_, String>(0))?;
+        known.extend(rows.collect::<Result<Vec<String>>>()?);
+    }
+    Ok(known)
 }
 
 pub fn set_article_read(conn: &Connection, article_id: i64, is_read: bool) -> Result<()> {
@@ -208,6 +225,17 @@ pub fn mark_global_read(conn: &Connection) -> Result<()> {
 }
 
 pub fn update_article_saved(conn: &Connection, article_id: i64, is_saved: bool) -> Result<()> {
+    if !is_saved {
+        // Saved articles from deleted feeds live in the sentinel feed. Unsaving
+        // one would leave a row no view can reach, so drop it instead.
+        let deleted = conn.execute(
+            "DELETE FROM articles WHERE id = ?1 AND feed_id = ?2",
+            params![article_id, SAVED_FEED_ID],
+        )?;
+        if deleted > 0 {
+            return Ok(());
+        }
+    }
     conn.execute(
         "UPDATE articles SET is_saved = ?1 WHERE id = ?2",
         params![is_saved as i64, article_id],

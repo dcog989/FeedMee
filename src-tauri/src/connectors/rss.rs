@@ -284,12 +284,10 @@ async fn refresh_rss_feed(feed_url: &str, feed_id: i64, state: &AppState) -> Res
 
                     let mut articles = entries_to_articles(&feed.entries, feed_id, feed_url);
 
-                    let known_urls: std::collections::HashSet<String> = {
+                    let batch_urls: Vec<String> = articles.iter().map(|a| a.url.clone()).collect();
+                    let known_urls = {
                         let conn = state.db.lock().unwrap();
-                        db::get_article_urls(&conn, feed_id)
-                            .map_err(|e| e.to_string())?
-                            .into_iter()
-                            .collect()
+                        db::get_known_urls(&conn, feed_id, &batch_urls).map_err(|e| e.to_string())?
                     };
 
                     backfill_og_images(state, &mut articles, |a| {
@@ -299,13 +297,7 @@ async fn refresh_rss_feed(feed_url: &str, feed_id: i64, state: &AppState) -> Res
 
                     let cutoff = state.article_retention_cutoff();
                     let mut conn = state.db.lock().unwrap();
-                    let tx = conn.transaction().map_err(|e| e.to_string())?;
-                    let mut inserter = db::ArticleInserter::new(&tx, cutoff).map_err(|e| e.to_string())?;
-                    for article in &articles {
-                        inserter.insert(article).map_err(|e| e.to_string())?;
-                    }
-                    drop(inserter);
-                    tx.commit().map_err(|e| e.to_string())?;
+                    db::batch_insert_articles(&mut conn, &articles, cutoff).map_err(|e| e.to_string())?;
                     let unread = db::get_feed_unread_count(&conn, feed_id).map_err(|e| e.to_string())?;
                     Ok(unread)
                 },
