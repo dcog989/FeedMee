@@ -7,6 +7,7 @@ use crate::db;
 const LOG_RETENTION_DAYS: usize = 5;
 const LOG_FILE_PREFIX: &str = "feedmee";
 const DEFAULT_LOG_LEVEL: &str = "info";
+const MAX_REDIRECTS: usize = 10;
 const NOISY_MODULES: [&str; 5] = ["html5ever", "selectors", "scraper", "tendril", "reqwest"];
 
 pub(crate) fn log_spec(level: &str) -> String {
@@ -56,6 +57,14 @@ pub(crate) fn build_http_client() -> reqwest::Client {
     reqwest::Client::builder()
         .user_agent(concat!("FeedMee/", env!("CARGO_PKG_VERSION")))
         .timeout(std::time::Duration::from_secs(10))
+        .redirect(reqwest::redirect::Policy::custom(|attempt| {
+            // A redirect can walk around the check on the original URL.
+            if attempt.previous().len() >= MAX_REDIRECTS || !crate::net::is_public_url(attempt.url().as_str()) {
+                attempt.stop()
+            } else {
+                attempt.follow()
+            }
+        }))
         .build()
         .expect("failed to build HTTP client")
 }

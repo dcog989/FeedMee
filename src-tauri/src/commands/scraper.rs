@@ -28,6 +28,10 @@ pub fn scrape_og_image_from_html(html: &str, page_url: &str) -> Option<String> {
 }
 
 pub async fn scrape_og_image(client: &reqwest::Client, article_url: &str) -> Option<String> {
+    if !crate::net::is_public_url(article_url) {
+        return None;
+    }
+
     let html = client
         .get(article_url)
         .timeout(std::time::Duration::from_secs(15))

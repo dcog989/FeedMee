@@ -88,6 +88,10 @@ fn extract_with_readability(html: &str, url: &str) -> Option<String> {
 
 #[tauri::command]
 pub async fn get_article_content(url: String, state: State<'_, AppState>) -> Result<String, String> {
+    if !crate::net::is_public_url(&url) {
+        return Err("Article URL is not a public address".to_string());
+    }
+
     let html = state
         .http_client
         .get(&url)

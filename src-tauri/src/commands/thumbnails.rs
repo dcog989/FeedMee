@@ -79,6 +79,10 @@ pub async fn get_thumbnail(
         image_url
     };
 
+    if !crate::net::is_public_url(&resolved) {
+        return Err("Thumbnail URL is not a public address".to_string());
+    }
+
     let mut response = client
         .get(&resolved)
         .send()
