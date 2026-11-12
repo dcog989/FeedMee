@@ -25,15 +25,27 @@ async function pickFont(target: "title" | "body") {
   }
 }
 
+const COLOR_KEYS = ["article_title_color", "article_body_color", "article_bg_color"] as const;
+
+/** Colours an empty setting falls back to in the current theme. */
+function themeColors(): Record<(typeof COLOR_KEYS)[number], string> {
+  const cs = getComputedStyle(document.documentElement);
+  return {
+    article_title_color: cs.getPropertyValue("--accent-muted").trim(),
+    article_body_color: cs.getPropertyValue("--text-primary").trim(),
+    article_bg_color: cs.getPropertyValue("--bg-reading").trim(),
+  };
+}
+
 $effect(() => {
   const s = settingsStore.settings;
   if (s && "default_view_type" in s) {
-    const cs = getComputedStyle(document.documentElement);
+    const theme = themeColors();
     settings = {
       ...s,
-      article_title_color: s.article_title_color || cs.getPropertyValue("--accent-muted").trim(),
-      article_body_color: s.article_body_color || cs.getPropertyValue("--text-primary").trim(),
-      article_bg_color: s.article_bg_color || cs.getPropertyValue("--bg-reading").trim(),
+      article_title_color: s.article_title_color || theme.article_title_color,
+      article_body_color: s.article_body_color || theme.article_body_color,
+      article_bg_color: s.article_bg_color || theme.article_bg_color,
     };
     if (!initialized) {
       initialized = true;
@@ -54,7 +66,14 @@ $effect(() => {
   if (settingsEqual(settings, prevSettings)) return;
   prevSettings = { ...settings };
   if (saveTimer) clearTimeout(saveTimer);
-  saveTimer = setTimeout(() => settingsStore.saveSettings(settings, false), 500);
+  // Empty means "follow the theme". The form shows the resolved colour, so
+  // strip anything that came from the theme instead of pinning it on save.
+  const theme = themeColors();
+  const toSave = { ...settings };
+  for (const key of COLOR_KEYS) {
+    if (toSave[key].toLowerCase() === theme[key].toLowerCase()) toSave[key] = "";
+  }
+  saveTimer = setTimeout(() => settingsStore.saveSettings(toSave, false), 500);
 });
 
 function cancel() {
