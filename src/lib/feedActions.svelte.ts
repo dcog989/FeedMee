@@ -74,16 +74,13 @@ export function createFeedActions(state: FeedStore) {
 
   async function exportOpml() {
     try {
-      const opmlContent = await invoke<string>("export_opml");
-      if (!opmlContent) return;
       const filePath = await save({
         filters: [{ name: "OPML File", extensions: ["opml"] }],
         defaultPath: "feeds.opml",
       });
-      if (filePath) {
-        await invoke("write_file", { path: filePath, content: opmlContent });
-        state.alert("Export successful!");
-      }
+      if (!filePath) return;
+      await invoke("export_opml", { path: filePath });
+      state.alert("Export successful!");
     } catch (e) {
       state.alert(`Failed to export OPML: ${e}`);
     }

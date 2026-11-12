@@ -181,18 +181,14 @@ fn import_opml_blocking(path: &str, state: &AppState) -> Result<(), String> {
 }
 
 #[tauri::command]
-pub async fn export_opml(state: State<'_, AppState>) -> Result<String, String> {
+pub async fn export_opml(path: String, state: State<'_, AppState>) -> Result<(), String> {
     let folders = {
         let conn = state.db.lock().unwrap();
         db::get_folders_with_feeds(&conn).map_err(|e| e.to_string())?
     };
 
-    crate::opml::render(&folders)
-}
-
-#[tauri::command]
-pub async fn write_file(path: String, content: String) -> Result<(), String> {
-    std::fs::write(&path, content).map_err(|e| e.to_string())
+    let opml = crate::opml::render(&folders)?;
+    std::fs::write(&path, opml).map_err(|e| format!("Failed to write {}: {}", path, e))
 }
 
 #[tauri::command]

@@ -169,7 +169,6 @@ pub fn run() {
             commands::mark_all_read,
             commands::import_opml,
             commands::export_opml,
-            commands::write_file,
             commands::refresh_feed,
             commands::add_feed,
             commands::rename_folder,
