@@ -84,6 +84,18 @@ export class KeyboardShortcutManager {
   getDefinitions(): ShortcutDefinition[] {
     return Array.from(this.definitions.values());
   }
+
+  /** Keys bound to more than one command. The first match wins at runtime, so the rest are dead. */
+  findConflicts(mappings: Record<string, string>): { key: string; commands: string[] }[] {
+    const byKey = new Map<string, string[]>();
+    for (const def of this.definitions.values()) {
+      const key = (mappings[def.command] || def.defaultKey).toLowerCase();
+      const commands = byKey.get(key);
+      if (commands) commands.push(def.command);
+      else byKey.set(key, [def.command]);
+    }
+    return Array.from(byKey, ([key, commands]) => ({ key, commands })).filter((entry) => entry.commands.length > 1);
+  }
 }
 
 export const shortcutManager = new KeyboardShortcutManager();

@@ -29,6 +29,10 @@ $effect(() => {
 
 const allShortcuts = $derived(shortcutManager.getDefinitions());
 
+const conflicts = $derived(shortcutManager.findConflicts(shortcutStore.customShortcuts));
+
+const descriptions = $derived(new Map(allShortcuts.map((def) => [def.command, def.description])));
+
 const categories = $derived(() => {
   const map = new Map<string, ShortcutDefinition[]>();
   allShortcuts.forEach((def) => {
@@ -87,6 +91,19 @@ function resetShortcut(commandId: string) {
   </div>
 
   <div class="shortcuts-list">
+    {#if conflicts.length > 0}
+      <div class="conflict-warning" role="status">
+        {#each conflicts as conflict (conflict.key)}
+          <p>
+            <strong>{conflict.key}</strong>
+            is bound to
+            {conflict.commands.map((command) => descriptions.get(command)).join(", ")}
+            — only the first one runs.
+          </p>
+        {/each}
+      </div>
+    {/if}
+
     {#each categories() as [category, defs] (category)}
       <div class="section">
         <h4>{category}</h4>
@@ -172,6 +189,24 @@ function resetShortcut(commandId: string) {
   padding: 1rem 1.25rem;
   overflow-y: auto;
   flex: 1;
+}
+
+.conflict-warning {
+  margin-bottom: 1rem;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--border-color);
+  border-left: 3px solid var(--accent-muted);
+  border-radius: 4px;
+}
+
+.conflict-warning p {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+.conflict-warning strong {
+  color: var(--text-primary);
 }
 
 .section {
