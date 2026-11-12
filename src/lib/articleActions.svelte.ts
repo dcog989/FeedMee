@@ -160,9 +160,10 @@ export function createArticleActions(state: ArticleStore) {
 
     try {
       await invoke("mark_article_saved", { id: article.id, isSaved: newSaved });
-      await state.refreshFolders();
-    } catch {
+    } catch (e) {
       article.is_saved = !newSaved;
+      state.alert("Could not update Read Later.");
+      console.error("mark_article_saved failed:", e);
     }
   }
 

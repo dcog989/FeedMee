@@ -92,7 +92,7 @@ export interface ArticleStore
     AppSettingsRef,
     PaneFocus,
     BlockedPhrasesState,
-    RefreshFolders {
+    UserPrompt {
   readonly pageSize: number;
   readonly latestHours: number;
   page: number;
