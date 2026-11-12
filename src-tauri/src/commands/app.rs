@@ -61,7 +61,7 @@ pub fn save_app_settings(
     let updated = new_settings;
     settings::save_settings(&state.paths.config_dir, &updated)?;
     if let Some(logger) = app.try_state::<flexi_logger::LoggerHandle>()
-        && let Err(e) = logger.parse_new_spec(crate::startup::log_spec(&updated.log_level))
+        && let Err(e) = logger.parse_new_spec(&crate::startup::log_spec(&updated.log_level))
     {
         log::error!("Failed to apply log level: {}", e);
     }

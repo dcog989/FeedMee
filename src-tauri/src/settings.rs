@@ -107,9 +107,11 @@ mod tests {
         let dir = std::env::temp_dir().join(format!("feedmee-settings-test-{}", std::process::id()));
         let _ = std::fs::remove_dir_all(&dir);
 
-        let mut settings = AppSettings::default();
-        settings.log_level = "debug".to_string();
-        settings.article_retention_days = 7;
+        let settings = AppSettings {
+            log_level: "debug".to_string(),
+            article_retention_days: 7,
+            ..AppSettings::default()
+        };
         save_settings(&dir, &settings).unwrap();
 
         let loaded = load_settings(&dir);

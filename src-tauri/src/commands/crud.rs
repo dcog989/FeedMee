@@ -131,10 +131,10 @@ fn insert_opml_feed(
 /// and the `feed://` spelling identify themselves; the outline's declared type
 /// only separates website feeds from plain RSS.
 fn normalize_opml_feed(url: &str, declared_type: Option<&str>) -> Option<(String, String)> {
-    if let Some(handle) = url.strip_prefix("bsky:") {
-        if !handle.is_empty() {
-            return Some((format!("bsky:{}", handle), "bluesky".to_string()));
-        }
+    if let Some(handle) = url.strip_prefix("bsky:")
+        && !handle.is_empty()
+    {
+        return Some((format!("bsky:{}", handle), "bluesky".to_string()));
     }
     if let Some(rest) = url.strip_prefix("feed://") {
         return Some((format!("https://{}", rest), "rss".to_string()));
