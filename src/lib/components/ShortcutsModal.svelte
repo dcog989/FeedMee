@@ -8,23 +8,17 @@ let { isOpen = $bindable(false), onClose }: { isOpen: boolean; onClose: () => vo
 
 let recordingCommandId = $state<string | null>(null);
 
-$effect(() => {
-  if (isOpen) {
-    recordingCommandId = null;
-  }
-});
+const MODIFIER_KEYS = ["Control", "Shift", "Alt", "Meta"];
 
+// The dialog stays mounted, so closing it must also disarm the recorder.
 $effect(() => {
-  if (recordingCommandId) {
-    function handler(e: KeyboardEvent) {
-      if (e.key === "Escape") {
-        e.preventDefault();
-        stopRecording();
-      }
-    }
-    window.addEventListener("keydown", handler, { capture: true });
-    return () => window.removeEventListener("keydown", handler, { capture: true });
+  if (!isOpen) {
+    recordingCommandId = null;
+    return;
   }
+  if (!recordingCommandId) return;
+  window.addEventListener("keydown", handleRecordKey, { capture: true });
+  return () => window.removeEventListener("keydown", handleRecordKey, { capture: true });
 });
 
 const allShortcuts = $derived(shortcutManager.getDefinitions());
@@ -43,9 +37,7 @@ const categories = $derived(() => {
 });
 
 function startRecording(commandId: string) {
-  window.removeEventListener("keydown", handleRecordKey, { capture: true });
   recordingCommandId = commandId;
-  window.addEventListener("keydown", handleRecordKey, { capture: true });
 }
 
 function handleRecordKey(e: KeyboardEvent) {
@@ -58,7 +50,9 @@ function handleRecordKey(e: KeyboardEvent) {
     return;
   }
 
-  if (["Control", "Shift", "Alt", "Meta"].includes(e.key)) return;
+  // Modifiers alone and the keys the app reserves for pane navigation can't be
+  // bound: the global handler always consumes the arrows first.
+  if (MODIFIER_KEYS.includes(e.key) || e.key.startsWith("Arrow") || e.key === "Tab") return;
 
   const parts: string[] = [];
   if (e.ctrlKey) parts.push("ctrl");
@@ -74,7 +68,6 @@ function handleRecordKey(e: KeyboardEvent) {
 
 function stopRecording() {
   recordingCommandId = null;
-  window.removeEventListener("keydown", handleRecordKey, { capture: true });
 }
 
 function resetShortcut(commandId: string) {
