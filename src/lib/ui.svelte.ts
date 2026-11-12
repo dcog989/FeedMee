@@ -52,7 +52,7 @@ export function createUI(
     sortOrder: SortOrder;
     settings: AppSettings;
     searchQuery: string;
-    reloadCurrentArticleList(options?: { selectTop?: boolean }): Promise<void>;
+    reloadCurrentArticleList(): Promise<void>;
     refreshAllFeeds(): Promise<void>;
   },
 ) {

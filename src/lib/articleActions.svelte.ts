@@ -88,7 +88,7 @@ export function createArticleActions(state: ArticleStore) {
     }
   }
 
-  async function reloadCurrentArticleList(options?: { selectTop?: boolean }) {
+  async function reloadCurrentArticleList() {
     const gen = ++reloadGeneration;
     state.articles = [];
     state.page = 0;
@@ -99,11 +99,9 @@ export function createArticleActions(state: ArticleStore) {
       state.page = page.page;
       state.hasMore = page.hasMore;
 
-      if (options?.selectTop) {
-        if (state.articles.length > 0) state.selectedArticle = state.articles[0];
-      } else if (state.selectedArticle) {
+      if (state.selectedArticle) {
         const fresh = state.articles.find((a) => a.id === state.selectedArticle?.id);
-        if (fresh) state.selectedArticle = fresh;
+        state.selectedArticle = fresh ?? state.articles[0] ?? null;
       }
     } catch (e) {
       if (gen === reloadGeneration) state.hasMore = false;

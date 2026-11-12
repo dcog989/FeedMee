@@ -87,14 +87,14 @@ export function createFeedRefresher(state: RefreshStore) {
           ? (async () => {
               await visibleDone;
               await state.refreshFolders();
-              await state.reloadCurrentArticleList({ selectTop: true });
+              await state.reloadCurrentArticleList();
             })()
           : Promise.resolve(),
       ]);
       await state.refreshFolders();
       // If the visible selection was published early, avoid clearing the list again.
       if (!publishVisible && (state.selectedFeedId !== null || state.selectedFolderId !== null)) {
-        await state.reloadCurrentArticleList({ selectTop: true });
+        await state.reloadCurrentArticleList();
       }
     } catch (e) {
       console.error("Failed to refresh all feeds:", e);
@@ -114,7 +114,7 @@ export function createFeedRefresher(state: RefreshStore) {
     await state.refreshFolders();
 
     if (state.selectedFeedId === feedId) {
-      await state.reloadCurrentArticleList({ selectTop: true });
+      await state.reloadCurrentArticleList();
     }
   }
 
@@ -131,7 +131,7 @@ export function createFeedRefresher(state: RefreshStore) {
       await runWithConcurrency(staleFeeds, (feed) => performSingleFeedRefresh(feed.id), REFRESH_CONCURRENCY);
       await state.refreshFolders();
       if (state.selectedFolderId === folderId || folder.feeds.some((f) => f.id === state.selectedFeedId)) {
-        await state.reloadCurrentArticleList({ selectTop: true });
+        await state.reloadCurrentArticleList();
       }
     } catch (e) {
       console.error(`Failed to refresh folder ${folderId}:`, e);

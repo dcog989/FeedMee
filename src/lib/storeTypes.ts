@@ -65,7 +65,7 @@ export interface RefreshAllFeeds extends RefreshFolders {
 }
 
 export interface ReloadArticleList {
-  reloadCurrentArticleList(options?: { selectTop?: boolean }): Promise<void>;
+  reloadCurrentArticleList(): Promise<void>;
 }
 
 export interface SelectFeed {
