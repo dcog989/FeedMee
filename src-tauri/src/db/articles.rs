@@ -131,7 +131,10 @@ impl<'a> ArticleInserter<'a> {
                  WHERE feed_id = ?2 AND url = ?3 AND (image_url = '' OR ?4)",
             )?,
             update_summary: conn.prepare(
-                "UPDATE articles SET summary = ?1 WHERE feed_id = ?2 AND url = ?3 AND summary IS NOT ?1",
+                "UPDATE articles SET summary = ?1
+                 WHERE feed_id = ?2 AND url = ?3
+                   AND (summary = '' OR image_url = '' OR ?4)
+                   AND summary IS NOT ?1",
             )?,
         })
     }
@@ -164,8 +167,13 @@ impl<'a> ArticleInserter<'a> {
                 ])?;
             }
             if !article.summary.is_empty() {
-                self.update_summary
-                    .execute(params![article.summary, article.feed_id, article.url])?;
+                // A low-res duplicate must not clobber the better copy's summary.
+                self.update_summary.execute(params![
+                    article.summary,
+                    article.feed_id,
+                    article.url,
+                    !article.image_low_res,
+                ])?;
             }
         }
         Ok(inserted)
