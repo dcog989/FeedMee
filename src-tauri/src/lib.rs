@@ -60,16 +60,20 @@ fn run_maintenance(state: &AppState) {
     );
 }
 
-/// Show a startup failure before exiting. The window is hidden and logging may
-/// not be configured yet, so a dialog is the only reliable channel.
-fn fatal(app: &tauri::AppHandle, message: String) -> ! {
+/// Report a startup failure and exit once the user dismisses it. The setup hook
+/// runs on the main thread and must return before the event loop can show
+/// anything, so the dialog is posted from a worker.
+fn fatal(app: &tauri::AppHandle, message: String) {
     log::error!("Startup failed: {}", message);
     eprintln!("[startup] {}", message);
-    app.dialog()
-        .message(&message)
-        .title("FeedMee could not start")
-        .blocking_show();
-    std::process::exit(1);
+    let app = app.clone();
+    std::thread::spawn(move || {
+        app.dialog()
+            .message(message.as_str())
+            .title("FeedMee could not start")
+            .blocking_show();
+        std::process::exit(1);
+    });
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -86,10 +90,16 @@ pub fn run() {
             use log::info;
 
             let app_handle = app.handle().clone();
-            let app_paths = paths::AppPaths::resolve(&app_handle)
-                .unwrap_or_else(|e| fatal(&app_handle, format!("Could not find the app directories: {}", e)));
+            let app_paths = match paths::AppPaths::resolve(&app_handle) {
+                Ok(paths) => paths,
+                Err(e) => {
+                    fatal(&app_handle, format!("Could not find the app directories: {}", e));
+                    return Ok(());
+                },
+            };
             if let Err(e) = app_paths.create_dirs() {
                 fatal(&app_handle, format!("Could not create the app directories: {}", e));
+                return Ok(());
             }
 
             let app_settings = settings::load_settings(&app_paths.config_dir);
@@ -103,7 +113,13 @@ pub fn run() {
             info!("Starting FeedMee application");
 
             let db_path = app_paths.db_path();
-            let conn = startup::setup_database(&db_path).unwrap_or_else(|e| fatal(&app_handle, e));
+            let conn = match startup::setup_database(&db_path) {
+                Ok(conn) => conn,
+                Err(e) => {
+                    fatal(&app_handle, e);
+                    return Ok(());
+                },
+            };
 
             let http_client = startup::build_http_client();
 
@@ -120,6 +136,7 @@ pub fn run() {
                     &app_handle,
                     "The main window is missing from the app configuration.".to_string(),
                 );
+                return Ok(());
             };
             startup::setup_window(&window);
             startup::reveal_window_fallback(&window);
