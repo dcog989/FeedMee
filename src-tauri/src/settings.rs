@@ -8,8 +8,6 @@ pub struct AppSettings {
     pub auto_update_interval_minutes: u64,
     pub log_level: String,
     #[serde(default)]
-    pub last_vacuum: i64,
-    #[serde(default)]
     pub default_view_type: String,
     #[serde(default)]
     pub default_view_id: i64,
@@ -46,7 +44,6 @@ impl Default for AppSettings {
             feed_refresh_debounce_minutes: 4,
             auto_update_interval_minutes: 30,
             log_level: "info".to_string(),
-            last_vacuum: 0,
             default_view_type: "latest".to_string(),
             default_view_id: -1,
             auto_collapse_folders: true,

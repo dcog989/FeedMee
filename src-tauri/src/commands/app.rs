@@ -56,9 +56,7 @@ pub fn save_app_settings(
     state: State<'_, AppState>,
 ) -> Result<(), String> {
     let mut settings_guard = state.settings.lock().unwrap();
-    let mut updated = new_settings;
-    // The frontend cannot know this server-only field; keep the current value.
-    updated.last_vacuum = settings_guard.last_vacuum;
+    let updated = new_settings;
     settings::save_settings(&state.paths.config_dir, &updated)?;
     if let Some(logger) = app.try_state::<flexi_logger::LoggerHandle>()
         && let Err(e) = logger.parse_new_spec(crate::startup::log_spec(&updated.log_level))

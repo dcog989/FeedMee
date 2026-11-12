@@ -15,10 +15,10 @@ use tauri_plugin_dialog::DialogExt;
 use tauri_plugin_window_state::StateFlags;
 
 const HTTP_FETCH_CONCURRENCY: usize = 8;
-/// First maintenance pass waits so it never competes with the first paint.
-const MAINTENANCE_START_DELAY_SECS: u64 = 200;
+/// First maintenance pass waits for the first paint, then runs on every launch
+/// so short sessions still get a purge and a backup.
+const MAINTENANCE_START_DELAY_SECS: u64 = 30;
 const MAINTENANCE_INTERVAL: Duration = Duration::from_secs(86400);
-const VACUUM_INTERVAL_SECS: i64 = 86400;
 const THUMBNAIL_CACHE_MAX_AGE_DAYS: u64 = 7;
 const THUMBNAIL_CACHE_MAX_BYTES: u64 = 512 * 1024 * 1024;
 
@@ -39,45 +39,15 @@ impl AppState {
     }
 }
 
-/// Purge expired articles, VACUUM at most once a day, and drop stale cached
-/// thumbnails. Runs off the UI thread so the DB lock is never held during a
-/// paint.
+/// Purge expired articles and drop stale cached thumbnails. Runs on a worker
+/// thread; VACUUM is left to the Settings button because it holds the DB lock
+/// for seconds on a large library.
 fn run_maintenance(state: &AppState) {
-    let now = std::time::SystemTime::now()
-        .duration_since(std::time::UNIX_EPOCH)
-        .unwrap()
-        .as_secs() as i64;
-
-    let (do_vacuum, retention) = {
-        let s = state.settings.lock().unwrap();
-        (now - s.last_vacuum > VACUUM_INTERVAL_SECS, s.article_retention_days)
-    };
-
-    let vacuum_ok = {
+    let retention = state.settings.lock().unwrap().article_retention_days;
+    {
         let conn = state.db.lock().unwrap();
-
         if let Err(e) = db::purge_old_articles(&conn, retention) {
             log::error!("Article purge failed: {}", e);
-        }
-
-        if do_vacuum {
-            match db::run_vacuum(&conn) {
-                Ok(()) => true,
-                Err(e) => {
-                    log::error!("Maintenance VACUUM failed: {}", e);
-                    false
-                },
-            }
-        } else {
-            false
-        }
-    };
-
-    if vacuum_ok {
-        let mut s = state.settings.lock().unwrap();
-        s.last_vacuum = now;
-        if let Err(e) = crate::settings::save_settings(&state.paths.config_dir, &s) {
-            log::error!("Failed to save maintenance settings: {}", e);
         }
     }
 

@@ -2,7 +2,6 @@ use crate::AppState;
 use serde::Serialize;
 use std::fs;
 use std::path::{Path, PathBuf};
-use std::time::{SystemTime, UNIX_EPOCH};
 use tauri::{AppHandle, Manager};
 
 #[derive(Serialize)]
@@ -70,20 +69,8 @@ pub async fn clear_thumbnail_cache(app: AppHandle) -> Result<u64, String> {
 pub async fn vacuum_database(app: AppHandle) -> Result<(), String> {
     tauri::async_runtime::spawn_blocking(move || {
         let state = app.state::<AppState>();
-        {
-            let conn = state.db.lock().map_err(|e| e.to_string())?;
-            crate::db::run_vacuum(&conn).map_err(|e| e.to_string())?;
-        }
-
-        let now = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .map_err(|e| e.to_string())?
-            .as_secs() as i64;
-
-        let mut settings = state.settings.lock().map_err(|e| e.to_string())?;
-        settings.last_vacuum = now;
-        crate::settings::save_settings(&state.paths.config_dir, &settings).map_err(|e| e.to_string())?;
-        Ok(())
+        let conn = state.db.lock().map_err(|e| e.to_string())?;
+        crate::db::run_vacuum(&conn).map_err(|e| e.to_string())
     })
     .await
     .map_err(|e| e.to_string())?
