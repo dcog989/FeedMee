@@ -6,4 +6,4 @@ Icon=feedmee
 Terminal=false
 Type=Application
 Categories=Network;Feed;News;
-StartupWMClass=feedmee
+StartupWMClass=com.feedmee.app

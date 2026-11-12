@@ -77,7 +77,16 @@ fn fatal(app: &tauri::AppHandle, message: String) {
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
+/// GTK3 derives the Wayland app_id from the program name, not from the
+/// `enableGTKAppId` identifier, and KWin matches that app_id to the desktop
+/// entry's file name. Must be set before GTK starts.
+#[cfg(target_os = "linux")]
+const APP_ID: &str = "com.feedmee.app";
+
 pub fn run() {
+    #[cfg(target_os = "linux")]
+    gtk::glib::set_prgname(Some(APP_ID));
+
     tauri::Builder::default()
         .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
             if let Some(window) = app.get_webview_window("main") {
