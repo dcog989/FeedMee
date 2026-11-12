@@ -7,10 +7,10 @@
   "type": "module",
   "scripts": {
     "build": "tauri build --no-bundle",
-    "check": "svelte-kit sync && bun run check:types && bun run check:frontend && echo \"Checking Backend...\" && cd src-tauri && cargo check && cargo clippy --all-targets --all-features -- -D warnings",
+    "check": "svelte-kit sync && bun run check:types && bun run check:frontend && echo \"Checking Backend...\" && cd src-tauri && cargo clippy --all-targets --all-features -- -D warnings",
     "check:frontend": "echo \"Checking Frontend Syntax...\" && bunx biome check .",
     "check:types": "echo \"Checking Frontend Types...\" && svelte-check --tsconfig ./tsconfig.json --config ./vite.config.js",
-    "clean": "rm -rf .context .feeds .svelte-kit build bun.lock node_modules src-tauri/gen src-tauri/target coverage .pkg/src .pkg/pkg .pkg/feedmee .pkg/*.pkg.tar.zst .pkg/*.zst .pkg/*.gz",
+    "clean": "rm -rf .svelte-kit build node_modules src-tauri/gen src-tauri/target coverage .pkg/src .pkg/pkg .pkg/feedmee .pkg/*.pkg.tar.zst .pkg/*.zst .pkg/*.gz",
     "coverage": "vitest run --coverage",
     "dev": "tauri dev",
     "format": "bunx biome format --write . && cd src-tauri && cargo fmt",
@@ -44,10 +44,6 @@
     "vitest": "^5.1.0"
   },
   "imports": {
-    "#lib": "./src/lib/index.js",
     "#lib/*": "./src/lib/*"
-  },
-  "overrides": {
-    "typescript": "6.0.3"
   }
 }
