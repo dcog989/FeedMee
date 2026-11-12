@@ -25,7 +25,6 @@ import { DEFAULT_SETTINGS } from "./types";
 import type { EditFeedTarget, ModalState, RenameFolderTarget } from "./ui.svelte";
 import { createUI } from "./ui.svelte";
 import { expandFolder } from "./utils/expandedFolders";
-import { findFeedFolderId } from "./utils/feeds";
 import {
   LS_BLOCKED_PHRASES,
   LS_EXPANDED_FOLDERS,
@@ -40,6 +39,7 @@ import {
   readJson,
   readString,
 } from "./utils/persistence";
+import { pickStartupTarget, startupExpandFolderId } from "./utils/startupView";
 
 export type {
   AppState,
@@ -113,7 +113,7 @@ class AppStateImpl {
     this.ui = createUI(this);
     registerShortcuts(this);
     setupKeyHandler(this);
-    this.initStore();
+    this.initStore().catch((e) => console.error("Store initialization failed:", e));
   }
 
   get showSettings() {
@@ -300,12 +300,17 @@ class AppStateImpl {
     if (storedTheme === "light" || storedTheme === "dark" || storedTheme === "system") this.theme = storedTheme;
     applyThemeToDocument(this.theme);
 
-    this.blockedPhrases = readJson<string[]>(LS_BLOCKED_PHRASES, this.blockedPhrases);
+    const storedPhrases = readJson<unknown>(LS_BLOCKED_PHRASES, []);
+    this.blockedPhrases = Array.isArray(storedPhrases)
+      ? storedPhrases.filter((phrase): phrase is string => typeof phrase === "string")
+      : [];
 
-    const storedExpandedFolders = readJson<number[] | null>(LS_EXPANDED_FOLDERS, null);
-    if (storedExpandedFolders !== null) {
-      this.expandedFolders = new Set(storedExpandedFolders);
-    }
+    // Storage can hold anything (hand edits, old formats); a wrong shape must
+    // not abort startup.
+    const storedExpandedFolders = readJson<unknown>(LS_EXPANDED_FOLDERS, null);
+    const storedFolderIds = Array.isArray(storedExpandedFolders)
+      ? storedExpandedFolders.filter((id): id is number => typeof id === "number")
+      : null;
 
     const storedLastRefreshed = readJson<Record<string, number> | null>(LS_LAST_REFRESHED, null);
     if (storedLastRefreshed !== null) {
@@ -324,38 +329,22 @@ class AppStateImpl {
 
     await this.refreshFolders();
 
-    const viewType = this.settings.default_view_type;
-    const viewId = this.settings.default_view_id;
+    const target = pickStartupTarget(this.settings, this.folders, {
+      type: readString(LS_LAST_VIEW_TYPE),
+      id: readInt(LS_LAST_VIEW_ID, 0),
+    });
 
-    let expandFolderId: number | null = null;
-
-    if (viewType === "saved") await this.selectFeed(FEED_ID_SAVED);
-    else if (viewType === "latest") await this.selectFeed(FEED_ID_LATEST);
-    else if (viewType === "last") {
-      const lastViewType = readString(LS_LAST_VIEW_TYPE);
-      const lastViewId = readInt(LS_LAST_VIEW_ID, 0);
-      if (lastViewType === "folder" && lastViewId > 0) {
-        await this.selectFolder(lastViewId);
-        expandFolderId = lastViewId;
-      } else if (lastViewType === "feed" && lastViewId > 0) {
-        await this.selectFeed(lastViewId);
-        expandFolderId = findFeedFolderId(this.folders, lastViewId);
-      } else {
-        await this.selectFeed(FEED_ID_LATEST);
-      }
-    } else if (viewType === "folder" && viewId > 0) {
-      await this.selectFolder(viewId);
-      expandFolderId = viewId;
-    } else if (viewType === "feed" && viewId > 0) {
-      await this.selectFeed(viewId);
-      expandFolderId = findFeedFolderId(this.folders, viewId);
-    }
+    if (target.kind === "saved") await this.selectFeed(FEED_ID_SAVED);
+    else if (target.kind === "feed") await this.selectFeed(target.id);
+    else if (target.kind === "folder") await this.selectFolder(target.id);
+    else await this.selectFeed(FEED_ID_LATEST);
 
     // `expandedFolders` has a single owner here; the persistence effect in
     // useExpandedFolders only writes the current value back to storage. When
     // startup targets a specific folder, honor auto-collapse so a previously
     // expanded folder does not linger alongside it.
-    const restored = new Set<number>(storedExpandedFolders ?? this.folders.map((f) => f.id));
+    const expandFolderId = startupExpandFolderId(target, this.folders);
+    const restored = new Set<number>(storedFolderIds ?? this.folders.map((f) => f.id));
     this.expandedFolders =
       expandFolderId !== null ? expandFolder(restored, expandFolderId, this.settings.auto_collapse_folders) : restored;
 
