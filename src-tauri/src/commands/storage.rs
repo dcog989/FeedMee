@@ -56,19 +56,7 @@ pub async fn get_storage_stats(app: AppHandle) -> Result<StorageStats, String> {
 pub async fn clear_thumbnail_cache(app: AppHandle) -> Result<u64, String> {
     tauri::async_runtime::spawn_blocking(move || {
         let state = app.state::<AppState>();
-        let mut freed = 0;
-        if let Ok(entries) = fs::read_dir(state.paths.thumbnail_dir()) {
-            for entry in entries.flatten() {
-                let path = entry.path();
-                if !path.is_file() {
-                    continue;
-                }
-                let size = entry.metadata().map(|m| m.len()).unwrap_or(0);
-                if fs::remove_file(&path).is_ok() {
-                    freed += size;
-                }
-            }
-        }
+        let (_, freed) = crate::commands::thumbnails::cleanup_thumbnail_cache(&state.paths.thumbnail_dir(), 0, 0);
         if freed > 0 {
             log::info!("Cleared thumbnail cache ({} bytes)", freed);
         }

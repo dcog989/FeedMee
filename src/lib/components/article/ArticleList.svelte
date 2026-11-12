@@ -1,5 +1,5 @@
 <script lang="ts">
-import { invoke } from "@tauri-apps/api/core";
+import { convertFileSrc, invoke } from "@tauri-apps/api/core";
 import { articleStore, FEED_ID_LATEST, FEED_ID_SAVED, FEED_ID_TODAY, settingsStore } from "#lib/store.svelte.js";
 import type { Article } from "#lib/types.js";
 import { thumbnailCacheKey } from "#lib/utils/thumbnail.js";
@@ -62,8 +62,8 @@ function enqueueThumbnail(cacheKey: string, articleUrl: string, imageUrl: string
   const run = async () => {
     thumbnailLoadsInFlight += 1;
     try {
-      const dataUrl = await invoke<string>("get_thumbnail", { url: articleUrl, imageUrl, size });
-      thumbnailCache = { ...thumbnailCache, [cacheKey]: dataUrl };
+      const path = await invoke<string>("get_thumbnail", { url: articleUrl, imageUrl, size });
+      thumbnailCache = { ...thumbnailCache, [cacheKey]: convertFileSrc(path) };
     } catch {
       thumbnailFailed.add(cacheKey);
     } finally {

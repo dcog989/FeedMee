@@ -19,6 +19,7 @@ const MAINTENANCE_START_DELAY_SECS: u64 = 200;
 const MAINTENANCE_INTERVAL: Duration = Duration::from_secs(86400);
 const VACUUM_INTERVAL_SECS: i64 = 86400;
 const THUMBNAIL_CACHE_MAX_AGE_DAYS: u64 = 7;
+const THUMBNAIL_CACHE_MAX_BYTES: u64 = 512 * 1024 * 1024;
 
 pub struct AppState {
     pub db: Mutex<rusqlite::Connection>,
@@ -79,7 +80,11 @@ fn run_maintenance(state: &AppState) {
         }
     }
 
-    commands::thumbnails::cleanup_thumbnail_cache(&state.paths.thumbnail_dir(), THUMBNAIL_CACHE_MAX_AGE_DAYS);
+    commands::thumbnails::cleanup_thumbnail_cache(
+        &state.paths.thumbnail_dir(),
+        THUMBNAIL_CACHE_MAX_AGE_DAYS,
+        THUMBNAIL_CACHE_MAX_BYTES,
+    );
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
