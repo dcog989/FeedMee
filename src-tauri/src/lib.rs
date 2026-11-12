@@ -14,7 +14,9 @@ use tauri::Manager;
 use tauri_plugin_dialog::DialogExt;
 use tauri_plugin_window_state::StateFlags;
 
-const HTTP_FETCH_CONCURRENCY: usize = 8;
+/// Permits for og:image lookups during refresh. Feed and page fetches are
+/// bounded by the frontend's refresh workers, not by this semaphore.
+const OG_IMAGE_FETCH_CONCURRENCY: usize = 8;
 /// First maintenance pass waits for the first paint, then runs on every launch
 /// so short sessions still get a purge and a backup.
 const MAINTENANCE_START_DELAY_SECS: u64 = 30;
@@ -26,7 +28,7 @@ pub struct AppState {
     pub db: Mutex<rusqlite::Connection>,
     pub settings: Mutex<settings::AppSettings>,
     pub http_client: reqwest::Client,
-    pub http_semaphore: Arc<tokio::sync::Semaphore>,
+    pub og_image_semaphore: Arc<tokio::sync::Semaphore>,
     pub paths: paths::AppPaths,
 }
 
@@ -109,7 +111,7 @@ pub fn run() {
                 db: Mutex::new(conn),
                 settings: Mutex::new(app_settings),
                 http_client,
-                http_semaphore: Arc::new(tokio::sync::Semaphore::new(HTTP_FETCH_CONCURRENCY)),
+                og_image_semaphore: Arc::new(tokio::sync::Semaphore::new(OG_IMAGE_FETCH_CONCURRENCY)),
                 paths: app_paths,
             });
 

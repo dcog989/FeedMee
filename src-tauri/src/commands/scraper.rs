@@ -264,7 +264,7 @@ where
     }
 
     let client = state.http_client.clone();
-    let semaphore = Arc::clone(&state.http_semaphore);
+    let semaphore = Arc::clone(&state.og_image_semaphore);
     let queue = std::sync::Arc::new(std::sync::Mutex::new(std::collections::VecDeque::from(targets)));
     let results = std::sync::Arc::new(std::sync::Mutex::new(std::collections::HashMap::new()));
 
