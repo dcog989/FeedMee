@@ -43,11 +43,5 @@
         "depends": ["webkit2gtk4.1", "gtk3"]
       }
     }
-  },
-  "plugins": {
-    "updater": {
-      "pubkey": "",
-      "endpoints": ["https://github.com/dcog989/feedmee/releases/latest/download/latest.json"]
-    }
   }
 }

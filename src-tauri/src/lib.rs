@@ -124,10 +124,8 @@ pub fn run() {
 
             Ok(())
         })
-        .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
-        .plugin(tauri_plugin_fs::init())
         .plugin(
             tauri_plugin_window_state::Builder::default()
                 // Never restore DECORATIONS (stale state from the old borderless
