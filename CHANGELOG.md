@@ -2,6 +2,14 @@
 All notable changes to this project will be documented in this file. See [conventional commits](https://www.conventionalcommits.org/) for commit guidelines.
 
 - - -
+## v1.23.3 - 2026-11-12
+
+#### Bug Fixes
+
+- (8f101b4) stop pane keydown handler swallowing spaces in search input - dcog989
+
+- - -
+
 ## v1.23.2 - 2026-11-03
 
 #### Refactoring
