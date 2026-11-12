@@ -11,6 +11,7 @@ pub mod startup;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 use tauri::Manager;
+use tauri_plugin_dialog::DialogExt;
 use tauri_plugin_window_state::StateFlags;
 
 const HTTP_FETCH_CONCURRENCY: usize = 8;
@@ -87,6 +88,18 @@ fn run_maintenance(state: &AppState) {
     );
 }
 
+/// Show a startup failure before exiting. The window is hidden and logging may
+/// not be configured yet, so a dialog is the only reliable channel.
+fn fatal(app: &tauri::AppHandle, message: String) -> ! {
+    log::error!("Startup failed: {}", message);
+    eprintln!("[startup] {}", message);
+    app.dialog()
+        .message(&message)
+        .title("FeedMee could not start")
+        .blocking_show();
+    std::process::exit(1);
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -101,8 +114,11 @@ pub fn run() {
             use log::info;
 
             let app_handle = app.handle().clone();
-            let app_paths = paths::AppPaths::resolve(&app_handle).expect("failed to resolve app directories");
-            app_paths.create_dirs().expect("failed to create app directories");
+            let app_paths = paths::AppPaths::resolve(&app_handle)
+                .unwrap_or_else(|e| fatal(&app_handle, format!("Could not find the app directories: {}", e)));
+            if let Err(e) = app_paths.create_dirs() {
+                fatal(&app_handle, format!("Could not create the app directories: {}", e));
+            }
 
             let app_settings = settings::load_settings(&app_paths.config_dir);
             match startup::init_logging(&app_paths.logs_dir, &app_settings.log_level) {
@@ -115,7 +131,7 @@ pub fn run() {
             info!("Starting FeedMee application");
 
             let db_path = app_paths.db_path();
-            let conn = startup::setup_database(&db_path);
+            let conn = startup::setup_database(&db_path).unwrap_or_else(|e| fatal(&app_handle, e));
 
             let http_client = startup::build_http_client();
 
@@ -127,7 +143,12 @@ pub fn run() {
                 paths: app_paths,
             });
 
-            let window = app.get_webview_window("main").unwrap();
+            let Some(window) = app.get_webview_window("main") else {
+                fatal(
+                    &app_handle,
+                    "The main window is missing from the app configuration.".to_string(),
+                );
+            };
             startup::setup_window(&window);
             startup::reveal_window_fallback(&window);
 

@@ -47,24 +47,41 @@ pub(crate) fn init_logging(logs_dir: &Path, log_level: &str) -> Result<LoggerHan
         .start()
 }
 
-pub(crate) fn setup_database(db_path: &Path) -> rusqlite::Connection {
+/// Open the library, moving the file aside only when SQLite says it is not a
+/// database. Disk, permission and lock errors keep the file: those are not
+/// corruption, and replacing the library would look like data loss.
+pub(crate) fn setup_database(db_path: &Path) -> Result<rusqlite::Connection, String> {
     match open_database(db_path) {
-        Ok(conn) => conn,
-        Err(e) => {
-            log::error!("Database open/init failed: {}. Starting with a fresh database.", e);
-            let stamp = chrono::Local::now().format("%Y%m%d_%H%M%S").to_string();
-            for suffix in ["", "-wal", "-shm"] {
-                let from = PathBuf::from(format!("{}{}", db_path.display(), suffix));
-                if from.exists() {
-                    let to = PathBuf::from(format!("{}.corrupt-{}", from.display(), stamp));
-                    if let Err(rename_err) = fs::rename(&from, &to) {
-                        panic!("Failed to move unreadable database aside: {}", rename_err);
-                    }
-                }
-            }
-            open_database(db_path).unwrap_or_else(|e| panic!("Failed to create a fresh database: {}", e))
+        Ok(conn) => Ok(conn),
+        Err(e) if is_corruption(e.as_ref()) => {
+            log::error!("Database is unreadable ({}). Moving it aside and starting fresh.", e);
+            quarantine_database(db_path)?;
+            open_database(db_path).map_err(|e| format!("Failed to create a fresh database: {}", e))
         },
+        Err(e) => Err(format!("Could not open database {}: {}", db_path.display(), e)),
     }
+}
+
+fn is_corruption(err: &(dyn std::error::Error + 'static)) -> bool {
+    err.downcast_ref::<rusqlite::Error>().is_some_and(|e| {
+        matches!(
+            e,
+            rusqlite::Error::SqliteFailure(code, _)
+                if matches!(code.code, rusqlite::ErrorCode::DatabaseCorrupt | rusqlite::ErrorCode::NotADatabase)
+        )
+    })
+}
+
+fn quarantine_database(db_path: &Path) -> Result<(), String> {
+    let stamp = chrono::Local::now().format("%Y%m%d_%H%M%S").to_string();
+    for suffix in ["", "-wal", "-shm"] {
+        let from = PathBuf::from(format!("{}{}", db_path.display(), suffix));
+        if from.exists() {
+            let to = PathBuf::from(format!("{}.corrupt-{}", from.display(), stamp));
+            fs::rename(&from, &to).map_err(|e| format!("Failed to move unreadable database aside: {}", e))?;
+        }
+    }
+    Ok(())
 }
 
 fn open_database(db_path: &Path) -> Result<rusqlite::Connection, Box<dyn std::error::Error>> {
