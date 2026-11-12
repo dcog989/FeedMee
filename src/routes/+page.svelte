@@ -221,7 +221,7 @@ function onResizerKeyDown(target: "nav" | "list", e: KeyboardEvent) {
 }
 
 .pane-focused {
-  border-top-color: rgba(236, 72, 153, 0.5);
+  border-top-color: var(--bg-selected-muted);
 }
 
 .nav-resizer {

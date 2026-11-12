@@ -601,7 +601,7 @@ hr {
   color: var(--text-primary);
   border-radius: 4px;
   box-sizing: border-box;
-  font-family: monospace;
+  font-family: var(--font-mono);
   font-size: 0.8rem;
 }
 </style>

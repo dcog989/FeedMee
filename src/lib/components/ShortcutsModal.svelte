@@ -210,7 +210,7 @@ h4 {
 }
 
 .shortcut-key {
-  font-family: var(--font-mono, monospace);
+  font-family: var(--font-mono);
   font-size: 0.75rem;
   background: var(--bg-app);
   border: 1px solid var(--border-color);

@@ -166,7 +166,7 @@ h2 {
 }
 
 .mono {
-  font-family: monospace;
+  font-family: var(--font-mono);
 }
 .bold {
   font-weight: 700;
