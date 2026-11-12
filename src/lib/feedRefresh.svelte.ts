@@ -104,7 +104,7 @@ export function createFeedRefresher(state: RefreshStore) {
   }
 
   async function requestRefreshFeed(feedId: number) {
-    if (state.isFeedFresh(feedId) || state.updatingFeedIds.has(feedId)) return;
+    if (state.updatingFeedIds.has(feedId)) return;
 
     // Mark as updating before kicking off the refresh.
     // performSingleFeedRefresh's finally block is the single place that removes it.
@@ -122,13 +122,13 @@ export function createFeedRefresher(state: RefreshStore) {
     const folder = state.folders.find((f) => f.id === folderId);
     if (!folder || folder.feeds.length === 0) return;
 
-    const staleFeeds = folder.feeds.filter((f) => !state.isFeedFresh(f.id) && !state.updatingFeedIds.has(f.id));
-    if (staleFeeds.length === 0) return;
+    const pendingFeeds = folder.feeds.filter((f) => !state.updatingFeedIds.has(f.id));
+    if (pendingFeeds.length === 0) return;
 
-    state.updatingFeedIds = withAdded(state.updatingFeedIds, ...staleFeeds.map((f) => f.id));
+    state.updatingFeedIds = withAdded(state.updatingFeedIds, ...pendingFeeds.map((f) => f.id));
 
     try {
-      await runWithConcurrency(staleFeeds, (feed) => performSingleFeedRefresh(feed.id), REFRESH_CONCURRENCY);
+      await runWithConcurrency(pendingFeeds, (feed) => performSingleFeedRefresh(feed.id), REFRESH_CONCURRENCY);
       await state.refreshFolders();
       if (state.selectedFolderId === folderId || folder.feeds.some((f) => f.id === state.selectedFeedId)) {
         await state.reloadCurrentArticleList();
