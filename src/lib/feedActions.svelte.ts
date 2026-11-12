@@ -22,7 +22,8 @@ export function createFeedActions(state: FeedStore) {
         return;
       }
       await state.refreshFolders();
-      state.articles = state.articles.map((a) => (a.is_saved ? a : { ...a, is_read: true }));
+      // Saved and tagged articles are never marked read by the backend.
+      state.articles = state.articles.map((a) => (a.is_saved || a.has_tags ? a : { ...a, is_read: true }));
     } catch (e) {
       console.error("Mark all read failed:", e);
     }

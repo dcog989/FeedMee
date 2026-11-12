@@ -48,15 +48,17 @@ import { FEED_ID_LATEST, FEED_ID_SAVED, FEED_ID_TODAY, feedStore, settingsStore 
       <ArrowUpDown size={20} />
     </button>
 
-    <button
-      type="button"
-      class="tool-btn"
-      onclick={() => feedStore.markAllRead()}
-      use:tooltip={"Mark All Read"}
-      aria-label="Mark All Read"
-    >
-      <CheckCheck size={20} />
-    </button>
+    {#if feedStore.selectedFeedId !== FEED_ID_SAVED}
+      <button
+        type="button"
+        class="tool-btn"
+        onclick={() => feedStore.markAllRead()}
+        use:tooltip={"Mark All Read"}
+        aria-label="Mark All Read"
+      >
+        <CheckCheck size={20} />
+      </button>
+    {/if}
   </div>
 </div>
 
