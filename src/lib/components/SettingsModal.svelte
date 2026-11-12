@@ -2,12 +2,12 @@
 import { Keyboard, Settings, X } from "@lucide/svelte";
 import { invoke } from "@tauri-apps/api/core";
 import { feedStore, settingsStore, uiStore } from "#lib/store.svelte.js";
-import { type AppSettings, DEFAULT_SETTINGS } from "#lib/types.js";
+import type { AppSettings } from "#lib/types.js";
 import ArticleAppearanceSettings from "./ArticleAppearanceSettings.svelte";
 import Modal from "./Modal.svelte";
 import ShortcutsModal from "./ShortcutsModal.svelte";
 
-let settings = $state({ ...DEFAULT_SETTINGS });
+let settings = $state({ ...settingsStore.settings });
 let showShortcuts = $state(false);
 let initialized = $state(false);
 let prevSettings = $state<AppSettings | null>(null);

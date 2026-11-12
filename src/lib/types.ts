@@ -53,6 +53,7 @@ export interface AppSettings {
   article_retention_days: number;
 }
 
+/** Pre-load placeholder; keep in sync with `AppSettings::default()` in `src-tauri/src/settings.rs`. */
 export const DEFAULT_SETTINGS: AppSettings = {
   feed_refresh_debounce_minutes: 4,
   auto_update_interval_minutes: 30,
@@ -66,6 +67,6 @@ export const DEFAULT_SETTINGS: AppSettings = {
   article_title_color: "",
   article_body_color: "",
   article_bg_color: "",
-  thumbnail_size: 0,
+  thumbnail_size: 56,
   article_retention_days: 90,
 };
