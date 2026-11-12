@@ -55,7 +55,7 @@ export interface AppSettings {
 
 /** Pre-load placeholder; keep in sync with `AppSettings::default()` in `src-tauri/src/settings.rs`. */
 export const DEFAULT_SETTINGS: AppSettings = {
-  feed_refresh_debounce_minutes: 4,
+  feed_refresh_debounce_minutes: 3,
   auto_update_interval_minutes: 30,
   log_level: "info",
   default_view_type: "latest",

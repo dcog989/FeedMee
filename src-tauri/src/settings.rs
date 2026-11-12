@@ -24,7 +24,7 @@ pub struct AppSettings {
 impl Default for AppSettings {
     fn default() -> Self {
         Self {
-            feed_refresh_debounce_minutes: 4,
+            feed_refresh_debounce_minutes: 3,
             auto_update_interval_minutes: 30,
             log_level: "info".to_string(),
             default_view_type: "latest".to_string(),
