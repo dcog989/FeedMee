@@ -41,9 +41,14 @@ const disabledTooltip = $derived(
       <X size={10} color="white" />
     </span>
   {:else if feed.unread_count > 0}
-    <span class="badge" class:badge-selected={isSelected} use:tooltip={"Click to refresh"}>{feed.unread_count}</span>
+    <span
+      class="badge"
+      class:badge-selected={isSelected}
+      use:tooltip={() => (refreshStore.isFeedFresh(feed.id) ? "Already fresh!" : "Click to refresh")}
+      >{feed.unread_count}</span
+    >
   {:else}
-    <span class="refresh-icon" use:tooltip={"Refresh"}>
+    <span class="refresh-icon" use:tooltip={() => (refreshStore.isFeedFresh(feed.id) ? "Already fresh!" : "Refresh")}>
       <RefreshCw size={16} />
     </span>
   {/if}

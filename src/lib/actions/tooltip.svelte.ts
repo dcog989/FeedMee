@@ -6,12 +6,15 @@ export const tooltipState = $state({
   y: 0,
 });
 
-export function tooltip(node: HTMLElement, text: string) {
-  if (!text) return;
+export type TooltipText = string | (() => string);
+
+export function tooltip(node: HTMLElement, text: TooltipText) {
+  const read = () => (typeof text === "function" ? text() : text);
 
   function onMouseEnter(e: MouseEvent) {
-    if (!text) return;
-    tooltipState.text = text;
+    const value = read();
+    if (!value) return;
+    tooltipState.text = value;
     tooltipState.visible = true;
     updatePosition(e);
   }
@@ -35,7 +38,7 @@ export function tooltip(node: HTMLElement, text: string) {
   node.addEventListener("mouseleave", onMouseLeave);
 
   return {
-    update(newText: string) {
+    update(newText: TooltipText) {
       text = newText;
     },
     destroy() {

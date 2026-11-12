@@ -22,7 +22,7 @@ function createFolder() {
   <button
     type="button"
     onclick={() => refreshStore.refreshAllFeeds()}
-    use:tooltip={"Refresh All"}
+    use:tooltip={() => (refreshStore.isAllFresh() ? "Already fresh!" : "Refresh All")}
     disabled={isRefreshing}
     aria-label="Refresh All"
   >

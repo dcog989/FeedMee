@@ -33,11 +33,24 @@ export function createFreshnessHelpers(state: FreshnessDeps) {
     return Date.now() - (state.lastRefreshed.get(feedId) || 0) < state.debounceMs;
   }
 
+  function isFolderFresh(folderId: number): boolean {
+    const folder = state.folders.find((f) => f.id === folderId);
+    if (!folder || folder.feeds.length === 0) return false;
+    return folder.feeds.every((f) => isFeedFresh(f.id));
+  }
+
+  function isAllFresh(): boolean {
+    const feeds = state.folders.flatMap((f) => f.feeds);
+    return feeds.length > 0 && feeds.every((f) => isFeedFresh(f.id));
+  }
+
   return {
     adjustUnreadCount,
     isFeedUpdating,
     isFolderUpdating,
     persistLastRefreshed,
     isFeedFresh,
+    isFolderFresh,
+    isAllFresh,
   };
 }

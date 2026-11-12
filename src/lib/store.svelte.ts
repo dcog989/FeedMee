@@ -173,6 +173,8 @@ class AppStateImpl {
   isFolderUpdating = (folderId: number) => this.freshness.isFolderUpdating(folderId);
   persistLastRefreshed = () => this.freshness.persistLastRefreshed();
   isFeedFresh = (feedId: number) => this.freshness.isFeedFresh(feedId);
+  isFolderFresh = (folderId: number) => this.freshness.isFolderFresh(folderId);
+  isAllFresh = () => this.freshness.isAllFresh();
 
   selectFeed = (feedId: number) => this.nav.selectFeed(feedId);
   selectFolder = (folderId: number) => this.nav.selectFolder(folderId);

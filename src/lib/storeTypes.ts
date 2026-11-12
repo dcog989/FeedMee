@@ -157,6 +157,8 @@ export interface RefreshStore
   isFeedFresh(feedId: number): boolean;
   isFeedUpdating(feedId: number): boolean;
   isFolderUpdating(folderId: number): boolean;
+  isFolderFresh(folderId: number): boolean;
+  isAllFresh(): boolean;
   requestRefreshFeed(feedId: number): Promise<void>;
   requestRefreshFolder(folderId: number): Promise<void>;
 }
