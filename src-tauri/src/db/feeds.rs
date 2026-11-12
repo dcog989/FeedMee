@@ -1,7 +1,8 @@
 use super::SAVED_FEED_ID;
 use crate::models::{Feed, Folder};
 use log::debug;
-use rusqlite::{Connection, Result, params};
+use rusqlite::{Connection, OptionalExtension, Result, params};
+use std::collections::HashMap;
 
 fn feed_derived_fields(url: &str, feed_type: &str) -> (String, String) {
     if feed_type == "bluesky" {
@@ -43,32 +44,39 @@ fn map_feed_row(r: &rusqlite::Row) -> rusqlite::Result<Feed> {
 pub fn get_folders_with_feeds(conn: &Connection) -> Result<Vec<Folder>> {
     debug!("Querying folders with feeds");
 
-    let mut folder_stmt = conn.prepare("SELECT id, name FROM folders WHERE id != 0 ORDER BY name COLLATE NOCASE")?;
-
+    // One execution for every feed: the unread aggregate inside FEED_SELECT
+    // scans the whole articles table, so running it per folder is F full scans.
     let mut feed_stmt = conn.prepare(&format!(
-        "{FEED_SELECT} WHERE f.folder_id = ?1 AND f.id != {SAVED_FEED_ID} ORDER BY f.name COLLATE NOCASE"
+        "{FEED_SELECT} WHERE f.id != {SAVED_FEED_ID} ORDER BY f.name COLLATE NOCASE"
     ))?;
 
-    let mut root_feed_stmt = conn.prepare(&format!(
-        "{FEED_SELECT} WHERE f.folder_id = 0 AND f.id != {SAVED_FEED_ID} ORDER BY f.name COLLATE NOCASE"
-    ))?;
+    let mut feeds_by_folder: HashMap<i64, Vec<Feed>> = HashMap::new();
+    for feed in feed_stmt.query_map([], map_feed_row)? {
+        let feed = feed?;
+        feeds_by_folder
+            .entry(feed.folder_id.unwrap_or(0))
+            .or_default()
+            .push(feed);
+    }
 
-    let root_feeds: Vec<Feed> = root_feed_stmt
-        .query_map([], map_feed_row)
-        .and_then(|rows| rows.collect())?;
-
+    let mut folder_stmt = conn.prepare("SELECT id, name FROM folders WHERE id != 0 ORDER BY name COLLATE NOCASE")?;
     let mut folders: Vec<Folder> = folder_stmt
         .query_map([], |row| {
-            let id: i64 = row.get(0)?;
-            let name: String = row.get(1)?;
-            let feeds: Vec<Feed> = feed_stmt
-                .query_map([id], map_feed_row)
-                .and_then(|rows| rows.collect())?;
-            Ok(Folder { id, name, feeds })
+            Ok(Folder {
+                id: row.get(0)?,
+                name: row.get(1)?,
+                feeds: Vec::new(),
+            })
         })?
         .collect::<Result<Vec<Folder>>>()?;
 
-    if !root_feeds.is_empty() {
+    for folder in &mut folders {
+        if let Some(feeds) = feeds_by_folder.remove(&folder.id) {
+            folder.feeds = feeds;
+        }
+    }
+
+    if let Some(root_feeds) = feeds_by_folder.remove(&0) {
         folders.push(Folder {
             id: 0,
             name: String::new(),
@@ -96,14 +104,27 @@ pub fn get_feed(conn: &Connection, feed_id: i64) -> Result<Feed> {
 }
 
 pub fn create_folder(conn: &Connection, name: &str) -> Result<i64> {
-    conn.execute("INSERT OR IGNORE INTO folders (name) VALUES (?1)", params![name])?;
-    conn.query_row("SELECT id FROM folders WHERE name = ?1", params![name], |r| r.get(0))
+    // Case-insensitive so "News" and "news" cannot become two folders.
+    if let Some(id) = conn
+        .query_row(
+            "SELECT id FROM folders WHERE name = ?1 COLLATE NOCASE",
+            params![name],
+            |r| r.get(0),
+        )
+        .optional()?
+    {
+        return Ok(id);
+    }
+    conn.execute("INSERT INTO folders (name) VALUES (?1)", params![name])?;
+    Ok(conn.last_insert_rowid())
 }
 
-pub fn feed_exists_by_url(conn: &Connection, url: &str) -> Result<bool> {
-    conn.query_row("SELECT EXISTS(SELECT 1 FROM feeds WHERE url = ?1)", params![url], |r| {
-        r.get(0)
-    })
+pub fn feed_exists_by_url(conn: &Connection, url: &str, exclude_id: Option<i64>) -> Result<bool> {
+    conn.query_row(
+        "SELECT EXISTS(SELECT 1 FROM feeds WHERE url = ?1 AND (?2 IS NULL OR id != ?2))",
+        params![url, exclude_id],
+        |r| r.get(0),
+    )
 }
 
 pub fn create_feed(conn: &Connection, name: &str, url: &str, folder_id: Option<i64>, feed_type: &str) -> Result<i64> {

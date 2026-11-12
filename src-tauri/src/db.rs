@@ -220,6 +220,59 @@ mod tests {
     }
 
     #[test]
+    fn folder_feeds_report_unread_counts() {
+        let mut conn = test_conn();
+        let folder = create_folder(&conn, "News").unwrap();
+        let busy = create_feed(&conn, "Busy", "https://example.com/busy", Some(folder), "rss").unwrap();
+        let quiet = create_feed(&conn, "Quiet", "https://example.com/quiet", Some(folder), "rss").unwrap();
+        let root_feed = create_feed(&conn, "Root", "https://example.com/root", None, "rss").unwrap();
+
+        let mut first = sample_article(busy);
+        first.url = "https://example.com/one".to_string();
+        let mut second = sample_article(busy);
+        second.url = "https://example.com/two".to_string();
+        let mut third = sample_article(quiet);
+        third.url = "https://example.com/three".to_string();
+        let mut fourth = sample_article(root_feed);
+        fourth.url = "https://example.com/four".to_string();
+        batch_insert_articles(&mut conn, &[first, second, third, fourth], None).unwrap();
+
+        let read_id = get_articles_for_feed(&conn, busy, 10, 0, true).unwrap()[0].id;
+        set_article_read(&conn, read_id, true).unwrap();
+
+        let folders = get_folders_with_feeds(&conn).unwrap();
+        assert_eq!(folders.len(), 2);
+
+        let news = folders.iter().find(|f| f.id == folder).unwrap();
+        assert_eq!(news.feeds.len(), 2);
+        assert_eq!(news.feeds.iter().find(|f| f.id == busy).unwrap().unread_count, 1);
+        assert_eq!(news.feeds.iter().find(|f| f.id == quiet).unwrap().unread_count, 1);
+
+        let root = folders.iter().find(|f| f.id == 0).unwrap();
+        assert_eq!(root.feeds.len(), 1);
+        assert_eq!(root.feeds[0].id, root_feed);
+        assert_eq!(root.feeds[0].unread_count, 1);
+
+        assert_eq!(get_feed_unread_count(&conn, busy).unwrap(), 1);
+    }
+
+    #[test]
+    fn adding_an_existing_tag_reuses_its_id_and_colour() {
+        let mut conn = test_conn();
+        let feed = create_feed(&conn, "Feed", "https://example.com/rss", None, "rss").unwrap();
+        batch_insert_articles(&mut conn, &[sample_article(feed)], None).unwrap();
+        let article_id = get_articles_for_feed(&conn, feed, 10, 0, true).unwrap()[0].id;
+
+        let first = add_tag_to_article(&conn, article_id, "News", "#ff0000").unwrap();
+        let second = add_tag_to_article(&conn, article_id, "news", "#0000ff").unwrap();
+
+        assert_eq!(second.id, first.id);
+        assert_eq!(second.name, "News");
+        assert_eq!(second.color, "#ff0000");
+        assert_eq!(get_tags_for_article(&conn, article_id).unwrap().len(), 1);
+    }
+
+    #[test]
     fn expired_articles_are_not_reinserted_on_refresh() {
         let mut conn = test_conn();
         let feed = create_feed(&conn, "Feed", "https://example.com/rss", None, "rss").unwrap();

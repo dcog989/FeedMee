@@ -11,7 +11,7 @@ pub(crate) async fn add_feed_with_articles(
 ) -> Result<i64, String> {
     {
         let conn = state.db.lock().unwrap();
-        if db::feed_exists_by_url(&conn, feed_url).map_err(|e| e.to_string())? {
+        if db::feed_exists_by_url(&conn, feed_url, None).map_err(|e| e.to_string())? {
             return Err("Feed already exists".to_string());
         }
     }

@@ -160,6 +160,9 @@ pub fn rename_folder(id: i64, new_name: String, state: State<'_, AppState>) -> R
 #[tauri::command]
 pub fn rename_feed(id: i64, new_name: String, new_url: String, state: State<'_, AppState>) -> Result<(), String> {
     let conn = state.db.lock().unwrap();
+    if db::feed_exists_by_url(&conn, &new_url, Some(id)).map_err(|e| e.to_string())? {
+        return Err("Feed already exists".to_string());
+    }
     db::rename_feed(&conn, id, &new_name, &new_url).map_err(|e| e.to_string())
 }
 

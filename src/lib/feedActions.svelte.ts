@@ -39,6 +39,10 @@ export function createFeedActions(state: FeedStore) {
   }
 
   async function createFolder(name: string) {
+    if (state.folders.some((f) => f.id !== 0 && f.name.toLowerCase() === name.toLowerCase())) {
+      state.alert("A folder with that name already exists.");
+      return;
+    }
     try {
       await invoke("create_folder", { name });
       await state.refreshFolders();
