@@ -1,5 +1,5 @@
 use crate::models::Tag;
-use rusqlite::{Connection, Result, params};
+use rusqlite::{Connection, OptionalExtension, Result, params};
 
 pub fn get_tags_for_article(conn: &Connection, article_id: i64) -> Result<Vec<Tag>> {
     let mut stmt = conn.prepare(
@@ -37,21 +37,39 @@ pub fn get_all_tags(conn: &Connection) -> Result<Vec<Tag>> {
 
 pub fn add_tag_to_article(conn: &Connection, article_id: i64, name: &str, color: &str) -> Result<Tag> {
     let tx = conn.unchecked_transaction()?;
-    tx.execute(
-        "INSERT OR IGNORE INTO tags (name, color) VALUES (?1, ?2)",
-        params![name, color],
-    )?;
-    let tag_id: i64 = tx.query_row("SELECT id FROM tags WHERE name = ?1", params![name], |r| r.get(0))?;
+
+    // Case-insensitive so "News" and "news" stay one tag, and the stored colour
+    // wins over the one the caller suggested.
+    let existing: Option<(i64, String, String)> = tx
+        .query_row(
+            "SELECT id, name, color FROM tags WHERE name = ?1 COLLATE NOCASE",
+            params![name],
+            |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
+        )
+        .optional()?;
+
+    let tag = match existing {
+        Some((id, stored_name, stored_color)) => Tag {
+            id,
+            name: stored_name,
+            color: stored_color,
+        },
+        None => {
+            tx.execute("INSERT INTO tags (name, color) VALUES (?1, ?2)", params![name, color])?;
+            Tag {
+                id: tx.last_insert_rowid(),
+                name: name.to_string(),
+                color: color.to_string(),
+            }
+        },
+    };
+
     tx.execute(
         "INSERT OR IGNORE INTO article_tags (article_id, tag_id) VALUES (?1, ?2)",
-        params![article_id, tag_id],
+        params![article_id, tag.id],
     )?;
     tx.commit()?;
-    Ok(Tag {
-        id: tag_id,
-        name: name.to_string(),
-        color: color.to_string(),
-    })
+    Ok(tag)
 }
 
 pub fn remove_tag_from_article(conn: &Connection, article_id: i64, tag_id: i64) -> Result<()> {

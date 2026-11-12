@@ -67,7 +67,9 @@ async function addNewTag() {
   if (!name) return;
   try {
     const tag = await tagStore.addTag(articleId, name);
-    allTags = [...allTags, tag];
+    // The backend returns the stored tag, so an existing name comes back with
+    // its old id; appending it again would duplicate the keyed list entry.
+    if (!allTags.some((t) => t.id === tag.id)) allTags = [...allTags, tag];
     activeTagIds = withAdded(activeTagIds, tag.id);
     inputValue = "";
     syncHasTags();
