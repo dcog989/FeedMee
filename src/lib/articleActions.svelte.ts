@@ -72,15 +72,32 @@ export function createArticleActions(state: ArticleStore) {
 
   let reloadGeneration = 0;
 
+  // Fetches pages until one has articles left after blocked-phrase filtering.
+  // Without this, a fully filtered page leaves an empty list, so the scroll
+  // handler that owns pagination never fires again.
+  async function fetchVisiblePage(fromPage: number): Promise<{ articles: Article[]; page: number; hasMore: boolean }> {
+    let page = fromPage;
+    for (;;) {
+      const result = (await fetchPage(page)) ?? [];
+      const hasMore = result.length === state.pageSize;
+      const articles = filterBlocked(result);
+      if (articles.length > 0 || !hasMore) {
+        return { articles, page, hasMore };
+      }
+      page += 1;
+    }
+  }
+
   async function reloadCurrentArticleList(options?: { selectTop?: boolean }) {
     const gen = ++reloadGeneration;
     state.articles = [];
     state.page = 0;
     try {
-      const result = await fetchPage(0);
+      const page = await fetchVisiblePage(0);
       if (gen !== reloadGeneration) return;
-      state.articles = filterBlocked(result || []);
-      state.hasMore = (result?.length || 0) === state.pageSize;
+      state.articles = page.articles;
+      state.page = page.page;
+      state.hasMore = page.hasMore;
 
       if (options?.selectTop) {
         if (state.articles.length > 0) {
@@ -101,17 +118,13 @@ export function createArticleActions(state: ArticleStore) {
     if ((state.selectedFeedId === null && state.selectedFolderId === null) || !state.hasMore || state.isLoadingArticles)
       return;
     state.isLoadingArticles = true;
-    const nextPage = state.page + 1;
+    const gen = reloadGeneration;
     try {
-      const result = await fetchPage(nextPage);
-      if (result && result.length > 0) {
-        const filtered = filterBlocked(result);
-        state.articles = [...state.articles, ...filtered];
-        state.page = nextPage;
-        state.hasMore = result.length === state.pageSize;
-      } else {
-        state.hasMore = false;
-      }
+      const page = await fetchVisiblePage(state.page + 1);
+      if (gen !== reloadGeneration) return;
+      state.articles = [...state.articles, ...page.articles];
+      state.page = page.page;
+      state.hasMore = page.hasMore;
     } catch (e) {
       console.error("Failed to load more articles:", e);
     } finally {
