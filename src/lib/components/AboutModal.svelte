@@ -11,6 +11,7 @@ interface AppInfo {
   data_path: string;
   logs_path: string;
   db_path: string;
+  backup_path: string;
 }
 
 let appInfo = $state<AppInfo>({
@@ -18,6 +19,7 @@ let appInfo = $state<AppInfo>({
   data_path: "",
   logs_path: "",
   db_path: "",
+  backup_path: "",
 });
 
 $effect(() => {
@@ -85,6 +87,19 @@ async function openLogsDir() {
           type="button"
           class="copy-btn"
           onclick={() => copyToClipboard(appInfo.db_path)}
+          use:tooltip={"Copy path"}
+        >
+          Copy
+        </button>
+      </div>
+
+      <div class="info-row">
+        <span class="label" use:tooltip={"Automatic subscription backups (OPML)"}>Backups</span>
+        <span class="value mono truncate" title={appInfo.backup_path}>{appInfo.backup_path}</span>
+        <button
+          type="button"
+          class="copy-btn"
+          onclick={() => copyToClipboard(appInfo.backup_path)}
           use:tooltip={"Copy path"}
         >
           Copy

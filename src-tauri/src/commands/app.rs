@@ -29,6 +29,7 @@ pub struct AppInfo {
     pub data_path: String,
     pub logs_path: String,
     pub db_path: String,
+    pub backup_path: String,
 }
 
 #[tauri::command]
@@ -40,6 +41,7 @@ pub fn get_app_info(app: tauri::AppHandle, state: State<'_, AppState>) -> Result
         data_path: state.paths.data_dir.to_string_lossy().to_string(),
         logs_path: state.paths.logs_dir.to_string_lossy().to_string(),
         db_path: state.paths.db_path().to_string_lossy().to_string(),
+        backup_path: state.paths.backup_dir().to_string_lossy().to_string(),
     })
 }
 
