@@ -120,8 +120,10 @@ export function createFeedActions(state: FeedStore) {
           state.articles = [];
         }
         await state.refreshFolders();
-        // A folder view may have included this feed's articles; drop them.
-        if (!wasSelectedFeed && (state.selectedFeedId !== null || state.selectedFolderId !== null)) {
+        if (wasSelectedFeed) {
+          await state.selectFeed(FEED_ID_LATEST);
+        } else if (state.selectedFeedId !== null || state.selectedFolderId !== null) {
+          // A folder view may have included this feed's articles; drop them.
           await state.reloadCurrentArticleList();
         }
       } catch (e) {
@@ -135,12 +137,16 @@ export function createFeedActions(state: FeedStore) {
       try {
         await invoke("delete_folder", { id });
         const folder = state.folders.find((f) => f.id === id);
+        const removedFeedIds = new Set(folder?.feeds.map((f) => f.id));
+        const selectionGone =
+          state.selectedFolderId === id || (state.selectedFeedId !== null && removedFeedIds.has(state.selectedFeedId));
         if (folder) {
           for (const feed of folder.feeds) {
             removeStaleRefreshEntries(feed.id);
           }
         }
         await state.refreshFolders();
+        if (selectionGone) await state.selectFeed(FEED_ID_LATEST);
       } catch (e) {
         console.error(e);
       }
