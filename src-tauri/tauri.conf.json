@@ -10,6 +10,7 @@
     "frontendDist": "../build"
   },
   "app": {
+    "enableGTKAppId": true,
     "windows": [
       {
         "title": "FeedMee",
