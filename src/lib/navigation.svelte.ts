@@ -26,7 +26,7 @@ export function createNavigation(state: NavStore) {
 
   async function selectFolder(folderId: number) {
     if (state.selectedFolderId === folderId && !state.selectedFeedId) return;
-    await markFeedReadOnExit(state.selectedFeedId);
+    void markFeedReadOnExit(state.selectedFeedId);
     state.searchQuery = "";
     state.selectedFolderId = folderId;
     state.selectedFeedId = null;
@@ -44,7 +44,7 @@ export function createNavigation(state: NavStore) {
 
   async function selectFeed(feedId: number) {
     if (state.selectedFeedId === feedId) return;
-    await markFeedReadOnExit(state.selectedFeedId);
+    void markFeedReadOnExit(state.selectedFeedId);
     state.searchQuery = "";
     state.selectedFeedId = feedId;
     state.selectedFolderId = null;
