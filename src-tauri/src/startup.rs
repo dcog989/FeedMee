@@ -8,6 +8,7 @@ const LOG_RETENTION_DAYS: usize = 5;
 const LOG_FILE_PREFIX: &str = "feedmee";
 const DEFAULT_LOG_LEVEL: &str = "info";
 const MAX_REDIRECTS: usize = 10;
+const WINDOW_REVEAL_FALLBACK: std::time::Duration = std::time::Duration::from_secs(3);
 const NOISY_MODULES: [&str; 5] = ["html5ever", "selectors", "scraper", "tendril", "reqwest"];
 
 pub(crate) fn log_spec(level: &str) -> String {
@@ -67,6 +68,20 @@ pub(crate) fn build_http_client() -> reqwest::Client {
         }))
         .build()
         .expect("failed to build HTTP client")
+}
+
+/// Shows the window if the frontend never asked for it. Without this a broken
+/// bundle leaves a running process with no window and no way to open it.
+pub(crate) fn reveal_window_fallback(window: &tauri::WebviewWindow) {
+    let window = window.clone();
+    std::thread::spawn(move || {
+        std::thread::sleep(WINDOW_REVEAL_FALLBACK);
+        if window.is_visible().unwrap_or(true) {
+            return;
+        }
+        log::warn!("Frontend did not reveal the window; showing it anyway");
+        let _ = window.show();
+    });
 }
 
 #[cfg(target_os = "linux")]

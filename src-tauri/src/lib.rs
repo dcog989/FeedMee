@@ -66,6 +66,7 @@ pub fn run() {
 
             let window = app.get_webview_window("main").unwrap();
             startup::setup_window(&window);
+            startup::reveal_window_fallback(&window);
 
             tauri::async_runtime::spawn_blocking(move || {
                 let state = app_handle.state::<AppState>();
