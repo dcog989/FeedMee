@@ -23,18 +23,17 @@
   - Bluesky profile support via AT Protocol.
 - **Smart Views:** "Latest" (24h), "Today", and "Read Later" (Saved) aggregation.
 - **Article Tagging:** Color-coded tags for categorization and filtering.
-- **Search:** Full-text search across all articles.
+- **Search:** Full-text search across article titles, authors, and summaries.
 - **Thumbnails:** Automatic og:image extraction with resizing, WebP caching, and configurable size.
 - **Local Privacy:** All data is stored locally in SQLite. No tracking, no accounts.
 - **Auto-Refresh:** Configurable periodic refresh (default 30 min) with 5 concurrent workers and debounce support.
 - **Blocked Phrases:** Filter out articles containing unwanted phrases.
 - **Article Retention:** Configurable auto-pruning of old articles (default 90 days).
-- **Auto-Updater:** Auto-update via GitHub Releases.
 - **Customizable:** Dark/Light/System themes, configurable refresh intervals, thumbnail size, keyboard shortcut remapping, and log rotation.
 
 ## Keyboard Shortcuts
 
-All letter and punctuation shortcuts are customizable from Settings.
+All letter, punctuation, and `Enter` shortcuts are customizable from Settings.
 
 | Key     | Action                     |
 | ------- | -------------------------- |
@@ -53,23 +52,40 @@ Arrow keys move focus between panes (`←`/`→`) and through the article list (
 
 ---
 
+## Install
+
+[Download latest release](https://github.com/dcog989/FeedMee/releases/latest):
+
+| Platform        | Format         | Install                                               |
+| --------------- | -------------- | ----------------------------------------------------- |
+| Arch / CachyOS  | `.pkg.tar.zst` | `sudo pacman -U feedmee-*.pkg.tar.zst`                |
+| Debian / Ubuntu | `.deb`         | `sudo apt install ./FeedMee_*.deb`                    |
+| Fedora / RHEL   | `.rpm`         | `sudo dnf install ./FeedMee-*.rpm`                    |
+| openSUSE        | `.rpm`         | `sudo zypper install ./FeedMee-*.rpm`                 |
+| Linux (any)     | AppImage       | `chmod +x FeedMee_*.AppImage && ./FeedMee_*.AppImage` |
+| Windows         | NSIS `.exe`    | Run `FeedMee_*_x64-setup.exe`                         |
+
+Build from source with `bun run package` (Arch/CachyOS) or `bunx tauri build` (see [Development](#development)).
+
+---
+
 ## Technical
 
 ### Tech Stack
 
-| Layer | Technology |
-|---|---|
-| **Desktop Framework** | [Tauri v2](https://v2.tauri.app) |
-| **Frontend** | [Svelte 5](https://svelte.dev) (Runes) + [SvelteKit](https://kit.svelte.dev) |
-| **Language** | TypeScript, Rust |
-| **Database** | SQLite via `rusqlite` |
-| **HTTP Client** | `reqwest` (rustls) |
-| **Feed Parsing** | `feed-rs` |
-| **Content Extraction** | `dom_smoothie`, `scraper` |
-| **Image Processing** | `image` + `webp` |
-| **Linting** | Biome (frontend), Clippy (backend) |
-| **Bundling** | Vite |
-| **Packaging** | AppImage, deb, rpm (Linux), NSIS (Windows), makepkg (Arch/CachyOS) |
+| Layer                  | Technology                                                                   |
+| ---------------------- | ---------------------------------------------------------------------------- |
+| **Desktop Framework**  | [Tauri v2](https://v2.tauri.app)                                             |
+| **Frontend**           | [Svelte 5](https://svelte.dev) (Runes) + [SvelteKit](https://kit.svelte.dev) |
+| **Language**           | TypeScript, Rust                                                             |
+| **Database**           | SQLite via `rusqlite`                                                        |
+| **HTTP Client**        | `reqwest` (rustls)                                                           |
+| **Feed Parsing**       | `feed-rs`                                                                    |
+| **Content Extraction** | `dom_smoothie`, `scraper`                                                    |
+| **Image Processing**   | `image` + `webp`                                                             |
+| **Linting**            | Biome (frontend), Clippy (backend)                                           |
+| **Bundling**           | Vite                                                                         |
+| **Packaging**          | AppImage, deb, rpm (Linux), NSIS (Windows), makepkg (Arch/CachyOS)           |
 
 ### Development
 
@@ -77,13 +93,14 @@ Arrow keys move focus between panes (`←`/`→`) and through the article list (
 bun install         # install prerequisites
 bun run build       # Build release binary (no installers)
 bun run check       # Types, lint, and Clippy
+bun run clean       # Remove build artifacts, node_modules, and bun.lock
 bun run format      # Biome + rustfmt
 bun run test        # Vitest + cargo test
 bun run dev         # Starts the Vite dev server and Tauri with HMR.
 bun run package     # Build + install via makepkg (Arch / CachyOS)
 ```
 
-Build / run dependencies: Bun, Rust (edition 2024, 1.85+).
+Dependencies: Bun, Rust (edition 2024, 1.85+).
 
 Linux: WebKitGTK 4.1, GTK 3, librsvg, patchelf, OpenSSL headers. Arch/CachyOS: `webkit2gtk-4.1 gtk3 librsvg patchelf openssl`. Debian/Ubuntu: `libwebkit2gtk-4.1-dev libgtk-3-dev librsvg2-dev patchelf libssl-dev`.
 
@@ -95,4 +112,4 @@ Installers (AppImage/deb/rpm/NSIS) are produced by the release workflow or `bunx
 
 ## License
 
-[GNU GPL v3 or later](LICENSE).
+[GNU GPL v3.0 or later](LICENSE).

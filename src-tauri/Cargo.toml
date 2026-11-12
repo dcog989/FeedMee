@@ -20,7 +20,7 @@ image = { version = "0.25", default-features = false, features = ["jpeg", "png",
 log = "0.4"
 opml = "1.1"
 reqwest = { version = "0.13", features = ["brotli", "gzip", "json", "rustls"] }
-rusqlite = { version = "0.41", features = ["bundled"] }
+rusqlite = { version = "0.42", features = ["bundled"] }
 scraper = "0.29"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
@@ -31,7 +31,7 @@ tauri-plugin-opener = "2.7"
 tauri-plugin-updater = "2.14"
 tauri-plugin-window-state = "2.5"
 tokio = { version = "1", features = ["sync"] }
-toml = "1.1"
+toml = "1.2"
 url = "2.5"
 webp = "0.3.1"
 
