@@ -10,9 +10,13 @@ pub async fn refresh_feed(feed_id: i64, state: State<'_, AppState>) -> Result<i6
         (feed.url, feed.feed_type)
     };
 
-    let result = crate::connectors::registry()
-        .refresh(&feed_type, &url, feed_id, &state)
-        .await;
+    let result = if feed_type == "bluesky" || crate::net::is_public_url(&url) {
+        crate::connectors::registry()
+            .refresh(&feed_type, &url, feed_id, &state)
+            .await
+    } else {
+        Err("Feed URL is not a public http(s) address".to_string())
+    };
 
     {
         let conn = state.db.lock().unwrap();

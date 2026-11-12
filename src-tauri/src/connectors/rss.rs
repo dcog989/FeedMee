@@ -37,7 +37,7 @@ impl FeedConnector for RssConnector {
             },
         };
 
-        if let Some(feed) = parse_feed(content_bytes.as_ref(), url) {
+        if let Some(feed) = parse_feed(content_bytes.as_ref(), original_url.as_str()) {
             return Ok(feed);
         }
 
@@ -99,12 +99,16 @@ fn parse_feed(content: &[u8], feed_url: &str) -> Option<FetchedFeed> {
 }
 
 async fn fetch_feed(client: &reqwest::Client, url: &str) -> Option<FetchedFeed> {
+    if !crate::net::is_public_url(url) {
+        return None;
+    }
     let response = client.get(url).timeout(FEED_PROBE_TIMEOUT).send().await.ok()?;
     if !response.status().is_success() {
         return None;
     }
+    let final_url = response.url().clone();
     let bytes = response.bytes().await.ok()?;
-    parse_feed(&bytes, url)
+    parse_feed(&bytes, final_url.as_str())
 }
 
 /// Build the conventional feed URLs to probe for a page, relative to the
@@ -267,8 +271,8 @@ async fn refresh_rss_feed(feed_url: &str, feed_id: i64, state: &AppState) -> Res
             let status = response.status();
             if !status.is_success() {
                 error!(
-                    "refresh_rss_feed: HTTP {} for {} (blocked or unavailable)",
-                    status, feed_url
+                    "refresh_rss_feed: HTTP {} for feed_id={} (blocked or unavailable)",
+                    status, feed_id
                 );
                 return Err(format!("HTTP {} for {}", status, feed_url));
             }
@@ -302,7 +306,7 @@ async fn refresh_rss_feed(feed_url: &str, feed_id: i64, state: &AppState) -> Res
                     Ok(unread)
                 },
                 Err(e) => {
-                    error!("refresh_rss_feed: parse error for {}: {}", feed_url, e);
+                    error!("refresh_rss_feed: parse error for feed_id={}: {}", feed_id, e);
                     Err(format!("Parse error: {}", e))
                 },
             }

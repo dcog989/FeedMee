@@ -23,9 +23,18 @@ pub struct FetchedFeed {
     pub articles: Vec<Article>,
 }
 
+/// Refuse oversized pages so a mis-pasted link cannot exhaust memory.
+const MAX_PAGE_BYTES: u64 = 10 * 1024 * 1024;
+
 async fn fetch_page(client: &reqwest::Client, url: &str) -> Option<FetchedPage> {
+    if !crate::net::is_public_url(url) {
+        return None;
+    }
     let response = client.get(url).send().await.ok()?;
     if !response.status().is_success() {
+        return None;
+    }
+    if response.content_length().is_some_and(|len| len > MAX_PAGE_BYTES) {
         return None;
     }
     let final_url = response.url().clone();
@@ -60,30 +69,48 @@ pub struct Registry {
 
 impl Registry {
     pub async fn detect_and_add(&self, url: &str, folder_id: Option<i64>, state: &AppState) -> Result<i64, String> {
+        let is_bluesky = bluesky::extract_handle(url).is_some();
         let mut page: Option<Option<FetchedPage>> = None;
+        let mut last_error: Option<String> = None;
+
         for connector in &self.connectors {
+            // Bluesky owns bsky.app profile URLs; the other connectors own the rest.
+            if is_bluesky && connector.feed_type() != "bluesky" {
+                continue;
+            }
+            if !is_bluesky && connector.feed_type() == "bluesky" {
+                continue;
+            }
+
             let page_ref = if connector.wants_prefetched_page() {
                 if page.is_none() {
-                    page = Some(fetch_page(&state.http_client, url).await);
+                    match fetch_page(&state.http_client, url).await {
+                        Some(fetched) => page = Some(Some(fetched)),
+                        None => return Err(format!("Could not fetch {}", url)),
+                    }
                 }
                 page.as_ref().and_then(|p| p.as_ref())
             } else {
                 None
             };
 
-            if let Ok(fetched) = connector.fetch_articles(url, page_ref, state).await {
-                return add::add_feed_with_articles(
-                    &fetched.title,
-                    &fetched.url,
-                    connector.feed_type(),
-                    fetched.articles,
-                    folder_id,
-                    state,
-                )
-                .await;
+            match connector.fetch_articles(url, page_ref, state).await {
+                Ok(fetched) => {
+                    return add::add_feed_with_articles(
+                        &fetched.title,
+                        &fetched.url,
+                        connector.feed_type(),
+                        fetched.articles,
+                        folder_id,
+                        state,
+                    )
+                    .await;
+                },
+                Err(e) => last_error = Some(e),
             }
         }
-        Err("Could not add feed: unsupported URL".to_string())
+
+        Err(last_error.unwrap_or_else(|| "Could not add feed: unsupported URL".to_string()))
     }
 
     pub async fn refresh(

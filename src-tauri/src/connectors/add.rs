@@ -1,6 +1,10 @@
 use crate::commands::scraper::backfill_og_images;
 use crate::{AppState, db, models::Article};
 
+/// Only the newest entries get an og:image lookup when a feed is added; older
+/// entries rarely need a hero, and each lookup is a network request.
+const ADD_BACKFILL_LIMIT: usize = 10;
+
 pub(crate) async fn add_feed_with_articles(
     title: &str,
     feed_url: &str,
@@ -9,15 +13,11 @@ pub(crate) async fn add_feed_with_articles(
     folder_id: Option<i64>,
     state: &AppState,
 ) -> Result<i64, String> {
-    {
+    let feed_id = {
         let conn = state.db.lock().unwrap();
         if db::feed_exists_by_url(&conn, feed_url, None).map_err(|e| e.to_string())? {
             return Err("Feed already exists".to_string());
         }
-    }
-
-    let feed_id = {
-        let conn = state.db.lock().unwrap();
         db::create_feed(&conn, title, feed_url, folder_id, feed_type).map_err(|e| e.to_string())?
     };
 
@@ -25,20 +25,32 @@ pub(crate) async fn add_feed_with_articles(
         a.feed_id = feed_id;
     }
 
-    backfill_og_images(state, &mut articles, |_| true).await;
-
-    {
-        let cutoff = state.article_retention_cutoff();
+    let cutoff = state.article_retention_cutoff();
+    let count = {
         let mut conn = state.db.lock().unwrap();
-        let count = db::batch_insert_articles(&mut conn, &articles, cutoff).map_err(|e| e.to_string())?;
-        let _ = db::record_refresh_success(&conn, feed_id);
-        if count == 0 && feed_type == "website" {
-            drop(conn);
-            if let Ok(conn) = state.db.lock() {
+        match db::batch_insert_articles(&mut conn, &articles, cutoff) {
+            Ok(count) => count,
+            Err(e) => {
                 let _ = db::delete_feed(&conn, feed_id);
-            }
-            return Err("No articles found on page".to_string());
+                return Err(e.to_string());
+            },
         }
+    };
+
+    if count == 0 && feed_type == "website" {
+        let conn = state.db.lock().unwrap();
+        let _ = db::delete_feed(&conn, feed_id);
+        return Err("No articles found on page".to_string());
+    }
+
+    // Images land after the articles, so a crash or slow site cannot leave an
+    // empty feed behind.
+    let limit = articles.len().min(ADD_BACKFILL_LIMIT);
+    backfill_og_images(state, &mut articles[..limit], |_| true).await;
+
+    if articles[..limit].iter().any(|a| !a.image_url.is_empty()) {
+        let mut conn = state.db.lock().unwrap();
+        db::batch_insert_articles(&mut conn, &articles, cutoff).map_err(|e| e.to_string())?;
     }
 
     Ok(feed_id)
