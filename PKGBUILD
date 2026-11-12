@@ -13,7 +13,9 @@ sha256sums=()
 package() {
   install -Dm755 "$startdir/../src-tauri/target/release/FeedMee" "$pkgdir/usr/bin/feedmee"
 
-  install -Dm644 "$startdir/../feedmee.desktop" "$pkgdir/usr/share/applications/feedmee.desktop"
+  install -Dm644 "$startdir/../com.feedmee.app.desktop" "$pkgdir/usr/share/applications/com.feedmee.app.desktop"
+
+  install -Dm644 "$startdir/../LICENSE" "$pkgdir/usr/share/licenses/feedmee/LICENSE"
 
   install -Dm644 "$startdir/../src-tauri/icons/icon.png" "$pkgdir/usr/share/icons/hicolor/512x512/apps/feedmee.png"
   install -Dm644 "$startdir/../src-tauri/icons/128x128.png" "$pkgdir/usr/share/icons/hicolor/128x128/apps/feedmee.png"
