@@ -2,7 +2,7 @@
 import { RefreshCw, X } from "@lucide/svelte";
 import { tooltip } from "#lib/actions/tooltip.svelte.js";
 import { FEED_FAILURE_LIMIT } from "#lib/feedRefresh.svelte.js";
-import { navStore, refreshStore } from "#lib/store.svelte.js";
+import { refreshStore } from "#lib/store.svelte.js";
 import type { Feed } from "#lib/types.js";
 import { getFavicon, handleFaviconError } from "#lib/utils/favicon.js";
 
