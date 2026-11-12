@@ -27,7 +27,6 @@ export function createNavigation(state: NavStore) {
   async function selectFolder(folderId: number) {
     if (state.selectedFolderId === folderId && !state.selectedFeedId) return;
     await markFeedReadOnExit(state.selectedFeedId);
-    state.focusedPane = "nav";
     state.searchQuery = "";
     state.selectedFolderId = folderId;
     state.selectedFeedId = null;
@@ -37,6 +36,7 @@ export function createNavigation(state: NavStore) {
     try {
       await state.reloadCurrentArticleList();
       if (state.articles.length > 0) state.selectArticle(state.articles[0]);
+      state.focusedPane = "nav";
     } finally {
       state.isLoadingArticles = false;
     }
@@ -45,7 +45,6 @@ export function createNavigation(state: NavStore) {
   async function selectFeed(feedId: number) {
     if (state.selectedFeedId === feedId) return;
     await markFeedReadOnExit(state.selectedFeedId);
-    state.focusedPane = "nav";
     state.searchQuery = "";
     state.selectedFeedId = feedId;
     state.selectedFolderId = null;
@@ -55,6 +54,7 @@ export function createNavigation(state: NavStore) {
     try {
       await state.reloadCurrentArticleList();
       if (state.articles.length > 0) state.selectArticle(state.articles[0]);
+      state.focusedPane = "nav";
     } finally {
       state.isLoadingArticles = false;
     }

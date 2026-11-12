@@ -100,10 +100,7 @@ export function createArticleActions(state: ArticleStore) {
       state.hasMore = page.hasMore;
 
       if (options?.selectTop) {
-        if (state.articles.length > 0) {
-          state.selectedArticle = state.articles[0];
-          state.focusedPane = "reading";
-        }
+        if (state.articles.length > 0) state.selectedArticle = state.articles[0];
       } else if (state.selectedArticle) {
         const fresh = state.articles.find((a) => a.id === state.selectedArticle?.id);
         if (fresh) state.selectedArticle = fresh;
