@@ -44,34 +44,18 @@ export interface UIState {
   listWidth: number;
 }
 
-export function createUI(state: {
-  focusedPane: "nav" | "list" | "reading";
-  blockedPhrases: string[];
-  theme: Theme;
-  sortOrder: SortOrder;
-  settings: AppSettings;
-  searchQuery: string;
-  reloadCurrentArticleList(options?: { selectTop?: boolean }): Promise<void>;
-  refreshAllFeeds(): Promise<void>;
-}) {
-  const ui = $state<UIState>({
-    showSettings: false,
-    showAddDialog: false,
-    showAbout: false,
-    showNewFolderDialog: false,
-    showEditFeedDialog: false,
-    editFeedTarget: null,
-    renameFolderTarget: null,
-    modalState: {
-      isOpen: false,
-      type: "confirm",
-      message: "",
-      onConfirm: () => {},
-    },
-    navWidth: 280,
-    listWidth: 320,
-  });
-
+export function createUI(
+  state: UIState & {
+    focusedPane: "nav" | "list" | "reading";
+    blockedPhrases: string[];
+    theme: Theme;
+    sortOrder: SortOrder;
+    settings: AppSettings;
+    searchQuery: string;
+    reloadCurrentArticleList(options?: { selectTop?: boolean }): Promise<void>;
+    refreshAllFeeds(): Promise<void>;
+  },
+) {
   let autoRefreshTimer: ReturnType<typeof setInterval> | null = null;
 
   async function setBlockedPhrases(phrases: string[]) {
@@ -81,8 +65,8 @@ export function createUI(state: {
   }
 
   function persistLayoutSettings() {
-    writeInt(LS_NAV_WIDTH, ui.navWidth);
-    writeInt(LS_LIST_WIDTH, ui.listWidth);
+    writeInt(LS_NAV_WIDTH, state.navWidth);
+    writeInt(LS_LIST_WIDTH, state.listWidth);
     writeString(LS_SORT_ORDER, state.sortOrder);
   }
 
@@ -105,27 +89,28 @@ export function createUI(state: {
   }
 
   function openSettings() {
-    ui.showSettings = true;
+    state.showSettings = true;
   }
 
   function closeSettings() {
-    ui.showSettings = false;
+    state.showSettings = false;
   }
 
   function openAbout() {
-    ui.showAbout = true;
+    state.showAbout = true;
   }
 
   function closeAbout() {
-    ui.showAbout = false;
+    state.showAbout = false;
   }
 
   async function saveSettings(newSettings: AppSettings, closeModal = true) {
     const settingsToSave = { ...newSettings };
+    const intervalChanged = settingsToSave.auto_update_interval_minutes !== state.settings.auto_update_interval_minutes;
     try {
       await invoke("save_app_settings", { newSettings: settingsToSave });
       state.settings = settingsToSave;
-      startAutoRefreshTimer();
+      if (intervalChanged) startAutoRefreshTimer();
       if (closeModal) closeSettings();
     } catch (e) {
       alert(`Failed to save settings: ${e}`);
@@ -133,30 +118,30 @@ export function createUI(state: {
   }
 
   function confirm(message: string, onConfirm: () => void | Promise<void>) {
-    ui.modalState = {
+    state.modalState = {
       isOpen: true,
       type: "confirm",
       message,
       onConfirm: () => {
-        ui.modalState = { ...ui.modalState, isOpen: false };
+        state.modalState = { ...state.modalState, isOpen: false };
         Promise.resolve(onConfirm()).catch((e) => console.error("confirm callback failed:", e));
       },
     };
   }
 
   function alert(message: string) {
-    ui.modalState = {
+    state.modalState = {
       isOpen: true,
       type: "alert",
       message,
       onConfirm: () => {
-        ui.modalState = { ...ui.modalState, isOpen: false };
+        state.modalState = { ...state.modalState, isOpen: false };
       },
     };
   }
 
   function closeModal() {
-    ui.modalState = { ...ui.modalState, isOpen: false };
+    state.modalState = { ...state.modalState, isOpen: false };
   }
 
   function startAutoRefreshTimer() {
@@ -171,7 +156,6 @@ export function createUI(state: {
   }
 
   return {
-    ui,
     setBlockedPhrases,
     persistLayoutSettings,
     setSortOrder,

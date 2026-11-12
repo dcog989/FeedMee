@@ -10,7 +10,7 @@ import SettingsModal from "#lib/components/SettingsModal.svelte";
 import StyleInjector from "#lib/components/StyleInjector.svelte";
 import ThemeManager from "#lib/components/ThemeManager.svelte";
 import Tooltip from "#lib/components/Tooltip.svelte";
-import { appState } from "#lib/store.svelte.js";
+import { uiStore } from "#lib/store.svelte.js";
 import "../app.css";
 
 let { children } = $props();
@@ -32,23 +32,23 @@ function disableContextMenu(e: MouseEvent) {
   <StyleInjector />
   <Tooltip />
 
-  {#if appState.showSettings}
+  {#if uiStore.showSettings}
     <SettingsModal />
   {/if}
 
-  {#if appState.showAddDialog}
+  {#if uiStore.showAddDialog}
     <ManageDialog />
   {/if}
 
-  {#if appState.showAbout}
-    <AboutModal isOpen onClose={() => (appState.showAbout = false)} />
+  {#if uiStore.showAbout}
+    <AboutModal isOpen onClose={() => (uiStore.showAbout = false)} />
   {/if}
 
-  {#if appState.showNewFolderDialog}
+  {#if uiStore.showNewFolderDialog}
     <NewFolderDialog />
   {/if}
 
-  {#if appState.showEditFeedDialog}
+  {#if uiStore.showEditFeedDialog}
     <EditFeedDialog />
   {/if}
 

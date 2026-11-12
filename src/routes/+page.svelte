@@ -2,7 +2,7 @@
 import ArticleListPane from "#lib/components/ArticleListPane.svelte";
 import NavPane from "#lib/components/NavPane.svelte";
 import ReadingPane from "#lib/components/ReadingPane.svelte";
-import { appState } from "#lib/store.svelte.js";
+import { appState, uiStore } from "#lib/store.svelte.js";
 
 // Resizing Logic
 const NAV_MIN_WIDTH = 150;
@@ -45,10 +45,10 @@ function onMouseMove(e: MouseEvent) {
   resizeFrame = requestAnimationFrame(() => {
     resizeFrame = null;
     if (target === "nav") {
-      appState.navWidth = Math.max(NAV_MIN_WIDTH, Math.min(NAV_MAX_WIDTH, pendingClientX));
+      uiStore.navWidth = Math.max(NAV_MIN_WIDTH, Math.min(NAV_MAX_WIDTH, pendingClientX));
     } else {
       // List width is relative to the nav pane offset.
-      appState.listWidth = Math.max(LIST_MIN_WIDTH, Math.min(LIST_MAX_WIDTH, pendingClientX - appState.navWidth));
+      uiStore.listWidth = Math.max(LIST_MIN_WIDTH, Math.min(LIST_MAX_WIDTH, pendingClientX - uiStore.navWidth));
     }
   });
 }
@@ -76,16 +76,16 @@ function onPaneKeyDown(pane: "nav" | "list" | "reading", e: KeyboardEvent) {
 function onResizerKeyDown(target: "nav" | "list", e: KeyboardEvent) {
   if (e.key === "ArrowLeft") {
     if (target === "nav") {
-      appState.navWidth = Math.max(NAV_MIN_WIDTH, appState.navWidth - RESIZE_STEP);
+      uiStore.navWidth = Math.max(NAV_MIN_WIDTH, uiStore.navWidth - RESIZE_STEP);
     } else {
-      appState.listWidth = Math.max(LIST_MIN_WIDTH, appState.listWidth - RESIZE_STEP);
+      uiStore.listWidth = Math.max(LIST_MIN_WIDTH, uiStore.listWidth - RESIZE_STEP);
     }
     e.preventDefault();
   } else if (e.key === "ArrowRight") {
     if (target === "nav") {
-      appState.navWidth = Math.min(NAV_MAX_WIDTH, appState.navWidth + RESIZE_STEP);
+      uiStore.navWidth = Math.min(NAV_MAX_WIDTH, uiStore.navWidth + RESIZE_STEP);
     } else {
-      appState.listWidth = Math.min(LIST_MAX_WIDTH, appState.listWidth + RESIZE_STEP);
+      uiStore.listWidth = Math.min(LIST_MAX_WIDTH, uiStore.listWidth + RESIZE_STEP);
     }
     e.preventDefault();
   }
@@ -99,7 +99,7 @@ function onResizerKeyDown(target: "nav" | "list", e: KeyboardEvent) {
 	This allows the Media Queries in the <style> block to easily override them
 	on mobile without fighting inline style specificity.
 -->
-<div class="app-container" style="--nav-w: {appState.navWidth}px; --list-w: {appState.listWidth}px;">
+<div class="app-container" style="--nav-w: {uiStore.navWidth}px; --list-w: {uiStore.listWidth}px;">
   <!-- Navigation Pane -->
   <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
   <section
@@ -118,7 +118,7 @@ function onResizerKeyDown(target: "nav" | "list", e: KeyboardEvent) {
   <hr
     class="resizer nav-resizer"
     aria-orientation="vertical"
-    aria-valuenow={appState.navWidth}
+    aria-valuenow={uiStore.navWidth}
     aria-valuemin={NAV_MIN_WIDTH}
     aria-valuemax={NAV_MAX_WIDTH}
     tabindex="0"
@@ -144,7 +144,7 @@ function onResizerKeyDown(target: "nav" | "list", e: KeyboardEvent) {
   <hr
     class="resizer list-resizer"
     aria-orientation="vertical"
-    aria-valuenow={appState.listWidth}
+    aria-valuenow={uiStore.listWidth}
     aria-valuemin={LIST_MIN_WIDTH}
     aria-valuemax={LIST_MAX_WIDTH}
     tabindex="0"

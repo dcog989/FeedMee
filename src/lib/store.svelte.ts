@@ -86,6 +86,22 @@ class AppStateImpl {
   blockedPhrases = $state<string[]>([]);
   customShortcuts = $state<Record<string, string>>({});
 
+  showSettings = $state(false);
+  showAddDialog = $state(false);
+  showAbout = $state(false);
+  showNewFolderDialog = $state(false);
+  showEditFeedDialog = $state(false);
+  editFeedTarget = $state<EditFeedTarget | null>(null);
+  renameFolderTarget = $state<RenameFolderTarget | null>(null);
+  modalState = $state<ModalState>({
+    isOpen: false,
+    type: "confirm",
+    message: "",
+    onConfirm: () => {},
+  });
+  navWidth = $state(280);
+  listWidth = $state(320);
+
   page = 0;
   readonly pageSize = 50;
   hasMore = $state(true);
@@ -114,76 +130,6 @@ class AppStateImpl {
     registerShortcuts(this);
     setupKeyHandler(this);
     this.initStore().catch((e) => console.error("Store initialization failed:", e));
-  }
-
-  get showSettings() {
-    return this.ui.ui.showSettings;
-  }
-  set showSettings(value: boolean) {
-    this.ui.ui.showSettings = value;
-  }
-
-  get showAddDialog() {
-    return this.ui.ui.showAddDialog;
-  }
-  set showAddDialog(value: boolean) {
-    this.ui.ui.showAddDialog = value;
-  }
-
-  get showAbout() {
-    return this.ui.ui.showAbout;
-  }
-  set showAbout(value: boolean) {
-    this.ui.ui.showAbout = value;
-  }
-
-  get showNewFolderDialog() {
-    return this.ui.ui.showNewFolderDialog;
-  }
-  set showNewFolderDialog(value: boolean) {
-    this.ui.ui.showNewFolderDialog = value;
-  }
-
-  get showEditFeedDialog() {
-    return this.ui.ui.showEditFeedDialog;
-  }
-  set showEditFeedDialog(value: boolean) {
-    this.ui.ui.showEditFeedDialog = value;
-  }
-
-  get editFeedTarget() {
-    return this.ui.ui.editFeedTarget;
-  }
-  set editFeedTarget(value: EditFeedTarget | null) {
-    this.ui.ui.editFeedTarget = value;
-  }
-
-  get renameFolderTarget() {
-    return this.ui.ui.renameFolderTarget;
-  }
-  set renameFolderTarget(value: RenameFolderTarget | null) {
-    this.ui.ui.renameFolderTarget = value;
-  }
-
-  get modalState() {
-    return this.ui.ui.modalState;
-  }
-  set modalState(value: ModalState) {
-    this.ui.ui.modalState = value;
-  }
-
-  get navWidth() {
-    return this.ui.ui.navWidth;
-  }
-  set navWidth(value: number) {
-    this.ui.ui.navWidth = value;
-  }
-
-  get listWidth() {
-    return this.ui.ui.listWidth;
-  }
-  set listWidth(value: number) {
-    this.ui.ui.listWidth = value;
   }
 
   get debounceMs() {
@@ -319,11 +265,11 @@ class AppStateImpl {
       invoke<AppSettings>("get_app_settings")
         .then((s) => {
           this.settings = s;
-          this.ui.startAutoRefreshTimer();
         })
         .catch((e) => console.error("Failed to load settings", e)),
       this.shortcutOps.loadShortcutSettings(),
     ]);
+    this.ui.startAutoRefreshTimer();
 
     await this.refreshFolders();
 
