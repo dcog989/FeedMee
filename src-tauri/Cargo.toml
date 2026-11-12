@@ -4,7 +4,7 @@ version = "1.23.3"
 edition = "2024"
 description = "The seriously fast feed reader."
 license = "GPL-3.0-or-later"
-rust-version = "1.85"
+rust-version = "1.88"
 
 [lib]
 crate-type = ["cdylib", "rlib", "staticlib"]
