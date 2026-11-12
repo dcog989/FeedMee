@@ -14,7 +14,9 @@ const MAX_IMAGE_BYTES: usize = 10_000_000;
 /// A feed image bigger than this is not a thumbnail source; refuse it before
 /// decoding, so a compressed image cannot expand into gigabytes of pixels.
 const MAX_IMAGE_DIMENSION: u32 = 8192;
-const MAX_IMAGE_ALLOC_BYTES: u64 = 64 * 1024 * 1024;
+/// Must cover the worst case the dimension guard admits, or a valid high-res
+/// photo is rejected before it can be resized down to a thumbnail.
+const MAX_IMAGE_ALLOC_BYTES: u64 = MAX_IMAGE_DIMENSION as u64 * MAX_IMAGE_DIMENSION as u64 * 4;
 const THUMBNAIL_QUALITY: f32 = 50.0;
 
 fn process_thumbnail(bytes: &[u8], size: u32) -> Result<Vec<u8>, String> {
@@ -27,7 +29,7 @@ fn process_thumbnail(bytes: &[u8], size: u32) -> Result<Vec<u8>, String> {
         .with_guessed_format()
         .map_err(|_| "Failed to read image format".to_string())?;
     reader.limits(limits);
-    let img = reader.decode().map_err(|_| "Failed to decode image".to_string())?;
+    let img = reader.decode().map_err(|e| format!("Failed to decode image: {}", e))?;
 
     let (w, h) = img.dimensions();
 
@@ -38,7 +40,9 @@ fn process_thumbnail(bytes: &[u8], size: u32) -> Result<Vec<u8>, String> {
         ((size_f * w as f64 / h as f64).round() as u32, size)
     };
 
-    let resized = image::imageops::resize(&img.to_rgba8(), nw.max(1), nh.max(1), FilterType::Triangle);
+    // Resize in the source pixel format: converting a 40 MP photo to RGBA first
+    // doubles peak memory for no benefit.
+    let resized = img.resize_exact(nw.max(1), nh.max(1), FilterType::Triangle).to_rgba8();
 
     let mut canvas = image::RgbaImage::new(size, size);
     let x = (size - nw) / 2;
