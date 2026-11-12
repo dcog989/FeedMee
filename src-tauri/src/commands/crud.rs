@@ -111,11 +111,23 @@ pub async fn import_opml(path: String, app: tauri::AppHandle) -> Result<(), Stri
 /// Insert an OPML feed unless the same URL is already subscribed, including
 /// another outline earlier in the same file.
 fn insert_opml_feed(conn: &Connection, name: &str, url: &str, folder_id: Option<i64>) -> Result<(), String> {
-    if db::feed_exists_by_url(conn, url, None).map_err(|e| e.to_string())? {
+    let Some(url) = normalize_opml_url(url) else {
+        return Ok(());
+    };
+    if db::feed_exists_by_url(conn, &url, None).map_err(|e| e.to_string())? {
         return Ok(());
     }
-    db::create_feed(conn, name, url, folder_id, "rss").map_err(|e| e.to_string())?;
+    db::create_feed(conn, name, &url, folder_id, "rss").map_err(|e| e.to_string())?;
     Ok(())
+}
+
+/// `feed://` is a common reader-specific spelling of the same HTTP feed.
+fn normalize_opml_url(url: &str) -> Option<String> {
+    if let Some(rest) = url.strip_prefix("feed://") {
+        return Some(format!("https://{}", rest));
+    }
+    let is_http = url.starts_with("http://") || url.starts_with("https://");
+    if is_http { Some(url.to_string()) } else { None }
 }
 
 fn import_opml_blocking(path: &str, state: &AppState) -> Result<(), String> {
@@ -170,6 +182,15 @@ pub fn rename_folder(id: i64, new_name: String, state: State<'_, AppState>) -> R
 #[tauri::command]
 pub fn rename_feed(id: i64, new_name: String, new_url: String, state: State<'_, AppState>) -> Result<(), String> {
     let conn = state.db.lock().unwrap();
+    let feed = db::get_feed(&conn, id).map_err(|e| e.to_string())?;
+    let url_ok = if feed.feed_type == "bluesky" {
+        new_url.starts_with("bsky:")
+    } else {
+        crate::net::is_public_url(&new_url)
+    };
+    if !url_ok {
+        return Err("Invalid feed URL".to_string());
+    }
     if db::feed_exists_by_url(&conn, &new_url, Some(id)).map_err(|e| e.to_string())? {
         return Err("Feed already exists".to_string());
     }
@@ -258,5 +279,31 @@ mod tests {
             )
             .unwrap();
         assert_eq!(count, 1);
+    }
+
+    #[test]
+    fn opml_import_rewrites_feed_scheme() {
+        let mut conn = Connection::open_in_memory().unwrap();
+        db::init_db(&mut conn).unwrap();
+
+        insert_opml_feed(&conn, "One", "feed://example.com/rss", None).unwrap();
+
+        let url: String = conn
+            .query_row("SELECT url FROM feeds WHERE name = 'One'", [], |r| r.get(0))
+            .unwrap();
+        assert_eq!(url, "https://example.com/rss");
+    }
+
+    #[test]
+    fn opml_import_skips_non_http_urls() {
+        let mut conn = Connection::open_in_memory().unwrap();
+        db::init_db(&mut conn).unwrap();
+
+        insert_opml_feed(&conn, "Bad", "ftp://example.com/rss", None).unwrap();
+
+        let count: i64 = conn
+            .query_row("SELECT COUNT(*) FROM feeds WHERE name = 'Bad'", [], |r| r.get(0))
+            .unwrap();
+        assert_eq!(count, 0);
     }
 }
