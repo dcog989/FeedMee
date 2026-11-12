@@ -1,10 +1,10 @@
 use async_trait::async_trait;
 use scraper::{Html, Selector};
 
-use crate::commands::scraper::{scrape_articles_from_page, scrape_og_image_from_html};
+use crate::commands::scraper::scrape_articles_from_page;
 use crate::{AppState, db, models::Article};
 
-use super::{FeedConnector, FetchedFeed, FetchedPage};
+use super::{FeedConnector, FetchedFeed, FetchedPage, decode_html};
 
 pub struct WebsiteConnector;
 
@@ -38,21 +38,10 @@ impl FeedConnector for WebsiteConnector {
     }
 }
 
-fn decode_html(bytes: &[u8], charset: Option<&str>) -> String {
-    let encoding = charset
-        .and_then(|label| encoding_rs::Encoding::for_label(label.as_bytes()))
-        .unwrap_or(encoding_rs::UTF_8);
-    encoding.decode(bytes).0.into_owned()
-}
-
 fn scrape_page(html: &str, page_url: &str, feed_id: i64) -> Vec<Article> {
-    let og_image = scrape_og_image_from_html(html, page_url);
     let mut articles = scrape_articles_from_page(html, page_url);
     for a in &mut articles {
         a.feed_id = feed_id;
-        if a.image_url.is_empty() {
-            a.image_url = og_image.clone().unwrap_or_default();
-        }
     }
     articles
 }

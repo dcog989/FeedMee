@@ -1,4 +1,3 @@
-use crate::commands::scraper::backfill_og_images;
 use crate::{AppState, db, models::Article};
 
 pub(crate) async fn add_feed_with_articles(
@@ -43,16 +42,6 @@ pub(crate) async fn add_feed_with_articles(
     if let Some(cursor) = cursor {
         let conn = state.db.lock().unwrap();
         let _ = db::set_bluesky_cursor(&conn, feed_id, &cursor);
-    }
-
-    // Images land after the articles, so a crash or slow site cannot leave an
-    // empty feed behind.
-    let limit = articles.len().min(super::BACKFILL_LIMIT);
-    backfill_og_images(state, &mut articles[..limit], |_| true).await;
-
-    if articles[..limit].iter().any(|a| !a.image_url.is_empty()) {
-        let mut conn = state.db.lock().unwrap();
-        db::batch_insert_articles(&mut conn, &articles, cutoff).map_err(|e| e.to_string())?;
     }
 
     Ok(feed_id)

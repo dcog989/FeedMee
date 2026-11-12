@@ -36,7 +36,7 @@ const MAX_PAGE_BYTES: usize = 10 * 1024 * 1024;
 /// hero, and each lookup is a network request.
 const BACKFILL_LIMIT: usize = 10;
 
-async fn read_body(mut response: reqwest::Response) -> Result<Vec<u8>, String> {
+pub(crate) async fn read_body(mut response: reqwest::Response) -> Result<Vec<u8>, String> {
     let mut body = Vec::new();
     while let Some(chunk) = response.chunk().await.map_err(|e| e.to_string())? {
         if body.len() + chunk.len() > MAX_PAGE_BYTES {
@@ -47,7 +47,7 @@ async fn read_body(mut response: reqwest::Response) -> Result<Vec<u8>, String> {
     Ok(body)
 }
 
-fn response_charset(response: &reqwest::Response) -> Option<String> {
+pub(crate) fn response_charset(response: &reqwest::Response) -> Option<String> {
     let content_type = response.headers().get(reqwest::header::CONTENT_TYPE)?.to_str().ok()?;
     content_type.split(';').find_map(|part| {
         let (key, value) = part.split_once('=')?;
@@ -55,6 +55,17 @@ fn response_charset(response: &reqwest::Response) -> Option<String> {
             .eq_ignore_ascii_case("charset")
             .then(|| value.trim().trim_matches('"').to_string())
     })
+}
+
+/// Decode a downloaded page. Only the response header is consulted.
+///
+/// shortcut: a `meta charset` inside the body is ignored, which matters for
+/// legacy servers that omit the header; upgrade when such pages show mojibake.
+pub(crate) fn decode_html(bytes: &[u8], charset: Option<&str>) -> String {
+    let encoding = charset
+        .and_then(|label| encoding_rs::Encoding::for_label(label.as_bytes()))
+        .unwrap_or(encoding_rs::UTF_8);
+    encoding.decode(bytes).0.into_owned()
 }
 
 async fn fetch_page(client: &reqwest::Client, url: &str) -> Option<FetchedPage> {

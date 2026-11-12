@@ -6,7 +6,7 @@ use log::{debug, error};
 use scraper::{Html, Selector};
 use url::Url;
 
-use crate::commands::scraper::{backfill_og_images, compute_content_hash};
+use crate::commands::scraper::{backfill_og_images, short_hash};
 use crate::{AppState, db, models::Article};
 
 use super::{FeedConnector, FetchedFeed, FetchedPage};
@@ -233,7 +233,7 @@ fn compute_placeholder_url(feed_url: &str, entry: &feed_rs::model::Entry) -> Str
     } else {
         entry.title.as_ref().map(|t| t.content.clone()).unwrap_or_default()
     };
-    format!("{}/#{}", feed_url.trim_end_matches('/'), compute_content_hash(&key))
+    format!("{}/#{}", feed_url.trim_end_matches('/'), short_hash(&key))
 }
 
 fn resolve_article_url(entry: &feed_rs::model::Entry, feed_url: &str) -> String {

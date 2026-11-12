@@ -8,21 +8,25 @@ use url::Url;
 pub fn scrape_og_image_from_html(html: &str, page_url: &str) -> Option<String> {
     let document = Html::parse_document(html);
     let meta_sel = Selector::parse("meta").ok()?;
-    let raw = document.select(&meta_sel).find_map(|el| {
-        let prop = el.value().attr("property").unwrap_or("");
-        let name = el.value().attr("name").unwrap_or("");
-        if prop == "og:image" || name == "twitter:image" || name == "twitter:image:src" {
-            el.value().attr("content").map(str::to_string)
-        } else {
-            None
-        }
-    })?;
+    let raw = document
+        .select(&meta_sel)
+        .find_map(|el| {
+            let prop = el.value().attr("property").unwrap_or("");
+            let name = el.value().attr("name").unwrap_or("");
+            if prop == "og:image" || name == "twitter:image" || name == "twitter:image:src" {
+                el.value().attr("content").map(str::trim).filter(|c| !c.is_empty())
+            } else {
+                None
+            }
+        })?
+        .to_string();
     if raw.starts_with("http://") || raw.starts_with("https://") {
         Some(raw)
     } else {
         Url::parse(page_url)
             .ok()
             .and_then(|base| base.join(&raw).ok())
+            .filter(|u| matches!(u.scheme(), "http" | "https"))
             .map(|u| u.to_string())
     }
 }
@@ -32,20 +36,25 @@ pub async fn scrape_og_image(client: &reqwest::Client, article_url: &str) -> Opt
         return None;
     }
 
-    let html = client
+    let response = client
         .get(article_url)
         .timeout(std::time::Duration::from_secs(15))
         .send()
         .await
-        .ok()?
-        .text()
-        .await
         .ok()?;
+    let charset = crate::connectors::response_charset(&response);
+    let bytes = crate::connectors::read_body(response).await.ok()?;
+    let html = crate::connectors::decode_html(&bytes, charset.as_deref());
+    let page_url = article_url.to_string();
 
-    scrape_og_image_from_html(&html, article_url)
+    tauri::async_runtime::spawn_blocking(move || scrape_og_image_from_html(&html, &page_url))
+        .await
+        .ok()
+        .flatten()
 }
 
-pub fn compute_content_hash(content: &str) -> String {
+/// Stable 64-bit FNV-1a key, used for placeholder ids and cache file names.
+pub(crate) fn short_hash(content: &str) -> String {
     fn fnv1a_64(bytes: &[u8]) -> u64 {
         let prime: u64 = 0x100000001b3;
         let mut hash: u64 = 0xcbf29ce484222325;
@@ -94,6 +103,23 @@ fn anchor_is_boilerplate(el: &scraper::ElementRef) -> bool {
     false
 }
 
+/// True when the anchor sits inside the page's main content, where article
+/// links live. Navigation survives `anchor_is_boilerplate` on sites that wrap
+/// it in a plain `<header>`, so its location is the stronger signal.
+fn anchor_is_in_main_content(el: &scraper::ElementRef) -> bool {
+    let mut node = el.parent();
+    while let Some(parent) = node {
+        if let Some(element) = parent.value().as_element() {
+            let tag = element.name();
+            if tag == "article" || tag == "main" || element.attr("role") == Some("main") {
+                return true;
+            }
+        }
+        node = parent.parent();
+    }
+    false
+}
+
 pub fn scrape_articles_from_page(html: &str, page_url: &str) -> Vec<Article> {
     debug!("scrape_articles_from_page: url={}", page_url);
     let base = match Url::parse(page_url) {
@@ -113,7 +139,7 @@ pub fn scrape_articles_from_page(html: &str, page_url: &str) -> Vec<Article> {
         .unwrap()
         .as_secs() as i64;
     let mut seen = std::collections::HashSet::new();
-    let mut articles = Vec::new();
+    let mut candidates: Vec<(bool, Article)> = Vec::new();
 
     for el in document.select(&anchor_sel) {
         if anchor_is_boilerplate(&el) {
@@ -183,23 +209,41 @@ pub fn scrape_articles_from_page(html: &str, page_url: &str) -> Vec<Article> {
         }
 
         debug!("scrape: accepting {:?} -> {}", title, url_str);
-        articles.push(Article {
-            id: 0,
-            feed_id: 0,
-            title,
-            author: String::new(),
-            summary: String::new(),
-            url: url_str,
-            image_url: String::new(),
-            image_low_res: false,
-            timestamp: now,
-            is_read: false,
-            is_saved: false,
-            has_tags: false,
-        });
+        candidates.push((
+            anchor_is_in_main_content(&el),
+            Article {
+                id: 0,
+                feed_id: 0,
+                title,
+                author: String::new(),
+                summary: String::new(),
+                url: url_str,
+                image_url: String::new(),
+                image_low_res: false,
+                timestamp: now,
+                is_read: false,
+                is_saved: false,
+                has_tags: false,
+            },
+        ));
     }
 
-    articles
+    let mut trusted = Vec::new();
+    let mut fallback = Vec::new();
+    for (in_main, article) in candidates {
+        if in_main {
+            trusted.push(article);
+        } else {
+            fallback.push(article);
+        }
+    }
+    // Sites that wrap everything in one container have no main content marker,
+    // so keep the old behaviour instead of returning an empty feed.
+    if trusted.is_empty() {
+        fallback
+    } else {
+        trusted
+    }
 }
 
 pub async fn backfill_og_images<F>(state: &AppState, articles: &mut [Article], mut should_fill: F)
@@ -254,5 +298,49 @@ where
     for (idx, img) in filled {
         articles[idx].image_url = img;
         articles[idx].image_low_res = false;
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{scrape_articles_from_page, scrape_og_image_from_html};
+
+    #[test]
+    fn resolves_relative_og_image() {
+        let html = r#"<html><head><meta property="og:image" content="/img/cover.png"></head></html>"#;
+        assert_eq!(
+            scrape_og_image_from_html(html, "https://example.com/post/1").as_deref(),
+            Some("https://example.com/img/cover.png")
+        );
+    }
+
+    #[test]
+    fn ignores_empty_og_image() {
+        let html = r#"<html><head><meta property="og:image" content="  "></head></html>"#;
+        assert_eq!(scrape_og_image_from_html(html, "https://example.com/post/1"), None);
+    }
+
+    #[test]
+    fn keeps_main_content_links_only() {
+        let html = r#"<html><body>
+            <header><a href="/about">About the company</a></header>
+            <main>
+                <article><a href="/posts/one">A real article title</a></article>
+                <a href="/posts/two">Another real article</a>
+            </main>
+        </body></html>"#;
+        let articles = scrape_articles_from_page(html, "https://example.com/");
+        let urls: Vec<&str> = articles.iter().map(|a| a.url.as_str()).collect();
+        assert_eq!(
+            urls,
+            vec!["https://example.com/posts/one", "https://example.com/posts/two"]
+        );
+    }
+
+    #[test]
+    fn falls_back_to_all_links_without_main_content() {
+        let html = r#"<html><body><div><a href="/posts/three">A third real title</a></div></body></html>"#;
+        let articles = scrape_articles_from_page(html, "https://example.com/");
+        assert_eq!(articles.len(), 1);
     }
 }
