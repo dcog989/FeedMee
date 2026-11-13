@@ -17,6 +17,11 @@ describe("stripDuplicateTitle", () => {
     expect(stripDuplicateTitle(html, "Hello World")).toBe("<h1>Hello World</h1>");
   });
 
+  it("keeps a heading that only contains a short title inside a word", () => {
+    const html = "<h2>Daily briefing</h2><p>Body</p>";
+    expect(stripDuplicateTitle(html, "AI")).toBe(html);
+  });
+
   it("keeps non-matching headings", () => {
     const html = "<h1>Something Else</h1><p>Body</p>";
     expect(stripDuplicateTitle(html, "Hello World")).toBe("<h1>Something Else</h1><p>Body</p>");

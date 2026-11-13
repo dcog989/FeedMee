@@ -9,7 +9,9 @@ export function stripDuplicateTitle(html: string, articleTitle: string): string 
   const normalizedTitle = normalize(articleTitle).slice(0, TITLE_MATCH_LENGTH);
   if (!normalizedTitle) return doc.body.innerHTML;
   for (const el of doc.querySelectorAll("h1, h2")) {
-    if (normalize(el.textContent ?? "").includes(normalizedTitle)) {
+    // Starts-with, not contains: a two-letter title like "AI" would otherwise
+    // match "Daily briefing" and delete a real heading.
+    if (normalize(el.textContent ?? "").startsWith(normalizedTitle)) {
       el.remove();
       break;
     }
