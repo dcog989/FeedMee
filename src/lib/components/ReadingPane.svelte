@@ -24,19 +24,22 @@ $effect(() => {
     fullContent = null;
     isLoadingFull = false;
     loadError = false;
+    // Invalidate an extraction started for the article we just left.
+    loadGen += 1;
     paneEl?.scrollTo(0, 0);
   }
 });
 
 async function loadFullContent() {
-  if (!articleStore.selectedArticle) return;
+  const article = articleStore.selectedArticle;
+  if (!article) return;
   const gen = ++loadGen;
   isLoadingFull = true;
   loadError = false;
-  const content = await articleStore.fetchFullContent(articleStore.selectedArticle);
+  const content = await articleStore.fetchFullContent(article);
   if (gen !== loadGen) return;
   if (content) {
-    fullContent = stripDuplicateTitle(content, articleStore.selectedArticle.title);
+    fullContent = stripDuplicateTitle(content, article.title);
   } else {
     loadError = true;
   }

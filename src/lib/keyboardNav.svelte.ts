@@ -130,6 +130,13 @@ interface KeyHandlerDeps {
 
 let activeKeyHandler: ((e: KeyboardEvent) => void) | null = null;
 
+const ARROW_SCROLL_PX = 80;
+const PAGE_SCROLL_RATIO = 0.9;
+
+function scrollReadingPane(delta: number) {
+  document.querySelector<HTMLElement>(".reading-area .pane")?.scrollBy({ top: delta, behavior: "smooth" });
+}
+
 export function setupKeyHandler(state: KeyHandlerDeps): void {
   // Remove any previously bound handler (e.g. after a hot-reload that
   // re-instantiates the store) so keydown listeners don't stack.
@@ -164,17 +171,19 @@ export function setupKeyHandler(state: KeyHandlerDeps): void {
         e.preventDefault();
         if (state.focusedPane === "nav") state.navUp();
         else if (state.focusedPane === "list") state.articleUp();
-        else if (state.focusedPane === "reading") {
-          document.querySelector<HTMLElement>(".reading-area .pane")?.scrollBy({ top: -80, behavior: "smooth" });
-        }
+        else if (state.focusedPane === "reading") scrollReadingPane(-ARROW_SCROLL_PX);
         return;
       case "ArrowDown":
         e.preventDefault();
         if (state.focusedPane === "nav") state.navDown();
         else if (state.focusedPane === "list") state.articleDown();
-        else if (state.focusedPane === "reading") {
-          document.querySelector<HTMLElement>(".reading-area .pane")?.scrollBy({ top: 80, behavior: "smooth" });
-        }
+        else if (state.focusedPane === "reading") scrollReadingPane(ARROW_SCROLL_PX);
+        return;
+      case "PageUp":
+      case "PageDown":
+        if (state.focusedPane !== "reading") return;
+        e.preventDefault();
+        scrollReadingPane((e.key === "PageUp" ? -1 : 1) * window.innerHeight * PAGE_SCROLL_RATIO);
         return;
     }
 

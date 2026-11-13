@@ -44,17 +44,22 @@ let {
 
 let displayHtml = $derived(rawHtml ? DOMPurify.sanitize(rawHtml) : "");
 
-async function handleContentClick(e?: MouseEvent) {
-  if (!e) {
-    await openUrl(articleUrl);
-    return;
+// Relative hrefs in feed HTML resolve against the app origin unless rebased.
+function resolveLink(href: string, base: string): string | null {
+  try {
+    const url = new URL(href, base || undefined);
+    return url.protocol === "http:" || url.protocol === "https:" ? url.href : null;
+  } catch {
+    return null;
   }
-  const target = e.target as HTMLElement;
-  const anchor = target.closest("a");
-  if (anchor?.href) {
-    e.preventDefault();
-    await openUrl(anchor.href);
-  }
+}
+
+function handleContentClick(e: MouseEvent) {
+  const anchor = (e.target as HTMLElement | null)?.closest("a");
+  if (!anchor) return;
+  e.preventDefault();
+  const target = resolveLink(anchor.getAttribute("href") ?? "", articleUrl);
+  if (target) openUrl(target).catch((error) => console.error("openUrl failed:", error));
 }
 </script>
 
@@ -65,18 +70,10 @@ async function handleContentClick(e?: MouseEvent) {
   </div>
 {/if}
 
-<div
-  class="summary"
-  role="button"
-  tabindex="0"
-  onclick={handleContentClick}
-  onkeydown={(e) => {
-    if (e.key === "Enter" || e.key === " ") {
-      e.preventDefault();
-      handleContentClick();
-    }
-  }}
->
+<!-- svelte-ignore a11y_no_static_element_interactions -->
+<!-- biome-ignore lint/a11y/noStaticElementInteractions: the body only delegates clicks from its own links -->
+<!-- biome-ignore lint/a11y/useKeyWithClickEvents: those links keep their native keyboard activation, which fires the click this delegates -->
+<div class="summary" onclick={handleContentClick}>
   {@html displayHtml}
 </div>
 
@@ -103,12 +100,6 @@ async function handleContentClick(e?: MouseEvent) {
   font-size: 1.15rem;
   font-family: var(--font-body-override, var(--font-body));
   color: var(--color-body, var(--text-primary));
-}
-
-/* The body is focusable so PageUp/PageDown scroll it; outlining the whole
-   reading surface on keypress is noise, links keep their own focus rings. */
-.summary:focus-visible {
-  outline: none;
 }
 
 .summary :global(p) {
