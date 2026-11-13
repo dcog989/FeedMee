@@ -37,4 +37,4 @@ THe app is split in to the following chunks to allow optimal review:
 | F6 | Settings and modals | `SettingsModal`, `ShortcutsModal`, `AboutModal`, `ConfirmModal`, `Modal`, `ContextMenu` | 1283 | Validation, shortcut recording, focus/Escape |
 | F7 | Feed/folder/tag dialogs | `ManageDialog`, `EditFeedDialog`, `NewFolderDialog`, `TagManager`, `TagPopover` | 972 | Form validation, duplicates, tag colors |
 | F8 | App shell and utilities | `routes/+layout.svelte`, `routes/+page.svelte`, `ThemeManager`, `StyleInjector`, `Tooltip`, `actions/tooltip`, `utils/{articleContent,dragGhost,favicon,shortcuts,thumbnail}` | 675 | Pane resize, theme flash, CSS injection, tooltip placement |
-| F9 | Tests | `src/lib/utils/*.test.ts` (5) | 263 | Helper coverage; Rust tests live inside B chunks |
+| F9 | Tests | `src/**/*.test.ts` (13) | 835 | Helper, scheduler and key-routing coverage; shared fixtures in `utils/testFixtures.ts`; Rust tests live inside B chunks |
