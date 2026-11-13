@@ -41,23 +41,10 @@ export class KeyboardShortcutManager {
     this.customMappings = mappings;
   }
 
-  private isInputElement(target: EventTarget | null): boolean {
-    if (!target || !(target instanceof HTMLElement)) return false;
-    const tagName = target.tagName.toLowerCase();
-    const isInput = tagName === "input" || tagName === "textarea" || tagName === "select";
-    return isInput || target.isContentEditable;
-  }
-
   async handleKeyEvent(e: KeyboardEvent): Promise<boolean> {
     if (e.repeat) return false;
 
     const pressedKey = shortcutKeyFromEvent(e);
-    const isInput = this.isInputElement(e.target);
-
-    if (isInput && e.key !== "Escape" && e.key !== "Enter") {
-      return false;
-    }
-
     for (const def of this.definitions.values()) {
       const mappedKey = this.customMappings[def.command] || def.defaultKey;
       if (pressedKey === mappedKey.toLowerCase() && def.handler) {
@@ -82,10 +69,6 @@ export class KeyboardShortcutManager {
       .split("+")
       .map((p) => p.charAt(0).toUpperCase() + p.slice(1))
       .join("+");
-  }
-
-  clear(): void {
-    this.definitions.clear();
   }
 
   getDefinitions(): ShortcutDefinition[] {
