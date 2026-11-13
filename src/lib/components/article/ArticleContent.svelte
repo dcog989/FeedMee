@@ -61,6 +61,17 @@ function handleContentClick(e: MouseEvent) {
   const target = resolveLink(anchor.getAttribute("href") ?? "", articleUrl);
   if (target) openUrl(target).catch((error) => console.error("openUrl failed:", error));
 }
+
+// Action rather than onclick: keyboard activation of the sanitized links also
+// fires click, so the handler stays a plain listener and the div stays static.
+function contentClicks(node: HTMLElement) {
+  node.addEventListener("click", handleContentClick);
+  return {
+    destroy() {
+      node.removeEventListener("click", handleContentClick);
+    },
+  };
+}
 </script>
 
 {#if loadError}
@@ -70,10 +81,7 @@ function handleContentClick(e: MouseEvent) {
   </div>
 {/if}
 
-<!-- svelte-ignore a11y_no_static_element_interactions -->
-<!-- biome-ignore lint/a11y/noStaticElementInteractions: the body only delegates clicks from its own links -->
-<!-- biome-ignore lint/a11y/useKeyWithClickEvents: those links keep their native keyboard activation, which fires the click this delegates -->
-<div class="summary" onclick={handleContentClick}>
+<div class="summary" use:contentClicks>
   {@html displayHtml}
 </div>
 

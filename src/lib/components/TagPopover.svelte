@@ -1,4 +1,5 @@
 <script lang="ts">
+import { untrack } from "svelte";
 import TagManager from "./TagManager.svelte";
 
 let {
@@ -14,8 +15,8 @@ let {
 } = $props();
 
 let popoverEl = $state<HTMLDivElement>();
-let left = $state(x);
-let top = $state(y);
+let left = $state(untrack(() => x));
+let top = $state(untrack(() => y));
 
 // Keep the popover on screen: a tag button near the bottom edge would open a
 // panel that runs past the window and cannot be reached (same clamp as the

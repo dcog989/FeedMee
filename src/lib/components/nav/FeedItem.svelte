@@ -65,11 +65,11 @@ const disabledTooltip = $derived(
   display: none;
 }
 
-.favicon-failed .feed-favicon {
+:global(.favicon-failed) .feed-favicon {
   display: none;
 }
 
-.favicon-failed .favicon-fallback-hidden {
+:global(.favicon-failed) .favicon-fallback-hidden {
   display: inline;
 }
 

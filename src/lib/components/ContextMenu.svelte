@@ -1,5 +1,5 @@
 <script lang="ts">
-import type { Snippet } from "svelte";
+import { type Snippet, untrack } from "svelte";
 
 let {
   children,
@@ -16,8 +16,8 @@ let {
 } = $props();
 
 let menuEl = $state<HTMLDivElement>();
-let left = $state(x);
-let top = $state(y);
+let left = $state(untrack(() => x));
+let top = $state(untrack(() => y));
 
 // Keep the menu on screen: rows near the window edge would clip the last items.
 $effect(() => {

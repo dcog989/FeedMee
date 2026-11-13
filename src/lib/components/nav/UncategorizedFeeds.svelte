@@ -28,6 +28,7 @@ function handleDrop(e: DragEvent) {
   class="root-section"
   class:has-feeds={folder.feeds.length > 0}
   role="listbox"
+  tabindex="-1"
   aria-label="Unfiled feeds"
   ondragover={(e) => e.preventDefault()}
   ondrop={handleDrop}

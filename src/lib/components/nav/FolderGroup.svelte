@@ -117,6 +117,7 @@ function getFolderUnreadCount(feeds: Feed[]): number {
     class:collapsed={!isExpanded}
     class:drag-over={isDragOver && isExpanded}
     role="listbox"
+    tabindex="-1"
     aria-label={folder.name}
     ondragover={handleDragOver}
     ondragleave={handleDragLeaveList}

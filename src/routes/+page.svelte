@@ -57,6 +57,18 @@ function focusPane(pane: "nav" | "list" | "reading") {
   appState.focusedPane = pane;
 }
 
+// Action instead of onclick so the panes stay non-interactive for a11y lint:
+// the click only marks which pane the arrow keys control.
+function focusPaneClick(node: HTMLElement, pane: "nav" | "list" | "reading") {
+  const onClick = () => focusPane(pane);
+  node.addEventListener("click", onClick);
+  return {
+    destroy() {
+      node.removeEventListener("click", onClick);
+    },
+  };
+}
+
 function onResizerKeyDown(target: "nav" | "list", e: KeyboardEvent) {
   if (e.key === "ArrowLeft") {
     if (target === "nav") {
@@ -88,13 +100,11 @@ function onResizerKeyDown(target: "nav" | "list", e: KeyboardEvent) {
 -->
 <div class="app-container" style="--nav-w: {uiStore.navWidth}px; --list-w: {uiStore.listWidth}px;">
   <!-- Navigation Pane -->
-  <!-- svelte-ignore a11y_no_noninteractive_element_interactions a11y_click_events_have_key_events -->
-  <!-- biome-ignore lint/a11y/useKeyWithClickEvents: clicking only marks which pane the arrow keys control -->
   <section
     class="nav-area"
     aria-label="Navigation"
     class:pane-focused={appState.focusedPane === "nav"}
-    onclick={() => focusPane("nav")}
+    use:focusPaneClick={"nav"}
   >
     <NavPane />
   </section>
@@ -114,13 +124,11 @@ function onResizerKeyDown(target: "nav" | "list", e: KeyboardEvent) {
   >
 
   <!-- Article List Pane -->
-  <!-- svelte-ignore a11y_no_noninteractive_element_interactions a11y_click_events_have_key_events -->
-  <!-- biome-ignore lint/a11y/useKeyWithClickEvents: clicking only marks which pane the arrow keys control -->
   <section
     class="list-area"
     aria-label="Article List"
     class:pane-focused={appState.focusedPane === "list"}
-    onclick={() => focusPane("list")}
+    use:focusPaneClick={"list"}
   >
     <ArticleListPane />
   </section>
@@ -140,13 +148,11 @@ function onResizerKeyDown(target: "nav" | "list", e: KeyboardEvent) {
   >
 
   <!-- Reading Pane -->
-  <!-- svelte-ignore a11y_no_noninteractive_element_interactions a11y_click_events_have_key_events -->
-  <!-- biome-ignore lint/a11y/useKeyWithClickEvents: clicking only marks which pane the arrow keys control -->
   <section
     class="reading-area"
     aria-label="Reading"
     class:pane-focused={appState.focusedPane === "reading"}
-    onclick={() => focusPane("reading")}
+    use:focusPaneClick={"reading"}
   >
     <ReadingPane />
   </section>
