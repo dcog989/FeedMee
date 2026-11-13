@@ -65,6 +65,14 @@ const disabledTooltip = $derived(
   display: none;
 }
 
+.favicon-failed .feed-favicon {
+  display: none;
+}
+
+.favicon-failed .favicon-fallback-hidden {
+  display: inline;
+}
+
 .feed-action-area {
   display: flex;
   align-items: center;

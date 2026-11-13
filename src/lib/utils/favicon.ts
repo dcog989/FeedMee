@@ -13,9 +13,11 @@ export function getFavicon(url: string): string {
   }
 }
 
+/**
+ * Mark the icon container so its CSS can swap the broken icon for the fallback
+ * letter. Uses the parent, not the next sibling, so markup order is free.
+ */
 export function handleFaviconError(e: Event) {
   const img = e.currentTarget as HTMLImageElement;
-  img.style.display = "none";
-  const fallback = img.nextElementSibling;
-  if (fallback) fallback.classList.remove("favicon-fallback-hidden");
+  img.parentElement?.classList.add("favicon-failed");
 }
