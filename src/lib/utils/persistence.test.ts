@@ -1,9 +1,49 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { readInt, readJson, readString, writeInt, writeJson, writeString } from "./persistence";
+import {
+  LS_BLOCKED_PHRASES,
+  LS_EXPANDED_FOLDERS,
+  LS_LAST_REFRESHED,
+  LS_LAST_VIEW_ID,
+  LS_LAST_VIEW_TYPE,
+  LS_LIST_WIDTH,
+  LS_NAV_WIDTH,
+  LS_SORT_ORDER,
+  LS_THEME,
+  readInt,
+  readJson,
+  readString,
+  writeInt,
+  writeJson,
+  writeString,
+} from "./persistence";
 
 describe("persistence", () => {
   beforeEach(() => {
     localStorage.clear();
+  });
+
+  it("keeps the stored key names, so an upgrade does not reset settings", () => {
+    expect({
+      navWidth: LS_NAV_WIDTH,
+      listWidth: LS_LIST_WIDTH,
+      sortOrder: LS_SORT_ORDER,
+      theme: LS_THEME,
+      blockedPhrases: LS_BLOCKED_PHRASES,
+      lastRefreshed: LS_LAST_REFRESHED,
+      lastViewType: LS_LAST_VIEW_TYPE,
+      lastViewId: LS_LAST_VIEW_ID,
+      expandedFolders: LS_EXPANDED_FOLDERS,
+    }).toEqual({
+      navWidth: "navWidth",
+      listWidth: "listWidth",
+      sortOrder: "sortOrder",
+      theme: "theme",
+      blockedPhrases: "blockedPhrases",
+      lastRefreshed: "lastRefreshed",
+      lastViewType: "lastViewType",
+      lastViewId: "lastViewId",
+      expandedFolders: "appState.expandedFolders",
+    });
   });
 
   describe("readInt", () => {

@@ -22,6 +22,10 @@ describe("toggleFolder", () => {
   it("closes an open folder", () => {
     expect([...toggleFolder(new Set([FOLDER_A]), FOLDER_A, false)]).toEqual([]);
   });
+
+  it("closes the other folders when auto-collapse is on", () => {
+    expect([...toggleFolder(new Set([FOLDER_A]), FOLDER_B, true)]).toEqual([FOLDER_B]);
+  });
 });
 
 describe("expandAllFolders", () => {

@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { BLOCKED_SCAN_LIMIT, createArticleActions } from "./articleActions.svelte";
 import type { ArticleStore } from "./storeTypes";
 import type { Article } from "./types";
+import { makeArticle } from "./utils/testFixtures";
 
 const { invoke } = vi.hoisted(() => ({ invoke: vi.fn() }));
 
@@ -13,28 +14,12 @@ vi.mock("./store.svelte", () => ({
   FEED_ID_TODAY: -3,
 }));
 
-function article(id: number, title: string): Article {
-  return {
-    id,
-    feed_id: 1,
-    title,
-    summary: "",
-    author: "",
-    url: "",
-    image_url: "",
-    timestamp: 0,
-    is_read: false,
-    is_saved: false,
-    has_tags: false,
-  };
-}
-
 function blockedPage(): Article[] {
-  return Array.from({ length: 50 }, (_, i) => article(1000 + i, "spam offer"));
+  return Array.from({ length: 50 }, (_, i) => makeArticle(1000 + i, { title: "spam offer" }));
 }
 
 function visiblePage(): Article[] {
-  return [article(1, "one"), article(2, "two")];
+  return [makeArticle(1, { title: "one" }), makeArticle(2, { title: "two" })];
 }
 
 function makeState(): ArticleStore {
@@ -98,5 +83,6 @@ describe("reloadCurrentArticleList", () => {
     await superseded;
 
     expect(invoke).toHaveBeenCalledTimes(2);
+    expect(state.articles.map((a) => a.id)).toEqual([1, 2]);
   });
 });

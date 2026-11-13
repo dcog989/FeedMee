@@ -1,26 +1,13 @@
 import { describe, expect, it } from "vitest";
-import type { Feed, Folder } from "../types";
+import type { Folder } from "../types";
 import { pickStartupTarget, startupExpandFolderId } from "./startupView";
+import { makeFeed, makeFolder } from "./testFixtures";
 
 const FOLDER_ID = 1;
 const DELETED_ID = 99;
 
-function makeFeed(id: number, folderId: number): Feed {
-  return {
-    id,
-    name: `feed ${id}`,
-    folder_id: folderId,
-    unread_count: 0,
-    has_error: false,
-    error_count: 0,
-    source_type: "rss",
-    display_url: "",
-    source_id: "",
-  };
-}
-
 function makeFolders(): Folder[] {
-  return [{ id: FOLDER_ID, name: "News", feeds: [makeFeed(10, FOLDER_ID), makeFeed(11, FOLDER_ID)] }];
+  return [makeFolder(FOLDER_ID, [makeFeed(10), makeFeed(11)])];
 }
 
 function settings(default_view_type: string, default_view_id = -1) {
@@ -82,9 +69,14 @@ describe("pickStartupTarget", () => {
   });
 
   it("never restores the uncategorized folder (id 0)", () => {
-    const folders = [...makeFolders(), { id: 0, name: "", feeds: [makeFeed(20, 0)] }];
+    const folders = [...makeFolders(), makeFolder(0, [makeFeed(20, { folder_id: 0 })])];
     expect(pickStartupTarget(settings("last"), folders, { type: "folder", id: 0 })).toEqual({ kind: "latest" });
     expect(pickStartupTarget(settings("folder", 0), folders, { type: null, id: 0 })).toEqual({ kind: "latest" });
+  });
+
+  it("restores a saved feed that sits in the uncategorized folder", () => {
+    const folders = [...makeFolders(), makeFolder(0, [makeFeed(20, { folder_id: 0 })])];
+    expect(pickStartupTarget(settings("last"), folders, { type: "feed", id: 20 })).toEqual({ kind: "feed", id: 20 });
   });
 });
 

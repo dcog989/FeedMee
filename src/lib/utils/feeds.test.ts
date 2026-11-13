@@ -1,28 +1,9 @@
 import { describe, expect, it } from "vitest";
-import type { Feed, Folder } from "../types";
-import { resolveVisibleFeedIds, selectStaleFeeds } from "./feeds";
-
-function feed(id: number, overrides: Partial<Feed> = {}): Feed {
-  return {
-    id,
-    name: `Feed ${id}`,
-    folder_id: 1,
-    unread_count: 0,
-    has_error: false,
-    error_count: 0,
-    source_type: "rss",
-    display_url: `https://example.com/${id}`,
-    source_id: String(id),
-    ...overrides,
-  };
-}
-
-function folder(id: number, feeds: Feed[]): Folder {
-  return { id, name: `Folder ${id}`, feeds };
-}
+import { findFeed, findFeedFolderId, resolveVisibleFeedIds, selectStaleFeeds } from "./feeds";
+import { makeFeed, makeFolder } from "./testFixtures";
 
 describe("selectStaleFeeds", () => {
-  const folders = [folder(1, [feed(1), feed(2), feed(3, { error_count: 10 })])];
+  const folders = [makeFolder(1, [makeFeed(1), makeFeed(2), makeFeed(3, { error_count: 10 })])];
 
   it("returns feeds that are not fresh or updating", () => {
     const result = selectStaleFeeds(folders, {
@@ -44,7 +25,7 @@ describe("selectStaleFeeds", () => {
 });
 
 describe("resolveVisibleFeedIds", () => {
-  const folders = [folder(1, [feed(10), feed(11)]), folder(2, [feed(20)])];
+  const folders = [makeFolder(1, [makeFeed(10), makeFeed(11)]), makeFolder(2, [makeFeed(20)])];
 
   it("returns the feeds of the selected folder", () => {
     expect([...resolveVisibleFeedIds(folders, { selectedFolderId: 2, selectedFeedId: null })]).toEqual([20]);
@@ -60,5 +41,24 @@ describe("resolveVisibleFeedIds", () => {
 
   it("returns an empty set when the selected folder does not exist", () => {
     expect(resolveVisibleFeedIds(folders, { selectedFolderId: 99, selectedFeedId: null }).size).toBe(0);
+  });
+});
+
+describe("findFeedFolderId", () => {
+  it("returns 0 for a feed in the uncategorized root folder", () => {
+    const folders = [makeFolder(1, [makeFeed(1)]), makeFolder(0, [makeFeed(9, { folder_id: 0 })])];
+
+    expect(findFeedFolderId(folders, 9)).toBe(0);
+    expect(findFeedFolderId(folders, 1)).toBe(1);
+    expect(findFeedFolderId(folders, 99)).toBeNull();
+  });
+});
+
+describe("findFeed", () => {
+  it("finds a feed by id and returns undefined otherwise", () => {
+    const folders = [makeFolder(1, [makeFeed(1)])];
+
+    expect(findFeed(folders, 1)?.id).toBe(1);
+    expect(findFeed(folders, 2)).toBeUndefined();
   });
 });
