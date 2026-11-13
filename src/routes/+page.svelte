@@ -57,22 +57,6 @@ function focusPane(pane: "nav" | "list" | "reading") {
   appState.focusedPane = pane;
 }
 
-function onPaneKeyDown(pane: "nav" | "list" | "reading", e: KeyboardEvent) {
-  const target = e.target as HTMLElement;
-  // Let inputs keep space/enter; nothing to focus while typing.
-  if (
-    target.tagName === "INPUT" ||
-    target.tagName === "TEXTAREA" ||
-    target.tagName === "SELECT" ||
-    target.isContentEditable
-  )
-    return;
-  if (e.key === "Enter" || e.key === " ") {
-    e.preventDefault();
-    focusPane(pane);
-  }
-}
-
 function onResizerKeyDown(target: "nav" | "list", e: KeyboardEvent) {
   if (e.key === "ArrowLeft") {
     if (target === "nav") {
@@ -88,7 +72,10 @@ function onResizerKeyDown(target: "nav" | "list", e: KeyboardEvent) {
       uiStore.listWidth = Math.min(LIST_MAX_WIDTH, uiStore.listWidth + RESIZE_STEP);
     }
     e.preventDefault();
+  } else {
+    return;
   }
+  appState.persistLayoutSettings();
 }
 </script>
 
@@ -101,13 +88,13 @@ function onResizerKeyDown(target: "nav" | "list", e: KeyboardEvent) {
 -->
 <div class="app-container" style="--nav-w: {uiStore.navWidth}px; --list-w: {uiStore.listWidth}px;">
   <!-- Navigation Pane -->
-  <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+  <!-- svelte-ignore a11y_no_noninteractive_element_interactions a11y_click_events_have_key_events -->
+  <!-- biome-ignore lint/a11y/useKeyWithClickEvents: clicking only marks which pane the arrow keys control -->
   <section
     class="nav-area"
     aria-label="Navigation"
     class:pane-focused={appState.focusedPane === "nav"}
     onclick={() => focusPane("nav")}
-    onkeydown={(e) => onPaneKeyDown("nav", e)}
   >
     <NavPane />
   </section>
@@ -127,13 +114,13 @@ function onResizerKeyDown(target: "nav" | "list", e: KeyboardEvent) {
   >
 
   <!-- Article List Pane -->
-  <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+  <!-- svelte-ignore a11y_no_noninteractive_element_interactions a11y_click_events_have_key_events -->
+  <!-- biome-ignore lint/a11y/useKeyWithClickEvents: clicking only marks which pane the arrow keys control -->
   <section
     class="list-area"
     aria-label="Article List"
     class:pane-focused={appState.focusedPane === "list"}
     onclick={() => focusPane("list")}
-    onkeydown={(e) => onPaneKeyDown("list", e)}
   >
     <ArticleListPane />
   </section>
@@ -153,13 +140,13 @@ function onResizerKeyDown(target: "nav" | "list", e: KeyboardEvent) {
   >
 
   <!-- Reading Pane -->
-  <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+  <!-- svelte-ignore a11y_no_noninteractive_element_interactions a11y_click_events_have_key_events -->
+  <!-- biome-ignore lint/a11y/useKeyWithClickEvents: clicking only marks which pane the arrow keys control -->
   <section
     class="reading-area"
     aria-label="Reading"
     class:pane-focused={appState.focusedPane === "reading"}
     onclick={() => focusPane("reading")}
-    onkeydown={(e) => onPaneKeyDown("reading", e)}
   >
     <ReadingPane />
   </section>

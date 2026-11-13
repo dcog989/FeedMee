@@ -147,6 +147,8 @@ export function setupKeyHandler(state: KeyHandlerDeps): void {
 
   const handler = (e: KeyboardEvent) => {
     if (state.showSettings) return;
+    // An open dialog owns the keyboard; shortcuts must not act behind it.
+    if (document.querySelector(".modal-overlay")) return;
 
     const tag = (e.target as HTMLElement)?.tagName?.toLowerCase();
     const isInput =
