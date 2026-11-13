@@ -12,7 +12,9 @@ let paneEl: HTMLElement | undefined = $state();
 let fullContent = $state<string | null>(null);
 let isLoadingFull = $state(false);
 let loadError = $state(false);
-let loadGen = $state(0);
+// Plain, not $state: the reset effect bumps it, and an effect that reads state
+// it also writes re-triggers itself forever.
+let loadGen = 0;
 
 let rawHtml = $derived(fullContent ?? articleStore.selectedArticle?.summary ?? "");
 let heroImage = $derived(articleStore.selectedArticle?.image_url ?? "");
