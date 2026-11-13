@@ -35,7 +35,7 @@ export function createFreshnessHelpers(state: FreshnessDeps) {
 
   function isFolderFresh(folderId: number): boolean {
     const folder = state.folders.find((f) => f.id === folderId);
-    if (!folder || folder.feeds.length === 0) return false;
+    if (!folder) return false;
     return folder.feeds.every((f) => isFeedFresh(f.id));
   }
 
