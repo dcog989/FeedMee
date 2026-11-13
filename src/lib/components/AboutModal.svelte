@@ -32,16 +32,31 @@ $effect(() => {
   }
 });
 
-function copyToClipboard(text: string) {
-  navigator.clipboard.writeText(text);
+let copied = $state<string | null>(null);
+
+async function copyToClipboard(label: string, text: string) {
+  try {
+    await navigator.clipboard.writeText(text);
+    copied = label;
+    setTimeout(() => {
+      if (copied === label) copied = null;
+    }, 1200);
+  } catch (e) {
+    console.error("Copy failed:", e);
+  }
 }
 
 async function openLogsDir() {
-  if (appInfo.logs_path) await openPath(appInfo.logs_path);
+  if (!appInfo.logs_path) return;
+  try {
+    await openPath(appInfo.logs_path);
+  } catch (e) {
+    console.error("Failed to open logs folder:", e);
+  }
 }
 </script>
 
-<Modal {isOpen} onclose={onClose} width="420px" class="about-modal">
+<Modal {isOpen} onclose={onClose} width="420px" label="About FeedMee" class="about-modal">
   <div class="modal-body">
     <img src="/feedmee.png" alt="FeedMee" class="logo">
     <h2>FeedMee</h2>
@@ -60,10 +75,10 @@ async function openLogsDir() {
         <button
           type="button"
           class="copy-btn"
-          onclick={() => copyToClipboard(appInfo.data_path)}
+          onclick={() => copyToClipboard("data", appInfo.data_path)}
           use:tooltip={"Copy path"}
         >
-          Copy
+          {copied === "data" ? "Copied" : "Copy"}
         </button>
       </div>
 
@@ -73,10 +88,10 @@ async function openLogsDir() {
         <button
           type="button"
           class="copy-btn"
-          onclick={() => copyToClipboard(appInfo.logs_path)}
+          onclick={() => copyToClipboard("logs", appInfo.logs_path)}
           use:tooltip={"Copy path"}
         >
-          Copy
+          {copied === "logs" ? "Copied" : "Copy"}
         </button>
       </div>
 
@@ -86,10 +101,10 @@ async function openLogsDir() {
         <button
           type="button"
           class="copy-btn"
-          onclick={() => copyToClipboard(appInfo.db_path)}
+          onclick={() => copyToClipboard("db", appInfo.db_path)}
           use:tooltip={"Copy path"}
         >
-          Copy
+          {copied === "db" ? "Copied" : "Copy"}
         </button>
       </div>
 
@@ -99,10 +114,10 @@ async function openLogsDir() {
         <button
           type="button"
           class="copy-btn"
-          onclick={() => copyToClipboard(appInfo.backup_path)}
+          onclick={() => copyToClipboard("backup", appInfo.backup_path)}
           use:tooltip={"Copy path"}
         >
-          Copy
+          {copied === "backup" ? "Copied" : "Copy"}
         </button>
       </div>
     </div>
@@ -110,7 +125,7 @@ async function openLogsDir() {
     <button type="button" class="open-logs-btn" onclick={openLogsDir}>Open Logs Folder</button>
 
     <p class="footer">Giants' Shoulders = Rust / Tauri / Svelte / SQLite</p>
-    <p class="footer">FeedMee © 2025. All rights reserved.</p>
+    <p class="footer">FeedMee is free software under the GNU GPL v3.0 or later.</p>
   </div>
 </Modal>
 
