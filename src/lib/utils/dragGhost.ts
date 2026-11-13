@@ -1,6 +1,16 @@
+import type { Feed } from "../types";
+
 export interface DragPayload {
   feedId: number;
   folderId?: number;
+}
+
+export function startFeedDrag(e: DragEvent, feed: Feed, folderId: number) {
+  const dt = e.dataTransfer;
+  if (!dt) return;
+  dt.effectAllowed = "move";
+  dt.setData("text/plain", JSON.stringify({ feedId: feed.id, folderId }));
+  createDragGhost(e, feed.name);
 }
 
 export function parseDragData(data: string): DragPayload | null {

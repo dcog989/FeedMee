@@ -4,8 +4,7 @@ import { flip } from "svelte/animate";
 import { tooltip } from "#lib/actions/tooltip.svelte.js";
 import { feedStore, navStore, refreshStore } from "#lib/store.svelte.js";
 import type { Feed, Folder } from "#lib/types.js";
-import { createDragGhost, parseDragData } from "#lib/utils/dragGhost.js";
-import { findFeed } from "#lib/utils/feeds.js";
+import { parseDragData, startFeedDrag } from "#lib/utils/dragGhost.js";
 import FeedItem from "./FeedItem.svelte";
 
 let {
@@ -13,98 +12,47 @@ let {
   isExpanded,
   onToggle,
   onContextMenu,
-  onFeedsChange,
 }: {
   folder: Folder;
   isExpanded: boolean;
   onToggle: (e: MouseEvent) => void;
   onContextMenu: (e: MouseEvent, type: "folder" | "feed", id: number, name?: string) => void;
-  onFeedsChange: (folderId: number, feeds: Feed[]) => void;
 } = $props();
 
 const FLIP_DURATION = 200;
 
 // --- Native DnD State ---
-let dropIndex = $state<number | null>(null);
+let isDragOver = $state(false);
 let unreadCount = $derived(getFolderUnreadCount(folder.feeds));
 
 // --- Native DnD Handlers ---
-function handleDragStart(e: DragEvent, feedId: number, feedName: string) {
-  const dt = e.dataTransfer;
-  if (!dt) return;
-  dt.effectAllowed = "move";
-  dt.setData("text/plain", JSON.stringify({ feedId, folderId: folder.id }));
-  createDragGhost(e, feedName);
-}
-
 function handleDragOver(e: DragEvent) {
   e.preventDefault();
   if (!isExpanded) return;
-
-  const ul = e.currentTarget as HTMLUListElement;
-  const items = Array.from(ul.children as HTMLCollectionOf<HTMLLIElement>);
-  const mouseY = e.clientY;
-
-  let idx = items.length;
-  for (let i = 0; i < items.length; i++) {
-    const rect = items[i].getBoundingClientRect();
-    if (mouseY < rect.top + rect.height / 2) {
-      idx = i;
-      break;
-    }
-  }
-  dropIndex = idx;
+  isDragOver = true;
 }
 
 function handleDragLeaveList(e: DragEvent) {
   const ul = e.currentTarget as HTMLUListElement;
-  const related = e.relatedTarget as Node;
-  if (!ul.contains(related)) {
-    dropIndex = null;
+  if (!ul.contains(e.relatedTarget as Node)) {
+    isDragOver = false;
   }
 }
 
+// A drop only moves the feed; feed order is alphabetical and owned by the backend.
 function handleDrop(e: DragEvent) {
   e.preventDefault();
-  const dt = e.dataTransfer;
-  if (!dt) return;
-  const data = dt.getData("text/plain");
+  isDragOver = false;
+  const data = e.dataTransfer?.getData("text/plain");
   if (!data) return;
 
   const payload = parseDragData(data);
-  if (!payload) return;
-  const { feedId, folderId: sourceFolderId } = payload;
-
-  const feeds = [...folder.feeds];
-  const draggedIndex = feeds.findIndex((f) => f.id === feedId);
-
-  if (draggedIndex !== -1) {
-    const [item] = feeds.splice(draggedIndex, 1);
-    const idx = dropIndex !== null ? (dropIndex > draggedIndex ? dropIndex - 1 : dropIndex) : feeds.length;
-    feeds.splice(idx, 0, item);
-    onFeedsChange(folder.id, feeds);
-  } else {
-    const feed = findFeed(navStore.folders, feedId);
-    if (!feed) return;
-    const idx = dropIndex ?? feeds.length;
-    feeds.splice(idx, 0, feed);
-    onFeedsChange(folder.id, feeds);
-  }
-
-  if (sourceFolderId !== folder.id) {
-    feedStore.moveFeed(feedId, folder.id);
-  }
-
-  dropIndex = null;
+  if (!payload || payload.folderId === folder.id) return;
+  feedStore.moveFeed(payload.feedId, folder.id);
 }
 
 function handleDragEnd() {
-  dropIndex = null;
-}
-
-function onHeaderDblClick(e: MouseEvent) {
-  e.stopPropagation();
-  onToggle(e);
+  isDragOver = false;
 }
 
 function getFolderUnreadCount(feeds: Feed[]): number {
@@ -112,29 +60,22 @@ function getFolderUnreadCount(feeds: Feed[]): number {
 }
 </script>
 
-<div
-  class="folder"
-  role="treeitem"
-  aria-expanded={isExpanded}
-  aria-selected="false"
-  tabindex="-1"
-  data-folder-id={folder.id}
->
+<div class="folder" data-folder-id={folder.id}>
   <!-- svelte-ignore a11y_no_static_element_interactions -->
-  <!-- biome-ignore lint/a11y/noStaticElementInteractions: oncontextmenu/ondblclick are mouse-only events with no keyboard analog -->
+  <!-- biome-ignore lint/a11y/noStaticElementInteractions: oncontextmenu is a mouse-only event with no keyboard analog -->
   <div
     class="folder-header"
     class:selected={navStore.selectedFolderId === folder.id}
     oncontextmenu={(e) => onContextMenu(e, "folder", folder.id, folder.name)}
-    ondblclick={onHeaderDblClick}
   >
-    <button type="button" class="toggle-icon" onclick={onToggle} aria-label="Toggle folder">
+    <button type="button" class="toggle-icon" onclick={onToggle} aria-expanded={isExpanded} aria-label="Toggle folder">
       <ChevronRight size={10} style="transform: rotate({isExpanded ? 90 : 0}deg); transition: transform 0.2s;" />
     </button>
 
     <button
       type="button"
       class="folder-name-area"
+      aria-current={navStore.selectedFolderId === folder.id}
       onclick={(e) => {
         navStore.selectFolder(folder.id);
         onToggle(e);
@@ -171,56 +112,53 @@ function getFolderUnreadCount(feeds: Feed[]): number {
     </button>
   </div>
 
-  <ul
+  <div
     class="feed-list"
     class:collapsed={!isExpanded}
-    class:drag-over={dropIndex !== null && isExpanded}
+    class:drag-over={isDragOver && isExpanded}
+    role="listbox"
+    aria-label={folder.name}
     ondragover={handleDragOver}
     ondragleave={handleDragLeaveList}
     ondrop={handleDrop}
   >
     {#if isExpanded}
-      {#each folder.feeds as feed, i (feed.id)}
-        <li
+      {#each folder.feeds as feed (feed.id)}
+        <!-- svelte-ignore a11y_no_static_element_interactions -->
+        <!-- svelte-ignore a11y_click_events_have_key_events -->
+        <div
+          class="feed-item"
           animate:flip={{ duration: FLIP_DURATION }}
+          class:selected={navStore.selectedFeedId === feed.id}
           draggable={true}
-          ondragstart={(e) => handleDragStart(e, feed.id, feed.name)}
+          ondragstart={(e) => startFeedDrag(e, feed, folder.id)}
           ondragend={handleDragEnd}
-          class:drop-before={dropIndex === i}
-        >
-          <!-- svelte-ignore a11y_no_static_element_interactions -->
-          <!-- svelte-ignore a11y_click_events_have_key_events -->
-          <div
-            class="feed-item"
-            class:selected={navStore.selectedFeedId === feed.id}
-            onclick={(e) => {
-              e.stopPropagation();
+          onclick={(e) => {
+            e.stopPropagation();
+            navStore.selectFeed(feed.id);
+          }}
+          oncontextmenu={(e) => onContextMenu(e, "feed", feed.id, feed.name)}
+          role="option"
+          tabindex="0"
+          aria-selected={navStore.selectedFeedId === feed.id}
+          onkeydown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
               navStore.selectFeed(feed.id);
-            }}
-            oncontextmenu={(e) => onContextMenu(e, "feed", feed.id, feed.name)}
-            role="option"
-            tabindex="0"
-            aria-selected={navStore.selectedFeedId === feed.id}
-            onkeydown={(e) => {
-              if (e.key === "Enter" || e.key === " ") {
-                e.preventDefault();
-                navStore.selectFeed(feed.id);
-              }
-            }}
-          >
-            <FeedItem {feed} isSelected={navStore.selectedFeedId === feed.id} />
-          </div>
-        </li>
+            }
+          }}
+        >
+          <FeedItem {feed} isSelected={navStore.selectedFeedId === feed.id} />
+        </div>
       {/each}
     {/if}
-  </ul>
+  </div>
 </div>
 
 <style>
 .folder {
   outline: none;
   margin-bottom: 2px;
-  position: relative;
 }
 
 .folder-header {
@@ -293,7 +231,6 @@ function getFolderUnreadCount(feeds: Feed[]): number {
 }
 
 .feed-list {
-  list-style: none;
   padding: 0 0 0 20px;
   margin: 0;
   min-height: 10px;
@@ -311,22 +248,6 @@ function getFolderUnreadCount(feeds: Feed[]): number {
 .feed-list.drag-over {
   outline: 2px solid var(--bg-selected);
   border-radius: 4px;
-}
-
-li.drop-before::before {
-  content: "";
-  position: absolute;
-  top: -1px;
-  left: 0;
-  right: 0;
-  height: 2px;
-  background: var(--bg-selected);
-  z-index: 5;
-  pointer-events: none;
-}
-
-.feed-list li {
-  position: relative;
 }
 
 .folder-badge {

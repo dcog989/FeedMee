@@ -12,8 +12,10 @@ function openAddDialog() {
   uiStore.showAddDialog = true;
 }
 
+const DRAG_EXPAND_DELAY_MS = 600;
+
 let expandTimeout: ReturnType<typeof setTimeout> | null = null;
-let expandTargetId: number | null = null;
+let pendingFolderId: number | null = null;
 let ctxMenu: NavContextMenu;
 let folderListEl: HTMLDivElement | undefined;
 
@@ -46,57 +48,44 @@ $effect(() => {
         selector = ".folder-header.selected";
       }
       if (selector) {
-        folderListEl?.querySelector<HTMLElement>(selector)?.scrollIntoView({ block: "start" });
+        folderListEl?.querySelector<HTMLElement>(selector)?.scrollIntoView({ block: "nearest" });
       }
     });
   }
 });
 
+function cancelExpand() {
+  if (expandTimeout) clearTimeout(expandTimeout);
+  expandTimeout = null;
+  pendingFolderId = null;
+}
+
 function handleNavDragOver(e: DragEvent) {
   e.preventDefault();
 
-  const el = document.elementFromPoint(e.clientX, e.clientY);
-  if (!el) return;
-
-  const folderEl = el.closest("[data-folder-id]") as HTMLElement | null;
-  if (folderEl) {
-    const folderId = parseInt(folderEl.dataset.folderId ?? "", 10);
-    if (Number.isNaN(folderId)) return;
-
-    if (expandTargetId !== folderId) {
-      if (expandTimeout) {
-        clearTimeout(expandTimeout);
-        expandTimeout = null;
-      }
-      expandTargetId = folderId;
-    }
-
-    if (!navStore.expandedFolders.has(folderId) && !expandTimeout) {
-      expandTimeout = setTimeout(() => {
-        navStore.expandedFolders = expandFolder(navStore.expandedFolders, folderId, false);
-        expandTimeout = null;
-        expandTargetId = null;
-      }, 600);
-    }
-  } else {
-    if (expandTimeout) {
-      clearTimeout(expandTimeout);
-      expandTimeout = null;
-    }
-    expandTargetId = null;
+  const folderEl = (e.target as HTMLElement | null)?.closest?.("[data-folder-id]") as HTMLElement | null;
+  const folderId = folderEl ? parseInt(folderEl.dataset.folderId ?? "", 10) : Number.NaN;
+  if (Number.isNaN(folderId)) {
+    cancelExpand();
+    return;
   }
+  if (pendingFolderId === folderId) return;
+
+  cancelExpand();
+  pendingFolderId = folderId;
+  if (navStore.expandedFolders.has(folderId)) return;
+
+  expandTimeout = setTimeout(() => {
+    navStore.expandedFolders = expandFolder(navStore.expandedFolders, folderId, false);
+    expandTimeout = null;
+    pendingFolderId = null;
+  }, DRAG_EXPAND_DELAY_MS);
 }
 
 function onDragLeavePane(e: DragEvent) {
   const nav = e.currentTarget as HTMLElement;
   const related = e.relatedTarget as Node;
-  if (!nav.contains(related)) {
-    if (expandTimeout) {
-      clearTimeout(expandTimeout);
-      expandTimeout = null;
-    }
-    expandTargetId = null;
-  }
+  if (!nav.contains(related)) cancelExpand();
 }
 </script>
 
@@ -106,6 +95,8 @@ function onDragLeavePane(e: DragEvent) {
   oncontextmenu={(e) => ctxMenu.show(e, "root", 0)}
   ondragover={handleNavDragOver}
   ondragleave={onDragLeavePane}
+  ondrop={cancelExpand}
+  ondragend={cancelExpand}
 >
   <NavToolbar onExpandAll={expanded.expandAll} onCollapseAll={expanded.collapseAll} />
 
@@ -119,13 +110,9 @@ function onDragLeavePane(e: DragEvent) {
           expanded.toggleFolder(folder.id);
         }}
         onContextMenu={(e, type, id, name) => ctxMenu.show(e, type, id, name)}
-        onFeedsChange={(folderId, feeds) => {
-          const f = navStore.folders.find((x) => x.id === folderId);
-          if (f) f.feeds = feeds;
-        }}
       />
     {/each}
-    {#each navStore.folders as folder (folder.id)}
+    {#each navStore.folders.filter((f) => f.id === 0) as folder (folder.id)}
       <UncategorizedFeeds {folder} onContextMenu={(e, type, id, name) => ctxMenu.show(e, type, id, name)} />
     {/each}
   </div>

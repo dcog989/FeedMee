@@ -2,7 +2,7 @@
 import { flip } from "svelte/animate";
 import { feedStore, navStore } from "#lib/store.svelte.js";
 import type { Folder } from "#lib/types.js";
-import { createDragGhost, parseDragData } from "#lib/utils/dragGhost.js";
+import { parseDragData, startFeedDrag } from "#lib/utils/dragGhost.js";
 import FeedItem from "./FeedItem.svelte";
 
 let {
@@ -12,67 +12,58 @@ let {
   folder: Folder;
   onContextMenu: (e: MouseEvent, type: "feed", id: number, name?: string) => void;
 } = $props();
+
+function handleDrop(e: DragEvent) {
+  e.preventDefault();
+  const data = e.dataTransfer?.getData("text/plain");
+  if (!data) return;
+  const payload = parseDragData(data);
+  if (!payload || payload.folderId === folder.id) return;
+  feedStore.moveFeed(payload.feedId, null);
+}
 </script>
 
-{#if folder.id === 0}
-  <!-- svelte-ignore a11y_no_static_element_interactions -->
-  <fieldset
-    class="root-section"
-    class:has-feeds={folder.feeds.length > 0}
-    aria-label="Unfiled feeds"
-    ondragover={(e) => e.preventDefault()}
-    ondrop={(e) => {
-      e.preventDefault();
-      const dt = e.dataTransfer;
-      if (!dt) return;
-      const data = dt.getData("text/plain");
-      if (!data) return;
-      const payload = parseDragData(data);
-      if (!payload) return;
-      feedStore.moveFeed(payload.feedId, null);
-    }}
-  >
-    <div class="root-header">UNCATEGORIZED</div>
-    {#each folder.feeds as feed (feed.id)}
-      <div
-        animate:flip={{ duration: 200 }}
-        class="feed-item"
-        class:selected={navStore.selectedFeedId === feed.id}
-        onclick={(e) => {
-          e.stopPropagation();
+<!-- svelte-ignore a11y_no_static_element_interactions -->
+<div
+  class="root-section"
+  class:has-feeds={folder.feeds.length > 0}
+  role="listbox"
+  aria-label="Unfiled feeds"
+  ondragover={(e) => e.preventDefault()}
+  ondrop={handleDrop}
+>
+  <div class="root-header" aria-hidden="true">UNCATEGORIZED</div>
+  {#each folder.feeds as feed (feed.id)}
+    <div
+      animate:flip={{ duration: 200 }}
+      class="feed-item"
+      class:selected={navStore.selectedFeedId === feed.id}
+      onclick={(e) => {
+        e.stopPropagation();
+        navStore.selectFeed(feed.id);
+      }}
+      oncontextmenu={(e) => onContextMenu(e, "feed", feed.id, feed.name)}
+      draggable={true}
+      ondragstart={(e) => startFeedDrag(e, feed, folder.id)}
+      role="option"
+      tabindex="0"
+      aria-selected={navStore.selectedFeedId === feed.id}
+      onkeydown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
           navStore.selectFeed(feed.id);
-        }}
-        oncontextmenu={(e) => onContextMenu(e, "feed", feed.id, feed.name)}
-        draggable={true}
-        ondragstart={(e) => {
-          const dt = e.dataTransfer;
-          if (!dt) return;
-          dt.effectAllowed = "move";
-          dt.setData("text/plain", JSON.stringify({ feedId: feed.id, folderId: 0 }));
-          createDragGhost(e, feed.name);
-        }}
-        role="option"
-        tabindex="0"
-        aria-selected={navStore.selectedFeedId === feed.id}
-        onkeydown={(e) => {
-          if (e.key === "Enter" || e.key === " ") {
-            e.preventDefault();
-            navStore.selectFeed(feed.id);
-          }
-        }}
-      >
-        <FeedItem {feed} isSelected={navStore.selectedFeedId === feed.id} />
-      </div>
-    {/each}
-  </fieldset>
-{/if}
+        }
+      }}
+    >
+      <FeedItem {feed} isSelected={navStore.selectedFeedId === feed.id} />
+    </div>
+  {/each}
+</div>
 
 <style>
 .root-section {
   margin: 0;
   padding: 0 0 4px;
-  border: none;
-  min-inline-size: 0;
 }
 
 .root-section.has-feeds {
