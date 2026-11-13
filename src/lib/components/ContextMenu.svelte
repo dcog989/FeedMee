@@ -14,6 +14,18 @@ let {
   visible: boolean;
   onClose: () => void;
 } = $props();
+
+let menuEl = $state<HTMLDivElement>();
+let left = $state(x);
+let top = $state(y);
+
+// Keep the menu on screen: rows near the window edge would clip the last items.
+$effect(() => {
+  if (!visible || !menuEl) return;
+  const rect = menuEl.getBoundingClientRect();
+  left = Math.max(8, Math.min(x, window.innerWidth - rect.width - 8));
+  top = Math.max(8, Math.min(y, window.innerHeight - rect.height - 8));
+});
 </script>
 
 <svelte:window
@@ -24,7 +36,7 @@ let {
 />
 
 {#if visible}
-  <div class="context-menu" style="top: {y}px; left: {x}px" role="menu">
+  <div class="context-menu" bind:this={menuEl} style="top: {top}px; left: {left}px">
     {@render children?.()}
   </div>
 {/if}
