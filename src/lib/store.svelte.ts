@@ -109,6 +109,8 @@ class AppStateImpl {
 
   lastRefreshed = new Map<number, number>();
   updatingFeedIds = $state(new Set<number>());
+  /** Bumped when the on-disk thumbnail cache is cleared, so lists refetch. */
+  thumbnailEpoch = $state(0);
 
   private refresh: ReturnType<typeof createFeedRefresher>;
   private feedOps: ReturnType<typeof createFeedActions>;
@@ -175,6 +177,9 @@ class AppStateImpl {
   isFeedFresh = (feedId: number) => this.freshness.isFeedFresh(feedId);
   isFolderFresh = (folderId: number) => this.freshness.isFolderFresh(folderId);
   isAllFresh = () => this.freshness.isAllFresh();
+  invalidateThumbnails = () => {
+    this.thumbnailEpoch += 1;
+  };
 
   selectFeed = (feedId: number) => this.nav.selectFeed(feedId);
   selectFolder = (folderId: number) => this.nav.selectFolder(folderId);

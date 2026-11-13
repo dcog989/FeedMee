@@ -97,6 +97,8 @@ export interface ArticleStore
   readonly latestHours: number;
   page: number;
   hasMore: boolean;
+  thumbnailEpoch: number;
+  invalidateThumbnails(): void;
   adjustUnreadCount(feedId: number, delta: number): void;
   setSearch(query: string): Promise<void>;
   toggleSaved(article: Article): Promise<void>;

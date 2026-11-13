@@ -27,26 +27,30 @@ async function pickFont(target: "title" | "body") {
 
 <div class="form-group">
   <label for="title-font">Article Title Font</label>
-  <input
-    type="text"
-    id="title-font"
-    value={settings.article_title_font}
-    placeholder="Default (Serif)"
-    oninput={(e) => update({ article_title_font: e.currentTarget.value })}
-    onclick={() => pickFont("title")}
-  >
+  <div class="font-input-wrap">
+    <input
+      type="text"
+      id="title-font"
+      value={settings.article_title_font}
+      placeholder="Default (Serif)"
+      oninput={(e) => update({ article_title_font: e.currentTarget.value })}
+    >
+    <button type="button" class="pick-btn" onclick={() => pickFont("title")}>Pick…</button>
+  </div>
 </div>
 
 <div class="form-group">
   <label for="body-font">Article Body Font</label>
-  <input
-    type="text"
-    id="body-font"
-    value={settings.article_body_font}
-    placeholder="Default (Sans)"
-    oninput={(e) => update({ article_body_font: e.currentTarget.value })}
-    onclick={() => pickFont("body")}
-  >
+  <div class="font-input-wrap">
+    <input
+      type="text"
+      id="body-font"
+      value={settings.article_body_font}
+      placeholder="Default (Sans)"
+      oninput={(e) => update({ article_body_font: e.currentTarget.value })}
+    >
+    <button type="button" class="pick-btn" onclick={() => pickFont("body")}>Pick…</button>
+  </div>
 </div>
 
 <h4 class="section-label">Colors</h4>
@@ -103,9 +107,26 @@ async function pickFont(target: "title" | "body") {
 </div>
 
 <style>
-#title-font,
-#body-font {
+.font-input-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+}
+
+.pick-btn {
+  flex: 0 0 auto;
+  padding: 6px 12px;
+  border: 1px solid var(--border-color);
+  background: var(--bg-app);
+  color: var(--text-primary);
+  border-radius: 4px;
   cursor: pointer;
+  font-size: 0.8rem;
+}
+
+.pick-btn:hover {
+  background: var(--bg-hover);
 }
 
 .color-input-wrap {

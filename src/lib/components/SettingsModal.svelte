@@ -1,7 +1,7 @@
 <script lang="ts">
 import { Keyboard, Settings, X } from "@lucide/svelte";
 import { invoke } from "@tauri-apps/api/core";
-import { feedStore, settingsStore, uiStore } from "#lib/store.svelte.js";
+import { articleStore, feedStore, settingsStore, uiStore } from "#lib/store.svelte.js";
 import type { AppSettings } from "#lib/types.js";
 import ArticleAppearanceSettings from "./ArticleAppearanceSettings.svelte";
 import Modal from "./Modal.svelte";
@@ -52,16 +52,33 @@ function settingsEqual(a: AppSettings, b: AppSettings): boolean {
 $effect(() => {
   if (!initialized || !prevSettings) return;
   if (settingsEqual(settings, prevSettings)) return;
+  // A number field is briefly undefined while it is being retyped; saving that
+  // fails deserialisation on the Rust side and shows a spurious error alert.
+  if (!Number.isFinite(settings.auto_update_interval_minutes)) return;
   prevSettings = { ...settings };
   if (saveTimer) clearTimeout(saveTimer);
   // Empty means "follow the theme". The form shows the resolved colour, so
   // strip anything that came from the theme instead of pinning it on save.
   const theme = themeColors();
   const toSave = { ...settings };
+  toSave.auto_update_interval_minutes = Math.max(0, Math.floor(toSave.auto_update_interval_minutes));
   for (const key of COLOR_KEYS) {
     if (toSave[key].toLowerCase() === theme[key].toLowerCase()) toSave[key] = "";
   }
   saveTimer = setTimeout(() => settingsStore.saveSettings(toSave, false), 500);
+});
+
+// Switching between "Folder…" and "Feed…" must not keep an id from the other list.
+$effect(() => {
+  const type = settings.default_view_type;
+  const ids =
+    type === "folder"
+      ? feedStore.folders.filter((folder) => folder.id !== 0).map((folder) => folder.id)
+      : type === "feed"
+        ? feedStore.folders.flatMap((folder) => folder.feeds.map((feed) => feed.id))
+        : null;
+  if (!ids || ids.includes(settings.default_view_id)) return;
+  settings = { ...settings, default_view_id: ids[0] ?? -1 };
 });
 
 function cancel() {
@@ -126,6 +143,7 @@ async function clearCache() {
   clearing = true;
   try {
     await invoke("clear_thumbnail_cache");
+    articleStore.invalidateThumbnails();
     await refreshStorage();
   } catch (e) {
     uiStore.alert(String(e));
@@ -149,7 +167,7 @@ function vacuum() {
 }
 </script>
 
-<Modal isOpen={true} onclose={cancel} class="settings-modal">
+<Modal isOpen={true} onclose={cancel} label="Settings" class="settings-modal">
   <div class="modal-header">
     <h3><Settings size={18} /> Settings</h3>
     <button type="button" class="shortcuts-btn" onclick={() => (showShortcuts = true)} title="Keyboard Shortcuts">
@@ -168,7 +186,8 @@ function vacuum() {
           type="number"
           id="auto-update"
           bind:value={settings.auto_update_interval_minutes}
-          min="5"
+          min="0"
+          step="1"
           title="0 to disable"
         >
       </div>

@@ -26,6 +26,7 @@ const thumbnailCache = new SvelteMap<string, string>();
 const thumbnailPending = new Set<string>();
 const thumbnailFailed = new Set<string>();
 const observedArticles = new WeakMap<Element, Article>();
+const observedNodes = new Set<HTMLElement>();
 let thumbnailObserver: IntersectionObserver | null = null;
 let thumbnailLoadsInFlight = 0;
 const thumbnailQueue: Array<() => void> = [];
@@ -66,11 +67,13 @@ function requestThumbnail(article: Article) {
 }
 
 function enqueueThumbnail(cacheKey: string, articleUrl: string, imageUrl: string, size: number) {
+  const epoch = articleStore.thumbnailEpoch;
   const run = async () => {
     thumbnailLoadsInFlight += 1;
     try {
       const path = await invoke<string>("get_thumbnail", { url: articleUrl, imageUrl, size });
-      thumbnailCache.set(cacheKey, convertFileSrc(path));
+      // The cache may have been cleared while this was in flight.
+      if (epoch === articleStore.thumbnailEpoch) thumbnailCache.set(cacheKey, convertFileSrc(path));
     } catch {
       thumbnailFailed.add(cacheKey);
     } finally {
@@ -91,8 +94,10 @@ function observeThumbnails(node: HTMLElement, opts: { article: Article; thumbnai
   const setup = (article: Article, size: number) => {
     observedArticles.set(node, article);
     if (size > 0) {
+      observedNodes.add(node);
       ensureThumbnailObserver().observe(node);
     } else {
+      observedNodes.delete(node);
       thumbnailObserver?.unobserve(node);
     }
   };
@@ -103,6 +108,7 @@ function observeThumbnails(node: HTMLElement, opts: { article: Article; thumbnai
     },
     destroy() {
       thumbnailObserver?.unobserve(node);
+      observedNodes.delete(node);
       observedArticles.delete(node);
     },
   };
@@ -111,6 +117,20 @@ function observeThumbnails(node: HTMLElement, opts: { article: Article; thumbnai
 $effect(() => {
   void listKey;
   thumbnailFailed.clear();
+});
+
+// Clearing the cache deleted the files, so drop the paths and ask again for the
+// rows still on screen.
+$effect(() => {
+  void articleStore.thumbnailEpoch;
+  thumbnailCache.clear();
+  thumbnailFailed.clear();
+  thumbnailPending.clear();
+  for (const node of observedNodes) {
+    if (!observedArticles.get(node)) continue;
+    thumbnailObserver?.unobserve(node);
+    thumbnailObserver?.observe(node);
+  }
 });
 
 const EMPTY_STATE_BY_FEED_ID: Record<number, string> = {
