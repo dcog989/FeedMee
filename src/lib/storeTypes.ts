@@ -123,7 +123,7 @@ export interface FeedStore
   importOpml(): Promise<void>;
   exportOpml(): Promise<void>;
   renameFolder(id: number, newName: string): Promise<void>;
-  renameFeed(id: number, newName: string, newUrl: string): Promise<void>;
+  renameFeed(id: number, newName: string, newUrl: string): Promise<boolean>;
   deleteFeed(id: number): Promise<void>;
   deleteFolder(id: number): Promise<void>;
   moveFeed(feedId: number, folderId: number | null): Promise<void>;

@@ -194,6 +194,9 @@ pub async fn export_opml(path: String, state: State<'_, AppState>) -> Result<(),
 #[tauri::command]
 pub fn rename_folder(id: i64, new_name: String, state: State<'_, AppState>) -> Result<(), String> {
     let conn = state.db.lock().unwrap();
+    if db::folder_name_exists(&conn, &new_name, Some(id)).map_err(|e| e.to_string())? {
+        return Err("A folder with that name already exists".to_string());
+    }
     db::rename_folder(&conn, id, &new_name).map_err(|e| e.to_string())
 }
 

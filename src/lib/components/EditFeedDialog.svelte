@@ -21,16 +21,18 @@ function closeDialog() {
 }
 
 async function submit() {
-  if (name.trim() && sourceId.trim() && target) {
-    const url = isBluesky ? `bsky:${sourceId.trim()}` : sourceId.trim();
-    await feedStore.renameFeed(target.id, name.trim(), url);
+  if (!(name.trim() && target)) return;
+  const url = isBluesky ? `bsky:${sourceId.trim()}` : sourceId.trim();
+  // Move only when the feed itself saved, so a rejected rename cannot still
+  // change the folder.
+  if (await feedStore.renameFeed(target.id, name.trim(), url)) {
     await feedStore.moveFeed(target.id, selectedFolderId === 0 ? null : selectedFolderId);
   }
   closeDialog();
 }
 
 function onKeyDown(e: KeyboardEvent) {
-  if (e.key === "Enter" && name.trim() && sourceId.trim()) {
+  if (e.key === "Enter" && name.trim()) {
     submit();
   }
 }
@@ -41,7 +43,7 @@ function focusOnMount(node: HTMLInputElement) {
 }
 </script>
 
-<Modal isOpen={true} onclose={closeDialog} width="420px" class="edit-feed-dialog">
+<Modal isOpen={true} onclose={closeDialog} width="420px" label="Edit Feed" class="edit-feed-dialog">
   <h3>Edit Feed</h3>
   <label class="field">
     <span>Name</span>
@@ -49,18 +51,9 @@ function focusOnMount(node: HTMLInputElement) {
   </label>
   <div class="field">
     <span id="feed-source-id-label">{isBluesky ? "Bluesky DID" : "URL"}</span>
-    <input
-      aria-labelledby="feed-source-id-label"
-      type="text"
-      bind:value={sourceId}
-      placeholder="Feed URL"
-      onkeydown={onKeyDown}
-      disabled={isBluesky}
-    >
+    <input aria-labelledby="feed-source-id-label" type="text" value={sourceId} disabled>
   </div>
-  {#if isBluesky}
-    <span class="field-note">Bluesky feed identifier is fixed and cannot be edited.</span>
-  {/if}
+  <span class="field-note">The address is fixed — remove the feed and add it again to change the source.</span>
   <div class="field">
     <span id="feed-folder-label">Folder</span>
     <select id="feed-folder-select" aria-labelledby="feed-folder-label" bind:value={selectedFolderId}>
@@ -72,7 +65,7 @@ function focusOnMount(node: HTMLInputElement) {
   </div>
   <div class="modal-actions">
     <button type="button" class="secondary" onclick={closeDialog}>Cancel</button>
-    <button type="button" class="primary" disabled={!name.trim() || !sourceId.trim()} onclick={submit}>Save</button>
+    <button type="button" class="primary" disabled={!name.trim()} onclick={submit}>Save</button>
   </div>
 </Modal>
 
@@ -133,9 +126,10 @@ h3 {
 }
 
 .field-note {
+  display: block;
   font-size: 0.8rem;
   color: var(--text-secondary);
-  margin-top: 2px;
+  margin: -0.25rem 0 0.75rem;
 }
 
 .modal-actions {

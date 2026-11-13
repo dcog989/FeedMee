@@ -257,6 +257,18 @@ mod tests {
     }
 
     #[test]
+    fn folder_names_are_unique_regardless_of_case() {
+        let conn = test_conn();
+        let news = create_folder(&conn, "News").unwrap();
+        let other = create_folder(&conn, "Tech").unwrap();
+
+        assert!(folder_name_exists(&conn, "news", None).unwrap());
+        assert!(!folder_name_exists(&conn, "news", Some(news)).unwrap());
+        assert!(folder_name_exists(&conn, "news", Some(other)).unwrap());
+        assert!(!folder_name_exists(&conn, "Podcasts", None).unwrap());
+    }
+
+    #[test]
     fn adding_an_existing_tag_reuses_its_id_and_colour() {
         let mut conn = test_conn();
         let feed = create_feed(&conn, "Feed", "https://example.com/rss", None, "rss").unwrap();

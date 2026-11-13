@@ -127,6 +127,16 @@ pub fn feed_exists_by_url(conn: &Connection, url: &str, exclude_id: Option<i64>)
     )
 }
 
+/// A folder name is unique regardless of case, so renaming cannot create a
+/// second "News" next to the existing one.
+pub fn folder_name_exists(conn: &Connection, name: &str, exclude_id: Option<i64>) -> Result<bool> {
+    conn.query_row(
+        "SELECT EXISTS(SELECT 1 FROM folders WHERE name = ?1 COLLATE NOCASE AND (?2 IS NULL OR id != ?2))",
+        params![name, exclude_id],
+        |r| r.get(0),
+    )
+}
+
 pub fn create_feed(conn: &Connection, name: &str, url: &str, folder_id: Option<i64>, feed_type: &str) -> Result<i64> {
     let fid = folder_id.unwrap_or(0);
     conn.execute(

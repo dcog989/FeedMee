@@ -50,10 +50,38 @@ function onOverlayClick(e: MouseEvent) {
   if (e.target === e.currentTarget) onclose();
 }
 
+const FOCUSABLE = "button, input, select, textarea, a[href], [tabindex]:not([tabindex='-1'])";
+
 function onKeyDown(e: KeyboardEvent) {
-  if (e.key !== "Escape" || e.defaultPrevented) return;
-  if (openDialogs.at(-1) !== dialogId) return;
-  onclose();
+  if (e.defaultPrevented) return;
+  if (e.key === "Escape") {
+    if (openDialogs.at(-1) === dialogId) onclose();
+    return;
+  }
+  if (e.key !== "Tab" || openDialogs.at(-1) !== dialogId) return;
+
+  // Keep Tab inside: otherwise it walks onto the panes hidden behind the overlay.
+  const items = [...(dialogEl?.querySelectorAll<HTMLElement>(FOCUSABLE) ?? [])].filter(
+    (el) => !el.hasAttribute("disabled"),
+  );
+  if (items.length === 0) {
+    e.preventDefault();
+    dialogEl?.focus();
+    return;
+  }
+  const first = items[0];
+  const last = items[items.length - 1];
+  const active = document.activeElement as HTMLElement | null;
+  if (!active || !dialogEl?.contains(active) || active === dialogEl) {
+    e.preventDefault();
+    (e.shiftKey ? last : first).focus();
+  } else if (e.shiftKey && active === first) {
+    e.preventDefault();
+    last.focus();
+  } else if (!e.shiftKey && active === last) {
+    e.preventDefault();
+    first.focus();
+  }
 }
 </script>
 

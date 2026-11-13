@@ -8,38 +8,21 @@ let isSubmitting = $state(false);
 let errorMessage = $state("");
 let successMessage = $state("");
 
-let blockedText = $state("");
+let blockedText = $state(feedStore.blockedPhrases.join("\n"));
 
 let isValidUrl = $derived(/^https?:\/\/.+/.test(newFeedUrl.trim()));
 let canSubmit = $derived(isValidUrl && !isSubmitting);
 
-$effect(() => {
-  if (!uiStore.showAddDialog) return;
-  newFeedUrl = "";
-  selectedFolderId = null;
-  isSubmitting = false;
-  errorMessage = "";
-  successMessage = "";
-  blockedText = feedStore.blockedPhrases.join("\n");
-  navigator.clipboard
-    ?.readText()
-    .then((text) => {
-      if (newFeedUrl === "" && /^https?:\/\/.+/.test(text.trim())) {
-        newFeedUrl = text.trim();
-      }
-    })
-    .catch(() => {
-      /* clipboard access denied */
-    });
-});
-
 function closeDialog() {
-  feedStore.setBlockedPhrases(
-    blockedText
-      .split("\n")
-      .map((s) => s.trim())
-      .filter((s) => s.length > 0),
-  );
+  const phrases = blockedText
+    .split("\n")
+    .map((s) => s.trim())
+    .filter((s) => s.length > 0);
+  // Saving unconditionally reloads the article list, which drops the reader's
+  // scroll position and selection.
+  if (phrases.join("\n") !== feedStore.blockedPhrases.join("\n")) {
+    feedStore.setBlockedPhrases(phrases);
+  }
   uiStore.showAddDialog = false;
 }
 
@@ -81,7 +64,7 @@ function focusOnMount(node: HTMLElement) {
 }
 </script>
 
-<Modal isOpen={true} onclose={closeDialog} width="400px" class="manage-dialog">
+<Modal isOpen={true} onclose={closeDialog} width="400px" label="Manage Content" class="manage-dialog">
   <h3>Manage Content</h3>
   <div class="input-group">
     <input

@@ -32,7 +32,7 @@ function focusOnMount(node: HTMLInputElement) {
 }
 </script>
 
-<Modal isOpen={true} onclose={closeDialog} width="350px">
+<Modal isOpen={true} onclose={closeDialog} width="350px" label={isRename ? "Rename Folder" : "New Folder"}>
   <h3>{isRename ? "Rename Folder" : "New Folder"}</h3>
   <input type="text" bind:value={name} placeholder="Enter folder name" onkeydown={onKeyDown} use:focusOnMount>
   <div class="modal-actions">

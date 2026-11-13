@@ -48,7 +48,7 @@ export function createFeedActions(state: FeedStore) {
       await invoke("create_folder", { name });
       await state.refreshFolders();
     } catch (e) {
-      console.error("Failed to create folder", e);
+      state.alert(`Failed to create folder: ${e}`);
     }
   }
 
@@ -92,16 +92,18 @@ export function createFeedActions(state: FeedStore) {
       await invoke("rename_folder", { id, newName });
       await state.refreshFolders();
     } catch (e) {
-      console.error(e);
+      state.alert(`Failed to rename folder: ${e}`);
     }
   }
 
-  async function renameFeed(id: number, newName: string, newUrl: string) {
+  async function renameFeed(id: number, newName: string, newUrl: string): Promise<boolean> {
     try {
       await invoke("rename_feed", { id, newName, newUrl });
       await state.refreshFolders();
+      return true;
     } catch (e) {
-      console.error(e);
+      state.alert(`Failed to save feed: ${e}`);
+      return false;
     }
   }
 
@@ -159,7 +161,7 @@ export function createFeedActions(state: FeedStore) {
       await invoke("move_feed", { feedId, folderId });
       await state.refreshFolders();
     } catch (e) {
-      console.error(e);
+      state.alert(`Failed to move feed: ${e}`);
     }
   }
 

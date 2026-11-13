@@ -31,8 +31,10 @@ async function loadAll() {
 
 function syncHasTags() {
   const has = activeTagIds.size > 0;
+  // Mutate in place: replacing the article would retrigger ReadingPane, which
+  // clears the extracted full text and scrolls back to the top.
   if (articleStore.selectedArticle?.id === articleId) {
-    articleStore.selectedArticle = { ...articleStore.selectedArticle, has_tags: has };
+    articleStore.selectedArticle.has_tags = has;
   }
   const idx = articleStore.articles.findIndex((a) => a.id === articleId);
   if (idx !== -1 && articleStore.articles[idx].has_tags !== has) {
@@ -117,40 +119,31 @@ function onInputKeydown(e: KeyboardEvent) {
     {:else}
       <div class="tag-list">
         {#each allTags as tag (tag.id)}
-          <button
-            type="button"
-            class="tag-row"
-            class:active={activeTagIds.has(tag.id)}
-            onclick={() => toggleTag(tag)}
-            aria-label="{activeTagIds.has(tag.id) ? "Remove" : "Add"} tag {tag.name}"
-          >
-            <span class="tag-check">
-              {#if activeTagIds.has(tag.id)}
-                <Check size={12} />
-              {/if}
-            </span>
-            <span class="tag-dot" style="background: {tag.color}"></span>
-            <span class="tag-name">{tag.name}</span>
-            <span
+          <div class="tag-row" class:active={activeTagIds.has(tag.id)}>
+            <button
+              type="button"
+              class="tag-toggle"
+              onclick={() => toggleTag(tag)}
+              aria-label="{activeTagIds.has(tag.id) ? "Remove" : "Add"} tag {tag.name}"
+            >
+              <span class="tag-check">
+                {#if activeTagIds.has(tag.id)}
+                  <Check size={12} />
+                {/if}
+              </span>
+              <span class="tag-dot" style="background: {tag.color}"></span>
+              <span class="tag-name">{tag.name}</span>
+            </button>
+            <button
+              type="button"
               class="tag-delete"
-              role="button"
-              tabindex="0"
               aria-label="Delete tag {tag.name}"
-              onclick={(e) => {
-                e.stopPropagation();
-                deleteTagPermanently(tag);
-              }}
-              onkeydown={(e) => {
-                if (e.key === "Enter" || e.key === " ") {
-                  e.preventDefault();
-                  deleteTagPermanently(tag);
-                }
-              }}
+              onclick={() => deleteTagPermanently(tag)}
               use:tooltip={"Delete tag"}
             >
               <Trash2 size={11} />
-            </span>
-          </button>
+            </button>
+          </div>
         {/each}
       </div>
     {/if}
@@ -224,8 +217,16 @@ function onInputKeydown(e: KeyboardEvent) {
 .tag-row {
   display: flex;
   align-items: center;
+  gap: 2px;
+  border-radius: 4px;
+}
+
+.tag-toggle {
+  display: flex;
+  align-items: center;
   gap: 6px;
-  width: 100%;
+  flex: 1;
+  min-width: 0;
   background: transparent;
   border: none;
   color: var(--text-primary);
@@ -279,6 +280,9 @@ function onInputKeydown(e: KeyboardEvent) {
 .tag-delete {
   display: flex;
   align-items: center;
+  background: transparent;
+  border: none;
+  cursor: pointer;
   color: var(--text-secondary);
   opacity: 0;
   transition: opacity 0.12s;
