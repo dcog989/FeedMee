@@ -1,8 +1,9 @@
 <script lang="ts">
 import { Bookmark, Eye, Tags } from "@lucide/svelte";
-import { tooltip, tooltipState } from "#lib/actions/tooltip.svelte.js";
+import { tooltip } from "#lib/actions/tooltip.svelte.js";
 import TagPopover from "#lib/components/TagPopover.svelte";
 import { articleStore } from "#lib/store.svelte.js";
+import { createTagPopover } from "#lib/tagPopover.svelte.js";
 import type { Article } from "#lib/types.js";
 
 let {
@@ -17,24 +18,15 @@ let {
   onLoadFullContent?: () => void;
 } = $props();
 
-let tagArticleId = $state<number | null>(null);
-let tagX = $state(0);
-let tagY = $state(0);
-let isSaved = $derived(article.is_saved);
+const tags = createTagPopover();
 </script>
 
 <div class="meta-actions">
   <button
     type="button"
     class="action-btn"
-    class:active={article.has_tags || tagArticleId !== null}
-    onclick={(e) => {
-      tooltipState.visible = false;
-      const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-      tagX = rect.left;
-      tagY = rect.bottom + 4;
-      tagArticleId = tagArticleId === article.id ? null : article.id;
-    }}
+    class:active={article.has_tags || tags.articleId !== null}
+    onclick={(e) => tags.toggle(e, article.id)}
     use:tooltip={"Tags"}
     aria-label="Tags"
   >
@@ -44,12 +36,12 @@ let isSaved = $derived(article.is_saved);
   <button
     type="button"
     class="action-btn"
-    class:active={isSaved}
+    class:active={article.is_saved}
     onclick={() => articleStore.toggleSaved(article)}
     use:tooltip={"Read Later"}
     aria-label="Read Later"
   >
-    <Bookmark size={18} fill={isSaved ? "currentColor" : "none"} />
+    <Bookmark size={18} fill={article.is_saved ? "currentColor" : "none"} />
   </button>
 
   <button
@@ -68,14 +60,7 @@ let isSaved = $derived(article.is_saved);
   </button>
 </div>
 
-<TagPopover
-  articleId={tagArticleId}
-  x={tagX}
-  y={tagY}
-  onClose={() => {
-    tagArticleId = null;
-  }}
-/>
+<TagPopover articleId={tags.articleId} x={tags.x} y={tags.y} onClose={tags.close} />
 
 <style>
 .meta-actions {

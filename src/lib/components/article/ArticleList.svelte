@@ -1,5 +1,6 @@
 <script lang="ts">
 import { convertFileSrc, invoke } from "@tauri-apps/api/core";
+import { SvelteMap } from "svelte/reactivity";
 import { articleStore, FEED_ID_LATEST, FEED_ID_SAVED, FEED_ID_TODAY, settingsStore } from "#lib/store.svelte.js";
 import type { Article } from "#lib/types.js";
 import { thumbnailCacheKey } from "#lib/utils/thumbnail.js";
@@ -19,7 +20,9 @@ let {
 
 let listContainer = $state<HTMLElement>();
 
-let thumbnailCache = $state<Record<string, string>>({});
+// A SvelteMap updates only the cards reading the key it changed, instead of
+// copying the whole cache and re-rendering every card per thumbnail.
+const thumbnailCache = new SvelteMap<string, string>();
 const thumbnailPending = new Set<string>();
 const thumbnailFailed = new Set<string>();
 const observedArticles = new WeakMap<Element, Article>();
@@ -28,7 +31,9 @@ let thumbnailLoadsInFlight = 0;
 const thumbnailQueue: Array<() => void> = [];
 
 let thumbnailSize = $derived(settingsStore.settings.thumbnail_size || 0);
-let listKey = $derived(articleStore.selectedFeedId ?? articleStore.selectedFolderId);
+let listKey = $derived(
+  `${articleStore.selectedFeedId ?? articleStore.selectedFolderId}_${articleStore.searchQuery}_${articleStore.sortOrder}`,
+);
 
 const THUMBNAIL_CONCURRENCY = 8;
 const THUMBNAIL_PRELOAD_PX = 250;
@@ -50,10 +55,12 @@ function ensureThumbnailObserver(): IntersectionObserver {
 }
 
 function requestThumbnail(article: Article) {
+  // No image means the backend would scrape the article page just to look for one.
+  if (!article.image_url) return;
   const size = thumbnailSize;
   if (!(size > 0)) return;
   const cacheKey = thumbnailCacheKey(article.image_url, article.url, size);
-  if (cacheKey in thumbnailCache || thumbnailPending.has(cacheKey) || thumbnailFailed.has(cacheKey)) return;
+  if (thumbnailCache.has(cacheKey) || thumbnailPending.has(cacheKey) || thumbnailFailed.has(cacheKey)) return;
   thumbnailPending.add(cacheKey);
   enqueueThumbnail(cacheKey, article.url, article.image_url, size);
 }
@@ -63,7 +70,7 @@ function enqueueThumbnail(cacheKey: string, articleUrl: string, imageUrl: string
     thumbnailLoadsInFlight += 1;
     try {
       const path = await invoke<string>("get_thumbnail", { url: articleUrl, imageUrl, size });
-      thumbnailCache = { ...thumbnailCache, [cacheKey]: convertFileSrc(path) };
+      thumbnailCache.set(cacheKey, convertFileSrc(path));
     } catch {
       thumbnailFailed.add(cacheKey);
     } finally {
@@ -113,6 +120,7 @@ const EMPTY_STATE_BY_FEED_ID: Record<number, string> = {
 };
 
 let emptyStateMessage = $derived.by(() => {
+  if (articleStore.searchQuery.trim()) return "No articles match your search.";
   const feedId = articleStore.selectedFeedId;
   if (feedId !== null) {
     return EMPTY_STATE_BY_FEED_ID[feedId] ?? "No articles in this feed.";

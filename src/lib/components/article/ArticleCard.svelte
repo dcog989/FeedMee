@@ -1,5 +1,6 @@
 <script lang="ts">
 import { Bookmark, Image, Tags } from "@lucide/svelte";
+import type { SvelteMap } from "svelte/reactivity";
 import { tooltip } from "#lib/actions/tooltip.svelte.js";
 import { articleStore } from "#lib/store.svelte.js";
 import type { Article } from "#lib/types.js";
@@ -17,16 +18,18 @@ let {
   article: Article;
   isSelected: boolean;
   thumbnailSize: number;
-  thumbnailCache: Record<string, string>;
+  thumbnailCache: SvelteMap<string, string>;
   isTagOpen?: boolean;
   onContextMenu: (e: MouseEvent, article: Article) => void;
   onTagToggle: (e: MouseEvent, article: Article) => void;
 } = $props();
 
 let cacheKey = $derived(thumbnailSize > 0 ? thumbnailCacheKey(article.image_url, article.url, thumbnailSize) : "");
-let thumbnail = $derived(cacheKey ? thumbnailCache[cacheKey] : undefined);
+let thumbnail = $derived(cacheKey ? thumbnailCache.get(cacheKey) : undefined);
 
 function handleKeydown(e: KeyboardEvent) {
+  // Space/Enter on the bookmark or tag button must activate the button, not the card.
+  if (e.target !== e.currentTarget) return;
   if (e.key === "Enter" || e.key === " ") {
     e.preventDefault();
     articleStore.selectArticle(article);
@@ -43,7 +46,8 @@ function handleKeydown(e: KeyboardEvent) {
   oncontextmenu={(e) => onContextMenu(e, article)}
   onkeydown={handleKeydown}
   role="button"
-  tabindex="0"
+  tabindex={isSelected ? 0 : -1}
+  aria-current={isSelected}
 >
   {#if thumbnailSize > 0}
     <div class="thumbnail-wrap" style="width:{thumbnailSize}px;height:{thumbnailSize}px">

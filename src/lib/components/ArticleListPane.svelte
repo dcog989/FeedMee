@@ -1,5 +1,5 @@
 ﻿<script lang="ts">
-import { tooltipState } from "#lib/actions/tooltip.svelte.js";
+import { createTagPopover } from "#lib/tagPopover.svelte.js";
 import type { Article } from "#lib/types.js";
 import ArticleContextMenu from "./article/ArticleContextMenu.svelte";
 import ArticleList from "./article/ArticleList.svelte";
@@ -9,54 +9,35 @@ import TagPopover from "./TagPopover.svelte";
 
 let ctxMenu: ArticleContextMenu;
 
-let tagArticleId = $state<number | null>(null);
-let tagX = $state(0);
-let tagY = $state(0);
+const tags = createTagPopover();
 
 function toggleTagManager(e: MouseEvent, article: Article) {
   e.stopPropagation();
-  if (tagArticleId === article.id) {
-    tagArticleId = null;
-  } else {
-    tooltipState.visible = false;
-    tagArticleId = article.id;
-    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-    tagX = rect.left;
-    tagY = rect.bottom + 4;
-  }
-}
-
-function closeTagManager() {
-  tagArticleId = null;
+  tags.toggle(e, article.id);
 }
 
 function onContextMenu(e: MouseEvent, article: Article) {
   ctxMenu.show(e, article);
 }
+
+function onListScroll() {
+  ctxMenu.close();
+  tags.close();
+}
 </script>
 
 <svelte:window
   onkeydown={(e) => {
-    if (e.key === "Escape") closeTagManager();
+    if (e.key === "Escape") tags.close();
   }}
 />
 
 <div class="pane-wrapper">
   <ArticleSearch />
   <ArticleToolbar />
-  <ArticleList {onContextMenu} onTagToggle={toggleTagManager} {tagArticleId} onScroll={() => ctxMenu.close()} />
+  <ArticleList {onContextMenu} onTagToggle={toggleTagManager} tagArticleId={tags.articleId} onScroll={onListScroll} />
 </div>
 
 <ArticleContextMenu bind:this={ctxMenu} />
 
-<TagPopover articleId={tagArticleId} x={tagX} y={tagY} onClose={closeTagManager} />
-
-<style>
-.pane-wrapper {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-  background-color: var(--bg-article, var(--bg-content));
-  border-right: 1px solid var(--border-color);
-}
-</style>
+<TagPopover articleId={tags.articleId} x={tags.x} y={tags.y} onClose={tags.close} />

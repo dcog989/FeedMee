@@ -22,7 +22,7 @@ function onKeyDown(e: KeyboardEvent) {
   <Search class="search-icon" size={18} />
   <input
     type="text"
-    placeholder="Search..."
+    placeholder="Search all articles..."
     aria-label="Search articles"
     oninput={onInput}
     onkeydown={onKeyDown}
