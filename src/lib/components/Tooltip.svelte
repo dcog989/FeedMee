@@ -1,12 +1,23 @@
 <script lang="ts">
-// Safety check to keep tooltip on screen would be nice, but simple fixed positioning for MVP
-// We add a transition for ease-in
 import { fade } from "svelte/transition";
 import { tooltipState } from "#lib/actions/tooltip.svelte.js";
+
+let el = $state<HTMLDivElement>();
+let left = $state(0);
+let top = $state(0);
+
+// The cursor offset pushes the hint past the right and bottom edges, so clamp
+// it like the context menu and tag popover do.
+$effect(() => {
+  if (!el) return;
+  const rect = el.getBoundingClientRect();
+  left = Math.max(8, Math.min(tooltipState.x, window.innerWidth - rect.width - 8));
+  top = Math.max(8, Math.min(tooltipState.y, window.innerHeight - rect.height - 8));
+});
 </script>
 
 {#if tooltipState.visible}
-  <div class="tooltip" style="top: {tooltipState.y}px; left: {tooltipState.x}px;" transition:fade={{ duration: 150 }}>
+  <div class="tooltip" bind:this={el} style="top: {top}px; left: {left}px;" transition:fade={{ duration: 150 }}>
     {tooltipState.text}
   </div>
 {/if}

@@ -22,6 +22,8 @@ onMount(() => {
 });
 
 function disableContextMenu(e: MouseEvent) {
+  // Text fields keep the native menu, so copy and paste stay reachable.
+  if ((e.target as HTMLElement | null)?.closest("input, textarea")) return;
   e.preventDefault();
 }
 </script>
