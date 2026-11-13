@@ -63,8 +63,9 @@ export function createNavigation(state: NavStore) {
   function getFlatNavItems(): { type: "feed" | "folder"; id: number }[] {
     const items: { type: "feed" | "folder"; id: number }[] = [];
     for (const folder of state.folders) {
-      items.push({ type: "folder", id: folder.id });
-      if (state.expandedFolders.has(folder.id)) {
+      // Folder 0 is the header-less "Uncategorized" section, so it has no row to land on.
+      if (folder.id !== 0) items.push({ type: "folder", id: folder.id });
+      if (folder.id === 0 || state.expandedFolders.has(folder.id)) {
         for (const feed of folder.feeds) {
           items.push({ type: "feed", id: feed.id });
         }

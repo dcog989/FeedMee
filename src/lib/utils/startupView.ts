@@ -22,7 +22,7 @@ export function pickStartupTarget(
   folders: Folder[],
   lastView: { type: string | null; id: number },
 ): StartupTarget {
-  const hasFolder = (id: number) => folders.some((f) => f.id === id);
+  const hasFolder = (id: number) => id !== 0 && folders.some((f) => f.id === id);
   const hasFeed = (id: number) => findFeedFolderId(folders, id) !== null;
 
   switch (settings.default_view_type) {

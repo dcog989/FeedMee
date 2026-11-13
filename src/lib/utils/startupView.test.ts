@@ -80,6 +80,12 @@ describe("pickStartupTarget", () => {
   it("falls back to Latest for an unknown view type", () => {
     expect(pickStartupTarget(settings("bogus"), makeFolders(), { type: null, id: 0 })).toEqual({ kind: "latest" });
   });
+
+  it("never restores the uncategorized folder (id 0)", () => {
+    const folders = [...makeFolders(), { id: 0, name: "", feeds: [makeFeed(20, 0)] }];
+    expect(pickStartupTarget(settings("last"), folders, { type: "folder", id: 0 })).toEqual({ kind: "latest" });
+    expect(pickStartupTarget(settings("folder", 0), folders, { type: null, id: 0 })).toEqual({ kind: "latest" });
+  });
 });
 
 describe("startupExpandFolderId", () => {
