@@ -3,7 +3,11 @@ import { uiStore } from "#lib/store.svelte.js";
 import Modal from "./Modal.svelte";
 </script>
 
-<Modal isOpen={uiStore.modalState.isOpen} onclose={() => uiStore.closeModal()}>
+<Modal
+  isOpen={uiStore.modalState.isOpen}
+  label={uiStore.modalState.type === "confirm" ? "Confirmation" : "Alert"}
+  onclose={() => uiStore.closeModal()}
+>
   <h3>
     {uiStore.modalState.type === "confirm" ? "Confirmation" : "Alert"}
   </h3>
