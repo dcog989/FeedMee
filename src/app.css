@@ -71,6 +71,45 @@ body {
   overflow: hidden; /* Prevent native scrollbars */
 }
 
+/* Buttons at the bottom of a modal dialog */
+.modal-actions button {
+  padding: 8px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 500;
+  border: none;
+}
+
+.modal-actions button.secondary {
+  background: transparent;
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+}
+
+.modal-actions button.secondary:hover {
+  background: var(--bg-hover);
+}
+
+.modal-actions button.primary {
+  background: var(--bg-selected);
+  color: white;
+}
+
+.modal-actions button.danger {
+  background: #e81123;
+  color: white;
+}
+
+.modal-actions button.primary:not(:disabled):hover,
+.modal-actions button.danger:hover {
+  opacity: 0.9;
+}
+
+.modal-actions button.primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 /* === Custom Scrollbars === */
 ::-webkit-scrollbar {
   width: 10px;

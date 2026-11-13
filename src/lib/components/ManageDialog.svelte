@@ -64,7 +64,7 @@ function focusOnMount(node: HTMLElement) {
 }
 </script>
 
-<Modal isOpen={true} onclose={closeDialog} width="400px" label="Manage Content" class="manage-dialog">
+<Modal isOpen={true} onclose={closeDialog} width="400px" label="Manage Content">
   <h3>Manage Content</h3>
   <div class="input-group">
     <input

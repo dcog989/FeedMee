@@ -42,37 +42,4 @@ p {
   justify-content: flex-end;
   gap: 12px;
 }
-
-button {
-  padding: 8px 16px;
-  border-radius: 4px;
-  cursor: pointer;
-  font-weight: 500;
-  border: none;
-}
-
-button.secondary {
-  background: transparent;
-  border: 1px solid var(--border-color);
-  color: var(--text-primary);
-}
-
-button.secondary:hover {
-  background: var(--bg-hover);
-}
-
-button.danger {
-  background: #e81123;
-  color: white;
-}
-
-button.primary {
-  background: var(--bg-selected);
-  color: white;
-}
-
-button.danger:hover,
-button.primary:hover {
-  opacity: 0.9;
-}
 </style>

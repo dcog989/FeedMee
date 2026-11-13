@@ -43,7 +43,7 @@ function focusOnMount(node: HTMLInputElement) {
 }
 </script>
 
-<Modal isOpen={true} onclose={closeDialog} width="420px" label="Edit Feed" class="edit-feed-dialog">
+<Modal isOpen={true} onclose={closeDialog} width="420px" label="Edit Feed">
   <h3>Edit Feed</h3>
   <label class="field">
     <span>Name</span>
@@ -137,37 +137,5 @@ h3 {
   justify-content: flex-end;
   gap: 8px;
   margin-top: 1rem;
-}
-
-button {
-  padding: 8px 16px;
-  border-radius: 4px;
-  cursor: pointer;
-  font-weight: 500;
-  border: none;
-}
-
-button.secondary {
-  background: transparent;
-  border: 1px solid var(--border-color);
-  color: var(--text-primary);
-}
-
-button.secondary:hover {
-  background: var(--bg-hover);
-}
-
-button.primary {
-  background: var(--bg-selected);
-  color: white;
-}
-
-button.primary:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-button.primary:not(:disabled):hover {
-  opacity: 0.9;
 }
 </style>
