@@ -21,7 +21,7 @@ let {
 const tags = createTagPopover();
 </script>
 
-<div class="meta-actions">
+<span class="meta-actions">
   <button
     type="button"
     class="action-btn"
@@ -30,7 +30,7 @@ const tags = createTagPopover();
     use:tooltip={"Tags"}
     aria-label="Tags"
   >
-    <Tags size={18} fill={article.has_tags ? "currentColor" : "none"} />
+    <Tags size={24} fill={article.has_tags ? "currentColor" : "none"} />
   </button>
 
   <button
@@ -41,7 +41,7 @@ const tags = createTagPopover();
     use:tooltip={"Read Later"}
     aria-label="Read Later"
   >
-    <Bookmark size={18} fill={article.is_saved ? "currentColor" : "none"} />
+    <Bookmark size={24} fill={article.is_saved ? "currentColor" : "none"} />
   </button>
 
   <button
@@ -55,17 +55,19 @@ const tags = createTagPopover();
     {#if isLoadingFull}
       <span class="spinner"></span>
     {:else}
-      <Eye size={18} />
+      <Eye size={24} />
     {/if}
   </button>
-</div>
+</span>
 
 <TagPopover articleId={tags.articleId} x={tags.x} y={tags.y} onClose={tags.close} />
 
 <style>
 .meta-actions {
   display: flex;
-  gap: 0.5rem;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
 }
 
 .action-btn {

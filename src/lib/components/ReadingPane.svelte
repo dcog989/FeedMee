@@ -20,6 +20,13 @@ let rawHtml = $derived(fullContent ?? articleStore.selectedArticle?.summary ?? "
 let heroImage = $derived(articleStore.selectedArticle?.image_url ?? "");
 // Avoid duplicating an image the article body already embeds.
 let showHero = $derived(Boolean(heroImage) && !bodyEmbedsImage(rawHtml, heroImage));
+// One text node, so markup whitespace cannot add a second space after the comma.
+let byline = $derived.by(() => {
+  const article = articleStore.selectedArticle;
+  if (!article) return "";
+  const domain = getFeedDomain(article.feed_id);
+  return article.author ? `${domain}, ${article.author}` : domain;
+});
 
 $effect(() => {
   if (articleStore.selectedArticle) {
@@ -77,6 +84,14 @@ function getFeedDomain(feedId: number): string {
   {#if articleStore.selectedArticle}
     <article class="article-content">
       <header>
+        <span class="article-actions">
+          <ArticleActions
+            article={articleStore.selectedArticle}
+            {isLoadingFull}
+            hasFullContent={!!fullContent}
+            onLoadFullContent={loadFullContent}
+          />
+        </span>
         <h1>
           <a
             href={articleStore.selectedArticle.url}
@@ -92,18 +107,8 @@ function getFeedDomain(feedId: number): string {
           </a>
         </h1>
         <div class="meta-row">
-          <div class="meta-left">
-            <span class="author">{articleStore.selectedArticle.author}</span>
-            <span class="feed-domain">{getFeedDomain(articleStore.selectedArticle.feed_id)}</span>
-            <span class="date">{formatDate(articleStore.selectedArticle.timestamp)}</span>
-          </div>
-
-          <ArticleActions
-            article={articleStore.selectedArticle}
-            {isLoadingFull}
-            hasFullContent={!!fullContent}
-            onLoadFullContent={loadFullContent}
-          />
+          <div class="meta-left">{byline}</div>
+          <span class="date">{formatDate(articleStore.selectedArticle.timestamp)}</span>
         </div>
       </header>
 
@@ -151,6 +156,7 @@ function getFeedDomain(feedId: number): string {
 
 <style>
 .pane {
+  container-type: inline-size;
   background-color: var(--bg-article, var(--bg-reading));
   overflow-y: auto;
   height: 100%;
@@ -159,8 +165,24 @@ function getFeedDomain(feedId: number): string {
 }
 
 .article-content {
+  position: relative;
   max-width: 700px;
   margin: 0 auto;
+}
+
+/* Icons live in the gutter right of the text column; when the pane is too
+   narrow for a gutter they float back inside the column. */
+.article-actions {
+  position: absolute;
+  top: 0;
+  left: calc(100% + 1rem);
+}
+
+@container (max-width: 810px) {
+  .article-actions {
+    position: static;
+    float: right;
+  }
 }
 
 h1 {
@@ -203,7 +225,6 @@ h1 {
 
 .meta-left {
   display: flex;
-  gap: 0.5rem;
   align-items: center;
 }
 
