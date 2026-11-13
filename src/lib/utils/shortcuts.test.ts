@@ -1,5 +1,24 @@
 import { describe, expect, it } from "vitest";
-import { KeyboardShortcutManager } from "./shortcuts";
+import { KeyboardShortcutManager, shortcutKeyFromEvent } from "./shortcuts";
+
+function key(init: KeyboardEventInit): KeyboardEvent {
+  return new KeyboardEvent("keydown", init);
+}
+
+describe("shortcutKeyFromEvent", () => {
+  it("spells the space bar as space", () => {
+    expect(shortcutKeyFromEvent(key({ key: " " }))).toBe("space");
+  });
+
+  it("puts modifiers in a fixed order and lowercases the key", () => {
+    expect(shortcutKeyFromEvent(key({ key: "K", ctrlKey: true, shiftKey: true }))).toBe("ctrl+shift+k");
+    expect(shortcutKeyFromEvent(key({ key: "K", altKey: true, metaKey: true }))).toBe("alt+meta+k");
+  });
+
+  it("returns bare modifiers when no key is pressed", () => {
+    expect(shortcutKeyFromEvent(key({ key: "Control", ctrlKey: true }))).toBe("ctrl");
+  });
+});
 
 function managerWith(...commands: [string, string][]): KeyboardShortcutManager {
   const manager = new KeyboardShortcutManager();

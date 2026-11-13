@@ -8,6 +8,27 @@ export interface ShortcutDefinition {
   handler?: ShortcutHandler;
 }
 
+const MODIFIER_NAMES = ["control", "shift", "alt", "meta"];
+
+/**
+ * Canonical string for a key event: modifiers in a fixed order plus the key,
+ * lowercased, with the space bar spelled "space". Recording and matching must
+ * use this same function or a recorded binding never fires.
+ */
+export function shortcutKeyFromEvent(e: KeyboardEvent): string {
+  const parts: string[] = [];
+  if (e.ctrlKey) parts.push("ctrl");
+  if (e.altKey) parts.push("alt");
+  if (e.shiftKey) parts.push("shift");
+  if (e.metaKey) parts.push("meta");
+  let key = e.key.toLowerCase();
+  if (key === " ") key = "space";
+  if (!MODIFIER_NAMES.includes(key)) {
+    parts.push(key);
+  }
+  return parts.join("+");
+}
+
 export class KeyboardShortcutManager {
   private definitions: Map<string, ShortcutDefinition> = new Map();
   private customMappings: Record<string, string> = {};
@@ -27,24 +48,10 @@ export class KeyboardShortcutManager {
     return isInput || target.isContentEditable;
   }
 
-  private getEventKey(e: KeyboardEvent): string {
-    const parts: string[] = [];
-    if (e.ctrlKey) parts.push("ctrl");
-    if (e.altKey) parts.push("alt");
-    if (e.shiftKey) parts.push("shift");
-    if (e.metaKey) parts.push("meta");
-    let key = e.key.toLowerCase();
-    if (key === " ") key = "space";
-    if (!["control", "shift", "alt", "meta"].includes(key)) {
-      parts.push(key);
-    }
-    return parts.join("+");
-  }
-
   async handleKeyEvent(e: KeyboardEvent): Promise<boolean> {
     if (e.repeat) return false;
 
-    const pressedKey = this.getEventKey(e);
+    const pressedKey = shortcutKeyFromEvent(e);
     const isInput = this.isInputElement(e.target);
 
     if (isInput && e.key !== "Escape" && e.key !== "Enter") {

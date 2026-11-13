@@ -1,7 +1,7 @@
 <script lang="ts">
 import { RotateCcw, X } from "@lucide/svelte";
 import { shortcutStore } from "#lib/store.svelte.js";
-import { type ShortcutDefinition, shortcutManager } from "#lib/utils/shortcuts.js";
+import { type ShortcutDefinition, shortcutKeyFromEvent, shortcutManager } from "#lib/utils/shortcuts.js";
 import Modal from "./Modal.svelte";
 
 let { isOpen = $bindable(false), onClose }: { isOpen: boolean; onClose: () => void } = $props();
@@ -27,7 +27,7 @@ const conflicts = $derived(shortcutManager.findConflicts(shortcutStore.customSho
 
 const descriptions = $derived(new Map(allShortcuts.map((def) => [def.command, def.description])));
 
-const categories = $derived(() => {
+const categories = $derived.by(() => {
   const map = new Map<string, ShortcutDefinition[]>();
   allShortcuts.forEach((def) => {
     if (!map.has(def.category)) map.set(def.category, []);
@@ -54,15 +54,8 @@ function handleRecordKey(e: KeyboardEvent) {
   // bound: the global handler always consumes the arrows first.
   if (MODIFIER_KEYS.includes(e.key) || e.key.startsWith("Arrow") || e.key === "Tab") return;
 
-  const parts: string[] = [];
-  if (e.ctrlKey) parts.push("ctrl");
-  if (e.altKey) parts.push("alt");
-  if (e.shiftKey) parts.push("shift");
-  if (e.metaKey) parts.push("meta");
-  parts.push(e.key.toLowerCase());
-
-  const keyStr = parts.join("+");
-  shortcutStore.setShortcut(recordingCommandId, keyStr);
+  // Same normaliser as the matcher, or a recorded binding never fires.
+  shortcutStore.setShortcut(recordingCommandId, shortcutKeyFromEvent(e));
   stopRecording();
 }
 
@@ -75,7 +68,7 @@ function resetShortcut(commandId: string) {
 }
 </script>
 
-<Modal {isOpen} onclose={onClose} zindex={10001} class="shortcuts-modal">
+<Modal {isOpen} onclose={onClose} zindex={10001} label="Keyboard Shortcuts" class="shortcuts-modal">
   <div class="modal-header">
     <h3>Keyboard Shortcuts</h3>
     <button type="button" class="close-btn" onclick={onClose} aria-label="Close">
@@ -97,7 +90,7 @@ function resetShortcut(commandId: string) {
       </div>
     {/if}
 
-    {#each categories() as [category, defs] (category)}
+    {#each categories as [category, defs] (category)}
       <div class="section">
         <h4>{category}</h4>
         {#each defs as def (def.command)}
@@ -130,11 +123,6 @@ function resetShortcut(commandId: string) {
         {/each}
       </div>
     {/each}
-    {#if allShortcuts.length === 0}
-      <div class="empty-state">
-        <p>No shortcuts match your search</p>
-      </div>
-    {/if}
   </div>
 </Modal>
 
@@ -284,11 +272,5 @@ h4 {
 .reset-btn:hover {
   color: var(--text-primary);
   background: var(--bg-hover);
-}
-
-.empty-state {
-  text-align: center;
-  padding: 2rem;
-  color: var(--text-secondary);
 }
 </style>
