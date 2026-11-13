@@ -29,10 +29,10 @@ describe("freshness", () => {
     expect(helpersFor(folders, [1]).isFolderFresh(1)).toBe(false);
   });
 
-  it("an empty folder or empty library is not fresh", () => {
+  it("an empty folder is fresh, while an empty library is not", () => {
     const helpers = helpersFor([makeFolder(1)]);
 
-    expect(helpers.isFolderFresh(1)).toBe(false);
+    expect(helpers.isFolderFresh(1)).toBe(true);
     expect(helpers.isAllFresh()).toBe(false);
   });
 
