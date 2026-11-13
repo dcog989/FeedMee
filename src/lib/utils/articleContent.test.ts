@@ -80,6 +80,12 @@ describe("bodyEmbedsImage", () => {
     expect(bodyEmbedsImage(html, ogImage)).toBe(true);
   });
 
+  it("matches a body image whose name carries a WordPress size suffix", () => {
+    const ogImage = "https://example.com/uploads/2026/09/photo.jpg";
+    const html = '<img src="https://example.com/uploads/2026/09/photo-1024x768.jpg">';
+    expect(bodyEmbedsImage(html, ogImage)).toBe(true);
+  });
+
   it("does not match a different image with the same host", () => {
     const html = '<img src="https://example.com/b.png">';
     expect(bodyEmbedsImage(html, "https://example.com/a.png")).toBe(false);

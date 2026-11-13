@@ -22,6 +22,8 @@ const IMAGE_SOURCE_ATTRIBUTES = ["src", "data-src", "data-original"] as const;
 // Trailing image-format suffix, optionally followed by a re-encoded format
 // (e.g. `.jpg`, `.jpeg.webp`).
 const FORMAT_SUFFIX = /\.(jpe?g|png|gif|webp|avif|bmp|tiff?|svg)(\.(webp|avif))?$/i;
+// Rendered size appended to the file name (WordPress `photo-1024x768.jpg`).
+const SIZE_SUFFIX = /-\d+x\d+$/;
 
 interface ImageIdentity {
   host: string;
@@ -40,7 +42,8 @@ function imageIdentity(url: string): ImageIdentity | null {
     const parsed = new URL(trimmed, "https://placeholder.invalid");
     const name = decodeURIComponent(parsed.pathname.split("/").pop() ?? "")
       .toLowerCase()
-      .replace(FORMAT_SUFFIX, "");
+      .replace(FORMAT_SUFFIX, "")
+      .replace(SIZE_SUFFIX, "");
     if (!name) return null;
     return { host: parsed.host.toLowerCase(), name };
   } catch {
