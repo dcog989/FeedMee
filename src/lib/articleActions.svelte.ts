@@ -2,6 +2,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { FEED_ID_LATEST, FEED_ID_SAVED, FEED_ID_TODAY } from "./store.svelte";
 import type { ArticleStore } from "./storeTypes";
 import type { Article } from "./types";
+import { mergeArticles } from "./utils/articles";
 
 /** Pages to scan for one visible page; blocked phrases can hide whole pages. */
 export const BLOCKED_SCAN_LIMIT = 10;
@@ -98,6 +99,7 @@ export function createArticleActions(state: ArticleStore) {
 
   async function reloadCurrentArticleList() {
     const gen = ++reloadGeneration;
+    state.isLoadingArticles = true;
     state.articles = [];
     state.page = 0;
     try {
@@ -114,6 +116,9 @@ export function createArticleActions(state: ArticleStore) {
     } catch (e) {
       if (gen === reloadGeneration) state.hasMore = false;
       console.error("Failed to reload article list:", e);
+    } finally {
+      // A newer reload owns the flag when this one was superseded.
+      if (gen === reloadGeneration) state.isLoadingArticles = false;
     }
   }
 
@@ -125,7 +130,7 @@ export function createArticleActions(state: ArticleStore) {
     try {
       const page = await fetchVisiblePage(state.page + 1, gen);
       if (gen !== reloadGeneration) return;
-      state.articles = [...state.articles, ...page.articles];
+      state.articles = mergeArticles(state.articles, page.articles);
       state.page = page.page;
       state.hasMore = page.hasMore;
     } catch (e) {
@@ -135,15 +140,19 @@ export function createArticleActions(state: ArticleStore) {
     }
   }
 
-  function markRead(article: Article) {
-    if (article.is_read) return;
-    article.is_read = true;
-    state.adjustUnreadCount(article.feed_id, -1);
-    invoke("mark_article_read", { id: article.id, read: true }).catch((e) => {
-      article.is_read = false;
-      state.adjustUnreadCount(article.feed_id, 1);
+  function setArticleRead(article: Article, read: boolean) {
+    if (article.is_read === read) return;
+    article.is_read = read;
+    state.adjustUnreadCount(article.feed_id, read ? -1 : 1);
+    invoke("mark_article_read", { id: article.id, read }).catch((e) => {
+      article.is_read = !read;
+      state.adjustUnreadCount(article.feed_id, read ? 1 : -1);
       console.error("mark_article_read failed:", e);
     });
+  }
+
+  function markRead(article: Article) {
+    setArticleRead(article, true);
   }
 
   function selectArticle(article: Article) {
@@ -181,5 +190,6 @@ export function createArticleActions(state: ArticleStore) {
     selectArticle,
     toggleSaved,
     fetchFullContent,
+    setArticleRead,
   };
 }

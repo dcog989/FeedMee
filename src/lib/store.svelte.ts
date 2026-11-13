@@ -209,6 +209,7 @@ class AppStateImpl {
   loadMore = () => this.articleOps.loadMore();
   selectArticle = (article: Article) => this.articleOps.selectArticle(article);
   toggleSaved = (article: Article) => this.articleOps.toggleSaved(article);
+  setArticleRead = (article: Article, read: boolean) => this.articleOps.setArticleRead(article, read);
   fetchFullContent = (article: Article) => this.articleOps.fetchFullContent(article);
 
   markAllRead = () => this.feedOps.markAllRead();

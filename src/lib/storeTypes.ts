@@ -100,6 +100,7 @@ export interface ArticleStore
   adjustUnreadCount(feedId: number, delta: number): void;
   setSearch(query: string): Promise<void>;
   toggleSaved(article: Article): Promise<void>;
+  setArticleRead(article: Article, read: boolean): void;
   fetchFullContent(article: Article): Promise<string | null>;
   loadMore(): Promise<void>;
 }

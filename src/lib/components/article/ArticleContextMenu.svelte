@@ -1,5 +1,4 @@
 <script lang="ts">
-import { invoke } from "@tauri-apps/api/core";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { articleStore } from "#lib/store.svelte.js";
 import type { Article } from "#lib/types.js";
@@ -31,15 +30,7 @@ function openInBrowser() {
 
 function toggleRead() {
   if (!cmArticle) return;
-  const article = cmArticle;
-  const newRead = !article.is_read;
-  article.is_read = newRead;
-  articleStore.adjustUnreadCount(article.feed_id, newRead ? -1 : 1);
-  invoke("mark_article_read", { id: article.id, read: newRead }).catch((e) => {
-    article.is_read = !newRead;
-    articleStore.adjustUnreadCount(article.feed_id, newRead ? 1 : -1);
-    console.error("mark_article_read failed:", e);
-  });
+  articleStore.setArticleRead(cmArticle, !cmArticle.is_read);
   close();
 }
 
