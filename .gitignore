@@ -1,31 +1,10 @@
-# Dependencies
-node_modules/
-
-# Build output
-build/
-.svelte-kit/
-src-tauri/gen/
-src-tauri/target/
-coverage/
-
-# Project runtime data
 .assets/
-.docs/*
-
-# Packaging (.pkg build workspace)
-.pkg/*.zst
-.pkg/*.log
-.pkg/feedmee/
-.pkg/pkg/
-.pkg/src/
-.pkg/PKGBUILD
-
-# Local environment / secrets
+.docs/
 .env
 .env.*
-
-# OS / editor
-.DS_Store
-Thumbs.db
-.idea/
-.vscode/
+.pkg/
+.svelte-kit/
+build/
+node_modules/
+src-tauri/gen/
+src-tauri/target/
