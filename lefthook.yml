@@ -15,9 +15,9 @@ pre-push:
   parallel: true
   commands:
     full-check:
-      run: bun run check
+      run: just check
     tests:
-      run: bun run test
+      run: just test
 
 commit-msg:
   commands:

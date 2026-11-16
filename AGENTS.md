@@ -31,7 +31,7 @@
 ### Workflow
 
 - Install: `bun install`
-- Check: `just check` (svelte-check, biome, `cargo fmt --check`, `cargo clippy -D warnings`)
+- Check: `just check` (svelte-check, biome, `just format-check`, `cargo clippy -D warnings`)
 - Dev: `just dev`
 - Test: `just test` (vitest + `cargo test`)
 - Lint: `just lint` (biome)
@@ -39,7 +39,7 @@
 - Build: `just build` (`tauri build --no-bundle`)
 - Package: `just package` (makepkg from `PKGBUILD`)
 - Clean: `just clean` (build artifacts and `node_modules`)
-- Version: `cog bump --auto` (hooks run `bun run check`, `bun run test`, `./scripts/sync_version.sh <version>`, then tag and push)
+- Version: `cog bump --auto` (hooks run `just check`, `just test`, `./scripts/sync_version.sh <version>`, then tag and push)
 
 ### Common Patterns
 

@@ -46,7 +46,7 @@
 | Linux (any)     | AppImage       | `chmod +x FeedMee_*.AppImage && ./FeedMee_*.AppImage` |
 | Windows         | NSIS `.exe`    | Run `FeedMee_*_x64-setup.exe`                         |
 
-Build from source with `bun run package` (Arch/CachyOS) or `bunx tauri build` (see [Development](#development)).
+Build from source with `just package` (Arch/CachyOS) or `just bundle` (see [Development](#development)).
 
 ---
 
@@ -87,7 +87,7 @@ Linux: WebKitGTK 4.1, GTK 3, librsvg, patchelf. Arch/CachyOS: `webkit2gtk-4.1 gt
 
 Windows: WebView2 runtime and the MSVC build tools.
 
-Installers (AppImage/deb/rpm/NSIS) are produced by the release workflow or `bunx tauri build`; `bun run build` stops at the binary.
+Installers (AppImage/deb/rpm/NSIS) are produced by the release workflow or `just bundle`; `just build` stops at the binary.
 
 ---
 
