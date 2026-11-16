@@ -36,3 +36,27 @@ clean:
 # Refresh dependencies to their latest allowed versions.
 update:
     bun run update
+
+# package.json script: check:frontend.
+check-frontend:
+    bun run check:frontend
+
+# package.json script: check:types.
+check-types:
+    bun run check:types
+
+# package.json script: coverage.
+coverage:
+    bun run coverage
+
+# package.json script: format:check.
+format-check:
+    bun run format:check
+
+# package.json script: gen-icons.
+icons:
+    bun run gen-icons
+
+# Bump the version from conventional commits and tag it.
+release:
+    cog bump --auto
