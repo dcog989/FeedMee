@@ -56,6 +56,10 @@ jobs:
       - name: Install frontend dependencies
         run: bun install --frozen-lockfile
 
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: just
+
       - name: Sync SvelteKit
         run: just sync
 
@@ -70,17 +74,12 @@ jobs:
       - name: Check commit messages (Conventional Commits)
         run: |
           if [ "${{ github.event_name }}" = "pull_request" ]; then
-            cog check "${{ github.event.pull_request.base.sha }}..${{ github.sha }}"
+            just commits "${{ github.event.pull_request.base.sha }}..${{ github.sha }}"
           elif [ "${{ github.event.before }}" != "0000000000000000000000000000000000000000" ]; then
-            cog check "${{ github.event.before }}..${{ github.sha }}"
+            just commits "${{ github.event.before }}..${{ github.sha }}"
           else
-            git log -1 --format=%B | cog verify --file -
+            git log -1 --format=%B | just commit-check -
           fi
-
-      - name: Install just
-        uses: taiki-e/install-action@v2
-        with:
-          tool: just
 
       - name: Check
         run: just check
@@ -129,13 +128,12 @@ jobs:
       - name: Install frontend dependencies
         run: bun install --frozen-lockfile
 
-      - name: Sync SvelteKit
-        run: just sync
-
-      - name: Install just
-        uses: taiki-e/install-action@v2
+      - uses: taiki-e/install-action@v2
         with:
           tool: just
+
+      - name: Sync SvelteKit
+        run: just sync
 
       - name: Run tests
         run: just test
