@@ -31,13 +31,13 @@
 ### Workflow
 
 - Install: `bun install`
-- Check: `just check` (svelte-check, biome, `just format-check`, `cargo clippy -D warnings`)
+- Check: `just check` (tests, svelte-check, biome, rustfmt, clippy)
 - Dev: `just dev`
 - Test: `just test` (vitest + `cargo test`)
 - Lint: `just lint` (biome)
 - Format: `just format` (biome + `cargo fmt`)
 - Build: `just build` (`tauri build --no-bundle`)
-- Package: `just package` (makepkg from `PKGBUILD`)
+- Package: `just package` (makepkg from `PKGBUILD`); install the result with `just install`
 - Clean: `just clean` (build artifacts and `node_modules`)
 - Version: `cog bump --auto` (hooks run `just check`, `just test`, `./scripts/sync_version.sh <version>`, then tag and push)
 

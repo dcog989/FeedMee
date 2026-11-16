@@ -1,8 +1,8 @@
 # Verify the repo: frontend and Rust checks, the same set CI runs.
 default: check
 
-# Full check: Svelte types, Biome lint, rustfmt, and Clippy.
-check:
+# Full check: tests, Svelte types, Biome lint, rustfmt, and Clippy.
+check: sync test
     bun run check
 
 # Linter alone.
@@ -28,6 +28,10 @@ dev:
 # makepkg from PKGBUILD.
 package:
     bun run package
+
+# Install the built package with pacman.
+install: package
+    sudo pacman -U --noconfirm .pkg/*.pkg.tar.zst
 
 # Remove build artifacts and node_modules.
 clean:
@@ -68,11 +72,11 @@ bundle:
 # Rust backend only: rustfmt and clippy.
 check-backend:
     cargo fmt --manifest-path src-tauri/Cargo.toml --check
-    cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets --all-features -- -D warnings
+    cargo clippy --locked --manifest-path src-tauri/Cargo.toml --all-targets --all-features -- -D warnings
 
 # Rust backend tests.
 test-backend:
-    cargo test --manifest-path src-tauri/Cargo.toml
+    cargo test --locked --manifest-path src-tauri/Cargo.toml
 
 # Verify commit messages in a range (`just commits origin/main..HEAD`).
 commits range="origin/main..HEAD":
@@ -81,8 +85,6 @@ commits range="origin/main..HEAD":
 # Regenerate the SvelteKit types before a type check.
 sync:
     bunx svelte-kit sync
-
-# Verify commit messages in a range (`just commits origin/main..HEAD`).
 
 # Biome over a file list, as the pre-commit hook passes it.
 format-staged *files:

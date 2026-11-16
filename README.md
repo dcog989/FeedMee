@@ -78,7 +78,8 @@ just clean          # Remove build artifacts and node_modules
 just format         # Biome + rustfmt
 just test           # Vitest + cargo test
 just dev            # Starts the Vite dev server and Tauri with HMR.
-just package        # Build + install via makepkg (Arch / CachyOS)
+just package        # Build via makepkg (Arch / CachyOS)
+just install        # Install the built package (sudo)
 ```
 
 Dependencies: Bun, Rust (edition 2024, 1.85+).
