@@ -64,3 +64,22 @@ release:
 # Full Tauri bundles: AppImage, deb, rpm, NSIS.
 bundle:
     bunx tauri build
+
+# Rust backend only: rustfmt and clippy.
+check-backend:
+    cargo fmt --manifest-path src-tauri/Cargo.toml --check
+    cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets --all-features -- -D warnings
+
+# Rust backend tests.
+test-backend:
+    cargo test --manifest-path src-tauri/Cargo.toml
+
+# Verify commit messages in a range (`just commits origin/main..HEAD`).
+commits range="origin/main..HEAD":
+    cog check {{range}}
+
+# Regenerate the SvelteKit types before a type check.
+sync:
+    bunx svelte-kit sync
+
+# Verify commit messages in a range (`just commits origin/main..HEAD`).

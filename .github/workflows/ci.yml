@@ -57,7 +57,7 @@ jobs:
         run: bun install --frozen-lockfile
 
       - name: Sync SvelteKit
-        run: bunx svelte-kit sync
+        run: just sync
 
       - name: Install cocogitto
         run: |
@@ -130,7 +130,7 @@ jobs:
         run: bun install --frozen-lockfile
 
       - name: Sync SvelteKit
-        run: bunx svelte-kit sync
+        run: just sync
 
       - name: Install just
         uses: taiki-e/install-action@v2
@@ -153,8 +153,8 @@ jobs:
 
       - name: Check backend
         working-directory: src-tauri
-        run: cargo clippy --all-targets --all-features -- -D warnings
+        run: just check-backend
 
       - name: Test backend
         working-directory: src-tauri
-        run: cargo test
+        run: just test-backend
