@@ -31,11 +31,14 @@
 ### Workflow
 
 - Install: `bun install`
-- Dev: `bun run dev`
-- Test: `bun run test` (vitest + `cargo test`)
-- Lint: `bun run check` (svelte-check, biome, `cargo clippy -D warnings`)
-- Format: `bun run format` (biome + `cargo fmt`)
-- Build: `bun run build` (`tauri build --no-bundle`)
+- Check: `just check` (svelte-check, biome, `cargo fmt --check`, `cargo clippy -D warnings`)
+- Dev: `just dev`
+- Test: `just test` (vitest + `cargo test`)
+- Lint: `just lint` (biome)
+- Format: `just format` (biome + `cargo fmt`)
+- Build: `just build` (`tauri build --no-bundle`)
+- Package: `just package` (makepkg from `PKGBUILD`)
+- Clean: `just clean` (build artifacts and `node_modules`)
 - Version: `cog bump --auto` (hooks run `bun run check`, `bun run test`, `./scripts/sync_version.sh <version>`, then tag and push)
 
 ### Common Patterns

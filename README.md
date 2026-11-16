@@ -72,13 +72,13 @@ Build from source with `bun run package` (Arch/CachyOS) or `bunx tauri build` (s
 
 ```sh
 bun install         # install prerequisites
-bun run build       # Build release binary (no installers)
-bun run check       # Types, lint, and Clippy
-bun run clean       # Remove build artifacts and node_modules
-bun run format      # Biome + rustfmt
-bun run test        # Vitest + cargo test
-bun run dev         # Starts the Vite dev server and Tauri with HMR.
-bun run package     # Build + install via makepkg (Arch / CachyOS)
+just build          # Build release binary (no installers)
+just check          # Types, lint, and Clippy
+just clean          # Remove build artifacts and node_modules
+just format         # Biome + rustfmt
+just test           # Vitest + cargo test
+just dev            # Starts the Vite dev server and Tauri with HMR.
+just package        # Build + install via makepkg (Arch / CachyOS)
 ```
 
 Dependencies: Bun, Rust (edition 2024, 1.85+).
