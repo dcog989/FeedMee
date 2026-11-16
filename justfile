@@ -32,3 +32,7 @@ package:
 # Remove build artifacts and node_modules.
 clean:
     bun run clean
+
+# Refresh dependencies to their latest allowed versions.
+update:
+    bun run update
