@@ -3,12 +3,12 @@ pre-commit:
   jobs:
     - name: biome
       glob: "*.{js,ts,svelte,json,css}"
-      run: bunx biome check --write --no-errors-on-unmatched --files-ignore-unknown=true {staged_files}
+      run: just format-staged {staged_files}
       stage_fixed: true
 
     - name: rust-fmt
       glob: "*.rs"
-      run: cargo fmt --manifest-path src-tauri/Cargo.toml -- {staged_files}
+      run: just format-rust-staged {staged_files}
       stage_fixed: true
 
 pre-push:
@@ -22,4 +22,4 @@ pre-push:
 commit-msg:
   commands:
     cog:
-      run: cog verify --file {1}
+      run: just commit-check {1}
