@@ -4,7 +4,7 @@ import { tooltip } from "#lib/actions/tooltip.svelte.js";
 import { FEED_FAILURE_LIMIT } from "#lib/feedRefresh.svelte.js";
 import { refreshStore } from "#lib/store.svelte.js";
 import type { Feed } from "#lib/types.js";
-import { getFavicon, handleFaviconError } from "#lib/utils/favicon.js";
+import { getFavicon, getFaviconFallback, handleFaviconError } from "#lib/utils/favicon.js";
 
 let { feed, isSelected = false }: { feed: Feed; isSelected?: boolean } = $props();
 const disabled = $derived(feed.error_count >= FEED_FAILURE_LIMIT);
@@ -15,7 +15,14 @@ const disabledTooltip = $derived(
 
 <span class="feed-name-wrap">
   {#if feed.display_url}
-    <img src={getFavicon(feed.display_url)} alt="" class="feed-favicon" loading="lazy" onerror={handleFaviconError}>
+    <img
+      src={getFavicon(feed.display_url)}
+      data-fallback={getFaviconFallback(feed.display_url)}
+      alt=""
+      class="feed-favicon"
+      loading="lazy"
+      onerror={handleFaviconError}
+    >
     <span class="feed-icon favicon-fallback-hidden" class:icon-selected={isSelected}>#</span>
   {:else}
     <span class="feed-icon" class:icon-selected={isSelected}>#</span>
