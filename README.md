@@ -70,8 +70,7 @@ Build from source with `just package` (Arch/CachyOS) or `just bundle` (see [Deve
 
 ### Development
 
-
-install prerequisites: `bun install`
+Prerequisites: `bun install`
 
 ```sh
 just                # Verify the repo: the same checks CI runs.
