@@ -6,7 +6,7 @@ use std::collections::HashMap;
 
 fn feed_derived_fields(url: &str, feed_type: &str) -> (String, String) {
     if feed_type == "bluesky" {
-        let did = url.strip_prefix("bsky:").unwrap_or(url);
+        let did = url.trim_prefix("bsky:");
         (String::new(), did.to_string())
     } else {
         (url.to_string(), url.to_string())

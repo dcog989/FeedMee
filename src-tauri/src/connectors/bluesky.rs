@@ -311,7 +311,7 @@ pub async fn resolve_bluesky_source(url: &str, client: &reqwest::Client) -> Resu
 }
 
 pub async fn refresh_bluesky_feed(feed_url: &str, feed_id: i64, state: &AppState) -> Result<i64, String> {
-    let actor = feed_url.strip_prefix("bsky:").unwrap_or(feed_url);
+    let actor = feed_url.trim_prefix("bsky:");
 
     let last_seen = {
         let conn = state.db.lock().unwrap();

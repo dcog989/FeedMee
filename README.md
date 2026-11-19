@@ -70,8 +70,11 @@ Build from source with `just package` (Arch/CachyOS) or `just bundle` (see [Deve
 
 ### Development
 
+
+install prerequisites: `bun install`
+
 ```sh
-bun install         # install prerequisites
+just                # Verify the repo: the same checks CI runs.
 just build          # Build release binary (no installers)
 just check          # Types, lint, and Clippy
 just clean          # Remove build artifacts and node_modules
