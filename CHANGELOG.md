@@ -2,6 +2,186 @@
 All notable changes to this project will be documented in this file. See [conventional commits](https://www.conventionalcommits.org/) for commit guidelines.
 
 - - -
+## v1.24.0 - 2026-11-19
+
+#### Features
+
+- (64f5d28) show when a feed, folder or library is already fresh - dcog989
+
+- (e873a30) mark an article read when leaving it instead of on open - dcog989
+
+- (70d3f50) warn when two commands share a key - dcog989
+
+#### Bug Fixes
+
+- (0a1ad58) load the site's own favicon before falling back to an icon service - dcog989
+
+- (0e23f2d) restore wheel scrolling and held arrow key repeat - dcog989
+
+- (50245fc) run tests in check and keep system install out of package - dcog989
+
+- (ace39c0) stop the reset effect from looping on loadGen - dcog989
+
+- (a80371d) clear remaining svelte-check warnings - dcog989
+
+- (1ea5d0c) only strip a heading that starts with the article title - dcog989
+
+- (db97fa0) let the feed icon fallback survive markup changes - dcog989
+
+- (19a3007) match body images whose file name carries a size suffix - dcog989
+
+- (56ac671) keep the paste menu in text fields and the tooltip on screen - dcog989
+
+- (a269358) let the panes keep keyboard activation and ignore shortcuts behind dialogs - dcog989
+
+- (dc27a22) keep tag edits in place and surface feed and folder save errors - dcog989
+
+- (9a0a975) stop misstating the licence and confirm copies - dcog989
+
+- (642eafe) keep context menus on screen - dcog989
+
+- (f2b1e1a) record keys exactly as they are matched - dcog989
+
+- (b09e536) keep form values valid and clear thumbnails for real - dcog989
+
+- (26712e8) focus dialogs and let only the top one handle Escape - dcog989
+
+- (acff0b0) re-render less, scope search honestly and tag from one popover - dcog989
+
+- (6fa8789) dedupe paged articles and own mark-read in one place - dcog989
+
+- (8cac3f0) keep stale content and stray browser windows out of the reading pane - dcog989
+
+- (6d68504) treat an empty folder as fresh - dcog989
+
+- (23f97d7) correct drag-drop, selection and scroll behaviour - dcog989
+
+- (757ee89) keep arrow keys and startup off the hidden uncategorized folder - dcog989
+
+- (aea95a1) default the refresh debounce to three minutes - dcog989
+
+- (36358f6) let a manual refresh bypass the freshness window - dcog989
+
+- (b27c859) match the database read rule when marking all read - dcog989
+
+- (086fdfa) keep a view after deleting the open feed or folder - dcog989
+
+- (b8cf76a) report a failed Read Later toggle - dcog989
+
+- (7110d5d) bound the blocked-phrase page scan - dcog989
+
+- (2d11ad4) keep the open article when a refresh reloads the list - dcog989
+
+- (b29eda0) apply a feed switch before marking the old feed read - dcog989
+
+- (ec06e45) stop the global handler swallowing arrows in dropdowns - dcog989
+
+- (bbd42b6) disarm the recorder when its dialog closes - dcog989
+
+- (e20119d) match the backend thumbnail default and stop duplicating it - dcog989
+
+- (c9dbbe9) keep keyboard focus in the nav after opening a feed - dcog989
+
+- (3e404f2) recover from a missing saved view or bad stored state - dcog989
+
+- (cf26fbb) set the program name so Wayland reports the app id KWin matches - dcog989
+
+- (3636c15) raise the decode budget to match the dimension guard - dcog989
+
+- (9636420) set the GTK app id so Wayland matches the desktop entry - dcog989
+
+- (4ae4a85) keep the better copy's summary when a low-res duplicate arrives - dcog989
+
+- (14d1b5d) enable reqwest query feature and borrow log spec - dcog989
+
+- (9da8cc6) show the failure dialog from a worker thread - dcog989
+
+- (118f7b7) surface the automatic subscription backups - dcog989
+
+- (2ba616c) write exports from the export command - dcog989
+
+- (7a8df48) keep feed types, nested folders and empty folders - dcog989
+
+- (a1f1670) fall back to defaults for missing keys - dcog989
+
+- (048e478) drop the daily vacuum and run a pass on every launch - dcog989
+
+- (a59f431) keep the database on transient errors and report boot failures - dcog989
+
+- (afff964) bound image decoding and cache memory - dcog989
+
+- (285045a) accept short articles and decode declared charsets - dcog989
+
+- (b86e956) cap page reads and reject navigation links - dcog989
+
+- (22e05ed) validate renamed URLs and normalize OPML feeds - dcog989
+
+- (b23a08c) write settings atomically and apply them live - dcog989
+
+- (406fa6a) catch up pagination and map posts correctly - dcog989
+
+- (586f67c) pick the right feed and decode pages correctly - dcog989
+
+- (1273aa1) skip feeds that are already subscribed - dcog989
+
+- (0953e51) harden feed discovery and make adds atomic - dcog989
+
+- (ca9de4a) group feeds in one query and refuse duplicate feed URLs - dcog989
+
+- (0328de2) reuse the stored tag when the name already exists - dcog989
+
+- (1161c90) look up only fetched URLs and drop orphaned sentinel rows - dcog989
+
+- (21501ec) keep paging when blocked phrases empty a page - dcog989
+
+- (2e24463) resume migrations on upgraded databases and move maintenance off startup - dcog989
+
+- (5855f50) show the window if the frontend never asks for it - dcog989
+
+- (c48b251) refuse feed URLs that point at the local network - dcog989
+
+- (fce890b) drop the phone layout and set a window minimum - dcog989
+
+- (a2826c7) stop saving theme colours on unrelated edits - dcog989
+
+- (e8d99de) reset pkgrel on version bump - dcog989
+
+- (fd03ffa) ship the desktop entry under the app id - dcog989
+
+- (0cbb320) raise the minimum rust version to 1.88 - dcog989
+
+- (4c1ccae) decode gif images - dcog989
+
+- (0bc52a9) declare linux package dependencies for deb and rpm - dcog989
+
+- (2732fbb) add a content security policy that keeps inline styles working - dcog989
+
+#### Performance Improvements
+
+- (274c237) cap image downloads at 10MB - dcog989
+
+#### Refactoring
+
+- (6569545) drop unused base64 dep, use str::trim_prefix - dcog989
+
+- (1d0d339) drop the unreachable input guard and unused clear - dcog989
+
+- (a4e0e8d) share the dialog action-button styles - dcog989
+
+- (a1c0354) let the store own the UI state - dcog989
+
+- (8a94ffe) drop freshness tooltips that can go stale - dcog989
+
+- (7c56056) name the fetch budget for what it bounds - dcog989
+
+- (7a89bdb) send appearance changes as a patch - dcog989
+
+- (38b8b73) move article appearance into its own component - dcog989
+
+- (ff219ad) drop unused store imports - dcog989
+
+- - -
+
 ## v1.23.3 - 2026-11-12
 
 #### Bug Fixes
