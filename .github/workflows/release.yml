@@ -32,6 +32,10 @@ jobs:
 
       - uses: dtolnay/rust-toolchain@stable
 
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: just
+
       - name: Setup bun
         uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6
 

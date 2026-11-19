@@ -16,7 +16,7 @@
     "format": "bunx biome format --write . && cd src-tauri && cargo fmt",
     "format:check": "bunx biome format . && cd src-tauri && cargo fmt -- --check",
     "gen-icons": "tauri icon src-tauri/icons/icon.png",
-    "package": "bun run build && mkdir -p .pkg && cp PKGBUILD .pkg/ && cd .pkg && makepkg -f --noconfirm",
+    "package": "bun run build && mkdir -p .pkg && rm -f .pkg/*.pkg.tar.zst && cp PKGBUILD .pkg/ && cd .pkg && makepkg -f --noconfirm",
     "prepare": "lefthook install",
     "test": "echo \"Running Tests...\" && vitest run && cd src-tauri && cargo test --locked",
     "update": "bun update --latest && cd src-tauri && cargo upgrade && cargo update --verbose"
