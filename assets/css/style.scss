@@ -1,0 +1,161 @@
+---
+---
+
+/* Palette mirrors src/app.css dark theme */
+
+:root {
+  color-scheme: dark;
+  --bg-app: #1e1e1e;
+  --bg-pane: #252525;
+  --text-primary: #cccccc;
+  --text-secondary: #858585;
+  --border: #333333;
+  --accent: #d4619a;
+  --font-ui: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans",
+    Cantarell, Roboto, sans-serif;
+  --font-title: ui-serif, serif;
+  --font-mono: ui-monospace, "JetBrains Mono", "Fira Code", monospace;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--bg-app);
+  color: var(--text-primary);
+  font-family: var(--font-ui);
+  font-size: 16px;
+  line-height: 1.6;
+}
+
+.content,
+footer {
+  max-width: 46rem;
+  margin: 0 auto;
+  padding: 0 1.5rem;
+}
+
+.content {
+  padding-top: 3rem;
+  padding-bottom: 4rem;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  margin: 2rem 0 0.75rem;
+  color: var(--accent);
+  font-family: var(--font-title);
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+h1 {
+  margin-top: 0;
+  font-size: 2.2rem;
+}
+
+h2 {
+  margin-top: 2.5rem;
+  font-size: 1.5rem;
+}
+
+h3 {
+  font-size: 1.15rem;
+}
+
+p,
+ul,
+ol,
+table,
+pre,
+blockquote {
+  margin: 0 0 1.25rem;
+}
+
+a {
+  color: inherit;
+  text-decoration-color: var(--border);
+  text-underline-offset: 0.2em;
+}
+
+a:hover {
+  text-decoration-color: var(--accent);
+}
+
+hr {
+  margin: 2.5rem 0;
+  border: 0;
+  border-top: 1px solid var(--border);
+}
+
+img {
+  max-width: 100%;
+  height: auto;
+  vertical-align: middle;
+}
+
+code,
+pre {
+  font-family: var(--font-mono);
+}
+
+code {
+  padding: 0.1em 0.35em;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--bg-pane);
+  font-size: 0.85em;
+}
+
+pre {
+  padding: 1rem;
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg-pane);
+}
+
+pre code {
+  padding: 0;
+  border: 0;
+  background: none;
+  font-size: 0.85rem;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.95rem;
+}
+
+th,
+td {
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+}
+
+th {
+  color: var(--text-secondary);
+  font-weight: 600;
+}
+
+blockquote {
+  padding-left: 1rem;
+  border-left: 3px solid var(--accent);
+  color: var(--text-secondary);
+}
+
+footer {
+  padding-bottom: 3rem;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
