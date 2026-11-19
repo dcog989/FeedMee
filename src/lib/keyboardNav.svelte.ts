@@ -155,8 +155,9 @@ export function setupKeyHandler(state: KeyHandlerDeps): void {
       tag === "input" || tag === "textarea" || tag === "select" || (e.target as HTMLElement)?.isContentEditable;
     if (isInput) return;
 
-    // Holding an arrow scrolls the article, but must not rerun the list queries.
-    if (e.repeat && state.focusedPane !== "reading") return;
+    // A held arrow re-selects feeds in the nav pane, rerunning the article query
+    // on every repeat. The list and reading panes only move the selection or scroll.
+    if (e.repeat && state.focusedPane === "nav") return;
 
     switch (e.key) {
       case "ArrowLeft":

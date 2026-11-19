@@ -9,7 +9,7 @@ function key(init: KeyboardEventInit): KeyboardEvent {
 function makeState() {
   return {
     showSettings: false,
-    focusedPane: "nav" as const,
+    focusedPane: "nav" as "nav" | "list" | "reading",
     selectedArticle: null,
     navUp: vi.fn(),
     navDown: vi.fn(),
@@ -69,5 +69,18 @@ describe("setupKeyHandler", () => {
 
     expect(state.navDown).toHaveBeenCalledTimes(1);
     expect(action).not.toHaveBeenCalled();
+  });
+
+  it("moves the list selection on a held arrow key", () => {
+    state.focusedPane = "list";
+    window.dispatchEvent(key({ key: "ArrowDown", repeat: true }));
+
+    expect(state.articleDown).toHaveBeenCalledTimes(1);
+  });
+
+  it("ignores a held arrow key in the nav pane", () => {
+    window.dispatchEvent(key({ key: "ArrowDown", repeat: true }));
+
+    expect(state.navDown).not.toHaveBeenCalled();
   });
 });

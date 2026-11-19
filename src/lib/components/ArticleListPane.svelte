@@ -41,3 +41,13 @@ function onListScroll() {
 <ArticleContextMenu bind:this={ctxMenu} />
 
 <TagPopover articleId={tags.articleId} x={tags.x} y={tags.y} onClose={tags.close} />
+
+<style>
+.pane-wrapper {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background-color: var(--bg-article, var(--bg-content));
+  border-right: 1px solid var(--border-color);
+}
+</style>
