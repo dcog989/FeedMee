@@ -1,6 +1,3 @@
----
----
-
 /* Palette mirrors src/app.css dark theme */
 
 :root {
@@ -11,8 +8,7 @@
   --text-secondary: #858585;
   --border: #333333;
   --accent: #d4619a;
-  --font-ui: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans",
-    Cantarell, Roboto, sans-serif;
+  --font-ui: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Cantarell, Roboto, sans-serif;
   --font-title: ui-serif, serif;
   --font-mono: ui-monospace, "JetBrains Mono", "Fira Code", monospace;
 }
