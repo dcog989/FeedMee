@@ -83,7 +83,12 @@ fn quarantine_settings(path: &Path, reason: &str) -> AppSettings {
     if let Err(e) = fs::rename(path, &moved) {
         eprintln!("[settings] failed to move the unreadable file aside: {}", e);
     }
-    AppSettings::default()
+    // Retention defaults to 90 days, so falling back to defaults here would
+    // delete articles a user had set to keep. Fail safe: keep everything.
+    AppSettings {
+        article_retention_days: 0,
+        ..AppSettings::default()
+    }
 }
 
 pub fn save_settings(config_dir: &Path, settings: &AppSettings) -> Result<(), String> {
@@ -142,10 +147,7 @@ mod tests {
         std::fs::write(dir.join("settings.toml"), "article_retention_days = \"ninety\"\n").unwrap();
 
         let loaded = load_settings(&dir);
-        assert_eq!(
-            loaded.article_retention_days,
-            AppSettings::default().article_retention_days
-        );
+        assert_eq!(loaded.article_retention_days, 0);
         assert!(!dir.join("settings.toml").exists());
         let moved = std::fs::read_dir(&dir)
             .unwrap()
