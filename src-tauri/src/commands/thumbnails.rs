@@ -5,10 +5,11 @@ use log::info;
 use std::fs;
 use std::io::Cursor;
 use std::path::{Path, PathBuf};
+use std::sync::atomic::{AtomicU64, Ordering};
 use tauri::State;
 use webp::Encoder;
 
-use super::scraper::{scrape_og_image, short_hash};
+use super::scraper::short_hash;
 
 /// Sources above this are skipped, not downloaded: some sites publish only the
 /// full-resolution original (NASA's are 100 MB+), which a feed list must not
@@ -21,6 +22,9 @@ const MAX_IMAGE_DIMENSION: u32 = 8192;
 /// photo is rejected before it can be resized down to a thumbnail.
 const MAX_IMAGE_ALLOC_BYTES: u64 = MAX_IMAGE_DIMENSION as u64 * MAX_IMAGE_DIMENSION as u64 * 4;
 const THUMBNAIL_QUALITY: f32 = 50.0;
+
+/// Distinguishes concurrent cache writes to the same key.
+static THUMBNAIL_WRITE_SEQ: AtomicU64 = AtomicU64::new(0);
 
 fn process_thumbnail(bytes: &[u8], size: u32) -> Result<Vec<u8>, String> {
     let mut limits = Limits::default();
@@ -62,7 +66,10 @@ fn process_thumbnail(bytes: &[u8], size: u32) -> Result<Vec<u8>, String> {
 
 fn write_thumbnail(path: &Path, bytes: &[u8]) -> Result<(), String> {
     // Write then rename, so a crash cannot leave a truncated file in the cache.
-    let tmp = path.with_extension("tmp");
+    // The temp name is unique per write: two requests for the same key would
+    // otherwise share one temp file and rename a half-written image into place.
+    let sequence = THUMBNAIL_WRITE_SEQ.fetch_add(1, Ordering::Relaxed);
+    let tmp = path.with_extension(format!("{}-{sequence}.tmp", std::process::id()));
     fs::write(&tmp, bytes)
         .and_then(|()| {
             let _ = fs::remove_file(path);
@@ -88,43 +95,25 @@ async fn touch_thumbnail(path: PathBuf) {
 }
 
 #[tauri::command]
-pub async fn get_thumbnail(
-    url: String,
-    image_url: String,
-    size: u32,
-    state: State<'_, AppState>,
-) -> Result<String, String> {
+pub async fn get_thumbnail(image_url: String, size: u32, state: State<'_, AppState>) -> Result<String, String> {
     let size = size.clamp(16, 256);
     let client = state.http_client.clone();
 
     let cache_dir = state.paths.thumbnail_dir();
     fs::create_dir_all(&cache_dir).map_err(|e| format!("Failed to create thumbnail cache: {}", e))?;
-    let source_key = if image_url.is_empty() {
-        url.as_str()
-    } else {
-        image_url.as_str()
-    };
-    let cache_path = cache_dir.join(format!("{}_{}.webp", short_hash(source_key), size));
+    let cache_path = cache_dir.join(format!("{}_{}.webp", short_hash(&image_url), size));
 
     if cache_path.exists() {
         touch_thumbnail(cache_path.clone()).await;
         return path_string(cache_path);
     }
 
-    let resolved = if image_url.is_empty() {
-        scrape_og_image(&client, &url)
-            .await
-            .ok_or_else(|| "No og:image found".to_string())?
-    } else {
-        image_url
-    };
-
-    if !crate::net::is_public_url(&resolved) {
+    if !crate::net::is_public_url(&image_url) {
         return Err("Thumbnail URL is not a public address".to_string());
     }
 
     let mut response = client
-        .get(&resolved)
+        .get(&image_url)
         .send()
         .await
         .map_err(|e| format!("Failed to download thumbnail: {}", e))?;
@@ -207,10 +196,34 @@ pub fn cleanup_thumbnail_cache(cache_dir: &Path, max_age_days: u64, max_bytes: u
 
 #[cfg(test)]
 mod tests {
-    use super::process_thumbnail;
+    use super::{process_thumbnail, write_thumbnail};
 
     #[test]
     fn rejects_undecodable_bytes() {
         assert!(process_thumbnail(b"not an image", 64).is_err());
+    }
+
+    #[test]
+    fn concurrent_cache_writes_leave_a_complete_file() {
+        let dir = std::env::temp_dir().join(format!("feedmee-thumbnails-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).unwrap();
+        let path = dir.join("thumb_56.webp");
+
+        std::thread::scope(|scope| {
+            for _ in 0..8 {
+                scope.spawn(|| write_thumbnail(&path, b"complete").unwrap());
+            }
+        });
+
+        assert_eq!(std::fs::read(&path).unwrap(), b"complete".to_vec());
+        let leftovers = std::fs::read_dir(&dir)
+            .unwrap()
+            .filter_map(|entry| entry.ok())
+            .filter(|entry| entry.path().extension().is_some_and(|ext| ext == "tmp"))
+            .count();
+        assert_eq!(leftovers, 0);
+
+        let _ = std::fs::remove_dir_all(&dir);
     }
 }
