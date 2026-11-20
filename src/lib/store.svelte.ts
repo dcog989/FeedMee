@@ -211,6 +211,7 @@ class AppStateImpl {
   }
 
   refreshAllFeeds = () => this.refresh.refreshAllFeeds();
+  refreshFeeds = (feedIds: number[]) => this.refresh.refreshFeeds(feedIds);
   requestRefreshFeed = (feedId: number) => this.refresh.requestRefreshFeed(feedId);
   requestRefreshFolder = (folderId: number) => this.refresh.requestRefreshFolder(folderId);
 

@@ -62,12 +62,12 @@ export function createFeedActions(state: FeedStore) {
 
     state.isLoadingArticles = true;
     try {
-      await invoke("import_opml", { path: selected });
+      const imported = await invoke<number[]>("import_opml", { path: selected });
       await state.refreshFolders();
-      await state.refreshAllFeeds();
-      await state.reloadCurrentArticleList();
-    } catch {
-      state.alert("Failed to import OPML file.");
+      // Only the new feeds need a first fetch; the rest keep their schedule.
+      await state.refreshFeeds(imported);
+    } catch (e) {
+      state.alert(`Failed to import OPML: ${e}`);
     } finally {
       state.isLoadingArticles = false;
     }

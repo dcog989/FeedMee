@@ -60,7 +60,11 @@ export interface RefreshFolders {
   refreshFolders(): Promise<void>;
 }
 
-export interface RefreshAllFeeds extends RefreshFolders {
+export interface RefreshFeeds extends RefreshFolders {
+  refreshFeeds(feedIds: number[]): Promise<void>;
+}
+
+export interface RefreshAllFeeds extends RefreshFeeds {
   refreshAllFeeds(): Promise<void>;
 }
 

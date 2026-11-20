@@ -103,6 +103,22 @@ export function createFeedRefresher(state: RefreshStore) {
     }
   }
 
+  async function refreshFeeds(feedIds: number[]) {
+    const pending = feedIds.filter((feedId) => !state.isFeedFresh(feedId) && !state.updatingFeedIds.has(feedId));
+    if (pending.length === 0) return;
+
+    state.updatingFeedIds = withAdded(state.updatingFeedIds, ...pending);
+    try {
+      await runWithConcurrency(pending, (feedId) => performSingleFeedRefresh(feedId), REFRESH_CONCURRENCY);
+      await state.refreshFolders();
+      if (state.selectedFeedId !== null || state.selectedFolderId !== null) {
+        await state.reloadCurrentArticleList();
+      }
+    } catch (e) {
+      console.error("Failed to refresh feeds:", e);
+    }
+  }
+
   async function requestRefreshFeed(feedId: number) {
     // The debounce covers manual clicks too: refreshing the same site again
     // inside the window is a no-op on purpose, so a user cannot hammer it.
@@ -140,5 +156,5 @@ export function createFeedRefresher(state: RefreshStore) {
     }
   }
 
-  return { refreshAllFeeds, requestRefreshFeed, requestRefreshFolder };
+  return { refreshAllFeeds, refreshFeeds, requestRefreshFeed, requestRefreshFolder };
 }
