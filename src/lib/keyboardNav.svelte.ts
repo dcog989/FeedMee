@@ -1,4 +1,3 @@
-import { invoke } from "@tauri-apps/api/core";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import type { Article, Folder } from "./types";
 import { collapseAllFolders, expandAllFolders } from "./utils/expandedFolders";
@@ -12,7 +11,7 @@ interface ShortcutRegDeps {
   openSettings(): void;
   refreshAllFeeds(): Promise<void>;
   toggleSaved(article: Article): Promise<void>;
-  adjustUnreadCount(feedId: number, delta: number): void;
+  setArticleRead(article: Article, read: boolean): void;
 }
 
 export function registerShortcuts(state: ShortcutRegDeps) {
@@ -68,22 +67,9 @@ export function registerShortcuts(state: ShortcutRegDeps) {
     defaultKey: "m",
     description: "Mark as read/unread",
     category: "Articles",
-    handler: async () => {
+    handler: () => {
       if (!state.selectedArticle) return;
-      const article = state.selectedArticle;
-      const newReadState = !article.is_read;
-      article.is_read = newReadState;
-      state.adjustUnreadCount(article.feed_id, newReadState ? -1 : 1);
-      try {
-        await invoke("mark_article_read", {
-          id: article.id,
-          read: newReadState,
-        });
-      } catch (e) {
-        article.is_read = !newReadState;
-        state.adjustUnreadCount(article.feed_id, newReadState ? 1 : -1);
-        console.error("mark_article_read failed:", e);
-      }
+      state.setArticleRead(state.selectedArticle, !state.selectedArticle.is_read);
     },
   });
 
