@@ -18,7 +18,7 @@ interface ShortcutRegDeps {
 export function registerShortcuts(state: ShortcutRegDeps) {
   shortcutManager.register({
     command: "settings",
-    defaultKey: ",",
+    defaultKey: "ctrl+,",
     description: "Open settings",
     category: "General",
     handler: () => state.openSettings(),

@@ -172,6 +172,8 @@ function vacuum() {
 
   <div class="modal-content">
     <div class="form-container">
+      <h4 class="section-label">General</h4>
+
       <div class="form-group">
         <label for="auto-update">Auto Update Interval</label>
         <input
@@ -225,7 +227,11 @@ function vacuum() {
         </div>
       </div>
 
+      <hr>
+
       <ArticleAppearanceSettings {settings} onchange={(next) => (settings = next)} />
+
+      <hr>
 
       <h4 class="section-label">Display</h4>
 
@@ -237,7 +243,9 @@ function vacuum() {
         </div>
       </div>
 
-      <h4 class="section-label">Maintenance</h4>
+      <hr>
+
+      <h4 class="section-label">Data</h4>
 
       <div class="form-group">
         <label for="retention-days">Auto-delete articles</label>
@@ -255,8 +263,6 @@ function vacuum() {
           >
         </div>
       </div>
-
-      <h4 class="section-label">Storage</h4>
 
       <div class="form-group">
         <span class="field-label">Thumbnail Cache</span>
@@ -344,6 +350,7 @@ function vacuum() {
   align-items: center;
   gap: 0.75rem;
   margin-bottom: 0.25rem;
+  padding-left: 0.75rem;
 }
 
 :global(.settings-modal .form-group label),
@@ -351,7 +358,7 @@ function vacuum() {
   flex: 0 0 180px;
   font-size: 0.9rem;
   color: var(--text-secondary);
-  text-align: right;
+  text-align: left;
 }
 
 .unit {
@@ -457,7 +464,16 @@ select {
   color: var(--text-secondary);
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  border-bottom: 1px solid var(--border-color);
-  padding-bottom: 0.25rem;
+}
+
+:global(.settings-modal .section-label:first-child) {
+  margin-top: 0;
+}
+
+:global(.settings-modal hr) {
+  border: none;
+  border-top: 1px solid var(--border-color);
+  margin: 0.5rem 0;
+  width: 100%;
 }
 </style>

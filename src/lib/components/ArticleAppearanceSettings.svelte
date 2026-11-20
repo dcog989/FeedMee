@@ -53,6 +53,8 @@ async function pickFont(target: "title" | "body") {
   </div>
 </div>
 
+<hr>
+
 <h4 class="section-label">Colors</h4>
 
 <div class="form-group">
