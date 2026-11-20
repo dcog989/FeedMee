@@ -25,8 +25,7 @@ let showHero = $derived(Boolean(heroImage) && !bodyEmbedsImage(rawHtml, heroImag
 let byline = $derived.by(() => {
   const article = articleStore.selectedArticle;
   if (!article) return "";
-  const domain = getFeedDomain(article.feed_id);
-  return article.author ? `${domain}, ${article.author}` : domain;
+  return [getFeedDomain(article.feed_id), article.author].filter(Boolean).join(", ");
 });
 
 let faviconUrl = $derived.by(() => {
