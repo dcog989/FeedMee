@@ -190,6 +190,8 @@ function onResizerKeyDown(target: "nav" | "list", e: KeyboardEvent) {
 .reading-area {
   grid-area: reading;
   overflow: hidden;
+  /* Matches the pane so the unfocused 2px focus border stays invisible. */
+  background-color: var(--bg-article, var(--bg-reading));
 }
 
 .resizer {
