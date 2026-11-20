@@ -83,7 +83,7 @@ pub fn mark_article_read(id: i64, read: bool, state: State<'_, AppState>) -> Res
     db::set_article_read(&conn, id, read).map_err(|e| e.to_string())
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 pub fn mark_all_read(target_type: String, id: i64, state: State<'_, AppState>) -> Result<(), String> {
     info!("Mark All Read: type={}, id={}", target_type, id);
     let conn = state.db.lock().unwrap();
@@ -218,13 +218,13 @@ pub fn rename_feed(id: i64, new_name: String, new_url: String, state: State<'_, 
     db::rename_feed(&conn, id, &new_name, &new_url).map_err(|e| e.to_string())
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 pub fn delete_feed(id: i64, state: State<'_, AppState>) -> Result<(), String> {
     let conn = state.db.lock().unwrap();
     db::delete_feed(&conn, id).map_err(|e| e.to_string())
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 pub fn delete_folder(id: i64, state: State<'_, AppState>) -> Result<(), String> {
     let conn = state.db.lock().unwrap();
     db::delete_folder(&conn, id).map_err(|e| e.to_string())
