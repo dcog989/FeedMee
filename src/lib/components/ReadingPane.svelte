@@ -158,7 +158,11 @@ function getFeedDomain(feedId: number): string {
 .pane {
   container-type: inline-size;
   background-color: var(--bg-article, var(--bg-reading));
-  overflow-y: auto;
+  /* WebKitGTK reserves nothing for scrollbar-gutter here (custom scrollbar
+     styles), so keep the track visible: its width is then always reserved and
+     loading longer content cannot narrow the pane and shift the centered
+     article column sideways. */
+  overflow-y: scroll;
   height: 100%;
   padding: 2rem 3rem;
   box-sizing: border-box;
