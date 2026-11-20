@@ -4,6 +4,7 @@ import { openUrl } from "@tauri-apps/plugin-opener";
 import { tooltip } from "#lib/actions/tooltip.svelte.js";
 import { appState, articleStore } from "#lib/store.svelte.js";
 import { bodyEmbedsImage, stripDuplicateTitle } from "#lib/utils/articleContent.js";
+import { getFavicon, getFaviconFallback, handleFaviconError } from "#lib/utils/favicon.js";
 import { findFeed } from "#lib/utils/feeds.js";
 import ArticleActions from "./article/ArticleActions.svelte";
 import ArticleContent from "./article/ArticleContent.svelte";
@@ -26,6 +27,12 @@ let byline = $derived.by(() => {
   if (!article) return "";
   const domain = getFeedDomain(article.feed_id);
   return article.author ? `${domain}, ${article.author}` : domain;
+});
+
+let faviconUrl = $derived.by(() => {
+  const article = articleStore.selectedArticle;
+  if (!article) return "";
+  return findFeed(appState.folders, article.feed_id)?.display_url || article.url;
 });
 
 $effect(() => {
@@ -107,7 +114,19 @@ function getFeedDomain(feedId: number): string {
           </a>
         </h1>
         <div class="meta-row">
-          <div class="meta-left">{byline}</div>
+          <div class="meta-left">
+            {#if faviconUrl}
+              <img
+                class="article-favicon"
+                src={getFavicon(faviconUrl)}
+                data-fallback={getFaviconFallback(faviconUrl)}
+                alt=""
+                loading="lazy"
+                onerror={handleFaviconError}
+              >
+            {/if}
+            <span>{byline}</span>
+          </div>
           <span class="date">{formatDate(articleStore.selectedArticle.timestamp)}</span>
         </div>
       </header>
@@ -230,6 +249,18 @@ h1 {
 .meta-left {
   display: flex;
   align-items: center;
+  gap: 6px;
+}
+
+.article-favicon {
+  width: 20px;
+  height: 20px;
+  border-radius: 2px;
+  flex: none;
+}
+
+:global(.favicon-failed) .article-favicon {
+  display: none;
 }
 
 .article-footer {
