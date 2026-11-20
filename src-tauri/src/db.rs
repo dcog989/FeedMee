@@ -442,6 +442,22 @@ mod tests {
     }
 
     #[test]
+    fn latest_hides_articles_kept_from_a_deleted_feed() {
+        let mut conn = test_conn();
+        let feed = create_feed(&conn, "Feed", "https://example.com/rss", None, "rss").unwrap();
+        batch_insert_articles(&mut conn, &[sample_article(feed)], None).unwrap();
+
+        let id = get_articles_for_feed(&conn, feed, 10, 0, true).unwrap()[0].id;
+        update_article_saved(&conn, id, true).unwrap();
+        delete_feed(&conn, feed).unwrap();
+
+        // The row survives for Read Later, but it has no feed to attribute it
+        // to, so the Latest view must not show it.
+        assert!(get_latest_articles(&conn, 0, 10, 0, true).unwrap().is_empty());
+        assert_eq!(get_saved_articles(&conn, 10, 0, true).unwrap().len(), 1);
+    }
+
+    #[test]
     fn search_matches_all_terms_in_any_order() {
         let mut conn = test_conn();
         let feed = create_feed(&conn, "Feed", "https://example.com/rss", None, "rss").unwrap();

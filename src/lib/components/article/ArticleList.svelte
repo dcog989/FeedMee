@@ -63,15 +63,15 @@ function requestThumbnail(article: Article) {
   const cacheKey = thumbnailCacheKey(article.image_url, article.url, size);
   if (thumbnailCache.has(cacheKey) || thumbnailPending.has(cacheKey) || thumbnailFailed.has(cacheKey)) return;
   thumbnailPending.add(cacheKey);
-  enqueueThumbnail(cacheKey, article.url, article.image_url, size);
+  enqueueThumbnail(cacheKey, article.image_url, size);
 }
 
-function enqueueThumbnail(cacheKey: string, articleUrl: string, imageUrl: string, size: number) {
+function enqueueThumbnail(cacheKey: string, imageUrl: string, size: number) {
   const epoch = articleStore.thumbnailEpoch;
   const run = async () => {
     thumbnailLoadsInFlight += 1;
     try {
-      const path = await invoke<string>("get_thumbnail", { url: articleUrl, imageUrl, size });
+      const path = await invoke<string>("get_thumbnail", { imageUrl, size });
       // The cache may have been cleared while this was in flight.
       if (epoch === articleStore.thumbnailEpoch) thumbnailCache.set(cacheKey, convertFileSrc(path));
     } catch {
@@ -185,6 +185,9 @@ function onScroll() {
     {:else}
       <div class="empty-state">
         <p>{emptyStateMessage}</p>
+        {#if articleStore.hasMore}
+          <button type="button" class="load-more-btn" onclick={() => articleStore.loadMore()}>Load more</button>
+        {/if}
       </div>
     {/if}
   </section>
@@ -211,5 +214,20 @@ function onScroll() {
   text-align: center;
   color: var(--text-secondary);
   font-size: 0.9rem;
+}
+
+.load-more-btn {
+  margin-top: 0.5rem;
+  padding: 6px 12px;
+  border: 1px solid var(--border-color);
+  background: var(--bg-app);
+  color: var(--text-primary);
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+
+.load-more-btn:hover {
+  background: var(--bg-hover);
 }
 </style>

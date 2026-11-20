@@ -59,7 +59,7 @@ pub fn get_latest_articles(
     let order = order_clause(sort_desc);
     let sql = format!(
         "SELECT {ARTICLE_COLUMNS}
-         FROM articles a WHERE a.timestamp > ?1
+         FROM articles a WHERE a.timestamp > ?1 AND a.feed_id != {SAVED_FEED_ID}
          ORDER BY a.timestamp {order}, a.id {order} LIMIT ?2 OFFSET ?3"
     );
     let mut stmt = conn.prepare(&sql)?;
