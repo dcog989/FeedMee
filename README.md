@@ -26,7 +26,7 @@
 - **Search:** Full-text search across article titles, authors, and summaries.
 - **Thumbnails:** Automatic og:image extraction with resizing, WebP caching, and configurable size.
 - **Local Privacy:** Feeds, articles, settings and tags stay on your machine. No accounts, no telemetry. Feed icons load from DuckDuckGo's icon service.
-- **Auto-Refresh:** Configurable periodic refresh (default 30 min) with 5 concurrent workers and debounce support.
+- **Auto-Refresh:** Configurable periodic refresh (default 30 min) with 5 concurrent workers and a fixed 4 min per-feed debounce.
 - **Blocked Phrases:** Filter out articles containing unwanted phrases.
 - **Article Retention:** Configurable auto-pruning of old articles (default 90 days).
 - **Customizable:** Dark/Light/System themes, configurable refresh intervals, thumbnail size, keyboard shortcut remapping, and log rotation.

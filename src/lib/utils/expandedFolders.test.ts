@@ -1,30 +1,38 @@
 import { describe, expect, it } from "vitest";
-import { collapseAllFolders, expandAllFolders, expandFolder, toggleFolder } from "./expandedFolders";
+import {
+  collapseAllFolders,
+  expandAllFolders,
+  expandFolder,
+  expandFolderKeepingOthers,
+  toggleFolder,
+} from "./expandedFolders";
 
 const FOLDER_A = 1;
 const FOLDER_B = 2;
 
 describe("expandFolder", () => {
-  it("keeps other folders open when auto-collapse is off", () => {
-    expect([...expandFolder(new Set([FOLDER_A]), FOLDER_B, false)]).toEqual([FOLDER_A, FOLDER_B]);
+  it("keeps only the expanded folder open", () => {
+    expect([...expandFolder(FOLDER_B)]).toEqual([FOLDER_B]);
   });
+});
 
-  it("closes the other folders when auto-collapse is on", () => {
-    expect([...expandFolder(new Set([FOLDER_A]), FOLDER_B, true)]).toEqual([FOLDER_B]);
+describe("expandFolderKeepingOthers", () => {
+  it("keeps the other folders open", () => {
+    expect([...expandFolderKeepingOthers(new Set([FOLDER_A]), FOLDER_B)]).toEqual([FOLDER_A, FOLDER_B]);
   });
 });
 
 describe("toggleFolder", () => {
   it("opens a closed folder", () => {
-    expect([...toggleFolder(new Set(), FOLDER_A, false)]).toEqual([FOLDER_A]);
+    expect([...toggleFolder(new Set(), FOLDER_A)]).toEqual([FOLDER_A]);
   });
 
   it("closes an open folder", () => {
-    expect([...toggleFolder(new Set([FOLDER_A]), FOLDER_A, false)]).toEqual([]);
+    expect([...toggleFolder(new Set([FOLDER_A]), FOLDER_A)]).toEqual([]);
   });
 
-  it("closes the other folders when auto-collapse is on", () => {
-    expect([...toggleFolder(new Set([FOLDER_A]), FOLDER_B, true)]).toEqual([FOLDER_B]);
+  it("closes the other folders when opening one", () => {
+    expect([...toggleFolder(new Set([FOLDER_A]), FOLDER_B)]).toEqual([FOLDER_B]);
   });
 });
 

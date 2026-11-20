@@ -56,6 +56,8 @@ export type { Article, SortOrder, Theme };
 export const FEED_ID_LATEST = -1;
 export const FEED_ID_SAVED = -2;
 export const FEED_ID_TODAY = -3;
+/** Minimum time between refreshes of the same feed, no longer configurable. */
+export const REFRESH_DEBOUNCE_MINUTES = 4;
 
 export function applyThemeToDocument(theme: Theme) {
   const root = document.documentElement;
@@ -135,7 +137,7 @@ class AppStateImpl {
   }
 
   get debounceMs() {
-    return this.settings.feed_refresh_debounce_minutes * 60 * 1000;
+    return REFRESH_DEBOUNCE_MINUTES * 60 * 1000;
   }
 
   get articleStore(): ArticleStore {
@@ -293,12 +295,11 @@ class AppStateImpl {
 
     // `expandedFolders` has a single owner here; the persistence effect in
     // useExpandedFolders only writes the current value back to storage. When
-    // startup targets a specific folder, honor auto-collapse so a previously
+    // startup targets a specific folder, collapse the others so a previously
     // expanded folder does not linger alongside it.
     const expandFolderId = startupExpandFolderId(target, this.folders);
     const restored = new Set<number>(storedFolderIds ?? this.folders.map((f) => f.id));
-    this.expandedFolders =
-      expandFolderId !== null ? expandFolder(restored, expandFolderId, this.settings.auto_collapse_folders) : restored;
+    this.expandedFolders = expandFolderId !== null ? expandFolder(expandFolderId) : restored;
 
     // Establish the initial view first so the refresh can publish the selected
     // folder's list as soon as its own feeds finish, rather than after the whole

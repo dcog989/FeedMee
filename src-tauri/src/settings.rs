@@ -7,12 +7,10 @@ pub const SETTINGS_FILENAME: &str = "settings.toml";
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(default)]
 pub struct AppSettings {
-    pub feed_refresh_debounce_minutes: u64,
     pub auto_update_interval_minutes: u64,
     pub log_level: String,
     pub default_view_type: String,
     pub default_view_id: i64,
-    pub auto_collapse_folders: bool,
     pub mark_feed_read_on_exit: bool,
     pub article_title_font: String,
     pub article_body_font: String,
@@ -26,12 +24,10 @@ pub struct AppSettings {
 impl Default for AppSettings {
     fn default() -> Self {
         Self {
-            feed_refresh_debounce_minutes: 3,
             auto_update_interval_minutes: 30,
             log_level: "info".to_string(),
             default_view_type: "latest".to_string(),
             default_view_id: -1,
-            auto_collapse_folders: true,
             mark_feed_read_on_exit: false,
             article_title_font: String::new(),
             article_body_font: String::new(),

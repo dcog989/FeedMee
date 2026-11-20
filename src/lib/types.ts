@@ -37,12 +37,10 @@ export interface Tag {
 }
 
 export interface AppSettings {
-  feed_refresh_debounce_minutes: number;
   auto_update_interval_minutes: number;
   log_level: string;
   default_view_type: string;
   default_view_id: number;
-  auto_collapse_folders: boolean;
   mark_feed_read_on_exit: boolean;
   article_title_font: string;
   article_body_font: string;
@@ -55,12 +53,10 @@ export interface AppSettings {
 
 /** Pre-load placeholder; keep in sync with `AppSettings::default()` in `src-tauri/src/settings.rs`. */
 export const DEFAULT_SETTINGS: AppSettings = {
-  feed_refresh_debounce_minutes: 3,
   auto_update_interval_minutes: 30,
   log_level: "info",
   default_view_type: "latest",
   default_view_id: -1,
-  auto_collapse_folders: true,
   mark_feed_read_on_exit: false,
   article_title_font: "",
   article_body_font: "",

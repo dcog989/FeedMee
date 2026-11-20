@@ -1,11 +1,7 @@
 import { collapseAllFolders, expandAllFolders, toggleFolder as toggle } from "./utils/expandedFolders";
 import { LS_EXPANDED_FOLDERS, writeJson } from "./utils/persistence";
 
-export function useExpandedFolders(state: {
-  folders: { id: number }[];
-  expandedFolders: Set<number>;
-  autoCollapseFolders: boolean;
-}) {
+export function useExpandedFolders(state: { folders: { id: number }[]; expandedFolders: Set<number> }) {
   // Initialization lives in the store (single owner); this effect only
   // persists changes back to storage.
   $effect(() => {
@@ -13,7 +9,7 @@ export function useExpandedFolders(state: {
   });
 
   function toggleFolder(id: number) {
-    state.expandedFolders = toggle(state.expandedFolders, id, state.autoCollapseFolders);
+    state.expandedFolders = toggle(state.expandedFolders, id);
   }
 
   function expandAll() {

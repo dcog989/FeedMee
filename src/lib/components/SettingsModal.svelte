@@ -181,7 +181,7 @@ function vacuum() {
   <div class="modal-content">
     <div class="form-container">
       <div class="form-group">
-        <label for="auto-update">Auto Update Interval (min)</label>
+        <label for="auto-update">Auto Update Interval</label>
         <input
           type="number"
           id="auto-update"
@@ -190,21 +190,7 @@ function vacuum() {
           step="1"
           title="0 to disable"
         >
-      </div>
-
-      <div class="form-group">
-        <label for="debounce">Refresh Debounce (min)</label>
-        <div class="range-wrap">
-          <input
-            type="range"
-            id="debounce"
-            min="1"
-            max="30"
-            step="1"
-            bind:value={settings.feed_refresh_debounce_minutes}
-          >
-          <span class="range-value">{settings.feed_refresh_debounce_minutes} min</span>
-        </div>
+        <span class="unit">minutes</span>
       </div>
 
       <div class="form-group">
@@ -239,13 +225,6 @@ function vacuum() {
           </select>
         </div>
       {/if}
-
-      <div class="form-group">
-        <label for="auto-collapse">Auto Collapse Folders</label>
-        <div class="checkbox-wrap">
-          <input type="checkbox" id="auto-collapse" bind:checked={settings.auto_collapse_folders}>
-        </div>
-      </div>
 
       <div class="form-group">
         <label for="mark-read-exit">Mark Feed Read on Exit</label>
@@ -403,6 +382,12 @@ function vacuum() {
 
 .label-spacer {
   flex: 0 0 180px;
+}
+
+.unit {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  flex: none;
 }
 
 .storage-wrap {

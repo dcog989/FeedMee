@@ -75,7 +75,7 @@ export function createNavigation(state: NavStore) {
   }
 
   function expandFolder(folderId: number) {
-    state.expandedFolders = expandFolderSet(state.expandedFolders, folderId, state.settings.auto_collapse_folders);
+    state.expandedFolders = expandFolderSet(folderId);
   }
 
   function navUp() {

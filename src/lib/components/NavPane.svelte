@@ -2,7 +2,7 @@
 import { Info, Rss, Settings } from "@lucide/svelte";
 import { navStore, uiStore } from "#lib/store.svelte.js";
 import { useExpandedFolders } from "#lib/useExpandedFolders.svelte.js";
-import { expandFolder } from "#lib/utils/expandedFolders.js";
+import { expandFolderKeepingOthers } from "#lib/utils/expandedFolders.js";
 import FolderGroup from "./nav/FolderGroup.svelte";
 import NavContextMenu from "./nav/NavContextMenu.svelte";
 import NavToolbar from "./nav/NavToolbar.svelte";
@@ -28,9 +28,6 @@ const expanded = useExpandedFolders({
   },
   set expandedFolders(v: Set<number>) {
     navStore.expandedFolders = v;
-  },
-  get autoCollapseFolders() {
-    return navStore.settings.auto_collapse_folders;
   },
 });
 
@@ -76,7 +73,7 @@ function handleNavDragOver(e: DragEvent) {
   if (navStore.expandedFolders.has(folderId)) return;
 
   expandTimeout = setTimeout(() => {
-    navStore.expandedFolders = expandFolder(navStore.expandedFolders, folderId, false);
+    navStore.expandedFolders = expandFolderKeepingOthers(navStore.expandedFolders, folderId);
     expandTimeout = null;
     pendingFolderId = null;
   }, DRAG_EXPAND_DELAY_MS);
