@@ -33,17 +33,31 @@ impl FeedConnector for RssConnector {
             return Ok(feed);
         }
 
-        let client = &state.http_client;
+        let client = state.http_client.clone();
         let html = String::from_utf8_lossy(content_bytes);
         let mut candidates = Vec::new();
         if let Some(rss_url) = discover_rss_feed_url(&html, original_url) {
             debug!("rss connector: discovered RSS url={}", rss_url);
-            candidates.push(rss_url);
+            // The discovered link is the likeliest hit; try it alone before
+            // spending a round of probes on the conventional paths.
+            if let Some(feed) = fetch_feed(&client, &rss_url).await {
+                return Ok(feed);
+            }
         }
         candidates.extend(candidate_feed_urls(original_url));
 
+        // Probe together: sequentially, eight timeouts can add up to most of a
+        // minute of waiting inside one "Add feed" click.
+        let mut probes = Vec::with_capacity(candidates.len());
         for candidate in candidates {
-            if let Some(feed) = fetch_feed(client, &candidate).await {
+            let client = client.clone();
+            probes.push(tauri::async_runtime::spawn(async move {
+                let feed = fetch_feed(&client, &candidate).await;
+                (candidate, feed)
+            }));
+        }
+        for probe in probes {
+            if let Ok((candidate, Some(feed))) = probe.await {
                 debug!("rss connector: probed RSS url={}", candidate);
                 return Ok(feed);
             }
