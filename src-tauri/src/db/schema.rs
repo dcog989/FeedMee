@@ -143,6 +143,9 @@ fn migrate(conn: &mut Connection) -> Result<(), Box<dyn std::error::Error>> {
 pub fn run_vacuum(conn: &Connection) -> Result<()> {
     info!("Running database VACUUM...");
     conn.execute("VACUUM", [])?;
+    // FTS5 keeps deleted rows until its segments merge. Rebuild here, where a
+    // long lock is expected, not during the daily purge.
+    conn.execute("INSERT INTO articles_fts(articles_fts) VALUES('optimize')", [])?;
     info!("Database VACUUM completed");
     Ok(())
 }
@@ -165,17 +168,16 @@ pub fn purge_old_articles(conn: &Connection, retention_days: u64) -> Result<usiz
         info!("Article retention disabled; skipping purge");
         return Ok(0);
     };
+    // Undated rows are left alone: a refresh would re-insert them as unread,
+    // because the insert path can only skip items that carry a timestamp.
     let count = conn.execute(
         "DELETE FROM articles
-         WHERE COALESCE(NULLIF(timestamp, 0), created_at) < ?1
+         WHERE timestamp > 0 AND timestamp < ?1
            AND is_saved = 0
            AND NOT EXISTS (SELECT 1 FROM article_tags WHERE article_id = articles.id)",
         params![cutoff],
     )?;
     if count > 0 {
-        // FTS5 keeps a delete list until segments merge; without this the
-        // search index grows with every purge.
-        conn.execute("INSERT INTO articles_fts(articles_fts) VALUES('optimize')", [])?;
         info!("Purged {} old articles (retention: {} days)", count, retention_days);
     }
     Ok(count)
