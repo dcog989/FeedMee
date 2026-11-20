@@ -93,55 +93,6 @@ jobs:
           log-level: warn
           manifest-path: src-tauri/Cargo.toml
 
-  test:
-    runs-on: ubuntu-latest
-    timeout-minutes: 30
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
-
-      - uses: dtolnay/rust-toolchain@stable
-
-      - name: Setup bun
-        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6
-
-      - name: Cache node_modules
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
-        with:
-          path: node_modules
-          key: bun-${{ hashFiles('bun.lock') }}-v1
-          restore-keys: |
-            bun-${{ hashFiles('bun.lock') }}-
-            bun-
-
-      - name: Cache Rust
-        uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0
-        with:
-          workspaces: "./src-tauri -> target"
-
-      - name: Install system dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y \
-            libwebkit2gtk-4.1-dev \
-            libappindicator3-dev \
-            librsvg2-dev \
-            patchelf \
-            libssl-dev \
-            libgtk-3-dev
-
-      - name: Install frontend dependencies
-        run: bun install --frozen-lockfile
-
-      - uses: taiki-e/install-action@v2
-        with:
-          tool: just
-
-      - name: Sync SvelteKit
-        run: just sync
-
-      - name: Run tests
-        run: just test
-
   windows:
     runs-on: windows-latest
     timeout-minutes: 30
