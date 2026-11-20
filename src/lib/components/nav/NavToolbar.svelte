@@ -1,5 +1,5 @@
 ﻿<script lang="ts">
-import { ChevronDown, ChevronUp, FolderPlus, RefreshCw, Rss } from "@lucide/svelte";
+import { ChevronDown, ChevronUp, FolderPlus, Info, RefreshCw, Rss, Settings } from "@lucide/svelte";
 import { tooltip } from "#lib/actions/tooltip.svelte.js";
 import { refreshStore, uiStore } from "#lib/store.svelte.js";
 
@@ -35,20 +35,21 @@ function manageContent() {
   <button type="button" onclick={createFolder} use:tooltip={"New Folder"} aria-label="New Folder">
     <FolderPlus size={18} />
   </button>
-  <button
-    type="button"
-    onclick={manageContent}
-    use:tooltip={"Manage Content"}
-    class="manage-btn"
-    aria-label="Manage Content"
-  >
+  <button type="button" onclick={manageContent} use:tooltip={"Manage Content"} aria-label="Manage Content">
     <Rss size={18} />
+  </button>
+  <span class="toolbar-spacer"></span>
+  <button type="button" onclick={() => uiStore.openSettings()} use:tooltip={"Settings"} aria-label="Settings">
+    <Settings size={18} />
+  </button>
+  <button type="button" onclick={() => uiStore.openAbout()} use:tooltip={"About FeedMee"} aria-label="About FeedMee">
+    <Info size={18} />
   </button>
 </div>
 
 <style>
-.manage-btn {
-  margin-left: auto;
+.toolbar-spacer {
+  flex: 1;
 }
 
 :global(.spinning) {

@@ -1,5 +1,4 @@
 <script lang="ts">
-import { Info, Settings } from "@lucide/svelte";
 import { navStore, uiStore } from "#lib/store.svelte.js";
 import { useExpandedFolders } from "#lib/useExpandedFolders.svelte.js";
 import { expandFolderKeepingOthers } from "#lib/utils/expandedFolders.js";
@@ -111,16 +110,6 @@ function onDragLeavePane(e: DragEvent) {
   </div>
 
   <NavContextMenu bind:this={ctxMenu} />
-
-  <div class="app-toolbar app-toolbar-bottom">
-    <button type="button" onclick={() => uiStore.openSettings()} title="Settings" aria-label="Settings">
-      <Settings size={18} />
-    </button>
-    <span class="footer-spacer"></span>
-    <button type="button" onclick={() => uiStore.openAbout()} title="About FeedMee" aria-label="About FeedMee">
-      <Info size={18} />
-    </button>
-  </div>
 </nav>
 
 <style>
@@ -138,9 +127,5 @@ function onDragLeavePane(e: DragEvent) {
   flex: 1;
   overflow-y: auto;
   padding: 0 1rem 1rem;
-}
-
-.footer-spacer {
-  flex: 1;
 }
 </style>
