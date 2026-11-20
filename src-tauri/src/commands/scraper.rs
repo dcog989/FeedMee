@@ -5,6 +5,10 @@ use scraper::{Html, Selector};
 use std::sync::Arc;
 use url::Url;
 
+/// A page can link to an unbounded number of URLs; cap what one add or refresh
+/// may insert so a single hostile page cannot fill the library.
+pub const MAX_PAGE_ARTICLES: usize = 300;
+
 pub fn scrape_og_image_from_html(html: &str, page_url: &str) -> Option<String> {
     let document = Html::parse_document(html);
     let meta_sel = Selector::parse("meta").ok()?;
@@ -240,8 +244,10 @@ pub fn scrape_articles_from_page(html: &str, page_url: &str) -> Vec<Article> {
     // Sites that wrap everything in one container have no main content marker,
     // so keep the old behaviour instead of returning an empty feed.
     if trusted.is_empty() {
+        fallback.truncate(MAX_PAGE_ARTICLES);
         fallback
     } else {
+        trusted.truncate(MAX_PAGE_ARTICLES);
         trusted
     }
 }
@@ -303,7 +309,7 @@ where
 
 #[cfg(test)]
 mod tests {
-    use super::{scrape_articles_from_page, scrape_og_image_from_html};
+    use super::{MAX_PAGE_ARTICLES, scrape_articles_from_page, scrape_og_image_from_html};
 
     #[test]
     fn resolves_relative_og_image() {
@@ -342,5 +348,17 @@ mod tests {
         let html = r#"<html><body><div><a href="/posts/three">A third real title</a></div></body></html>"#;
         let articles = scrape_articles_from_page(html, "https://example.com/");
         assert_eq!(articles.len(), 1);
+    }
+
+    #[test]
+    fn one_page_is_capped_to_a_sane_article_count() {
+        let links: String = (0..MAX_PAGE_ARTICLES + 50)
+            .map(|i| format!("<a href=\"/posts/{i}\">Article title number {i}</a>"))
+            .collect();
+        let html = format!("<html><body><main>{links}</main></body></html>");
+
+        let articles = scrape_articles_from_page(&html, "https://example.com/");
+
+        assert_eq!(articles.len(), MAX_PAGE_ARTICLES);
     }
 }
