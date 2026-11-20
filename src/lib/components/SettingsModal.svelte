@@ -229,7 +229,7 @@ function vacuum() {
       </div>
 
       <div class="form-group">
-        <label for="mark-read-exit">Mark Feed Read on Exit</label>
+        <label for="mark-read-exit">Mark Feed Read When Leaving</label>
         <div class="checkbox-wrap">
           <input type="checkbox" id="mark-read-exit" bind:checked={settings.mark_feed_read_on_exit}>
         </div>
