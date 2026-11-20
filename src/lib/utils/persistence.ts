@@ -6,6 +6,7 @@ export const LS_BLOCKED_PHRASES = "blockedPhrases";
 export const LS_LAST_REFRESHED = "lastRefreshed";
 export const LS_LAST_VIEW_TYPE = "lastViewType";
 export const LS_LAST_VIEW_ID = "lastViewId";
+export const LS_LAST_ARTICLE = "lastArticleId";
 export const LS_EXPANDED_FOLDERS = "appState.expandedFolders";
 
 export function readString(key: string): string | null {

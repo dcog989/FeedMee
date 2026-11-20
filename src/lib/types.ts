@@ -41,6 +41,7 @@ export interface AppSettings {
   log_level: string;
   default_view_type: string;
   default_view_id: number;
+  startup_article: string;
   mark_feed_read_on_exit: boolean;
   article_title_font: string;
   article_body_font: string;
@@ -57,6 +58,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   log_level: "info",
   default_view_type: "latest",
   default_view_id: -1,
+  startup_article: "latest",
   mark_feed_read_on_exit: false,
   article_title_font: "",
   article_body_font: "",

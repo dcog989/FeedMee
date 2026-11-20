@@ -28,6 +28,7 @@ import { expandFolder } from "./utils/expandedFolders";
 import {
   LS_BLOCKED_PHRASES,
   LS_EXPANDED_FOLDERS,
+  LS_LAST_ARTICLE,
   LS_LAST_REFRESHED,
   LS_LAST_VIEW_ID,
   LS_LAST_VIEW_TYPE,
@@ -38,6 +39,7 @@ import {
   readInt,
   readJson,
   readString,
+  writeInt,
 } from "./utils/persistence";
 import { pickStartupTarget, startupExpandFolderId } from "./utils/startupView";
 
@@ -292,6 +294,19 @@ class AppStateImpl {
     else if (target.kind === "feed") await this.selectFeed(target.id);
     else if (target.kind === "folder") await this.selectFolder(target.id);
     else await this.selectFeed(FEED_ID_LATEST);
+
+    // Selecting the view already picked its first article. Restore the article
+    // that was open last, but only when it is in the loaded page; otherwise the
+    // first article stays selected. Direct assignment avoids read-marking.
+    if (this.settings.startup_article === "last") {
+      const lastArticleId = readInt(LS_LAST_ARTICLE, -1);
+      const lastArticle = this.articles.find((a) => a.id === lastArticleId);
+      if (lastArticle) {
+        this.selectedArticle = lastArticle;
+        // Selecting the view persisted its first article; keep the restored one.
+        writeInt(LS_LAST_ARTICLE, lastArticle.id);
+      }
+    }
 
     // `expandedFolders` has a single owner here; the persistence effect in
     // useExpandedFolders only writes the current value back to storage. When

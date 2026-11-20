@@ -3,6 +3,7 @@ import { FEED_ID_LATEST, FEED_ID_SAVED, FEED_ID_TODAY } from "./store.svelte";
 import type { ArticleStore } from "./storeTypes";
 import type { Article } from "./types";
 import { mergeArticles } from "./utils/articles";
+import { LS_LAST_ARTICLE, writeInt } from "./utils/persistence";
 
 /** Pages to scan for one visible page; blocked phrases can hide whole pages. */
 export const BLOCKED_SCAN_LIMIT = 10;
@@ -157,6 +158,7 @@ export function createArticleActions(state: ArticleStore) {
 
   function selectArticle(article: Article) {
     state.focusedPane = "list";
+    writeInt(LS_LAST_ARTICLE, article.id);
     const previous = state.selectedArticle;
     state.selectedArticle = article;
     // Mark the article you leave, not the one you open, so the open one stays unread.

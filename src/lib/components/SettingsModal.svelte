@@ -221,6 +221,14 @@ function vacuum() {
       {/if}
 
       <div class="form-group">
+        <label for="startup-article">Article on Startup</label>
+        <select id="startup-article" bind:value={settings.startup_article}>
+          <option value="latest">Latest article</option>
+          <option value="last">Last opened article</option>
+        </select>
+      </div>
+
+      <div class="form-group">
         <label for="mark-read-exit">Mark Feed Read on Exit</label>
         <div class="checkbox-wrap">
           <input type="checkbox" id="mark-read-exit" bind:checked={settings.mark_feed_read_on_exit}>
