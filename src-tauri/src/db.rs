@@ -282,6 +282,16 @@ mod tests {
     }
 
     #[test]
+    fn feed_url_lookup_can_exclude_the_feed_itself() {
+        let conn = test_conn();
+        let feed = create_feed(&conn, "Feed", "https://example.com/rss", None, "rss").unwrap();
+
+        assert!(feed_exists_by_url(&conn, "https://example.com/rss", None).unwrap());
+        // Renaming a feed to the URL it already has must not look like a duplicate.
+        assert!(!feed_exists_by_url(&conn, "https://example.com/rss", Some(feed)).unwrap());
+    }
+
+    #[test]
     fn adding_an_existing_tag_reuses_its_id_and_colour() {
         let mut conn = test_conn();
         let feed = create_feed(&conn, "Feed", "https://example.com/rss", None, "rss").unwrap();
