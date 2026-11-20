@@ -137,7 +137,8 @@ export function createArticleActions(state: ArticleStore) {
     } catch (e) {
       console.error("Failed to load more articles:", e);
     } finally {
-      state.isLoadingArticles = false;
+      // A newer reload owns the flag when this page was superseded.
+      if (gen === reloadGeneration) state.isLoadingArticles = false;
     }
   }
 
