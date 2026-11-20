@@ -86,14 +86,6 @@ function cancel() {
   settingsStore.closeSettings();
 }
 
-async function openLatestLog() {
-  try {
-    await invoke("open_latest_log");
-  } catch (e) {
-    uiStore.alert(String(e));
-  }
-}
-
 interface StorageStats {
   db_size_bytes: number;
   cache_size_bytes: number;
@@ -285,24 +277,6 @@ function vacuum() {
           </button>
         </div>
       </div>
-
-      <hr>
-
-      <div class="form-group">
-        <label for="log-level">Log Level</label>
-        <select id="log-level" bind:value={settings.log_level}>
-          <option value="error">Error</option>
-          <option value="warn">Warn</option>
-          <option value="info">Info</option>
-          <option value="debug">Debug</option>
-          <option value="trace">Trace</option>
-        </select>
-      </div>
-
-      <div class="form-group">
-        <span class="label-spacer" aria-hidden="true"></span>
-        <button type="button" class="open-log-link" onclick={openLatestLog}>Open Latest Log</button>
-      </div>
     </div>
   </div>
 </Modal>
@@ -380,10 +354,6 @@ function vacuum() {
   text-align: right;
 }
 
-.label-spacer {
-  flex: 0 0 180px;
-}
-
 .unit {
   font-size: 0.85rem;
   color: var(--text-secondary);
@@ -422,23 +392,6 @@ function vacuum() {
 .storage-btn:disabled {
   opacity: 0.5;
   cursor: default;
-}
-
-.open-log-link {
-  flex: 1;
-  padding: 0;
-  border: none;
-  background: none;
-  color: var(--accent-muted);
-  cursor: pointer;
-  font-size: 0.85rem;
-  text-align: left;
-  text-decoration: none;
-}
-
-.open-log-link:hover {
-  text-decoration: underline;
-  text-decoration-color: var(--accent-muted);
 }
 
 select {
@@ -506,11 +459,5 @@ select {
   letter-spacing: 0.05em;
   border-bottom: 1px solid var(--border-color);
   padding-bottom: 0.25rem;
-}
-
-hr {
-  border: none;
-  border-top: 1px solid var(--border-color);
-  margin: 0.5rem 0;
 }
 </style>

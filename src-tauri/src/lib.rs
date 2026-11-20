@@ -187,7 +187,6 @@ pub fn run() {
             commands::save_app_settings,
             commands::get_shortcuts,
             commands::save_shortcuts,
-            commands::open_latest_log,
             commands::get_storage_stats,
             commands::clear_thumbnail_cache,
             commands::vacuum_database,

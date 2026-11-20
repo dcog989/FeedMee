@@ -1,5 +1,5 @@
 ﻿<script lang="ts">
-import { ChevronDown, ChevronUp, FolderPlus, RefreshCw } from "@lucide/svelte";
+import { ChevronDown, ChevronUp, FolderPlus, RefreshCw, Rss } from "@lucide/svelte";
 import { tooltip } from "#lib/actions/tooltip.svelte.js";
 import { refreshStore, uiStore } from "#lib/store.svelte.js";
 
@@ -9,6 +9,10 @@ let isRefreshing = $derived(refreshStore.isRefreshingFeeds);
 
 function createFolder() {
   uiStore.showNewFolderDialog = true;
+}
+
+function manageContent() {
+  uiStore.showAddDialog = true;
 }
 </script>
 
@@ -27,6 +31,9 @@ function createFolder() {
     aria-label="Refresh All"
   >
     <RefreshCw size={18} class={isRefreshing ? "spinning" : ""} />
+  </button>
+  <button type="button" onclick={manageContent} use:tooltip={"Manage Content"} aria-label="Manage Content">
+    <Rss size={18} />
   </button>
   <button
     type="button"

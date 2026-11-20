@@ -3,6 +3,7 @@ import { X } from "@lucide/svelte";
 import { invoke } from "@tauri-apps/api/core";
 import { openPath } from "@tauri-apps/plugin-opener";
 import { tooltip } from "#lib/actions/tooltip.svelte.js";
+import { settingsStore } from "#lib/store.svelte.js";
 import Modal from "./Modal.svelte";
 
 let { isOpen = $bindable(false), onClose }: { isOpen: boolean; onClose: () => void } = $props();
@@ -23,8 +24,11 @@ let appInfo = $state<AppInfo>({
   settings_path: "",
 });
 
+let logLevel = $state("info");
+
 $effect(() => {
   if (isOpen) {
+    logLevel = settingsStore.settings.log_level;
     invoke<AppInfo>("get_app_info")
       .then((info) => {
         appInfo = info;
@@ -40,6 +44,11 @@ async function openPathSafe(path: string) {
   } catch (e) {
     console.error("Failed to open path:", e);
   }
+}
+
+async function saveLogLevel() {
+  await settingsStore.saveSettings({ ...settingsStore.settings, log_level: logLevel }, false);
+  logLevel = settingsStore.settings.log_level;
 }
 </script>
 
@@ -79,6 +88,18 @@ async function openPathSafe(path: string) {
       </div>
 
       <div class="info-row">
+        <span class="label" use:tooltip={"Automatic subscription backups (OPML)"}>Backups</span>
+        <button
+          type="button"
+          class="value mono path"
+          onclick={() => openPathSafe(appInfo.backup_path)}
+          use:tooltip={"Open backups folder"}
+        >
+          {appInfo.backup_path}
+        </button>
+      </div>
+
+      <div class="info-row">
         <span class="label">Logs</span>
         <button
           type="button"
@@ -91,15 +112,14 @@ async function openPathSafe(path: string) {
       </div>
 
       <div class="info-row">
-        <span class="label" use:tooltip={"Automatic subscription backups (OPML)"}>Backups</span>
-        <button
-          type="button"
-          class="value mono path"
-          onclick={() => openPathSafe(appInfo.backup_path)}
-          use:tooltip={"Open backups folder"}
-        >
-          {appInfo.backup_path}
-        </button>
+        <span class="label">Log Level</span>
+        <select class="log-select" bind:value={logLevel} onchange={saveLogLevel}>
+          <option value="error">Error</option>
+          <option value="warn">Warn</option>
+          <option value="info">Info</option>
+          <option value="debug">Debug</option>
+          <option value="trace">Trace</option>
+        </select>
       </div>
     </div>
 
@@ -225,6 +245,16 @@ h2 {
 
 .path:hover {
   text-decoration: underline;
+}
+
+.log-select {
+  flex: none;
+  padding: 4px 8px;
+  border: 1px solid var(--border-color);
+  background: var(--bg-app);
+  color: var(--text-primary);
+  border-radius: 4px;
+  font-size: 0.8rem;
 }
 
 .footer {

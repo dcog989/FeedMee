@@ -1,5 +1,5 @@
 <script lang="ts">
-import { Info, Rss, Settings } from "@lucide/svelte";
+import { Info, Settings } from "@lucide/svelte";
 import { navStore, uiStore } from "#lib/store.svelte.js";
 import { useExpandedFolders } from "#lib/useExpandedFolders.svelte.js";
 import { expandFolderKeepingOthers } from "#lib/utils/expandedFolders.js";
@@ -7,10 +7,6 @@ import FolderGroup from "./nav/FolderGroup.svelte";
 import NavContextMenu from "./nav/NavContextMenu.svelte";
 import NavToolbar from "./nav/NavToolbar.svelte";
 import UncategorizedFeeds from "./nav/UncategorizedFeeds.svelte";
-
-function openAddDialog() {
-  uiStore.showAddDialog = true;
-}
 
 const DRAG_EXPAND_DELAY_MS = 600;
 
@@ -125,9 +121,6 @@ function onDragLeavePane(e: DragEvent) {
       aria-label="Settings"
     >
       <Settings size={18} />
-    </button>
-    <button type="button" class="footer-btn" onclick={openAddDialog} title="Manage Content" aria-label="Manage Content">
-      <Rss size={18} />
     </button>
     <span class="footer-spacer"></span>
     <button
