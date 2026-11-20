@@ -235,9 +235,12 @@ pub fn mark_global_read(conn: &Connection) -> Result<()> {
 pub fn update_article_saved(conn: &Connection, article_id: i64, is_saved: bool) -> Result<()> {
     if !is_saved {
         // Saved articles from deleted feeds live in the sentinel feed. Unsaving
-        // one would leave a row no view can reach, so drop it instead.
+        // one would leave a row no view can reach, so drop it instead — unless a
+        // tag still makes it reachable through search.
         let deleted = conn.execute(
-            "DELETE FROM articles WHERE id = ?1 AND feed_id = ?2",
+            "DELETE FROM articles
+             WHERE id = ?1 AND feed_id = ?2
+               AND NOT EXISTS (SELECT 1 FROM article_tags WHERE article_id = articles.id)",
             params![article_id, SAVED_FEED_ID],
         )?;
         if deleted > 0 {

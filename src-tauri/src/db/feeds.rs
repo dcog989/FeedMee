@@ -195,21 +195,46 @@ pub fn rename_feed(conn: &Connection, id: i64, new_name: &str, new_url: &str) ->
     Ok(())
 }
 
+/// An article the user asked to keep. Retention and "mark all read" treat
+/// saved and tagged rows as keep signals, so deleting a feed must too.
+fn kept_articles(table: &str) -> String {
+    format!("{table}.is_saved = 1 OR EXISTS (SELECT 1 FROM article_tags WHERE article_id = {table}.id)")
+}
+
 fn delete_feed_rows(conn: &Connection, id: i64) -> Result<()> {
     if id == SAVED_FEED_ID {
         return Ok(());
     }
-    // Drop saved articles already retained under the sentinel that share a URL
-    // with an incoming saved article, so the reassignment below cannot violate
-    // the UNIQUE(feed_id, url) constraint.
+    // Tags on the copy leaving the feed must land on the hidden copy that stays
+    // behind, or the tag links cascade away with the deleted row.
     conn.execute(
-        "DELETE FROM articles
-         WHERE feed_id = ?2
-           AND url IN (SELECT a.url FROM articles a WHERE a.feed_id = ?1 AND a.is_saved = 1)",
+        &format!(
+            "INSERT OR IGNORE INTO article_tags (article_id, tag_id)
+             SELECT kept.id, at.tag_id
+             FROM articles kept
+             JOIN articles hidden ON hidden.feed_id = ?2 AND hidden.url = kept.url
+             JOIN article_tags at ON at.article_id = kept.id
+             WHERE kept.feed_id = ?1 AND ({})",
+            kept_articles("kept")
+        ),
+        params![id, SAVED_FEED_ID],
+    )?;
+    // The hidden copy already holds this URL; keep it so its saved and read
+    // state survive, and drop the incoming duplicate.
+    conn.execute(
+        &format!(
+            "DELETE FROM articles
+             WHERE feed_id = ?1 AND ({})
+               AND url IN (SELECT hidden.url FROM articles hidden WHERE hidden.feed_id = ?2)",
+            kept_articles("articles")
+        ),
         params![id, SAVED_FEED_ID],
     )?;
     conn.execute(
-        "UPDATE articles SET feed_id = ?2 WHERE feed_id = ?1 AND is_saved = 1",
+        &format!(
+            "UPDATE articles SET feed_id = ?2 WHERE feed_id = ?1 AND ({})",
+            kept_articles("articles")
+        ),
         params![id, SAVED_FEED_ID],
     )?;
     conn.execute("DELETE FROM articles WHERE feed_id = ?1", params![id])?;

@@ -380,4 +380,46 @@ mod tests {
         assert!(get_articles_for_feed(&conn, feed, 10, 0, true).unwrap().is_empty());
         assert!(get_feed(&conn, feed).is_err());
     }
+
+    #[test]
+    fn deleting_a_readded_feed_keeps_tags_on_the_surviving_copy() {
+        let mut conn = test_conn();
+        let feed = create_feed(&conn, "Feed", "https://example.com/rss", None, "rss").unwrap();
+        batch_insert_articles(&mut conn, &[sample_article(feed)], None).unwrap();
+        let id = get_articles_for_feed(&conn, feed, 10, 0, true).unwrap()[0].id;
+        update_article_saved(&conn, id, true).unwrap();
+        add_tag_to_article(&conn, id, "Keep", "#4899ec").unwrap();
+        delete_feed(&conn, feed).unwrap();
+
+        // Add the same feed and article again, save it, and delete it again.
+        let readded = create_feed(&conn, "Feed", "https://example.com/rss", None, "rss").unwrap();
+        batch_insert_articles(&mut conn, &[sample_article(readded)], None).unwrap();
+        let new_id = get_articles_for_feed(&conn, readded, 10, 0, true).unwrap()[0].id;
+        update_article_saved(&conn, new_id, true).unwrap();
+        delete_feed(&conn, readded).unwrap();
+
+        let saved = get_saved_articles(&conn, 10, 0, true).unwrap();
+        assert_eq!(saved.len(), 1);
+        let tags = get_tags_for_article(&conn, saved[0].id).unwrap();
+        assert_eq!(tags.iter().map(|t| t.name.as_str()).collect::<Vec<_>>(), vec!["Keep"]);
+    }
+
+    #[test]
+    fn deleting_a_feed_keeps_tagged_articles() {
+        let mut conn = test_conn();
+        let feed = create_feed(&conn, "Feed", "https://example.com/rss", None, "rss").unwrap();
+        batch_insert_articles(&mut conn, &[sample_article(feed)], None).unwrap();
+        let id = get_articles_for_feed(&conn, feed, 10, 0, true).unwrap()[0].id;
+        add_tag_to_article(&conn, id, "Keep", "#4899ec").unwrap();
+
+        delete_feed(&conn, feed).unwrap();
+
+        // Same rule as retention: a tag means keep, and search still finds it.
+        assert!(get_saved_articles(&conn, 10, 0, true).unwrap().is_empty());
+        assert_eq!(get_tags_for_article(&conn, id).unwrap().len(), 1);
+        let feed_id: i64 = conn
+            .query_row("SELECT feed_id FROM articles WHERE id = ?1", [id], |r| r.get(0))
+            .unwrap();
+        assert_eq!(feed_id, SAVED_FEED_ID);
+    }
 }
