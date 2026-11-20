@@ -49,14 +49,12 @@ function settingsEqual(a: AppSettings, b: AppSettings): boolean {
   return true;
 }
 
-$effect(() => {
-  if (!initialized || !prevSettings) return;
-  if (settingsEqual(settings, prevSettings)) return;
+function saveNow() {
+  if (!prevSettings || settingsEqual(settings, prevSettings)) return;
   // A number field is briefly undefined while it is being retyped; saving that
   // fails deserialisation on the Rust side and shows a spurious error alert.
   if (!Number.isFinite(settings.auto_update_interval_minutes)) return;
   prevSettings = { ...settings };
-  if (saveTimer) clearTimeout(saveTimer);
   // Empty means "follow the theme". The form shows the resolved colour, so
   // strip anything that came from the theme instead of pinning it on save.
   const theme = themeColors();
@@ -65,7 +63,17 @@ $effect(() => {
   for (const key of COLOR_KEYS) {
     if (toSave[key].toLowerCase() === theme[key].toLowerCase()) toSave[key] = "";
   }
-  saveTimer = setTimeout(() => settingsStore.saveSettings(toSave, false), 500);
+  settingsStore.saveSettings(toSave, false);
+}
+
+$effect(() => {
+  if (!initialized || !prevSettings) return;
+  if (settingsEqual(settings, prevSettings)) return;
+  if (saveTimer) clearTimeout(saveTimer);
+  saveTimer = setTimeout(() => {
+    saveTimer = null;
+    saveNow();
+  }, 500);
 });
 
 // Switching between "Folder…" and "Feed…" must not keep an id from the other list.
@@ -82,6 +90,13 @@ $effect(() => {
 });
 
 function cancel() {
+  // Flush instead of leaving a debounced full-settings write behind: the About
+  // window can save right after, and the late write would undo it.
+  if (saveTimer) {
+    clearTimeout(saveTimer);
+    saveTimer = null;
+    saveNow();
+  }
   (document.activeElement as HTMLElement)?.blur();
   settingsStore.closeSettings();
 }
