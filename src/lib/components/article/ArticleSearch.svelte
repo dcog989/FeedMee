@@ -19,7 +19,7 @@ function onKeyDown(e: KeyboardEvent) {
 </script>
 
 <div class="search-wrapper">
-  <Search class="search-icon" size={18} />
+  <Search class="search-icon" size={16} />
   <input
     type="text"
     placeholder="Search all articles..."
@@ -33,17 +33,18 @@ function onKeyDown(e: KeyboardEvent) {
 <style>
 .search-wrapper {
   position: relative;
-  padding: 4px 8px;
-  flex-shrink: 0;
-  background: var(--bg-pane);
-  border-bottom: 1px solid var(--border-color);
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
 }
 
 .search-wrapper input {
   background: var(--bg-app);
   border: 1px solid var(--border-color);
   color: var(--text-primary);
-  padding: 6px 12px 6px 32px;
+  height: 24px;
+  padding: 0 8px 0 28px;
   border-radius: 4px;
   font-size: 0.85rem;
   width: 100%;
@@ -57,7 +58,7 @@ function onKeyDown(e: KeyboardEvent) {
 
 .search-wrapper :global(.search-icon) {
   position: absolute;
-  left: 14px;
+  left: 8px;
   top: 50%;
   transform: translateY(-50%);
   color: var(--text-secondary);

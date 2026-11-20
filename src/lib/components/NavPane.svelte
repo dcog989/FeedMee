@@ -112,24 +112,12 @@ function onDragLeavePane(e: DragEvent) {
 
   <NavContextMenu bind:this={ctxMenu} />
 
-  <div class="footer-bar">
-    <button
-      type="button"
-      class="footer-btn"
-      onclick={() => uiStore.openSettings()}
-      title="Settings"
-      aria-label="Settings"
-    >
+  <div class="app-toolbar app-toolbar-bottom">
+    <button type="button" onclick={() => uiStore.openSettings()} title="Settings" aria-label="Settings">
       <Settings size={18} />
     </button>
     <span class="footer-spacer"></span>
-    <button
-      type="button"
-      class="footer-btn"
-      onclick={() => uiStore.openAbout()}
-      title="About FeedMee"
-      aria-label="About FeedMee"
-    >
+    <button type="button" onclick={() => uiStore.openAbout()} title="About FeedMee" aria-label="About FeedMee">
       <Info size={18} />
     </button>
   </div>
@@ -144,41 +132,12 @@ function onDragLeavePane(e: DragEvent) {
   flex-direction: column;
   box-sizing: border-box;
   user-select: none;
-  padding-top: 4px;
 }
 
 .folder-list {
   flex: 1;
   overflow-y: auto;
   padding: 0 1rem 1rem;
-}
-
-.footer-bar {
-  display: flex;
-  align-items: center;
-  padding: 4px 8px;
-  gap: 4px;
-  border-top: 1px solid var(--border-color);
-  flex-shrink: 0;
-}
-
-.footer-btn {
-  width: 30px;
-  height: 30px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: none;
-  background: transparent;
-  color: var(--text-secondary);
-  border-radius: 4px;
-  cursor: pointer;
-  flex-shrink: 0;
-}
-
-.footer-btn:hover {
-  background-color: var(--bg-hover);
-  color: var(--text-primary);
 }
 
 .footer-spacer {

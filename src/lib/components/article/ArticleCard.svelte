@@ -140,7 +140,7 @@ function handleKeydown(e: KeyboardEvent) {
 
 .article-card.selected {
   background-color: var(--bg-hover);
-  border-left: 4px solid var(--bg-selected);
+  border-left: 4px solid var(--accent-focus);
   padding-left: calc(1rem - 4px);
   color: var(--text-primary);
 }

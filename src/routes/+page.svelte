@@ -180,10 +180,12 @@ function onResizerKeyDown(target: "nav" | "list", e: KeyboardEvent) {
 .nav-area {
   grid-area: nav;
   overflow: hidden;
+  background-color: var(--bg-toolbar);
 }
 .list-area {
   grid-area: list;
   overflow: hidden;
+  background-color: var(--bg-toolbar);
 }
 .reading-area {
   grid-area: reading;
@@ -195,7 +197,7 @@ function onResizerKeyDown(target: "nav" | "list", e: KeyboardEvent) {
   margin: 0;
   height: 100%;
   width: 100%;
-  background-color: transparent;
+  background-color: var(--bg-gutter);
   cursor: col-resize;
   z-index: 10;
   transition: background-color 0.2s;
@@ -214,7 +216,7 @@ function onResizerKeyDown(target: "nav" | "list", e: KeyboardEvent) {
 }
 
 .pane-focused {
-  border-top-color: var(--bg-selected-muted);
+  border-top-color: var(--accent-focus);
 }
 
 .nav-resizer {

@@ -2,9 +2,10 @@
 import { ArrowUpDown, Bookmark, CalendarDays, CheckCheck, Clock } from "@lucide/svelte";
 import { tooltip } from "#lib/actions/tooltip.svelte.js";
 import { FEED_ID_LATEST, FEED_ID_SAVED, FEED_ID_TODAY, feedStore, settingsStore } from "#lib/store.svelte.js";
+import ArticleSearch from "./ArticleSearch.svelte";
 </script>
 
-<div class="list-toolbar">
+<div class="list-toolbar app-toolbar">
   <div class="toolbar-left">
     <button
       type="button"
@@ -36,6 +37,7 @@ import { FEED_ID_LATEST, FEED_ID_SAVED, FEED_ID_TODAY, feedStore, settingsStore 
     >
       <Bookmark size={18} />
     </button>
+    <ArticleSearch />
   </div>
   <div class="toolbar-right">
     <button
@@ -45,7 +47,7 @@ import { FEED_ID_LATEST, FEED_ID_SAVED, FEED_ID_TODAY, feedStore, settingsStore 
       use:tooltip={settingsStore.sortOrder === "desc" ? "Sort: Newest First" : "Sort: Oldest First"}
       aria-label={settingsStore.sortOrder === "desc" ? "Sort Newest First" : "Sort Oldest First"}
     >
-      <ArrowUpDown size={20} />
+      <ArrowUpDown size={18} />
     </button>
 
     {#if feedStore.selectedFeedId !== FEED_ID_SAVED}
@@ -56,7 +58,7 @@ import { FEED_ID_LATEST, FEED_ID_SAVED, FEED_ID_TODAY, feedStore, settingsStore 
         use:tooltip={"Mark All Read"}
         aria-label="Mark All Read"
       >
-        <CheckCheck size={20} />
+        <CheckCheck size={18} />
       </button>
     {/if}
   </div>
@@ -64,15 +66,7 @@ import { FEED_ID_LATEST, FEED_ID_SAVED, FEED_ID_TODAY, feedStore, settingsStore 
 
 <style>
 .list-toolbar {
-  display: flex;
-  align-items: center;
   justify-content: space-between;
-  padding: 4px 8px;
-  border-bottom: 1px solid var(--border-color);
-  background: var(--bg-pane);
-  flex-shrink: 0;
-  height: 32px;
-  box-sizing: border-box;
 }
 
 .toolbar-left,
@@ -82,23 +76,9 @@ import { FEED_ID_LATEST, FEED_ID_SAVED, FEED_ID_TODAY, feedStore, settingsStore 
   gap: 4px;
 }
 
-.tool-btn {
-  background: transparent;
-  border: none;
-  color: var(--text-secondary);
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0;
-  border-radius: 4px;
-  width: 32px;
-  height: 32px;
-}
-
-.tool-btn:hover {
-  background-color: var(--bg-hover);
-  color: var(--text-primary);
+.toolbar-left {
+  flex: 1;
+  min-width: 0;
 }
 
 .tool-btn.active {

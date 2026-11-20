@@ -3,7 +3,6 @@ import { createTagPopover } from "#lib/tagPopover.svelte.js";
 import type { Article } from "#lib/types.js";
 import ArticleContextMenu from "./article/ArticleContextMenu.svelte";
 import ArticleList from "./article/ArticleList.svelte";
-import ArticleSearch from "./article/ArticleSearch.svelte";
 import ArticleToolbar from "./article/ArticleToolbar.svelte";
 import TagPopover from "./TagPopover.svelte";
 
@@ -33,7 +32,6 @@ function onListScroll() {
 />
 
 <div class="pane-wrapper">
-  <ArticleSearch />
   <ArticleToolbar />
   <ArticleList {onContextMenu} onTagToggle={toggleTagManager} tagArticleId={tags.articleId} onScroll={onListScroll} />
 </div>
