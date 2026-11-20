@@ -229,11 +229,9 @@ function vacuum() {
 
       <hr>
 
+      <h4 class="section-label">Visuals</h4>
+
       <ArticleAppearanceSettings {settings} onchange={(next) => (settings = next)} />
-
-      <hr>
-
-      <h4 class="section-label">Display</h4>
 
       <div class="form-group">
         <label for="thumb-size">Thumbnail Size</label>

@@ -37,8 +37,6 @@ async function pickFont(target: "title" | "body") {
 }
 </script>
 
-<h4 class="section-label">Typography</h4>
-
 <div class="form-group">
   <label for="title-font">Article Title Font</label>
   <div class="font-input-wrap">
@@ -66,10 +64,6 @@ async function pickFont(target: "title" | "body") {
     <button type="button" class="pick-btn" onclick={() => pickFont("body")}>Pick…</button>
   </div>
 </div>
-
-<hr>
-
-<h4 class="section-label">Colors</h4>
 
 <div class="form-group">
   <label for="title-color">Article Title FG</label>
