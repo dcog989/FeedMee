@@ -13,17 +13,26 @@ fn feed_derived_fields(url: &str, feed_type: &str) -> (String, String) {
     }
 }
 
+/// What counts as unread, shared by the sidebar query and the per-feed recount:
+/// neither saved nor tagged, so a kept article never inflates a badge that no
+/// mark-read action can clear.
+const UNREAD_ARTICLES: &str = "is_read = 0 AND is_saved = 0 \
+     AND NOT EXISTS (SELECT 1 FROM article_tags WHERE article_id = articles.id)";
+
 /// Shared projection for feed queries. `map_feed_row` reads columns by
 /// positional index, so every query must select exactly this list in order.
-const FEED_SELECT: &str = "SELECT f.id, f.name, f.url, f.folder_id, f.has_error, f.feed_type, \
-     COALESCE(uc.unread_count, 0) AS unread_count, f.error_count \
-     FROM feeds f \
-     LEFT JOIN ( \
-         SELECT feed_id, COUNT(*) AS unread_count FROM articles \
-         WHERE is_read = 0 AND is_saved = 0 \
-           AND NOT EXISTS (SELECT 1 FROM article_tags WHERE article_id = articles.id) \
-         GROUP BY feed_id \
-     ) uc ON f.id = uc.feed_id";
+fn feed_select() -> String {
+    format!(
+        "SELECT f.id, f.name, f.url, f.folder_id, f.has_error, f.feed_type, \
+         COALESCE(uc.unread_count, 0) AS unread_count, f.error_count \
+         FROM feeds f \
+         LEFT JOIN ( \
+             SELECT feed_id, COUNT(*) AS unread_count FROM articles \
+             WHERE {UNREAD_ARTICLES} \
+             GROUP BY feed_id \
+         ) uc ON f.id = uc.feed_id"
+    )
+}
 
 fn map_feed_row(r: &rusqlite::Row) -> rusqlite::Result<Feed> {
     let raw_fid: i64 = r.get(3)?;
@@ -47,10 +56,11 @@ fn map_feed_row(r: &rusqlite::Row) -> rusqlite::Result<Feed> {
 pub fn get_folders_with_feeds(conn: &Connection) -> Result<Vec<Folder>> {
     debug!("Querying folders with feeds");
 
-    // One execution for every feed: the unread aggregate inside FEED_SELECT
+    // One execution for every feed: the unread aggregate in `feed_select`
     // scans the whole articles table, so running it per folder is F full scans.
     let mut feed_stmt = conn.prepare(&format!(
-        "{FEED_SELECT} WHERE f.id != {SAVED_FEED_ID} ORDER BY f.name COLLATE NOCASE"
+        "{} WHERE f.id != {SAVED_FEED_ID} ORDER BY f.name COLLATE NOCASE",
+        feed_select()
     ))?;
 
     let mut feeds_by_folder: HashMap<i64, Vec<Feed>> = HashMap::new();
@@ -92,9 +102,7 @@ pub fn get_folders_with_feeds(conn: &Connection) -> Result<Vec<Folder>> {
 
 pub fn get_feed_unread_count(conn: &Connection, feed_id: i64) -> Result<i64> {
     conn.query_row(
-        "SELECT COUNT(*) FROM articles
-         WHERE feed_id = ?1 AND is_read = 0 AND is_saved = 0
-           AND NOT EXISTS (SELECT 1 FROM article_tags WHERE article_id = articles.id)",
+        &format!("SELECT COUNT(*) FROM articles WHERE feed_id = ?1 AND {UNREAD_ARTICLES}"),
         params![feed_id],
         |r| r.get(0),
     )
@@ -102,7 +110,7 @@ pub fn get_feed_unread_count(conn: &Connection, feed_id: i64) -> Result<i64> {
 
 pub fn get_feed(conn: &Connection, feed_id: i64) -> Result<Feed> {
     conn.query_row(
-        &format!("{FEED_SELECT} WHERE f.id = ?1"),
+        &format!("{} WHERE f.id = ?1", feed_select()),
         params![feed_id],
         map_feed_row,
     )
