@@ -8,6 +8,12 @@ pub use feeds::*;
 pub use schema::*;
 pub use tags::*;
 
+/// Rows the user signalled to keep: saved, or carrying at least one tag.
+/// `table` is the articles table or alias the condition applies to.
+pub(crate) fn kept_articles(table: &str) -> String {
+    format!("{table}.is_saved = 1 OR EXISTS (SELECT 1 FROM article_tags WHERE article_id = {table}.id)")
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -56,7 +62,7 @@ mod tests {
         init_db(&mut conn).unwrap();
         init_db(&mut conn).unwrap();
         let version: i64 = conn.query_row("PRAGMA user_version", [], |r| r.get(0)).unwrap();
-        assert_eq!(version, 1);
+        assert_eq!(version, 2);
     }
 
     #[test]
@@ -186,7 +192,7 @@ mod tests {
                 .id
         };
         update_article_saved(&conn, id_for("https://example.com/saved"), true).unwrap();
-        add_tag_to_article(&conn, id_for("https://example.com/tagged"), "Tag", "#4899ec").unwrap();
+        add_tag_to_article(&conn, id_for("https://example.com/tagged"), "Tag").unwrap();
 
         mark_feed_read(&conn, feed).unwrap();
 
@@ -282,12 +288,12 @@ mod tests {
         batch_insert_articles(&mut conn, &[sample_article(feed)], None).unwrap();
         let article_id = get_articles_for_feed(&conn, feed, 10, 0, true).unwrap()[0].id;
 
-        let first = add_tag_to_article(&conn, article_id, "News", "#ff0000").unwrap();
-        let second = add_tag_to_article(&conn, article_id, "news", "#0000ff").unwrap();
+        let first = add_tag_to_article(&conn, article_id, "News").unwrap();
+        let second = add_tag_to_article(&conn, article_id, "news").unwrap();
 
         assert_eq!(second.id, first.id);
         assert_eq!(second.name, "News");
-        assert_eq!(second.color, "#ff0000");
+        assert_eq!(first.name, "News");
         assert_eq!(get_tags_for_article(&conn, article_id).unwrap().len(), 1);
     }
 
@@ -416,7 +422,7 @@ mod tests {
         batch_insert_articles(&mut conn, &[sample_article(feed)], None).unwrap();
         let id = get_articles_for_feed(&conn, feed, 10, 0, true).unwrap()[0].id;
         update_article_saved(&conn, id, true).unwrap();
-        add_tag_to_article(&conn, id, "Keep", "#4899ec").unwrap();
+        add_tag_to_article(&conn, id, "Keep").unwrap();
         delete_feed(&conn, feed).unwrap();
 
         // Add the same feed and article again, save it, and delete it again.
@@ -445,7 +451,7 @@ mod tests {
         let readded = create_feed(&conn, "Feed", "https://example.com/rss", None, "rss").unwrap();
         batch_insert_articles(&mut conn, &[sample_article(readded)], None).unwrap();
         let new_id = get_articles_for_feed(&conn, readded, 10, 0, true).unwrap()[0].id;
-        add_tag_to_article(&conn, new_id, "Keep", "#4899ec").unwrap();
+        add_tag_to_article(&conn, new_id, "Keep").unwrap();
         delete_feed(&conn, readded).unwrap();
 
         let saved = get_saved_articles(&conn, 10, 0, true).unwrap();
@@ -481,7 +487,7 @@ mod tests {
         let feed = create_feed(&conn, "Feed", "https://example.com/rss", None, "rss").unwrap();
         batch_insert_articles(&mut conn, &[sample_article(feed)], None).unwrap();
         let id = get_articles_for_feed(&conn, feed, 10, 0, true).unwrap()[0].id;
-        add_tag_to_article(&conn, id, "Keep", "#4899ec").unwrap();
+        add_tag_to_article(&conn, id, "Keep").unwrap();
         delete_feed(&conn, feed).unwrap();
 
         // The hidden copy is tagged but not saved; save it after re-adding the feed.
@@ -500,7 +506,7 @@ mod tests {
         let feed = create_feed(&conn, "Feed", "https://example.com/rss", None, "rss").unwrap();
         batch_insert_articles(&mut conn, &[sample_article(feed)], None).unwrap();
         let id = get_articles_for_feed(&conn, feed, 10, 0, true).unwrap()[0].id;
-        add_tag_to_article(&conn, id, "Keep", "#4899ec").unwrap();
+        add_tag_to_article(&conn, id, "Keep").unwrap();
 
         delete_feed(&conn, feed).unwrap();
 
@@ -557,7 +563,7 @@ mod tests {
         let ids = article_ids(&conn, feed);
         let id_for = |url: &str| ids.iter().find(|(u, _)| u.as_str() == url).unwrap().1;
         update_article_saved(&conn, id_for("https://example.com/saved"), true).unwrap();
-        add_tag_to_article(&conn, id_for("https://example.com/tagged"), "Tag", "#4899ec").unwrap();
+        add_tag_to_article(&conn, id_for("https://example.com/tagged"), "Tag").unwrap();
 
         // Only the plain article can clear, so the badge must only count it.
         assert_eq!(get_feed_unread_count(&conn, feed).unwrap(), 1);
@@ -586,7 +592,7 @@ mod tests {
         let ids = article_ids(&conn, feed);
         let id_for = |url: &str| ids.iter().find(|(u, _)| u.as_str() == url).unwrap().1;
         update_article_saved(&conn, id_for("https://example.com/saved"), true).unwrap();
-        add_tag_to_article(&conn, id_for("https://example.com/tagged"), "Tag", "#4899ec").unwrap();
+        add_tag_to_article(&conn, id_for("https://example.com/tagged"), "Tag").unwrap();
 
         mark_folder_read(&conn, folder).unwrap();
 
@@ -679,24 +685,102 @@ mod tests {
     }
 
     #[test]
-    fn removing_the_last_tag_drops_an_article_kept_from_a_deleted_feed() {
+    fn removing_the_last_tag_keeps_an_article_from_a_deleted_feed() {
         let mut conn = test_conn();
         let feed = create_feed(&conn, "Feed", "https://example.com/rss", None, "rss").unwrap();
         batch_insert_articles(&mut conn, &[sample_article(feed)], None).unwrap();
 
         let id = article_ids(&conn, feed)[0].1;
-        let tag = add_tag_to_article(&conn, id, "Keep", "#4899ec").unwrap();
+        let tag = add_tag_to_article(&conn, id, "Keep").unwrap();
         delete_feed(&conn, feed).unwrap();
 
         remove_tag_from_article(&conn, id, tag.id).unwrap();
 
-        let remaining: i64 = conn
-            .query_row(
-                "SELECT COUNT(*) FROM articles WHERE id = ?1",
-                rusqlite::params![id],
-                |r| r.get(0),
-            )
+        // The article was kept only by its tag, so it moves to Read Later
+        // instead of disappearing.
+        let saved = get_saved_articles(&conn, 10, 0, true).unwrap();
+        assert_eq!(saved.len(), 1);
+        assert_eq!(saved[0].id, id);
+        assert!(!saved[0].has_tags);
+    }
+
+    #[test]
+    fn deleting_a_tag_saves_the_articles_it_alone_kept() {
+        let mut conn = test_conn();
+        let feed = create_feed(&conn, "Feed", "https://example.com/rss", None, "rss").unwrap();
+        let mut only_kept = sample_article(feed);
+        only_kept.url = "https://example.com/only-kept".to_string();
+        let mut also_tagged = sample_article(feed);
+        also_tagged.url = "https://example.com/also-tagged".to_string();
+        batch_insert_articles(&mut conn, &[only_kept, also_tagged], None).unwrap();
+
+        let ids = article_ids(&conn, feed);
+        let id_for = |url: &str| ids.iter().find(|(u, _)| u.as_str() == url).unwrap().1;
+        let only_kept_id = id_for("https://example.com/only-kept");
+        let also_tagged_id = id_for("https://example.com/also-tagged");
+        let keep = add_tag_to_article(&conn, only_kept_id, "Keep").unwrap();
+        add_tag_to_article(&conn, also_tagged_id, "Keep").unwrap();
+        add_tag_to_article(&conn, also_tagged_id, "Other").unwrap();
+        delete_feed(&conn, feed).unwrap();
+
+        delete_tag(&conn, keep.id).unwrap();
+
+        let saved = get_saved_articles(&conn, 10, 0, true).unwrap();
+        assert!(saved.iter().any(|a| a.id == only_kept_id));
+        // The article with another tag stays hidden, not saved.
+        assert!(saved.iter().all(|a| a.id != also_tagged_id));
+        let tags = get_tags_for_article(&conn, also_tagged_id).unwrap();
+        assert_eq!(tags.iter().map(|t| t.name.as_str()).collect::<Vec<_>>(), vec!["Other"]);
+    }
+
+    #[test]
+    fn article_projection_reports_tags() {
+        let mut conn = test_conn();
+        let feed = create_feed(&conn, "Feed", "https://example.com/rss", None, "rss").unwrap();
+        batch_insert_articles(&mut conn, &[sample_article(feed)], None).unwrap();
+
+        let id = article_ids(&conn, feed)[0].1;
+        add_tag_to_article(&conn, id, "Tag").unwrap();
+
+        let articles = get_articles_for_feed(&conn, feed, 10, 0, true).unwrap();
+        assert!(articles[0].has_tags);
+    }
+
+    #[test]
+    fn migration_merges_case_variant_tags() {
+        let mut conn = Connection::open_in_memory().unwrap();
+        conn.execute_batch(super::schema::BASELINE_SCHEMA).unwrap();
+        conn.pragma_update(None, "user_version", 1).unwrap();
+        conn.execute_batch(
+            "INSERT INTO articles (id, feed_id, title, url) VALUES (1, 0, 'A', 'https://example.com/a');
+             INSERT INTO articles (id, feed_id, title, url) VALUES (2, 0, 'B', 'https://example.com/b');
+             INSERT INTO tags (id, name) VALUES (10, 'News');
+             INSERT INTO tags (id, name) VALUES (11, 'news');
+             INSERT INTO article_tags (article_id, tag_id) VALUES (1, 10), (2, 11);",
+        )
+        .unwrap();
+
+        init_db(&mut conn).unwrap();
+
+        let tag_id: i64 = conn.query_row("SELECT id FROM tags", [], |r| r.get(0)).unwrap();
+        let links: i64 = conn
+            .query_row("SELECT COUNT(*) FROM article_tags", [], |r| r.get(0))
             .unwrap();
-        assert_eq!(remaining, 0);
+        assert_eq!(tag_id, 10);
+        assert_eq!(links, 2);
+    }
+
+    #[test]
+    fn null_timestamp_is_read_as_undated() {
+        let mut conn = test_conn();
+        let feed = create_feed(&conn, "Feed", "https://example.com/rss", None, "rss").unwrap();
+        conn.execute(
+            "INSERT INTO articles (feed_id, title, url, timestamp) VALUES (?1, 'Title', 'https://example.com/a', NULL)",
+            rusqlite::params![feed],
+        )
+        .unwrap();
+
+        let articles = get_articles_for_feed(&conn, feed, 10, 0, true).unwrap();
+        assert_eq!(articles[0].timestamp, 0);
     }
 }

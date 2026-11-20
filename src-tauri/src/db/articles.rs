@@ -1,4 +1,4 @@
-use super::SAVED_FEED_ID;
+use super::{SAVED_FEED_ID, kept_articles};
 use crate::models::Article;
 use rusqlite::{Connection, Result, params};
 use std::collections::HashSet;
@@ -93,7 +93,7 @@ fn map_articles(stmt: &mut rusqlite::Statement, params: impl rusqlite::Params) -
             url: row.get(5)?,
             image_url: row.get(6)?,
             image_low_res: false,
-            timestamp: row.get(7)?,
+            timestamp: row.get::<_, Option<i64>>(7)?.unwrap_or(0),
             is_read: row.get(8)?,
             is_saved: row.get(9)?,
             has_tags: row.get::<_, i64>(10)? != 0,
@@ -217,9 +217,9 @@ pub fn set_article_read(conn: &Connection, article_id: i64, is_read: bool) -> Re
 fn mark_read_where(conn: &Connection, filter: &str, param: Option<i64>) -> Result<()> {
     let sql = format!(
         "UPDATE articles SET is_read = 1
-         WHERE is_saved = 0
-           AND NOT EXISTS (SELECT 1 FROM article_tags WHERE article_id = articles.id)
-           {filter}"
+         WHERE NOT ({})
+           {filter}",
+        kept_articles("articles")
     );
     match param {
         Some(id) => conn.execute(&sql, params![id])?,
@@ -252,9 +252,12 @@ pub fn update_article_saved(conn: &Connection, article_id: i64, is_saved: bool) 
         // one would leave a row no view can reach, so drop it instead — unless a
         // tag still makes it reachable through search.
         let deleted = conn.execute(
-            "DELETE FROM articles
-             WHERE id = ?1 AND feed_id = ?2
-               AND NOT EXISTS (SELECT 1 FROM article_tags WHERE article_id = articles.id)",
+            &format!(
+                "DELETE FROM articles
+                 WHERE id = ?1 AND feed_id = ?2
+                   AND NOT ({})",
+                kept_articles("articles")
+            ),
             params![article_id, SAVED_FEED_ID],
         )?;
         if deleted > 0 {

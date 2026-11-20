@@ -7,7 +7,7 @@ export type SortOrder = "desc" | "asc";
 export interface TagStore {
   getArticleTags(articleId: number): Promise<Tag[]>;
   getAllTags(): Promise<Tag[]>;
-  addTag(articleId: number, name: string, color?: string): Promise<Tag>;
+  addTag(articleId: number, name: string): Promise<Tag>;
   removeTag(articleId: number, tagId: number): Promise<void>;
   deleteTag(tagId: number): Promise<void>;
 }

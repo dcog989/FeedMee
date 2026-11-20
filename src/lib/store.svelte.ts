@@ -194,7 +194,7 @@ class AppStateImpl {
 
   getArticleTags = (articleId: number) => this.tagOps.getArticleTags(articleId);
   getAllTags = () => this.tagOps.getAllTags();
-  addTag = (articleId: number, name: string, color?: string) => this.tagOps.addTag(articleId, name, color);
+  addTag = (articleId: number, name: string) => this.tagOps.addTag(articleId, name);
   removeTag = (articleId: number, tagId: number) => this.tagOps.removeTag(articleId, tagId);
   deleteTag = (tagId: number) => this.tagOps.deleteTag(tagId);
 

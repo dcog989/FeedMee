@@ -11,6 +11,7 @@ let allTags = $state<Tag[]>([]);
 let activeTagIds = $state<Set<number>>(new Set());
 let inputValue = $state("");
 let loading = $state(true);
+let loadError = $state("");
 
 $effect(() => {
   loadAll();
@@ -18,12 +19,14 @@ $effect(() => {
 
 async function loadAll() {
   loading = true;
+  loadError = "";
   try {
     const [tags, articleTags] = await Promise.all([tagStore.getAllTags(), tagStore.getArticleTags(articleId)]);
     allTags = tags;
     activeTagIds = new Set(articleTags.map((t) => t.id));
   } catch (e) {
     console.error("Failed to load tags:", e);
+    loadError = "Could not load tags.";
   } finally {
     loading = false;
   }
@@ -59,6 +62,7 @@ async function toggleTag(tag: Tag) {
       syncHasTags();
     } catch (e) {
       console.error("Failed to remove tag:", e);
+      uiStore.alert("Could not remove tag.");
     }
   } else {
     try {
@@ -67,6 +71,7 @@ async function toggleTag(tag: Tag) {
       syncHasTags();
     } catch (e) {
       console.error("Failed to add tag:", e);
+      uiStore.alert("Could not add tag.");
     }
   }
 }
@@ -84,22 +89,28 @@ async function addNewTag() {
     syncHasTags();
   } catch (e) {
     console.error("Failed to add tag:", e);
+    uiStore.alert(String(e));
   }
 }
 
 function deleteTagPermanently(tag: Tag) {
-  uiStore.confirm(`Delete tag "${tag.name}" from all articles?`, async () => {
-    try {
-      await tagStore.deleteTag(tag.id);
-      activeTagIds = withRemoved(activeTagIds, tag.id);
-      allTags = allTags.filter((t) => t.id !== tag.id);
-      syncHasTags();
-      // The tag left every article, so unread badges can rise again.
-      await feedStore.refreshFolders();
-    } catch (e) {
-      console.error("Failed to delete tag:", e);
-    }
-  });
+  uiStore.confirm(
+    `Delete tag "${tag.name}" from all articles? Articles kept only by this tag will stay in Read Later.`,
+    async () => {
+      try {
+        await tagStore.deleteTag(tag.id);
+        activeTagIds = withRemoved(activeTagIds, tag.id);
+        allTags = allTags.filter((t) => t.id !== tag.id);
+        syncHasTags();
+        // The tag left every article, so unread badges and row flags changed.
+        await feedStore.refreshFolders();
+        await articleStore.reloadCurrentArticleList();
+      } catch (e) {
+        console.error("Failed to delete tag:", e);
+        uiStore.alert("Could not delete tag.");
+      }
+    },
+  );
 }
 
 function onInputKeydown(e: KeyboardEvent) {
@@ -123,6 +134,8 @@ function onInputKeydown(e: KeyboardEvent) {
   <div class="tag-body">
     {#if loading}
       <span class="loading-text">Loading...</span>
+    {:else if loadError}
+      <span class="empty-text">{loadError}</span>
     {:else if allTags.length === 0}
       <span class="empty-text">No tags yet — create one below</span>
     {:else}
@@ -140,7 +153,6 @@ function onInputKeydown(e: KeyboardEvent) {
                   <Check size={12} />
                 {/if}
               </span>
-              <span class="tag-dot" style="background: {tag.color}"></span>
               <span class="tag-name">{tag.name}</span>
             </button>
             <button
@@ -270,13 +282,6 @@ function onInputKeydown(e: KeyboardEvent) {
   background: var(--bg-selected);
   border-color: var(--bg-selected);
   color: white;
-}
-
-.tag-dot {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  flex-shrink: 0;
 }
 
 .tag-name {

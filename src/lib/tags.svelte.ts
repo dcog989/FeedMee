@@ -3,25 +3,15 @@ import type { Tag } from "./types";
 
 export function createTagOps() {
   async function getArticleTags(articleId: number): Promise<Tag[]> {
-    try {
-      return await invoke<Tag[]>("get_tags_for_article", { articleId });
-    } catch (e) {
-      console.error("Failed to get tags:", e);
-      return [];
-    }
+    return await invoke<Tag[]>("get_tags_for_article", { articleId });
   }
 
   async function getAllTags(): Promise<Tag[]> {
-    try {
-      return await invoke<Tag[]>("get_all_tags");
-    } catch (e) {
-      console.error("Failed to get all tags:", e);
-      return [];
-    }
+    return await invoke<Tag[]>("get_all_tags");
   }
 
-  async function addTag(articleId: number, name: string, color = "#4899ec"): Promise<Tag> {
-    return await invoke<Tag>("add_tag", { articleId, name, color });
+  async function addTag(articleId: number, name: string): Promise<Tag> {
+    return await invoke<Tag>("add_tag", { articleId, name });
   }
 
   async function removeTag(articleId: number, tagId: number): Promise<void> {

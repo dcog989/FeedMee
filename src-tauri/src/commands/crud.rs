@@ -6,6 +6,20 @@ use log::info;
 use rusqlite::Connection;
 use tauri::{Manager, State};
 
+/// Longest tag name the UI can show without breaking a row.
+const MAX_TAG_NAME_CHARS: usize = 64;
+
+fn normalize_tag_name(name: &str) -> Result<&str, String> {
+    let name = name.trim();
+    if name.is_empty() {
+        return Err("Tag name cannot be empty.".to_string());
+    }
+    if name.chars().count() > MAX_TAG_NAME_CHARS {
+        return Err(format!("Tag name is limited to {MAX_TAG_NAME_CHARS} characters."));
+    }
+    Ok(name)
+}
+
 #[tauri::command(async)]
 pub fn get_folders_with_feeds(state: State<'_, AppState>) -> Result<Vec<Folder>, String> {
     let conn = state.db.lock().unwrap();
@@ -261,9 +275,10 @@ pub fn get_all_tags(state: State<'_, AppState>) -> Result<Vec<Tag>, String> {
 }
 
 #[tauri::command(async)]
-pub fn add_tag(article_id: i64, name: String, color: String, state: State<'_, AppState>) -> Result<Tag, String> {
+pub fn add_tag(article_id: i64, name: String, state: State<'_, AppState>) -> Result<Tag, String> {
+    let name = normalize_tag_name(&name)?;
     let conn = state.db.lock().unwrap();
-    db::add_tag_to_article(&conn, article_id, &name, &color).map_err(|e| e.to_string())
+    db::add_tag_to_article(&conn, article_id, name).map_err(|e| e.to_string())
 }
 
 #[tauri::command(async)]
@@ -280,7 +295,7 @@ pub fn delete_tag(tag_id: i64, state: State<'_, AppState>) -> Result<(), String>
 
 #[cfg(test)]
 mod tests {
-    use super::{insert_opml_feed, insert_opml_outline};
+    use super::{insert_opml_feed, insert_opml_outline, normalize_tag_name};
     use crate::db;
     use rusqlite::Connection;
 
@@ -374,5 +389,12 @@ mod tests {
             .unwrap();
         assert_eq!(folder_name, "Tech");
         assert_eq!(feed_name, "AI feed");
+    }
+
+    #[test]
+    fn tag_names_are_trimmed_and_bounded() {
+        assert_eq!(normalize_tag_name("  News  ").unwrap(), "News");
+        assert!(normalize_tag_name("   ").is_err());
+        assert!(normalize_tag_name(&"x".repeat(65)).is_err());
     }
 }

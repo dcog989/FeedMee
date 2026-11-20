@@ -1,3 +1,4 @@
+use super::kept_articles;
 use log::info;
 use rusqlite::{Connection, Result, params};
 
@@ -9,12 +10,29 @@ pub const SAVED_FEED_ID: i64 = 0;
 
 /// Schema batches in application order. `PRAGMA user_version` records how many
 /// have run, so existing batches must never be edited — append a new one.
-const MIGRATIONS: &[&str] = &[BASELINE_SCHEMA];
+const MIGRATIONS: &[&str] = &[BASELINE_SCHEMA, UNIQUE_TAG_NAMES];
+
+/// Tag names are compared case-insensitively everywhere. Older files could hold
+/// "News" and "news"; fold duplicates onto the oldest row before enforcing it.
+const UNIQUE_TAG_NAMES: &str = "INSERT OR IGNORE INTO article_tags (article_id, tag_id)
+            SELECT at.article_id, (
+                SELECT MIN(t2.id) FROM tags t2 WHERE t2.name = t.name COLLATE NOCASE
+            )
+            FROM article_tags at
+            JOIN tags t ON t.id = at.tag_id
+            WHERE t.id != (
+                SELECT MIN(t2.id) FROM tags t2 WHERE t2.name = t.name COLLATE NOCASE
+            );
+        DELETE FROM tags
+            WHERE id != (
+                SELECT MIN(t2.id) FROM tags t2 WHERE t2.name = tags.name COLLATE NOCASE
+            );
+        CREATE UNIQUE INDEX IF NOT EXISTS idx_tags_name_nocase ON tags(name COLLATE NOCASE);";
 
 /// Consolidated baseline schema. Earlier incremental migrations were collapsed
 /// into this single migration; fresh installs only. Existing databases must be
 /// recreated (the app does not upgrade pre-baseline DBs).
-const BASELINE_SCHEMA: &str = "CREATE TABLE IF NOT EXISTS folders (
+pub(super) const BASELINE_SCHEMA: &str = "CREATE TABLE IF NOT EXISTS folders (
             id   INTEGER PRIMARY KEY,
             name TEXT NOT NULL UNIQUE
         );
@@ -171,10 +189,11 @@ pub fn purge_old_articles(conn: &Connection, retention_days: u64) -> Result<usiz
     // Undated rows are left alone: a refresh would re-insert them as unread,
     // because the insert path can only skip items that carry a timestamp.
     let count = conn.execute(
-        "DELETE FROM articles
-         WHERE timestamp > 0 AND timestamp < ?1
-           AND is_saved = 0
-           AND NOT EXISTS (SELECT 1 FROM article_tags WHERE article_id = articles.id)",
+        &format!(
+            "DELETE FROM articles
+             WHERE timestamp > 0 AND timestamp < ?1 AND NOT ({})",
+            kept_articles("articles")
+        ),
         params![cutoff],
     )?;
     if count > 0 {

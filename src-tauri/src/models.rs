@@ -46,7 +46,6 @@ pub struct Folder {
 pub struct Tag {
     pub id: i64,
     pub name: String,
-    pub color: String,
 }
 
 #[cfg(test)]

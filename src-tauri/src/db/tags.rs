@@ -1,10 +1,10 @@
-use super::SAVED_FEED_ID;
+use super::{SAVED_FEED_ID, kept_articles};
 use crate::models::Tag;
 use rusqlite::{Connection, OptionalExtension, Result, params};
 
 pub fn get_tags_for_article(conn: &Connection, article_id: i64) -> Result<Vec<Tag>> {
     let mut stmt = conn.prepare(
-        "SELECT t.id, t.name, t.color
+        "SELECT t.id, t.name
          FROM tags t
          JOIN article_tags at ON t.id = at.tag_id
          WHERE at.article_id = ?1
@@ -15,7 +15,6 @@ pub fn get_tags_for_article(conn: &Connection, article_id: i64) -> Result<Vec<Ta
             Ok(Tag {
                 id: row.get(0)?,
                 name: row.get(1)?,
-                color: row.get(2)?,
             })
         })?
         .collect::<Result<Vec<Tag>>>()?;
@@ -23,44 +22,38 @@ pub fn get_tags_for_article(conn: &Connection, article_id: i64) -> Result<Vec<Ta
 }
 
 pub fn get_all_tags(conn: &Connection) -> Result<Vec<Tag>> {
-    let mut stmt = conn.prepare("SELECT id, name, color FROM tags ORDER BY name COLLATE NOCASE")?;
+    let mut stmt = conn.prepare("SELECT id, name FROM tags ORDER BY name COLLATE NOCASE")?;
     let tags = stmt
         .query_map([], |row| {
             Ok(Tag {
                 id: row.get(0)?,
                 name: row.get(1)?,
-                color: row.get(2)?,
             })
         })?
         .collect::<Result<Vec<Tag>>>()?;
     Ok(tags)
 }
 
-pub fn add_tag_to_article(conn: &Connection, article_id: i64, name: &str, color: &str) -> Result<Tag> {
+pub fn add_tag_to_article(conn: &Connection, article_id: i64, name: &str) -> Result<Tag> {
     let tx = conn.unchecked_transaction()?;
 
-    // Case-insensitive so "News" and "news" stay one tag, and the stored colour
+    // Case-insensitive so "News" and "news" stay one tag, and the stored name
     // wins over the one the caller suggested.
-    let existing: Option<(i64, String, String)> = tx
+    let existing: Option<(i64, String)> = tx
         .query_row(
-            "SELECT id, name, color FROM tags WHERE name = ?1 COLLATE NOCASE",
+            "SELECT id, name FROM tags WHERE name = ?1 COLLATE NOCASE",
             params![name],
-            |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
+            |row| Ok((row.get(0)?, row.get(1)?)),
         )
         .optional()?;
 
     let tag = match existing {
-        Some((id, stored_name, stored_color)) => Tag {
-            id,
-            name: stored_name,
-            color: stored_color,
-        },
+        Some((id, stored_name)) => Tag { id, name: stored_name },
         None => {
-            tx.execute("INSERT INTO tags (name, color) VALUES (?1, ?2)", params![name, color])?;
+            tx.execute("INSERT INTO tags (name) VALUES (?1)", params![name])?;
             Tag {
                 id: tx.last_insert_rowid(),
                 name: name.to_string(),
-                color: color.to_string(),
             }
         },
     };
@@ -79,7 +72,7 @@ pub fn remove_tag_from_article(conn: &Connection, article_id: i64, tag_id: i64) 
         "DELETE FROM article_tags WHERE article_id = ?1 AND tag_id = ?2",
         params![article_id, tag_id],
     )?;
-    prune_unreachable_sentinel_articles(&tx)?;
+    save_unreachable_sentinel_articles(&tx)?;
     tx.commit()
 }
 
@@ -87,18 +80,21 @@ pub fn delete_tag(conn: &Connection, tag_id: i64) -> Result<()> {
     let tx = conn.unchecked_transaction()?;
     // article_tags rows go with the tag through ON DELETE CASCADE.
     tx.execute("DELETE FROM tags WHERE id = ?1", params![tag_id])?;
-    prune_unreachable_sentinel_articles(&tx)?;
+    save_unreachable_sentinel_articles(&tx)?;
     tx.commit()
 }
 
 /// A row that survives only because of a tag lives in the sentinel feed once
 /// its feed is deleted. Removing the last tag would leave it unreachable, so
-/// drop it instead, mirroring the unsave path.
-fn prune_unreachable_sentinel_articles(conn: &Connection) -> Result<()> {
+/// save it instead of deleting it: the user keeps the article, and an explicit
+/// unsave is the only action that drops it.
+fn save_unreachable_sentinel_articles(conn: &Connection) -> Result<()> {
     conn.execute(
-        "DELETE FROM articles
-         WHERE feed_id = ?1 AND is_saved = 0
-           AND NOT EXISTS (SELECT 1 FROM article_tags WHERE article_id = articles.id)",
+        &format!(
+            "UPDATE articles SET is_saved = 1
+             WHERE feed_id = ?1 AND NOT ({})",
+            kept_articles("articles")
+        ),
         params![SAVED_FEED_ID],
     )?;
     Ok(())

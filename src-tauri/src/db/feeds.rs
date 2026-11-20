@@ -1,4 +1,4 @@
-use super::SAVED_FEED_ID;
+use super::{SAVED_FEED_ID, kept_articles};
 use crate::models::{Feed, Folder};
 use log::debug;
 use rusqlite::{Connection, OptionalExtension, Result, params};
@@ -198,12 +198,6 @@ pub fn rename_feed(conn: &Connection, id: i64, new_name: &str, new_url: &str) ->
         params![new_name, new_url, id],
     )?;
     Ok(())
-}
-
-/// An article the user asked to keep. Retention and "mark all read" treat
-/// saved and tagged rows as keep signals, so deleting a feed must too.
-fn kept_articles(table: &str) -> String {
-    format!("{table}.is_saved = 1 OR EXISTS (SELECT 1 FROM article_tags WHERE article_id = {table}.id)")
 }
 
 fn delete_feed_rows(conn: &Connection, id: i64) -> Result<()> {

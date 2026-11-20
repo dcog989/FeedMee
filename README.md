@@ -22,7 +22,7 @@
   - OPML Import/Export.
   - Bluesky profile support via AT Protocol.
 - **Smart Views:** "Latest" (24h), "Today", and "Read Later" (Saved) aggregation.
-- **Article Tagging:** Color-coded tags for categorization and filtering.
+- **Article Tagging:** Tags for categorization.
 - **Search:** Full-text search across article titles, authors, and summaries.
 - **Thumbnails:** Automatic og:image extraction with resizing, WebP caching, and configurable size.
 - **Local Privacy:** Feeds, articles, settings and tags stay on your machine. No accounts, no telemetry. Feed icons load from DuckDuckGo's icon service.
