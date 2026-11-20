@@ -1,7 +1,7 @@
 <script lang="ts">
 import { Check, Plus, Tags, Trash2, X } from "@lucide/svelte";
 import { tooltip } from "#lib/actions/tooltip.svelte.js";
-import { articleStore, tagStore, uiStore } from "#lib/store.svelte.js";
+import { articleStore, feedStore, tagStore, uiStore } from "#lib/store.svelte.js";
 import type { Tag } from "#lib/types.js";
 import { withAdded, withRemoved } from "#lib/utils/sets.js";
 
@@ -31,6 +31,13 @@ async function loadAll() {
 
 function syncHasTags() {
   const has = activeTagIds.size > 0;
+  let article = articleStore.articles.find((a) => a.id === articleId);
+  if (articleStore.selectedArticle?.id === articleId) article = articleStore.selectedArticle;
+  // Tagged articles are left unread by mark-all-read and are not part of the
+  // feed's unread badge.
+  if (article && article.has_tags !== has && !article.is_read && !article.is_saved) {
+    articleStore.adjustUnreadCount(article.feed_id, has ? -1 : 1);
+  }
   // Mutate in place: replacing the article would retrigger ReadingPane, which
   // clears the extracted full text and scrolls back to the top.
   if (articleStore.selectedArticle?.id === articleId) {
@@ -87,6 +94,8 @@ function deleteTagPermanently(tag: Tag) {
       activeTagIds = withRemoved(activeTagIds, tag.id);
       allTags = allTags.filter((t) => t.id !== tag.id);
       syncHasTags();
+      // The tag left every article, so unread badges can rise again.
+      await feedStore.refreshFolders();
     } catch (e) {
       console.error("Failed to delete tag:", e);
     }

@@ -1,3 +1,4 @@
+use super::SAVED_FEED_ID;
 use crate::models::Tag;
 use rusqlite::{Connection, OptionalExtension, Result, params};
 
@@ -73,15 +74,32 @@ pub fn add_tag_to_article(conn: &Connection, article_id: i64, name: &str, color:
 }
 
 pub fn remove_tag_from_article(conn: &Connection, article_id: i64, tag_id: i64) -> Result<()> {
-    conn.execute(
+    let tx = conn.unchecked_transaction()?;
+    tx.execute(
         "DELETE FROM article_tags WHERE article_id = ?1 AND tag_id = ?2",
         params![article_id, tag_id],
     )?;
-    Ok(())
+    prune_unreachable_sentinel_articles(&tx)?;
+    tx.commit()
 }
 
 pub fn delete_tag(conn: &Connection, tag_id: i64) -> Result<()> {
+    let tx = conn.unchecked_transaction()?;
     // article_tags rows go with the tag through ON DELETE CASCADE.
-    conn.execute("DELETE FROM tags WHERE id = ?1", params![tag_id])?;
+    tx.execute("DELETE FROM tags WHERE id = ?1", params![tag_id])?;
+    prune_unreachable_sentinel_articles(&tx)?;
+    tx.commit()
+}
+
+/// A row that survives only because of a tag lives in the sentinel feed once
+/// its feed is deleted. Removing the last tag would leave it unreachable, so
+/// drop it instead, mirroring the unsave path.
+fn prune_unreachable_sentinel_articles(conn: &Connection) -> Result<()> {
+    conn.execute(
+        "DELETE FROM articles
+         WHERE feed_id = ?1 AND is_saved = 0
+           AND NOT EXISTS (SELECT 1 FROM article_tags WHERE article_id = articles.id)",
+        params![SAVED_FEED_ID],
+    )?;
     Ok(())
 }
