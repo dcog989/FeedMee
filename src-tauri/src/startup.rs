@@ -224,7 +224,7 @@ mod tests {
             b"this is not a database, no matter how it is read".to_vec()
         );
 
-        assert_eq!(user_version(&conn), 1);
+        assert_eq!(user_version(&conn), 2);
 
         drop(conn);
         let _ = fs::remove_dir_all(&dir);
@@ -246,7 +246,7 @@ mod tests {
         };
         assert!(moved_to.exists());
         assert!(moved_to.to_string_lossy().contains("pre-baseline"));
-        assert_eq!(user_version(&conn), 1);
+        assert_eq!(user_version(&conn), 2);
 
         drop(conn);
         let _ = fs::remove_dir_all(&dir);

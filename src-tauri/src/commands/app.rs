@@ -81,7 +81,7 @@ pub fn save_app_settings(
     if retention_changed {
         // A lower retention must apply now, not at the next launch.
         let app = app.clone();
-        let _ = tauri::async_runtime::spawn_blocking(move || {
+        drop(tauri::async_runtime::spawn_blocking(move || {
             let state = app.state::<AppState>();
             let retention = match state.settings.lock() {
                 Ok(settings) => settings.article_retention_days,
@@ -92,7 +92,7 @@ pub fn save_app_settings(
             {
                 log::error!("Article purge after a retention change failed: {}", e);
             }
-        });
+        }));
     }
     Ok(())
 }

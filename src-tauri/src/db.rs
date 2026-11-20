@@ -162,6 +162,7 @@ mod tests {
         let mut third = sample_article(feed);
         third.image_url = "https://example.com/other-low.jpg".to_string();
         third.image_low_res = true;
+        third.summary = String::new();
         batch_insert_articles(&mut conn, &[third], None).unwrap();
 
         let articles = get_articles_for_feed(&conn, feed, 10, 0, true).unwrap();
@@ -782,7 +783,7 @@ mod tests {
 
     #[test]
     fn null_timestamp_is_read_as_undated() {
-        let mut conn = test_conn();
+        let conn = test_conn();
         let feed = create_feed(&conn, "Feed", "https://example.com/rss", None, "rss").unwrap();
         conn.execute(
             "INSERT INTO articles (feed_id, title, url, timestamp) VALUES (?1, 'Title', 'https://example.com/a', NULL)",

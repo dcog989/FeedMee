@@ -96,6 +96,7 @@ export interface ArticleStore
     AppSettingsRef,
     PaneFocus,
     BlockedPhrasesState,
+    ReloadArticleList,
     UserPrompt {
   readonly pageSize: number;
   readonly latestHours: number;

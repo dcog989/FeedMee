@@ -247,11 +247,16 @@ pub fn mark_global_read(conn: &Connection) -> Result<()> {
 }
 
 pub fn update_article_saved(conn: &Connection, article_id: i64, is_saved: bool) -> Result<()> {
+    conn.execute(
+        "UPDATE articles SET is_saved = ?1 WHERE id = ?2",
+        params![is_saved as i64, article_id],
+    )?;
     if !is_saved {
         // Saved articles from deleted feeds live in the sentinel feed. Unsaving
         // one would leave a row no view can reach, so drop it instead — unless a
-        // tag still makes it reachable through search.
-        let deleted = conn.execute(
+        // tag still makes it reachable through search. Runs after the update so
+        // the stale is_saved flag does not keep the row alive.
+        conn.execute(
             &format!(
                 "DELETE FROM articles
                  WHERE id = ?1 AND feed_id = ?2
@@ -260,14 +265,7 @@ pub fn update_article_saved(conn: &Connection, article_id: i64, is_saved: bool) 
             ),
             params![article_id, SAVED_FEED_ID],
         )?;
-        if deleted > 0 {
-            return Ok(());
-        }
     }
-    conn.execute(
-        "UPDATE articles SET is_saved = ?1 WHERE id = ?2",
-        params![is_saved as i64, article_id],
-    )?;
     Ok(())
 }
 
