@@ -4,25 +4,28 @@ use std::sync::Mutex;
 
 use crate::db;
 
-const MAX_BACKUPS: usize = 24;
+const MAX_BACKUPS: usize = 10;
 
-fn rotate_backups(dir: &Path) {
-    let mut entries: Vec<PathBuf> = match fs::read_dir(dir) {
-        Ok(rd) => rd
-            .filter_map(|e| e.ok())
-            .filter(|e| e.path().extension().is_some_and(|ext| ext == "opml"))
-            .map(|e| e.path())
-            .collect(),
-        Err(_) => return,
+fn sorted_backup_files(dir: &Path) -> Vec<PathBuf> {
+    let Ok(entries) = fs::read_dir(dir) else {
+        return Vec::new();
     };
+    let mut files: Vec<PathBuf> = entries
+        .filter_map(|e| e.ok())
+        .filter(|e| e.path().extension().is_some_and(|ext| ext == "opml"))
+        .map(|e| e.path())
+        .collect();
+    files.sort();
+    files
+}
 
-    entries.sort();
-
-    while entries.len() > MAX_BACKUPS {
-        if let Some(oldest) = entries.first() {
-            let _ = fs::remove_file(oldest);
-            entries.remove(0);
-        }
+/// Deletes the oldest backups so only `MAX_BACKUPS` remain. Names sort
+/// chronologically, so plain filename order is age order.
+fn prune_backups(dir: &Path) {
+    let files = sorted_backup_files(dir);
+    let excess = files.len().saturating_sub(MAX_BACKUPS);
+    for old in files.iter().take(excess) {
+        let _ = fs::remove_file(old);
     }
 }
 
@@ -34,16 +37,50 @@ pub fn run_auto_backup(db: &Mutex<rusqlite::Connection>, backup_dir: &Path) -> R
     drop(conn);
     let opml = crate::opml::render(&folders)?;
 
-    let timestamp = chrono::Local::now().format("%Y-%m-%d");
+    if let Some(latest) = sorted_backup_files(backup_dir).last() {
+        if fs::read(latest).is_ok_and(|previous| previous == opml.as_bytes()) {
+            // Subscriptions are unchanged, so the last backup already covers this.
+            return Ok(());
+        }
+    }
+
+    let timestamp = chrono::Local::now().format("%Y-%m-%dT%H-%M-%S");
     let filename = format!("backup-{}.opml", timestamp);
     let filepath = backup_dir.join(&filename);
 
-    // One file per day: repeated launches overwrite today's backup instead of
-    // pushing the older ones out of the 24-file rotation.
     crate::startup::write_atomic(&filepath, opml.as_bytes()).map_err(|e| format!("failed to write backup: {}", e))?;
     log::info!("Auto-backup written: {}", filepath.display());
 
-    rotate_backups(backup_dir);
+    prune_backups(backup_dir);
 
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn write_backups(dir: &Path, count: usize) {
+        for i in 1..=count {
+            let path = dir.join(format!("backup-2026-01-{:02}T00-00-00.opml", i));
+            fs::write(path, "opml").unwrap();
+        }
+    }
+
+    #[test]
+    fn prune_keeps_only_the_newest_backups() {
+        let dir = std::env::temp_dir().join(format!("feedmee-backup-test-{}", std::process::id()));
+        let _ = fs::remove_dir_all(&dir);
+        fs::create_dir_all(&dir).unwrap();
+        write_backups(&dir, MAX_BACKUPS + 2);
+
+        prune_backups(&dir);
+
+        let remaining = sorted_backup_files(&dir);
+        assert_eq!(remaining.len(), MAX_BACKUPS);
+        let oldest = remaining.first().unwrap().to_string_lossy();
+        assert!(oldest.ends_with("2026-01-03T00-00-00.opml"));
+
+        fs::remove_dir_all(&dir).unwrap();
+    }
 }
