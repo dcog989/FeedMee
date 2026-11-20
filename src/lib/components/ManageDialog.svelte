@@ -130,38 +130,6 @@ function focusOnMount(node: HTMLElement) {
 </Modal>
 
 <style>
-.modal-header {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 1rem;
-}
-
-h3 {
-  margin: 0;
-  flex: 1;
-  font-size: 1.1rem;
-  color: var(--text-primary);
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.close-btn {
-  display: flex;
-  padding: 4px;
-  background: none;
-  border: none;
-  border-radius: 4px;
-  color: var(--text-secondary);
-  cursor: pointer;
-}
-
-.close-btn:hover {
-  background: var(--bg-hover);
-  color: var(--text-primary);
-}
-
 .input-group {
   display: flex;
   gap: 8px;

@@ -326,15 +326,7 @@ function vacuum() {
   padding: 1rem 1.25rem;
   border-bottom: 1px solid var(--border-color);
   flex-shrink: 0;
-}
-
-.modal-header h3 {
-  margin: 0;
-  flex: 1;
-  font-size: 1rem;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
+  margin-bottom: 0;
 }
 
 .shortcuts-btn,

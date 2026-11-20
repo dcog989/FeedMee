@@ -1,4 +1,5 @@
 <script lang="ts">
+import { TriangleAlert, X } from "@lucide/svelte";
 import { uiStore } from "#lib/store.svelte.js";
 import Modal from "./Modal.svelte";
 </script>
@@ -8,9 +9,15 @@ import Modal from "./Modal.svelte";
   label={uiStore.modalState.type === "confirm" ? "Confirmation" : "Alert"}
   onclose={() => uiStore.closeModal()}
 >
-  <h3>
-    {uiStore.modalState.type === "confirm" ? "Confirmation" : "Alert"}
-  </h3>
+  <div class="modal-header">
+    <h3>
+      <TriangleAlert size={18} />
+      {uiStore.modalState.type === "confirm" ? "Confirmation" : "Alert"}
+    </h3>
+    <button type="button" class="close-btn" onclick={() => uiStore.closeModal()} aria-label="Close">
+      <X size={18} />
+    </button>
+  </div>
   <p>{uiStore.modalState.message}</p>
   <div class="modal-actions">
     {#if uiStore.modalState.type === "confirm"}
@@ -27,19 +34,8 @@ import Modal from "./Modal.svelte";
 </Modal>
 
 <style>
-h3 {
-  margin: 0;
-  font-size: 1.1rem;
-}
-
 p {
   margin: 1rem 0 1.5rem 0;
   color: var(--text-secondary);
-}
-
-.modal-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 12px;
 }
 </style>

@@ -1,4 +1,5 @@
 <script lang="ts">
+import { Pencil, X } from "@lucide/svelte";
 import { feedStore, uiStore } from "#lib/store.svelte.js";
 import { findFeedFolderId } from "#lib/utils/feeds.js";
 import Modal from "./Modal.svelte";
@@ -44,7 +45,12 @@ function focusOnMount(node: HTMLInputElement) {
 </script>
 
 <Modal isOpen={true} onclose={closeDialog} width="420px" label="Edit Feed">
-  <h3>Edit Feed</h3>
+  <div class="modal-header">
+    <h3><Pencil size={18} /> Edit Feed</h3>
+    <button type="button" class="close-btn" onclick={closeDialog} aria-label="Close">
+      <X size={18} />
+    </button>
+  </div>
   <label class="field">
     <span>Name</span>
     <input type="text" bind:value={name} placeholder="Feed name" onkeydown={onKeyDown} use:focusOnMount>
@@ -70,12 +76,6 @@ function focusOnMount(node: HTMLInputElement) {
 </Modal>
 
 <style>
-h3 {
-  margin: 0 0 1rem 0;
-  font-size: 1.1rem;
-  color: var(--text-primary);
-}
-
 .field {
   display: flex;
   flex-direction: column;
@@ -130,12 +130,5 @@ h3 {
   font-size: 0.8rem;
   color: var(--text-secondary);
   margin: -0.25rem 0 0.75rem;
-}
-
-.modal-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 8px;
-  margin-top: 1rem;
 }
 </style>

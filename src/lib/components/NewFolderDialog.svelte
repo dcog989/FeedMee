@@ -1,4 +1,5 @@
 <script lang="ts">
+import { FolderPen, FolderPlus, X } from "@lucide/svelte";
 import { feedStore, uiStore } from "#lib/store.svelte.js";
 import Modal from "./Modal.svelte";
 
@@ -33,7 +34,19 @@ function focusOnMount(node: HTMLInputElement) {
 </script>
 
 <Modal isOpen={true} onclose={closeDialog} width="350px" label={isRename ? "Rename Folder" : "New Folder"}>
-  <h3>{isRename ? "Rename Folder" : "New Folder"}</h3>
+  <div class="modal-header">
+    <h3>
+      {#if isRename}
+        <FolderPen size={18} />
+      {:else}
+        <FolderPlus size={18} />
+      {/if}
+      {isRename ? "Rename Folder" : "New Folder"}
+    </h3>
+    <button type="button" class="close-btn" onclick={closeDialog} aria-label="Close">
+      <X size={18} />
+    </button>
+  </div>
   <input type="text" bind:value={name} placeholder="Enter folder name" onkeydown={onKeyDown} use:focusOnMount>
   <div class="modal-actions">
     <button type="button" class="secondary" onclick={closeDialog}>Cancel</button>
@@ -44,12 +57,6 @@ function focusOnMount(node: HTMLInputElement) {
 </Modal>
 
 <style>
-h3 {
-  margin: 0 0 1rem 0;
-  font-size: 1.1rem;
-  color: var(--text-primary);
-}
-
 input {
   width: 100%;
   padding: 8px 12px;
@@ -64,12 +71,5 @@ input {
 
 input:focus {
   border-color: var(--bg-selected);
-}
-
-.modal-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 8px;
-  margin-top: 1rem;
 }
 </style>

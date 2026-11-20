@@ -117,6 +117,46 @@ body {
   cursor: not-allowed;
 }
 
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 1rem;
+}
+
+/* Shared modal dialog header: icon + title, close button on the right. */
+.modal-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 1rem;
+}
+
+.modal-header h3 {
+  margin: 0;
+  flex: 1;
+  font-size: 1.1rem;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.modal-header .close-btn {
+  display: flex;
+  padding: 4px;
+  background: none;
+  border: none;
+  border-radius: 4px;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.modal-header .close-btn:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
 /* Shared chrome bar for the nav and article panes. */
 .app-toolbar {
   display: flex;

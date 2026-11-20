@@ -1,5 +1,5 @@
 <script lang="ts">
-import { RotateCcw, X } from "@lucide/svelte";
+import { Keyboard, RotateCcw, X } from "@lucide/svelte";
 import { shortcutStore } from "#lib/store.svelte.js";
 import { type ShortcutDefinition, shortcutKeyFromEvent, shortcutManager } from "#lib/utils/shortcuts.js";
 import Modal from "./Modal.svelte";
@@ -70,7 +70,7 @@ function resetShortcut(commandId: string) {
 
 <Modal {isOpen} onclose={onClose} zindex={10001} label="Keyboard Shortcuts" class="shortcuts-modal">
   <div class="modal-header">
-    <h3>Keyboard Shortcuts</h3>
+    <h3><Keyboard size={18} /> Keyboard Shortcuts</h3>
     <button type="button" class="close-btn" onclick={onClose} aria-label="Close">
       <X size={18} />
     </button>
@@ -143,27 +143,7 @@ function resetShortcut(commandId: string) {
   padding: 1rem 1.25rem;
   border-bottom: 1px solid var(--border-color);
   flex-shrink: 0;
-}
-
-.modal-header h3 {
-  margin: 0;
-  flex: 1;
-  font-size: 1rem;
-}
-
-.close-btn {
-  background: none;
-  border: none;
-  color: var(--text-secondary);
-  cursor: pointer;
-  padding: 4px;
-  display: flex;
-  border-radius: 4px;
-}
-
-.close-btn:hover {
-  color: var(--text-primary);
-  background: var(--bg-hover);
+  margin-bottom: 0;
 }
 
 .shortcuts-list {
