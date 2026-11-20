@@ -145,10 +145,13 @@ export function createArticleActions(state: ArticleStore) {
   function setArticleRead(article: Article, read: boolean) {
     if (article.is_read === read) return;
     article.is_read = read;
-    state.adjustUnreadCount(article.feed_id, read ? -1 : 1);
+    // Saved and tagged articles are left unread by mark-all-read and are not
+    // part of the feed's unread badge.
+    const counted = !article.is_saved && !article.has_tags;
+    if (counted) state.adjustUnreadCount(article.feed_id, read ? -1 : 1);
     invoke("mark_article_read", { id: article.id, read }).catch((e) => {
       article.is_read = !read;
-      state.adjustUnreadCount(article.feed_id, read ? 1 : -1);
+      if (counted) state.adjustUnreadCount(article.feed_id, read ? 1 : -1);
       console.error("mark_article_read failed:", e);
     });
   }
@@ -168,12 +171,16 @@ export function createArticleActions(state: ArticleStore) {
 
   async function toggleSaved(article: Article) {
     const newSaved = !article.is_saved;
+    // Saving hides an unread article from the feed's unread badge.
+    const counted = !article.is_read && !article.has_tags;
     article.is_saved = newSaved;
+    if (counted) state.adjustUnreadCount(article.feed_id, newSaved ? -1 : 1);
 
     try {
       await invoke("mark_article_saved", { id: article.id, isSaved: newSaved });
     } catch (e) {
       article.is_saved = !newSaved;
+      if (counted) state.adjustUnreadCount(article.feed_id, newSaved ? 1 : -1);
       state.alert("Could not update Read Later.");
       console.error("mark_article_saved failed:", e);
     }

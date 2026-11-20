@@ -9,6 +9,11 @@ const ARTICLE_COLUMNS: &str = "a.id, a.feed_id, a.title, a.author, a.summary, a.
      a.timestamp, a.is_read, a.is_saved, \
      EXISTS (SELECT 1 FROM article_tags WHERE article_id = a.id) AS has_tags";
 
+/// Effective time for views that ask "what is new". Feeds without dates store
+/// `timestamp = 0`, which would otherwise hide them from Latest and Today; the
+/// row's insert time is a usable stand-in.
+const ARTICLE_TIME: &str = "CASE WHEN a.timestamp > 0 THEN a.timestamp ELSE a.created_at END";
+
 fn order_clause(desc: bool) -> &'static str {
     if desc { "DESC" } else { "ASC" }
 }
@@ -59,8 +64,8 @@ pub fn get_latest_articles(
     let order = order_clause(sort_desc);
     let sql = format!(
         "SELECT {ARTICLE_COLUMNS}
-         FROM articles a WHERE a.timestamp > ?1 AND a.feed_id != {SAVED_FEED_ID}
-         ORDER BY a.timestamp {order}, a.id {order} LIMIT ?2 OFFSET ?3"
+         FROM articles a WHERE {ARTICLE_TIME} > ?1 AND a.feed_id != {SAVED_FEED_ID}
+         ORDER BY {ARTICLE_TIME} {order}, a.id {order} LIMIT ?2 OFFSET ?3"
     );
     let mut stmt = conn.prepare(&sql)?;
     map_articles(&mut stmt, params![cutoff_timestamp, limit as i64, offset as i64])
@@ -83,15 +88,15 @@ fn map_articles(stmt: &mut rusqlite::Statement, params: impl rusqlite::Params) -
             id: row.get(0)?,
             feed_id: row.get(1)?,
             title: row.get(2)?,
-            author: row.get(3).unwrap_or_default(),
-            summary: row.get(4).unwrap_or_default(),
+            author: row.get::<_, Option<String>>(3)?.unwrap_or_default(),
+            summary: row.get::<_, Option<String>>(4)?.unwrap_or_default(),
             url: row.get(5)?,
-            image_url: row.get(6).unwrap_or_default(),
+            image_url: row.get(6)?,
             image_low_res: false,
             timestamp: row.get(7)?,
             is_read: row.get(8)?,
             is_saved: row.get(9)?,
-            has_tags: row.get::<_, i64>(10).unwrap_or(0) != 0,
+            has_tags: row.get::<_, i64>(10)? != 0,
         })
     })?
     .collect::<Result<Vec<Article>>>()
@@ -123,18 +128,20 @@ impl<'a> ArticleInserter<'a> {
         Ok(Self {
             cutoff,
             insert: conn.prepare(
-                "INSERT OR IGNORE INTO articles (feed_id, title, author, summary, url, image_url, timestamp, created_at, is_read, is_saved)
-                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, CAST(strftime('%s','now') AS INTEGER), 0, 0)",
+                "INSERT INTO articles (feed_id, title, author, summary, url, image_url, timestamp, created_at, is_read, is_saved)
+                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, CAST(strftime('%s','now') AS INTEGER), 0, 0)
+                 ON CONFLICT(feed_id, url) DO NOTHING",
             )?,
             update_image: conn.prepare(
                 "UPDATE articles SET image_url = ?1
-                 WHERE feed_id = ?2 AND url = ?3 AND (image_url = '' OR ?4)",
+                 WHERE feed_id = ?2 AND url = ?3 AND (image_url = '' OR ?4)
+                   AND image_url IS NOT ?1",
             )?,
             update_summary: conn.prepare(
                 "UPDATE articles SET summary = ?1
                  WHERE feed_id = ?2 AND url = ?3
-                   AND (summary = '' OR image_url = '' OR ?4)
-                   AND summary IS NOT ?1",
+                   AND summary IS NOT ?1
+                   AND (summary IS NULL OR summary = '' OR length(?1) >= length(summary))",
             )?,
         })
     }
@@ -167,13 +174,10 @@ impl<'a> ArticleInserter<'a> {
                 ])?;
             }
             if !article.summary.is_empty() {
-                // A low-res duplicate must not clobber the better copy's summary.
-                self.update_summary.execute(params![
-                    article.summary,
-                    article.feed_id,
-                    article.url,
-                    !article.image_low_res,
-                ])?;
+                // Only fill in or lengthen the summary; a shorter duplicate
+                // must not replace the stored copy.
+                self.update_summary
+                    .execute(params![article.summary, article.feed_id, article.url])?;
             }
         }
         Ok(inserted)
@@ -210,26 +214,36 @@ pub fn set_article_read(conn: &Connection, article_id: i64, is_read: bool) -> Re
     Ok(())
 }
 
-pub fn mark_feed_read(conn: &Connection, feed_id: i64) -> Result<()> {
-    conn.execute(
-        "UPDATE articles SET is_read = 1 WHERE feed_id = ?1 AND is_saved = 0 AND NOT EXISTS (SELECT 1 FROM article_tags WHERE article_id = articles.id)",
-        params![feed_id],
-    )?;
+fn mark_read_where(conn: &Connection, filter: &str, param: Option<i64>) -> Result<()> {
+    let sql = format!(
+        "UPDATE articles SET is_read = 1
+         WHERE is_saved = 0
+           AND NOT EXISTS (SELECT 1 FROM article_tags WHERE article_id = articles.id)
+           {filter}"
+    );
+    match param {
+        Some(id) => conn.execute(&sql, params![id])?,
+        None => conn.execute(&sql, [])?,
+    };
     Ok(())
+}
+
+pub fn mark_feed_read(conn: &Connection, feed_id: i64) -> Result<()> {
+    mark_read_where(conn, "AND feed_id = ?1", Some(feed_id))
 }
 
 pub fn mark_folder_read(conn: &Connection, folder_id: i64) -> Result<()> {
-    conn.execute(
-        "UPDATE articles SET is_read = 1
-         WHERE feed_id IN (SELECT id FROM feeds WHERE folder_id = ?1) AND is_saved = 0 AND NOT EXISTS (SELECT 1 FROM article_tags WHERE article_id = articles.id)",
-        params![folder_id],
-    )?;
-    Ok(())
+    // The sentinel feed sits in folder 0 but must never be touched by a
+    // folder-wide action.
+    let filter = format!(
+        "AND feed_id != {SAVED_FEED_ID}
+         AND feed_id IN (SELECT id FROM feeds WHERE folder_id = ?1)"
+    );
+    mark_read_where(conn, &filter, Some(folder_id))
 }
 
 pub fn mark_global_read(conn: &Connection) -> Result<()> {
-    conn.execute("UPDATE articles SET is_read = 1 WHERE is_saved = 0 AND NOT EXISTS (SELECT 1 FROM article_tags WHERE article_id = articles.id)", [])?;
-    Ok(())
+    mark_read_where(conn, "", None)
 }
 
 pub fn update_article_saved(conn: &Connection, article_id: i64, is_saved: bool) -> Result<()> {

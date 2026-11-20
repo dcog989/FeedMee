@@ -19,7 +19,10 @@ const FEED_SELECT: &str = "SELECT f.id, f.name, f.url, f.folder_id, f.has_error,
      COALESCE(uc.unread_count, 0) AS unread_count, f.error_count \
      FROM feeds f \
      LEFT JOIN ( \
-         SELECT feed_id, COUNT(*) AS unread_count FROM articles WHERE is_read = 0 GROUP BY feed_id \
+         SELECT feed_id, COUNT(*) AS unread_count FROM articles \
+         WHERE is_read = 0 AND is_saved = 0 \
+           AND NOT EXISTS (SELECT 1 FROM article_tags WHERE article_id = articles.id) \
+         GROUP BY feed_id \
      ) uc ON f.id = uc.feed_id";
 
 fn map_feed_row(r: &rusqlite::Row) -> rusqlite::Result<Feed> {
@@ -89,7 +92,9 @@ pub fn get_folders_with_feeds(conn: &Connection) -> Result<Vec<Folder>> {
 
 pub fn get_feed_unread_count(conn: &Connection, feed_id: i64) -> Result<i64> {
     conn.query_row(
-        "SELECT COUNT(*) FROM articles WHERE feed_id = ?1 AND is_read = 0",
+        "SELECT COUNT(*) FROM articles
+         WHERE feed_id = ?1 AND is_read = 0 AND is_saved = 0
+           AND NOT EXISTS (SELECT 1 FROM article_tags WHERE article_id = articles.id)",
         params![feed_id],
         |r| r.get(0),
     )
