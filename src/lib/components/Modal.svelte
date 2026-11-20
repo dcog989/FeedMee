@@ -2,6 +2,14 @@
 // Open dialogs, oldest first. Only the newest one answers Escape, so a confirm
 // or the shortcuts sheet does not also close the window underneath it.
 const openDialogs: symbol[] = [];
+
+// Restoring focus after a mouse-opened dialog would paint a keyboard focus ring
+// on the trigger once it is closed with Escape, so track how it was opened.
+let pointerInitiated = false;
+if (typeof window !== "undefined") {
+  window.addEventListener("keydown", () => (pointerInitiated = false), true);
+  window.addEventListener("pointerdown", () => (pointerInitiated = true), true);
+}
 </script>
 
 <script lang="ts">
@@ -38,12 +46,16 @@ $effect(() => {
 });
 
 // Give the dialog focus, so Tab enters it and Enter cannot re-fire the button
-// that opened it, then put focus back where it was.
+// that opened it, then put focus back where it was. A dialog opened by pointer
+// does not restore focus: the trigger would show a keyboard focus ring.
 $effect(() => {
   if (!isOpen) return;
   const previous = document.activeElement as HTMLElement | null;
+  const restoreFocus = !pointerInitiated;
   untrack(() => dialogEl)?.focus();
-  return () => previous?.focus();
+  return () => {
+    if (restoreFocus) previous?.focus();
+  };
 });
 
 function onOverlayClick(e: MouseEvent) {
