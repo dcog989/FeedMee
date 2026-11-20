@@ -381,6 +381,22 @@ mod tests {
     }
 
     #[test]
+    fn delete_folder_preserves_saved_articles() {
+        let mut conn = test_conn();
+        let folder = create_folder(&conn, "News").unwrap();
+        let feed = create_feed(&conn, "Feed", "https://example.com/rss", Some(folder), "rss").unwrap();
+        batch_insert_articles(&mut conn, &[sample_article(feed)], None).unwrap();
+        let id = get_articles_for_feed(&conn, feed, 10, 0, true).unwrap()[0].id;
+        update_article_saved(&conn, id, true).unwrap();
+
+        delete_folder(&conn, folder).unwrap();
+
+        let saved = get_saved_articles(&conn, 10, 0, true).unwrap();
+        assert_eq!(saved.len(), 1);
+        assert_eq!(saved[0].id, id);
+    }
+
+    #[test]
     fn deleting_a_readded_feed_keeps_tags_on_the_surviving_copy() {
         let mut conn = test_conn();
         let feed = create_feed(&conn, "Feed", "https://example.com/rss", None, "rss").unwrap();
@@ -401,6 +417,49 @@ mod tests {
         assert_eq!(saved.len(), 1);
         let tags = get_tags_for_article(&conn, saved[0].id).unwrap();
         assert_eq!(tags.iter().map(|t| t.name.as_str()).collect::<Vec<_>>(), vec!["Keep"]);
+    }
+
+    #[test]
+    fn deleting_a_readded_feed_carries_a_new_tag_to_the_surviving_copy() {
+        let mut conn = test_conn();
+        let feed = create_feed(&conn, "Feed", "https://example.com/rss", None, "rss").unwrap();
+        batch_insert_articles(&mut conn, &[sample_article(feed)], None).unwrap();
+        let id = get_articles_for_feed(&conn, feed, 10, 0, true).unwrap()[0].id;
+        update_article_saved(&conn, id, true).unwrap();
+        delete_feed(&conn, feed).unwrap();
+
+        // Re-add the feed, tag the new copy, and delete again without saving it.
+        let readded = create_feed(&conn, "Feed", "https://example.com/rss", None, "rss").unwrap();
+        batch_insert_articles(&mut conn, &[sample_article(readded)], None).unwrap();
+        let new_id = get_articles_for_feed(&conn, readded, 10, 0, true).unwrap()[0].id;
+        add_tag_to_article(&conn, new_id, "Keep", "#4899ec").unwrap();
+        delete_feed(&conn, readded).unwrap();
+
+        let saved = get_saved_articles(&conn, 10, 0, true).unwrap();
+        assert_eq!(saved.len(), 1);
+        let tags = get_tags_for_article(&conn, saved[0].id).unwrap();
+        assert_eq!(tags.iter().map(|t| t.name.as_str()).collect::<Vec<_>>(), vec!["Keep"]);
+    }
+
+    #[test]
+    fn deleting_a_readded_feed_keeps_the_read_state_of_the_new_copy() {
+        let mut conn = test_conn();
+        let feed = create_feed(&conn, "Feed", "https://example.com/rss", None, "rss").unwrap();
+        batch_insert_articles(&mut conn, &[sample_article(feed)], None).unwrap();
+        let id = get_articles_for_feed(&conn, feed, 10, 0, true).unwrap()[0].id;
+        update_article_saved(&conn, id, true).unwrap();
+        delete_feed(&conn, feed).unwrap();
+
+        // Read the article again in a re-added feed, then delete that feed.
+        let readded = create_feed(&conn, "Feed", "https://example.com/rss", None, "rss").unwrap();
+        batch_insert_articles(&mut conn, &[sample_article(readded)], None).unwrap();
+        let new_id = get_articles_for_feed(&conn, readded, 10, 0, true).unwrap()[0].id;
+        set_article_read(&conn, new_id, true).unwrap();
+        delete_feed(&conn, readded).unwrap();
+
+        let saved = get_saved_articles(&conn, 10, 0, true).unwrap();
+        assert_eq!(saved.len(), 1);
+        assert!(saved[0].is_read);
     }
 
     #[test]

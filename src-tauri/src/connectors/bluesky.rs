@@ -315,7 +315,7 @@ pub async fn refresh_bluesky_feed(feed_url: &str, feed_id: i64, state: &AppState
 
     let last_seen = {
         let conn = state.db.lock().unwrap();
-        db::get_bluesky_cursor(&conn, feed_id).unwrap_or(None)
+        db::get_bluesky_cursor(&conn, feed_id).map_err(|e| e.to_string())?
     };
 
     let (articles, new_cursor) = fetch_posts(&state.http_client, actor, feed_id, last_seen.as_deref()).await?;

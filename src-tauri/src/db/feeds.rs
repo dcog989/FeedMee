@@ -163,15 +163,15 @@ pub fn record_refresh_failure(conn: &Connection, feed_id: i64) -> Result<()> {
 }
 
 pub fn get_bluesky_cursor(conn: &Connection, feed_id: i64) -> Result<Option<String>> {
-    let result: Result<String> = conn.query_row(
+    // A missing row, NULL cursor and empty cursor all mean "start fresh";
+    // anything else is a real error and must not be mistaken for one of them.
+    conn.query_row(
         "SELECT bluesky_cursor FROM feeds WHERE id = ?1",
         params![feed_id],
-        |row| row.get(0),
-    );
-    match result {
-        Ok(cursor) if !cursor.is_empty() => Ok(Some(cursor)),
-        _ => Ok(None),
-    }
+        |row| row.get::<_, Option<String>>(0),
+    )
+    .optional()
+    .map(|cursor| cursor.flatten().filter(|c| !c.is_empty()))
 }
 
 pub fn set_bluesky_cursor(conn: &Connection, feed_id: i64, cursor: &str) -> Result<()> {
@@ -210,7 +210,7 @@ fn delete_feed_rows(conn: &Connection, id: i64) -> Result<()> {
     conn.execute(
         &format!(
             "INSERT OR IGNORE INTO article_tags (article_id, tag_id)
-             SELECT kept.id, at.tag_id
+             SELECT hidden.id, at.tag_id
              FROM articles kept
              JOIN articles hidden ON hidden.feed_id = ?2 AND hidden.url = kept.url
              JOIN article_tags at ON at.article_id = kept.id
@@ -219,12 +219,19 @@ fn delete_feed_rows(conn: &Connection, id: i64) -> Result<()> {
         ),
         params![id, SAVED_FEED_ID],
     )?;
-    // The hidden copy survives the merge, so carry over a save applied to the
-    // incoming copy; otherwise the article would drop out of Read Later.
+    // The hidden copy survives the merge, so carry over state applied to the
+    // incoming copy; otherwise the article would drop out of Read Later or
+    // reappear as unread.
     conn.execute(
         "UPDATE articles SET is_saved = 1
          WHERE feed_id = ?2
            AND url IN (SELECT kept.url FROM articles kept WHERE kept.feed_id = ?1 AND kept.is_saved = 1)",
+        params![id, SAVED_FEED_ID],
+    )?;
+    conn.execute(
+        "UPDATE articles SET is_read = 1
+         WHERE feed_id = ?2
+           AND url IN (SELECT kept.url FROM articles kept WHERE kept.feed_id = ?1 AND kept.is_read = 1)",
         params![id, SAVED_FEED_ID],
     )?;
     // The hidden copy already holds this URL; keep it so its saved and read
