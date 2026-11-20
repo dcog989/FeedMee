@@ -421,4 +421,16 @@ mod tests {
             .unwrap();
         assert_eq!(feed_id, SAVED_FEED_ID);
     }
+
+    #[test]
+    fn search_matches_all_terms_in_any_order() {
+        let mut conn = test_conn();
+        let feed = create_feed(&conn, "Feed", "https://example.com/rss", None, "rss").unwrap();
+        batch_insert_articles(&mut conn, &[sample_article(feed)], None).unwrap();
+
+        // "Summary" is in the summary column and "Title" in the title column;
+        // a phrase search would never match either order.
+        assert_eq!(search_articles(&conn, "Summary Title", 10, 0, true).unwrap().len(), 1);
+        assert!(search_articles(&conn, "   ", 10, 0, true).unwrap().is_empty());
+    }
 }

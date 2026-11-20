@@ -262,9 +262,17 @@ pub fn search_articles(
     sort_desc: bool,
 ) -> Result<Vec<Article>> {
     let order = order_clause(sort_desc);
-    // Escape the query for FTS5: wrap in quotes to treat as a literal phrase,
-    // and double any embedded double quotes to prevent operator injection.
-    let escaped = format!("\"{}\"", query.replace('"', "\"\""));
+    // Escape each term for FTS5: wrap it in quotes to treat it as a literal
+    // phrase, and double any embedded double quotes to prevent operator
+    // injection. Terms combine with AND, so word order does not matter.
+    let escaped = query
+        .split_whitespace()
+        .map(|term| format!("\"{}\"", term.replace('"', "\"\"")))
+        .collect::<Vec<_>>()
+        .join(" AND ");
+    if escaped.is_empty() {
+        return Ok(Vec::new());
+    }
     let sql = format!(
         "SELECT {ARTICLE_COLUMNS}
          FROM articles_fts
