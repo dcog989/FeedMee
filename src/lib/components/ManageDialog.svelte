@@ -1,4 +1,5 @@
 <script lang="ts">
+import { Rss, X } from "@lucide/svelte";
 import { feedStore, uiStore } from "#lib/store.svelte.js";
 import Modal from "./Modal.svelte";
 
@@ -65,7 +66,12 @@ function focusOnMount(node: HTMLElement) {
 </script>
 
 <Modal isOpen={true} onclose={closeDialog} width="400px" label="Manage Content">
-  <h3>Manage Content</h3>
+  <div class="modal-header">
+    <h3><Rss size={18} /> Manage Content</h3>
+    <button type="button" class="close-btn" onclick={closeDialog} aria-label="Close">
+      <X size={18} />
+    </button>
+  </div>
   <div class="input-group">
     <input
       type="text"
@@ -124,9 +130,35 @@ function focusOnMount(node: HTMLElement) {
 </Modal>
 
 <style>
+.modal-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 1rem;
+}
+
 h3 {
-  margin: 0 0 1rem 0;
+  margin: 0;
+  flex: 1;
   font-size: 1.1rem;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.close-btn {
+  display: flex;
+  padding: 4px;
+  background: none;
+  border: none;
+  border-radius: 4px;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.close-btn:hover {
+  background: var(--bg-hover);
   color: var(--text-primary);
 }
 
