@@ -40,6 +40,8 @@ pub fn run_auto_backup(db: &Mutex<rusqlite::Connection>, backup_dir: &Path) -> R
     if let Some(latest) = sorted_backup_files(backup_dir).last() {
         if fs::read(latest).is_ok_and(|previous| previous == opml.as_bytes()) {
             // Subscriptions are unchanged, so the last backup already covers this.
+            // Still trim, so backups left by older rules do not linger.
+            prune_backups(backup_dir);
             return Ok(());
         }
     }
