@@ -91,7 +91,7 @@ async function saveLogLevel() {
         <span
           class="label"
           use:tooltip={"Automatic subscription backups (OPML; saved articles and tags are not included)"}
-          >Subscriptions</span
+          >Backup OPML</span
         >
         <button
           type="button"
@@ -222,8 +222,9 @@ h2 {
   font-size: 0.8rem;
   font-weight: 600;
   color: var(--text-secondary);
-  width: 64px;
+  width: 6rem; /* fits the longest label, "Backup OPML", on one line */
   flex-shrink: 0;
+  white-space: nowrap;
 }
 
 .value {
