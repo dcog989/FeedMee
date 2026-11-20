@@ -404,6 +404,25 @@ mod tests {
     }
 
     #[test]
+    fn deleting_a_readded_feed_keeps_a_newly_saved_article() {
+        let mut conn = test_conn();
+        let feed = create_feed(&conn, "Feed", "https://example.com/rss", None, "rss").unwrap();
+        batch_insert_articles(&mut conn, &[sample_article(feed)], None).unwrap();
+        let id = get_articles_for_feed(&conn, feed, 10, 0, true).unwrap()[0].id;
+        add_tag_to_article(&conn, id, "Keep", "#4899ec").unwrap();
+        delete_feed(&conn, feed).unwrap();
+
+        // The hidden copy is tagged but not saved; save it after re-adding the feed.
+        let readded = create_feed(&conn, "Feed", "https://example.com/rss", None, "rss").unwrap();
+        batch_insert_articles(&mut conn, &[sample_article(readded)], None).unwrap();
+        let new_id = get_articles_for_feed(&conn, readded, 10, 0, true).unwrap()[0].id;
+        update_article_saved(&conn, new_id, true).unwrap();
+        delete_feed(&conn, readded).unwrap();
+
+        assert_eq!(get_saved_articles(&conn, 10, 0, true).unwrap().len(), 1);
+    }
+
+    #[test]
     fn deleting_a_feed_keeps_tagged_articles() {
         let mut conn = test_conn();
         let feed = create_feed(&conn, "Feed", "https://example.com/rss", None, "rss").unwrap();

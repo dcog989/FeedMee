@@ -219,6 +219,14 @@ fn delete_feed_rows(conn: &Connection, id: i64) -> Result<()> {
         ),
         params![id, SAVED_FEED_ID],
     )?;
+    // The hidden copy survives the merge, so carry over a save applied to the
+    // incoming copy; otherwise the article would drop out of Read Later.
+    conn.execute(
+        "UPDATE articles SET is_saved = 1
+         WHERE feed_id = ?2
+           AND url IN (SELECT kept.url FROM articles kept WHERE kept.feed_id = ?1 AND kept.is_saved = 1)",
+        params![id, SAVED_FEED_ID],
+    )?;
     // The hidden copy already holds this URL; keep it so its saved and read
     // state survive, and drop the incoming duplicate.
     conn.execute(
