@@ -37,6 +37,19 @@ mod tests {
         }
     }
 
+    fn article_ids(conn: &Connection, feed_id: i64) -> Vec<(String, i64)> {
+        get_articles_for_feed(conn, feed_id, 50, 0, true)
+            .unwrap()
+            .into_iter()
+            .map(|a| (a.url, a.id))
+            .collect()
+    }
+
+    fn is_read(conn: &Connection, id: i64) -> bool {
+        let sql = "SELECT is_read FROM articles WHERE id = ?1";
+        conn.query_row(sql, rusqlite::params![id], |r| r.get(0)).unwrap()
+    }
+
     #[test]
     fn init_db_is_idempotent() {
         let mut conn = Connection::open_in_memory().unwrap();
@@ -526,5 +539,164 @@ mod tests {
         // a phrase search would never match either order.
         assert_eq!(search_articles(&conn, "Summary Title", 10, 0, true).unwrap().len(), 1);
         assert!(search_articles(&conn, "   ", 10, 0, true).unwrap().is_empty());
+    }
+
+    #[test]
+    fn unread_counts_ignore_saved_and_tagged_articles() {
+        let mut conn = test_conn();
+        let feed = create_feed(&conn, "Feed", "https://example.com/rss", None, "rss").unwrap();
+
+        let mut plain = sample_article(feed);
+        plain.url = "https://example.com/plain".to_string();
+        let mut saved = sample_article(feed);
+        saved.url = "https://example.com/saved".to_string();
+        let mut tagged = sample_article(feed);
+        tagged.url = "https://example.com/tagged".to_string();
+        batch_insert_articles(&mut conn, &[plain, saved, tagged], None).unwrap();
+
+        let ids = article_ids(&conn, feed);
+        let id_for = |url: &str| ids.iter().find(|(u, _)| u.as_str() == url).unwrap().1;
+        update_article_saved(&conn, id_for("https://example.com/saved"), true).unwrap();
+        add_tag_to_article(&conn, id_for("https://example.com/tagged"), "Tag", "#4899ec").unwrap();
+
+        // Only the plain article can clear, so the badge must only count it.
+        assert_eq!(get_feed_unread_count(&conn, feed).unwrap(), 1);
+        let folders = get_folders_with_feeds(&conn).unwrap();
+        let listed = folders.iter().flat_map(|f| &f.feeds).find(|f| f.id == feed).unwrap();
+        assert_eq!(listed.unread_count, 1);
+    }
+
+    #[test]
+    fn folder_and_global_mark_read_spare_saved_and_tagged_articles() {
+        let mut conn = test_conn();
+        let folder = create_folder(&conn, "News").unwrap();
+        let feed = create_feed(&conn, "Feed", "https://example.com/rss", Some(folder), "rss").unwrap();
+        let outside = create_feed(&conn, "Other", "https://example.com/other", None, "rss").unwrap();
+
+        let mut plain = sample_article(feed);
+        plain.url = "https://example.com/plain".to_string();
+        let mut saved = sample_article(feed);
+        saved.url = "https://example.com/saved".to_string();
+        let mut tagged = sample_article(feed);
+        tagged.url = "https://example.com/tagged".to_string();
+        let mut other = sample_article(outside);
+        other.url = "https://example.com/other-article".to_string();
+        batch_insert_articles(&mut conn, &[plain, saved, tagged, other], None).unwrap();
+
+        let ids = article_ids(&conn, feed);
+        let id_for = |url: &str| ids.iter().find(|(u, _)| u.as_str() == url).unwrap().1;
+        update_article_saved(&conn, id_for("https://example.com/saved"), true).unwrap();
+        add_tag_to_article(&conn, id_for("https://example.com/tagged"), "Tag", "#4899ec").unwrap();
+
+        mark_folder_read(&conn, folder).unwrap();
+
+        assert!(is_read(&conn, id_for("https://example.com/plain")));
+        assert!(!is_read(&conn, id_for("https://example.com/saved")));
+        assert!(!is_read(&conn, id_for("https://example.com/tagged")));
+        let outside_id = article_ids(&conn, outside)[0].1;
+        assert!(!is_read(&conn, outside_id));
+
+        mark_global_read(&conn).unwrap();
+
+        assert!(is_read(&conn, outside_id));
+        assert!(!is_read(&conn, id_for("https://example.com/saved")));
+        assert!(!is_read(&conn, id_for("https://example.com/tagged")));
+    }
+
+    #[test]
+    fn search_treats_fts_operators_as_literal_text() {
+        let mut conn = test_conn();
+        let feed = create_feed(&conn, "Feed", "https://example.com/rss", None, "rss").unwrap();
+        batch_insert_articles(&mut conn, &[sample_article(feed)], None).unwrap();
+
+        for query in ["\"", "*", "-", "OR", "NEAR(", "title:Title", "\"unterminated"] {
+            assert!(
+                search_articles(&conn, query, 10, 0, true).is_ok(),
+                "query {query:?} must not fail"
+            );
+        }
+    }
+
+    #[test]
+    fn known_url_lookup_spans_more_than_one_parameter_chunk() {
+        let mut conn = test_conn();
+        let feed = create_feed(&conn, "Feed", "https://example.com/rss", None, "rss").unwrap();
+        let other = create_feed(&conn, "Other", "https://example.com/other", None, "rss").unwrap();
+
+        let urls: Vec<String> = (0..501).map(|i| format!("https://example.com/{i}")).collect();
+        let mut article = sample_article(feed);
+        article.url = urls[500].clone();
+        batch_insert_articles(&mut conn, &[article], None).unwrap();
+
+        let known = get_known_urls(&conn, feed, &urls).unwrap();
+        assert_eq!(known.len(), 1);
+        assert!(known.contains(&urls[500]));
+        assert!(get_known_urls(&conn, other, &urls).unwrap().is_empty());
+    }
+
+    #[test]
+    fn a_shorter_duplicate_summary_does_not_replace_the_stored_one() {
+        let mut conn = test_conn();
+        let feed = create_feed(&conn, "Feed", "https://example.com/rss", None, "rss").unwrap();
+
+        let mut first = sample_article(feed);
+        first.summary = "A long and useful summary".to_string();
+        first.image_url = String::new();
+        first.image_low_res = true;
+        batch_insert_articles(&mut conn, &[first], None).unwrap();
+
+        let mut shorter = sample_article(feed);
+        shorter.summary = "Short".to_string();
+        shorter.image_url = "https://example.com/small.jpg".to_string();
+        shorter.image_low_res = true;
+        batch_insert_articles(&mut conn, &[shorter], None).unwrap();
+
+        let mut corrected = sample_article(feed);
+        corrected.summary = "A long and useful summary, now corrected".to_string();
+        corrected.image_url = "https://example.com/small.jpg".to_string();
+        corrected.image_low_res = true;
+        batch_insert_articles(&mut conn, &[corrected], None).unwrap();
+
+        let articles = get_articles_for_feed(&conn, feed, 10, 0, true).unwrap();
+        assert_eq!(articles.len(), 1);
+        assert_eq!(articles[0].summary, "A long and useful summary, now corrected");
+        assert_eq!(articles[0].image_url, "https://example.com/small.jpg");
+    }
+
+    #[test]
+    fn undated_articles_still_reach_the_latest_view() {
+        let mut conn = test_conn();
+        let feed = create_feed(&conn, "Feed", "https://example.com/rss", None, "rss").unwrap();
+
+        let mut undated = sample_article(feed);
+        undated.timestamp = 0;
+        batch_insert_articles(&mut conn, &[undated], None).unwrap();
+
+        // `created_at` is now, so any cutoff in the past must include the row.
+        let latest = get_latest_articles(&conn, 1, 10, 0, true).unwrap();
+        assert_eq!(latest.len(), 1);
+        assert_eq!(latest[0].timestamp, 0);
+    }
+
+    #[test]
+    fn removing_the_last_tag_drops_an_article_kept_from_a_deleted_feed() {
+        let mut conn = test_conn();
+        let feed = create_feed(&conn, "Feed", "https://example.com/rss", None, "rss").unwrap();
+        batch_insert_articles(&mut conn, &[sample_article(feed)], None).unwrap();
+
+        let id = article_ids(&conn, feed)[0].1;
+        let tag = add_tag_to_article(&conn, id, "Keep", "#4899ec").unwrap();
+        delete_feed(&conn, feed).unwrap();
+
+        remove_tag_from_article(&conn, id, tag.id).unwrap();
+
+        let remaining: i64 = conn
+            .query_row(
+                "SELECT COUNT(*) FROM articles WHERE id = ?1",
+                rusqlite::params![id],
+                |r| r.get(0),
+            )
+            .unwrap();
+        assert_eq!(remaining, 0);
     }
 }
