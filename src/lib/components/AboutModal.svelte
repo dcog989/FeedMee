@@ -59,7 +59,7 @@ async function saveLogLevel() {
     </button>
     <img src="/feedmee.png" alt="FeedMee" class="logo">
     <h2>FeedMee</h2>
-    <p class="tagline">Clean, fast RSS &amp; Atom reading.</p>
+    <p class="tagline">The seriously fast feed reader.</p>
     <p class="version">Version: {appInfo.version}</p>
 
     <div class="info-rows">

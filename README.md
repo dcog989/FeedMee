@@ -1,6 +1,6 @@
 # FeedMee
 
-*FeedMee* is a cross-platform desktop RSS/Atom news reader. Focused on performance and a clean UI.
+A cross-platform desktop RSS/Atom feed reader, focused on performance and a minimal UI.
 
 [Download latest release](https://github.com/dcog989/FeedMee/releases).
 

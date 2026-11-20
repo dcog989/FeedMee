@@ -36,7 +36,7 @@
     "targets": ["deb", "rpm", "appimage", "nsis"],
     "category": "News",
     "shortDescription": "The seriously fast feed reader.",
-    "longDescription": "A desktop RSS and Atom news feed reader with a clean, minimal style. Fast performance, minimal resource usage.",
+    "longDescription": "A cross-platform desktop RSS/Atom feed reader, focused on performance and a minimal UI.",
     "icon": ["icons/32x32.png", "icons/128x128.png", "icons/128x128@2x.png", "icons/icon.ico"],
     "linux": {
       "appimage": {
