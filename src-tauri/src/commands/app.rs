@@ -1,5 +1,5 @@
 use crate::{
-    AppState,
+    AppState, db,
     settings::{self, AppSettings},
 };
 use log::info;
@@ -11,6 +11,11 @@ use tauri_plugin_window_state::{StateFlags, WindowExt};
 
 #[tauri::command]
 pub fn show_main_window(app: tauri::AppHandle) {
+    // Startup can fail before AppState is managed. Showing the window then only
+    // produces failing calls, so leave it hidden behind the error dialog.
+    if app.try_state::<AppState>().is_none() {
+        return;
+    }
     if let Some(window) = app.get_webview_window("main") {
         let _ = window.show();
         // Restore size/position/maximize after showing: applying them to a hidden
@@ -62,6 +67,7 @@ pub fn save_app_settings(
     state: State<'_, AppState>,
 ) -> Result<(), String> {
     let mut settings_guard = state.settings.lock().unwrap();
+    let retention_changed = new_settings.article_retention_days != settings_guard.article_retention_days;
     let updated = new_settings;
     settings::save_settings(&state.paths.config_dir, &updated)?;
     if let Some(logger) = app.try_state::<flexi_logger::LoggerHandle>()
@@ -70,6 +76,24 @@ pub fn save_app_settings(
         log::error!("Failed to apply log level: {}", e);
     }
     *settings_guard = updated;
+    drop(settings_guard);
+
+    if retention_changed {
+        // A lower retention must apply now, not at the next launch.
+        let app = app.clone();
+        let _ = tauri::async_runtime::spawn_blocking(move || {
+            let state = app.state::<AppState>();
+            let retention = match state.settings.lock() {
+                Ok(settings) => settings.article_retention_days,
+                Err(_) => return,
+            };
+            if let Ok(conn) = state.db.lock()
+                && let Err(e) = db::purge_old_articles(&conn, retention)
+            {
+                log::error!("Article purge after a retention change failed: {}", e);
+            }
+        });
+    }
     Ok(())
 }
 
@@ -148,9 +172,7 @@ pub fn save_shortcuts(
     let path = state.paths.shortcuts_path();
     fs::create_dir_all(&state.paths.config_dir).map_err(|e| e.to_string())?;
     let json = serde_json::to_string_pretty(&shortcuts).map_err(|e| e.to_string())?;
-    let temp = path.with_extension("json.tmp");
-    fs::write(&temp, json).map_err(|e| e.to_string())?;
-    fs::rename(&temp, &path).map_err(|e| e.to_string())?;
+    crate::startup::write_atomic(&path, json.as_bytes()).map_err(|e| e.to_string())?;
     info!("Shortcuts saved to disk");
     Ok(())
 }

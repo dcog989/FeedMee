@@ -34,16 +34,13 @@ pub fn run_auto_backup(db: &Mutex<rusqlite::Connection>, backup_dir: &Path) -> R
     drop(conn);
     let opml = crate::opml::render(&folders)?;
 
-    let timestamp = chrono::Local::now().format("%Y-%m-%d_%H%M%S");
+    let timestamp = chrono::Local::now().format("%Y-%m-%d");
     let filename = format!("backup-{}.opml", timestamp);
     let filepath = backup_dir.join(&filename);
-    let partial = filepath.with_extension("opml.tmp");
 
-    // Write beside the target and rename, so a crash cannot leave a truncated
-    // backup that rotation then keeps as the newest one.
-    fs::write(&partial, &opml).map_err(|e| format!("failed to write backup: {}", e))?;
-    fs::rename(&partial, &filepath).map_err(|e| format!("failed to finalize backup: {}", e))?;
-
+    // One file per day: repeated launches overwrite today's backup instead of
+    // pushing the older ones out of the 24-file rotation.
+    crate::startup::write_atomic(&filepath, opml.as_bytes()).map_err(|e| format!("failed to write backup: {}", e))?;
     log::info!("Auto-backup written: {}", filepath.display());
 
     rotate_backups(backup_dir);
