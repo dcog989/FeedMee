@@ -65,20 +65,38 @@ pub(crate) fn write_atomic(path: &Path, contents: &[u8]) -> std::io::Result<()> 
     fs::rename(&temp, path)
 }
 
+/// What was moved aside when the old library could not be used.
+pub(crate) enum Recovery {
+    /// SQLite says the file is not a database.
+    Corrupt(PathBuf),
+    /// The schema was written by a release this build cannot upgrade.
+    Unsupported(PathBuf),
+}
+
 /// Open the library, moving the file aside only when SQLite says it is not a
-/// database. Disk, permission and lock errors keep the file: those are not
-/// corruption, and replacing the library would look like data loss.
+/// database or its schema cannot be upgraded. Disk, permission and lock errors
+/// keep the file: those are not corruption, and replacing the library would
+/// look like data loss.
 ///
-/// Returns the connection and, when the old file was unreadable, the path it
-/// was moved to, so the caller can tell the user.
-pub(crate) fn setup_database(db_path: &Path) -> Result<(rusqlite::Connection, Option<PathBuf>), String> {
+/// Returns the connection and, when the old file could not be used, what was
+/// moved aside, so the caller can tell the user.
+pub(crate) fn setup_database(db_path: &Path) -> Result<(rusqlite::Connection, Option<Recovery>), String> {
     match open_database(db_path) {
         Ok(conn) => Ok((conn, None)),
         Err(e) if is_corruption(e.as_ref()) => {
             log::error!("Database is unreadable ({}). Moving it aside and starting fresh.", e);
-            let moved_to = quarantine_database(db_path)?;
+            let moved_to = quarantine_database(db_path, "corrupt")?;
             let conn = open_database(db_path).map_err(|e| format!("Failed to create a fresh database: {}", e))?;
-            Ok((conn, Some(moved_to)))
+            Ok((conn, Some(Recovery::Corrupt(moved_to))))
+        },
+        Err(e) if e.downcast_ref::<db::UnsupportedSchema>().is_some() => {
+            log::error!(
+                "Database schema cannot be upgraded ({}). Moving it aside and starting fresh.",
+                e
+            );
+            let moved_to = quarantine_database(db_path, "pre-baseline")?;
+            let conn = open_database(db_path).map_err(|e| format!("Failed to create a fresh database: {}", e))?;
+            Ok((conn, Some(Recovery::Unsupported(moved_to))))
         },
         Err(e) => Err(format!("Could not open database {}: {}", db_path.display(), e)),
     }
@@ -94,9 +112,9 @@ fn is_corruption(err: &(dyn std::error::Error + 'static)) -> bool {
     })
 }
 
-fn quarantine_database(db_path: &Path) -> Result<PathBuf, String> {
+fn quarantine_database(db_path: &Path, tag: &str) -> Result<PathBuf, String> {
     let stamp = chrono::Local::now().format("%Y%m%d_%H%M%S").to_string();
-    let moved_db = PathBuf::from(format!("{}.corrupt-{}", db_path.display(), stamp));
+    let moved_db = PathBuf::from(format!("{}.{}-{}", db_path.display(), tag, stamp));
     for suffix in ["", "-wal", "-shm"] {
         let from = PathBuf::from(format!("{}{}", db_path.display(), suffix));
         if !from.exists() {
@@ -105,9 +123,9 @@ fn quarantine_database(db_path: &Path) -> Result<PathBuf, String> {
         let to = if suffix.is_empty() {
             moved_db.clone()
         } else {
-            PathBuf::from(format!("{}.corrupt-{}", from.display(), stamp))
+            PathBuf::from(format!("{}.{}-{}", from.display(), tag, stamp))
         };
-        fs::rename(&from, &to).map_err(|e| format!("Failed to move unreadable database aside: {}", e))?;
+        fs::rename(&from, &to).map_err(|e| format!("Failed to move the database aside: {}", e))?;
     }
     Ok(moved_db)
 }
@@ -177,7 +195,7 @@ pub(crate) fn setup_window(window: &tauri::WebviewWindow) {
 
 #[cfg(test)]
 mod tests {
-    use super::setup_database;
+    use super::{Recovery, setup_database};
     use std::fs;
 
     fn temp_dir(name: &str) -> std::path::PathBuf {
@@ -187,21 +205,48 @@ mod tests {
         dir
     }
 
+    fn user_version(conn: &rusqlite::Connection) -> i64 {
+        conn.query_row("PRAGMA user_version", [], |r| r.get(0)).unwrap()
+    }
+
     #[test]
     fn corrupt_database_is_moved_aside_and_replaced() {
         let dir = temp_dir("corrupt");
         let db_path = dir.join("feedmee.db");
         fs::write(&db_path, b"this is not a database, no matter how it is read").unwrap();
 
-        let (conn, recovered_from) = setup_database(&db_path).expect("a fresh database must open");
-        let moved_to = recovered_from.expect("the unreadable file must be reported");
+        let (conn, recovered) = setup_database(&db_path).expect("a fresh database must open");
+        let Some(Recovery::Corrupt(moved_to)) = recovered else {
+            panic!("the unreadable file must be reported");
+        };
         assert_eq!(
             fs::read(&moved_to).unwrap(),
             b"this is not a database, no matter how it is read".to_vec()
         );
 
-        let version: i64 = conn.query_row("PRAGMA user_version", [], |r| r.get(0)).unwrap();
-        assert_eq!(version, 1);
+        assert_eq!(user_version(&conn), 1);
+
+        drop(conn);
+        let _ = fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn unsupported_schema_is_moved_aside_and_replaced() {
+        let dir = temp_dir("unsupported");
+        let db_path = dir.join("feedmee.db");
+        {
+            // A library stamped by a pre-baseline release, without its columns.
+            let conn = rusqlite::Connection::open(&db_path).unwrap();
+            conn.pragma_update(None, "user_version", 9).unwrap();
+        }
+
+        let (conn, recovered) = setup_database(&db_path).expect("a fresh database must open");
+        let Some(Recovery::Unsupported(moved_to)) = recovered else {
+            panic!("the unsupported file must be reported");
+        };
+        assert!(moved_to.exists());
+        assert!(moved_to.to_string_lossy().contains("pre-baseline"));
+        assert_eq!(user_version(&conn), 1);
 
         drop(conn);
         let _ = fs::remove_dir_all(&dir);

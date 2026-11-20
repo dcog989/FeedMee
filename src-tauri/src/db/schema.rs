@@ -104,36 +104,40 @@ pub fn init_db(conn: &mut Connection) -> Result<(), Box<dyn std::error::Error>> 
     Ok(())
 }
 
+/// A library written by a pre-baseline or newer release. The baseline only
+/// creates missing tables, so replaying it would stamp an older schema as
+/// current and leave writes failing on columns it never got. `setup_database`
+/// moves such a file aside instead.
+#[derive(Debug)]
+pub struct UnsupportedSchema(pub i64);
+
+impl std::fmt::Display for UnsupportedSchema {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "database schema version {} cannot be upgraded by this build", self.0)
+    }
+}
+
+impl std::error::Error for UnsupportedSchema {}
+
 /// Applies pending `MIGRATIONS` entries in one transaction and records progress
 /// in `PRAGMA user_version`.
-fn migrate(conn: &mut Connection) -> Result<()> {
+fn migrate(conn: &mut Connection) -> Result<(), Box<dyn std::error::Error>> {
     let applied: i64 = conn.query_row("PRAGMA user_version", [], |r| r.get(0))?;
     let applied = usize::try_from(applied).unwrap_or(0);
     if applied == MIGRATIONS.len() {
         return Ok(());
     }
-
-    // A version above the batch count means this database predates the
-    // baseline collapse. The baseline only contains `IF NOT EXISTS` statements,
-    // so replaying it is safe and re-stamps the counter; skipping it instead
-    // would freeze every future migration on these databases.
-    let start = if applied > MIGRATIONS.len() {
-        log::warn!(
-            "Database user_version {} is above the migration count {}; re-stamping",
-            applied,
-            MIGRATIONS.len()
-        );
-        0
-    } else {
-        applied
-    };
+    if applied > MIGRATIONS.len() {
+        return Err(Box::new(UnsupportedSchema(applied as i64)));
+    }
 
     let tx = conn.transaction()?;
-    for sql in &MIGRATIONS[start..] {
+    for sql in &MIGRATIONS[applied..] {
         tx.execute_batch(sql)?;
     }
     tx.pragma_update(None, "user_version", MIGRATIONS.len() as i64)?;
-    tx.commit()
+    tx.commit()?;
+    Ok(())
 }
 
 pub fn run_vacuum(conn: &Connection) -> Result<()> {

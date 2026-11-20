@@ -47,19 +47,14 @@ mod tests {
     }
 
     #[test]
-    fn init_db_restamps_pre_baseline_user_version() {
+    fn init_db_refuses_a_pre_baseline_schema() {
         let mut conn = test_conn();
-        let feed = create_feed(&conn, "Feed", "https://example.com/rss", None, "rss").unwrap();
-        batch_insert_articles(&mut conn, &[sample_article(feed)], None).unwrap();
-
-        // Pre-baseline databases carried a higher counter than the collapsed list.
+        // Pre-baseline databases carried a higher counter and lack columns the
+        // baseline adds, so they must be moved aside, never re-stamped.
         conn.pragma_update(None, "user_version", 12).unwrap();
-        init_db(&mut conn).unwrap();
 
-        let version: i64 = conn.query_row("PRAGMA user_version", [], |r| r.get(0)).unwrap();
-        assert_eq!(version, 1);
-        assert_eq!(get_articles_for_feed(&conn, feed, 10, 0, true).unwrap().len(), 1);
-        assert_eq!(search_articles(&conn, "Title", 10, 0, true).unwrap().len(), 1);
+        let err = init_db(&mut conn).unwrap_err();
+        assert!(err.downcast_ref::<UnsupportedSchema>().is_some());
     }
 
     #[test]

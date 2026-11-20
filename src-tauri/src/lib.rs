@@ -141,16 +141,24 @@ pub fn run() {
                     return Ok(());
                 },
             };
-            if let Some(moved_to) = recovered_from {
-                show_message(
-                    &app_handle,
-                    "Library recovered",
-                    format!(
-                        "Your library was unreadable and has been saved as:\n{}\n\nFeedMee has started with an empty library.",
-                        moved_to.display()
+            if let Some(recovered) = recovered_from {
+                let (title, message) = match recovered {
+                    startup::Recovery::Corrupt(path) => (
+                        "Library recovered",
+                        format!(
+                            "Your library was unreadable and has been saved as:\n{}\n\nFeedMee has started with an empty library.",
+                            path.display()
+                        ),
                     ),
-                    false,
-                );
+                    startup::Recovery::Unsupported(path) => (
+                        "Library from an older version",
+                        format!(
+                            "Your library was written by an older version of FeedMee and cannot be upgraded in place. It has been saved as:\n{}\n\nFeedMee has started with an empty library.",
+                            path.display()
+                        ),
+                    ),
+                };
+                show_message(&app_handle, title, message, false);
             }
 
             let http_client = startup::build_http_client();
