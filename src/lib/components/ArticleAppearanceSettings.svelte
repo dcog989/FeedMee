@@ -9,6 +9,20 @@ function update(patch: Partial<AppSettings>) {
   onchange({ ...settings, ...patch });
 }
 
+// <input type="color"> only accepts #rrggbb; expand shorthand hex and drop alpha.
+const HEX_COLOR = /^#([0-9a-f]{3,8})$/i;
+
+function swatchValue(value: string): string {
+  const match = HEX_COLOR.exec(value.trim());
+  if (!match) return "#000000";
+  const hex = match[1];
+  if (hex.length === 3 || hex.length === 4) {
+    return `#${hex[0]}${hex[0]}${hex[1]}${hex[1]}${hex[2]}${hex[2]}`;
+  }
+  if (hex.length === 6 || hex.length === 8) return `#${hex.slice(0, 6)}`;
+  return "#000000";
+}
+
 async function pickFont(target: "title" | "body") {
   try {
     const font = await invoke<string>("pick_system_font");
@@ -63,7 +77,7 @@ async function pickFont(target: "title" | "body") {
     <input
       type="color"
       id="title-color"
-      value={settings.article_title_color}
+      value={swatchValue(settings.article_title_color)}
       oninput={(e) => update({ article_title_color: e.currentTarget.value })}
     >
     <input
@@ -80,7 +94,7 @@ async function pickFont(target: "title" | "body") {
     <input
       type="color"
       id="body-color"
-      value={settings.article_body_color}
+      value={swatchValue(settings.article_body_color)}
       oninput={(e) => update({ article_body_color: e.currentTarget.value })}
     >
     <input
@@ -97,7 +111,7 @@ async function pickFont(target: "title" | "body") {
     <input
       type="color"
       id="bg-color"
-      value={settings.article_bg_color}
+      value={swatchValue(settings.article_bg_color)}
       oninput={(e) => update({ article_bg_color: e.currentTarget.value })}
     >
     <input
