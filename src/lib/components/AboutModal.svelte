@@ -88,7 +88,11 @@ async function saveLogLevel() {
       </div>
 
       <div class="info-row">
-        <span class="label" use:tooltip={"Automatic subscription backups (OPML)"}>Backups</span>
+        <span
+          class="label"
+          use:tooltip={"Automatic subscription backups (OPML; saved articles and tags are not included)"}
+          >Subscriptions</span
+        >
         <button
           type="button"
           class="value mono path"
