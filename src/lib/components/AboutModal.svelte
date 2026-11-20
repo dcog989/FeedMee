@@ -1,4 +1,5 @@
 <script lang="ts">
+import { X } from "@lucide/svelte";
 import { invoke } from "@tauri-apps/api/core";
 import { openPath } from "@tauri-apps/plugin-opener";
 import { tooltip } from "#lib/actions/tooltip.svelte.js";
@@ -10,16 +11,16 @@ interface AppInfo {
   version: string;
   data_path: string;
   logs_path: string;
-  db_path: string;
   backup_path: string;
+  settings_path: string;
 }
 
 let appInfo = $state<AppInfo>({
   version: "...",
   data_path: "",
   logs_path: "",
-  db_path: "",
   backup_path: "",
+  settings_path: "",
 });
 
 $effect(() => {
@@ -32,100 +33,79 @@ $effect(() => {
   }
 });
 
-let copied = $state<string | null>(null);
-
-async function copyToClipboard(label: string, text: string) {
+async function openPathSafe(path: string) {
+  if (!path) return;
   try {
-    await navigator.clipboard.writeText(text);
-    copied = label;
-    setTimeout(() => {
-      if (copied === label) copied = null;
-    }, 1200);
+    await openPath(path);
   } catch (e) {
-    console.error("Copy failed:", e);
-  }
-}
-
-async function openLogsDir() {
-  if (!appInfo.logs_path) return;
-  try {
-    await openPath(appInfo.logs_path);
-  } catch (e) {
-    console.error("Failed to open logs folder:", e);
+    console.error("Failed to open path:", e);
   }
 }
 </script>
 
-<Modal {isOpen} onclose={onClose} width="420px" label="About FeedMee" class="about-modal">
+<Modal {isOpen} onclose={onClose} width="640px" label="About FeedMee" class="about-modal">
   <div class="modal-body">
+    <button type="button" class="close-btn" onclick={onClose} aria-label="Close">
+      <X size={18} />
+    </button>
     <img src="/feedmee.png" alt="FeedMee" class="logo">
     <h2>FeedMee</h2>
     <p class="tagline">Clean, fast RSS &amp; Atom reading.</p>
+    <p class="version">Version: {appInfo.version}</p>
 
     <div class="info-rows">
       <div class="info-row">
-        <span class="label">Version</span>
-        <span class="value mono bold">{appInfo.version}</span>
-        <span class="spacer"></span>
+        <span class="label">Config</span>
+        <button
+          type="button"
+          class="value mono path"
+          onclick={() => openPathSafe(appInfo.settings_path)}
+          use:tooltip={"Open settings file"}
+        >
+          {appInfo.settings_path}
+        </button>
       </div>
 
       <div class="info-row">
         <span class="label">Data</span>
-        <span class="value mono truncate" title={appInfo.data_path}>{appInfo.data_path}</span>
         <button
           type="button"
-          class="copy-btn"
-          onclick={() => copyToClipboard("data", appInfo.data_path)}
-          use:tooltip={"Copy path"}
+          class="value mono path"
+          onclick={() => openPathSafe(appInfo.data_path)}
+          use:tooltip={"Open data folder"}
         >
-          {copied === "data" ? "Copied" : "Copy"}
+          {appInfo.data_path}
         </button>
       </div>
 
       <div class="info-row">
         <span class="label">Logs</span>
-        <span class="value mono truncate" title={appInfo.logs_path}>{appInfo.logs_path}</span>
         <button
           type="button"
-          class="copy-btn"
-          onclick={() => copyToClipboard("logs", appInfo.logs_path)}
-          use:tooltip={"Copy path"}
+          class="value mono path"
+          onclick={() => openPathSafe(appInfo.logs_path)}
+          use:tooltip={"Open logs folder"}
         >
-          {copied === "logs" ? "Copied" : "Copy"}
-        </button>
-      </div>
-
-      <div class="info-row">
-        <span class="label">Database</span>
-        <span class="value mono truncate" title={appInfo.db_path}>{appInfo.db_path}</span>
-        <button
-          type="button"
-          class="copy-btn"
-          onclick={() => copyToClipboard("db", appInfo.db_path)}
-          use:tooltip={"Copy path"}
-        >
-          {copied === "db" ? "Copied" : "Copy"}
+          {appInfo.logs_path}
         </button>
       </div>
 
       <div class="info-row">
         <span class="label" use:tooltip={"Automatic subscription backups (OPML)"}>Backups</span>
-        <span class="value mono truncate" title={appInfo.backup_path}>{appInfo.backup_path}</span>
         <button
           type="button"
-          class="copy-btn"
-          onclick={() => copyToClipboard("backup", appInfo.backup_path)}
-          use:tooltip={"Copy path"}
+          class="value mono path"
+          onclick={() => openPathSafe(appInfo.backup_path)}
+          use:tooltip={"Open backups folder"}
         >
-          {copied === "backup" ? "Copied" : "Copy"}
+          {appInfo.backup_path}
         </button>
       </div>
     </div>
 
-    <button type="button" class="open-logs-btn" onclick={openLogsDir}>Open Logs Folder</button>
-
     <p class="footer">Giants' Shoulders = Rust / Tauri / Svelte / SQLite</p>
     <p class="footer">FeedMee is free software under the GNU GPL v3.0 or later.</p>
+    <p class="footer">© 2025 dcog989</p>
   </div>
 </Modal>
 
@@ -141,12 +121,38 @@ async function openLogsDir() {
   align-items: center;
   padding: 2rem;
   gap: 0.5rem;
+  position: relative;
 }
 
 .logo {
   width: 64px;
   height: 64px;
   margin-bottom: 0.5rem;
+}
+
+.close-btn {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: none;
+  border-radius: 6px;
+  background: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition:
+    background-color 0.15s,
+    color 0.15s;
+}
+
+.close-btn:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
 }
 
 h2 {
@@ -157,9 +163,17 @@ h2 {
 }
 
 .tagline {
-  margin: 0 0 1rem;
+  margin: 0 0 0.25rem;
   color: var(--text-secondary);
   font-size: 0.9rem;
+}
+
+.version {
+  margin: 0 0 1rem;
+  font-family: var(--font-mono);
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--text-secondary);
 }
 
 .info-rows {
@@ -198,48 +212,19 @@ h2 {
 .mono {
   font-family: var(--font-mono);
 }
-.bold {
-  font-weight: 700;
-}
 
-.truncate {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.spacer {
-  flex: 0;
-}
-
-.copy-btn {
-  flex-shrink: 0;
+.path {
   background: none;
   border: none;
+  padding: 0;
   color: var(--bg-selected);
-  font-size: 0.75rem;
+  text-align: left;
+  overflow-wrap: anywhere;
   cursor: pointer;
-  padding: 2px 6px;
-  border-radius: 4px;
 }
 
-.copy-btn:hover {
-  background: var(--bg-hover);
-}
-
-.open-logs-btn {
-  background: none;
-  border: none;
-  color: var(--bg-selected);
-  font-size: 0.85rem;
-  cursor: pointer;
-  padding: 4px 8px;
-  border-radius: 4px;
-  margin-bottom: 0.5rem;
-}
-
-.open-logs-btn:hover {
-  background: var(--bg-hover);
+.path:hover {
+  text-decoration: underline;
 }
 
 .footer {

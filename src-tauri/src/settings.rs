@@ -2,6 +2,8 @@ use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::Path;
 
+pub const SETTINGS_FILENAME: &str = "settings.toml";
+
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(default)]
 pub struct AppSettings {
@@ -44,7 +46,7 @@ impl Default for AppSettings {
 
 pub fn load_settings(config_dir: &Path) -> AppSettings {
     fs::create_dir_all(config_dir).ok();
-    let path = config_dir.join("settings.toml");
+    let path = config_dir.join(SETTINGS_FILENAME);
 
     if path.exists() {
         match fs::read_to_string(&path) {
@@ -74,7 +76,7 @@ pub fn load_settings(config_dir: &Path) -> AppSettings {
 pub fn save_settings(config_dir: &Path, settings: &AppSettings) -> Result<(), String> {
     fs::create_dir_all(config_dir).map_err(|e| format!("Failed to create config directory: {}", e))?;
     let toml_string = toml::to_string_pretty(settings).map_err(|e| format!("Failed to serialize settings: {}", e))?;
-    let path = config_dir.join("settings.toml");
+    let path = config_dir.join(SETTINGS_FILENAME);
     let temp = config_dir.join("settings.toml.tmp");
     fs::write(&temp, toml_string).map_err(|e| format!("Failed to write settings: {}", e))?;
     fs::rename(&temp, &path).map_err(|e| format!("Failed to replace settings: {}", e))

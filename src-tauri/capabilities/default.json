@@ -8,7 +8,13 @@
     "opener:default",
     {
       "identifier": "opener:allow-open-path",
-      "allow": [{ "path": "$APPDATA/**" }, { "path": "$APPLOCALDATA/**" }, { "path": "$APPLOG/**" }]
+      "allow": [
+        { "path": "$APPCONFIG/**" },
+        { "path": "$APPDATA/**" },
+        { "path": "$APPLOCALDATA" },
+        { "path": "$APPLOCALDATA/**" },
+        { "path": "$APPLOG/**" }
+      ]
     },
     "dialog:default",
     "window-state:default"
