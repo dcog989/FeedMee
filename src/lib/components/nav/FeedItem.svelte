@@ -1,5 +1,5 @@
 <script lang="ts">
-import { RefreshCw, X } from "@lucide/svelte";
+import { X } from "@lucide/svelte";
 import { tooltip } from "#lib/actions/tooltip.svelte.js";
 import { FEED_FAILURE_LIMIT } from "#lib/feedRefresh.svelte.js";
 import { refreshStore } from "#lib/store.svelte.js";
@@ -47,17 +47,13 @@ const disabledTooltip = $derived(
     <span class="error-badge" use:tooltip={disabled ? disabledTooltip : "Feed update failed"}>
       <X size={10} color="white" />
     </span>
-  {:else if feed.unread_count > 0}
+  {:else}
     <span
       class="badge"
       class:badge-selected={isSelected}
       use:tooltip={() => (refreshStore.isFeedFresh(feed.id) ? "Already fresh!" : "Click to refresh")}
       >{feed.unread_count}</span
     >
-  {:else}
-    <span class="refresh-icon" use:tooltip={() => (refreshStore.isFeedFresh(feed.id) ? "Already fresh!" : "Refresh")}>
-      <RefreshCw size={16} />
-    </span>
   {/if}
 </button>
 
