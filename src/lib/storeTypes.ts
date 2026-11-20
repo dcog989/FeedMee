@@ -117,6 +117,7 @@ export interface FeedStore
     ReloadArticleList,
     SelectFeed,
     UserPrompt {
+  expandedFolders: Set<number>;
   markAllRead(): Promise<void>;
   addFeed(url: string, folderId?: number | null): Promise<void>;
   createFolder(name: string): Promise<void>;

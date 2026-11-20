@@ -4,28 +4,28 @@ import { FEED_ID_LATEST, FEED_ID_TODAY } from "./store.svelte";
 import type { FeedStore } from "./storeTypes";
 
 export function createFeedActions(state: FeedStore) {
-  async function markAllRead() {
+  async function markAllReadTarget(targetType: string, id: number) {
     try {
-      if (state.selectedFeedId === FEED_ID_LATEST || state.selectedFeedId === FEED_ID_TODAY) {
-        await invoke("mark_all_read", { targetType: "global", id: 0 });
-      } else if (state.selectedFeedId && state.selectedFeedId > 0) {
-        await invoke("mark_all_read", {
-          targetType: "feed",
-          id: state.selectedFeedId,
-        });
-      } else if (state.selectedFolderId) {
-        await invoke("mark_all_read", {
-          targetType: "folder",
-          id: state.selectedFolderId,
-        });
-      } else {
-        return;
-      }
+      await invoke("mark_all_read", { targetType, id });
       await state.refreshFolders();
       // Saved and tagged articles are never marked read by the backend.
       state.articles = state.articles.map((a) => (a.is_saved || a.has_tags ? a : { ...a, is_read: true }));
     } catch (e) {
       console.error("Mark all read failed:", e);
+    }
+  }
+
+  async function markAllRead() {
+    if (state.selectedFeedId === FEED_ID_LATEST || state.selectedFeedId === FEED_ID_TODAY) {
+      // The list shows a slice of the library, so the global action needs an
+      // explicit confirmation instead of clearing every feed's unread badge.
+      state.confirm("Mark every article in all feeds as read?", () => markAllReadTarget("global", 0));
+      return;
+    }
+    if (state.selectedFeedId && state.selectedFeedId > 0) {
+      await markAllReadTarget("feed", state.selectedFeedId);
+    } else if (state.selectedFolderId) {
+      await markAllReadTarget("folder", state.selectedFolderId);
     }
   }
 
@@ -148,6 +148,9 @@ export function createFeedActions(state: FeedStore) {
             removeStaleRefreshEntries(feed.id);
           }
         }
+        const remainingExpanded = new Set(state.expandedFolders);
+        remainingExpanded.delete(id);
+        state.expandedFolders = remainingExpanded;
         await state.refreshFolders();
         if (selectionGone) await state.selectFeed(FEED_ID_LATEST);
       } catch (e) {
