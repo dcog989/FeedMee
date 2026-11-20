@@ -2,6 +2,8 @@ use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::Path;
 
+use crate::startup::write_atomic;
+
 pub const SETTINGS_FILENAME: &str = "settings.toml";
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -47,23 +49,18 @@ pub fn load_settings(config_dir: &Path) -> AppSettings {
     let path = config_dir.join(SETTINGS_FILENAME);
 
     if path.exists() {
-        match fs::read_to_string(&path) {
+        return match fs::read_to_string(&path) {
+            Ok(content) if content.trim().is_empty() => quarantine_settings(&path, "the file is empty"),
             Ok(content) => match toml::from_str(&content) {
-                Ok(settings) => return settings,
-                Err(e) => {
-                    eprintln!(
-                        "[settings] failed to parse {}: {}. Keeping file and using defaults.",
-                        path.display(),
-                        e
-                    );
-                    return AppSettings::default();
-                },
+                Ok(settings) => settings,
+                Err(e) => quarantine_settings(&path, &e.to_string()),
             },
             Err(e) => {
+                // A permission or I/O problem, not corruption. Keep the file.
                 eprintln!("[settings] failed to read {}: {}. Using defaults.", path.display(), e);
-                return AppSettings::default();
+                AppSettings::default()
             },
-        }
+        };
     }
 
     let settings = AppSettings::default();
@@ -71,13 +68,29 @@ pub fn load_settings(config_dir: &Path) -> AppSettings {
     settings
 }
 
+/// Move a settings file that cannot be parsed out of the way. Leaving it in
+/// place would silently fall back to the defaults on every launch, and the
+/// default retention would start deleting articles the user chose to keep.
+fn quarantine_settings(path: &Path, reason: &str) -> AppSettings {
+    let stamp = chrono::Local::now().format("%Y%m%d_%H%M%S");
+    let moved = path.with_file_name(format!("{}.corrupt-{}", SETTINGS_FILENAME, stamp));
+    eprintln!(
+        "[settings] {} is unreadable ({}). Moving it to {}. Using defaults.",
+        path.display(),
+        reason,
+        moved.display()
+    );
+    if let Err(e) = fs::rename(path, &moved) {
+        eprintln!("[settings] failed to move the unreadable file aside: {}", e);
+    }
+    AppSettings::default()
+}
+
 pub fn save_settings(config_dir: &Path, settings: &AppSettings) -> Result<(), String> {
     fs::create_dir_all(config_dir).map_err(|e| format!("Failed to create config directory: {}", e))?;
     let toml_string = toml::to_string_pretty(settings).map_err(|e| format!("Failed to serialize settings: {}", e))?;
     let path = config_dir.join(SETTINGS_FILENAME);
-    let temp = config_dir.join("settings.toml.tmp");
-    fs::write(&temp, toml_string).map_err(|e| format!("Failed to write settings: {}", e))?;
-    fs::rename(&temp, &path).map_err(|e| format!("Failed to replace settings: {}", e))
+    write_atomic(&path, toml_string.as_bytes()).map_err(|e| format!("Failed to save settings: {}", e))
 }
 
 #[cfg(test)]
@@ -117,6 +130,28 @@ mod tests {
         let loaded = load_settings(&dir);
         assert_eq!(loaded.log_level, "debug");
         assert_eq!(loaded.article_retention_days, 7);
+
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn unreadable_settings_are_moved_aside() {
+        let dir = std::env::temp_dir().join(format!("feedmee-settings-corrupt-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).unwrap();
+        std::fs::write(dir.join("settings.toml"), "article_retention_days = \"ninety\"\n").unwrap();
+
+        let loaded = load_settings(&dir);
+        assert_eq!(
+            loaded.article_retention_days,
+            AppSettings::default().article_retention_days
+        );
+        assert!(!dir.join("settings.toml").exists());
+        let moved = std::fs::read_dir(&dir)
+            .unwrap()
+            .filter_map(|e| e.ok())
+            .any(|e| e.file_name().to_string_lossy().starts_with("settings.toml.corrupt-"));
+        assert!(moved);
 
         let _ = std::fs::remove_dir_all(&dir);
     }

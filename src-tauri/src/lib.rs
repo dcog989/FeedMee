@@ -45,12 +45,20 @@ impl AppState {
 /// thread; VACUUM is left to the Settings button because it holds the DB lock
 /// for seconds on a large library.
 fn run_maintenance(state: &AppState) {
-    let retention = state.settings.lock().unwrap().article_retention_days;
-    {
-        let conn = state.db.lock().unwrap();
-        if let Err(e) = db::purge_old_articles(&conn, retention) {
-            log::error!("Article purge failed: {}", e);
-        }
+    let retention = match state.settings.lock() {
+        Ok(settings) => settings.article_retention_days,
+        Err(e) => {
+            log::error!("Settings lock poisoned; skipping maintenance: {}", e);
+            return;
+        },
+    };
+    match state.db.lock() {
+        Ok(conn) => {
+            if let Err(e) = db::purge_old_articles(&conn, retention) {
+                log::error!("Article purge failed: {}", e);
+            }
+        },
+        Err(e) => log::error!("Database lock poisoned; skipping the purge: {}", e),
     }
 
     commands::thumbnails::cleanup_thumbnail_cache(
@@ -60,20 +68,24 @@ fn run_maintenance(state: &AppState) {
     );
 }
 
-/// Report a startup failure and exit once the user dismisses it. The setup hook
-/// runs on the main thread and must return before the event loop can show
-/// anything, so the dialog is posted from a worker.
+/// Show an information or error dialog once the event loop is running. The
+/// setup hook runs on the main thread and must return before anything can be
+/// shown, so the dialog is posted from a worker.
+fn show_message(app: &tauri::AppHandle, title: &'static str, message: String, exit_after: bool) {
+    let app = app.clone();
+    std::thread::spawn(move || {
+        app.dialog().message(message.as_str()).title(title).blocking_show();
+        if exit_after {
+            std::process::exit(1);
+        }
+    });
+}
+
+/// Report a startup failure and exit once the user dismisses it.
 fn fatal(app: &tauri::AppHandle, message: String) {
     log::error!("Startup failed: {}", message);
     eprintln!("[startup] {}", message);
-    let app = app.clone();
-    std::thread::spawn(move || {
-        app.dialog()
-            .message(message.as_str())
-            .title("FeedMee could not start")
-            .blocking_show();
-        std::process::exit(1);
-    });
+    show_message(app, "FeedMee could not start", message, true);
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -122,13 +134,24 @@ pub fn run() {
             info!("Starting FeedMee application");
 
             let db_path = app_paths.db_path();
-            let conn = match startup::setup_database(&db_path) {
-                Ok(conn) => conn,
+            let (conn, recovered_from) = match startup::setup_database(&db_path) {
+                Ok(opened) => opened,
                 Err(e) => {
                     fatal(&app_handle, e);
                     return Ok(());
                 },
             };
+            if let Some(moved_to) = recovered_from {
+                show_message(
+                    &app_handle,
+                    "Library recovered",
+                    format!(
+                        "Your library was unreadable and has been saved as:\n{}\n\nFeedMee has started with an empty library.",
+                        moved_to.display()
+                    ),
+                    false,
+                );
+            }
 
             let http_client = startup::build_http_client();
 
@@ -155,9 +178,16 @@ pub fn run() {
                 std::thread::sleep(std::time::Duration::from_secs(MAINTENANCE_START_DELAY_SECS));
                 loop {
                     let state = maintenance_handle.state::<AppState>();
-                    run_maintenance(&state);
-                    if let Err(e) = commands::backup::run_auto_backup(&state.db, &state.paths.backup_dir()) {
-                        log::error!("Auto-backup failed: {}", e);
+                    // One bad pass must not end the daily purge and backup for
+                    // the rest of the session.
+                    let pass = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+                        run_maintenance(&state);
+                        if let Err(e) = commands::backup::run_auto_backup(&state.db, &state.paths.backup_dir()) {
+                            log::error!("Auto-backup failed: {}", e);
+                        }
+                    }));
+                    if pass.is_err() {
+                        log::error!("Maintenance pass panicked; the next pass still runs.");
                     }
                     std::thread::sleep(MAINTENANCE_INTERVAL);
                 }

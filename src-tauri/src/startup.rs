@@ -47,16 +47,38 @@ pub(crate) fn init_logging(logs_dir: &Path, log_level: &str) -> Result<LoggerHan
         .start()
 }
 
+/// Write a file beside its destination and rename it into place, so a crash
+/// leaves the old file rather than a truncated new one.
+pub(crate) fn write_atomic(path: &Path, contents: &[u8]) -> std::io::Result<()> {
+    use std::io::Write;
+
+    let mut temp = path.as_os_str().to_owned();
+    temp.push(".tmp");
+    let temp = PathBuf::from(temp);
+
+    let mut file = fs::File::create(&temp)?;
+    file.write_all(contents)?;
+    file.sync_all()?;
+    drop(file);
+    // The directory entry is not fsynced: a power cut can lose the last write,
+    // never the file that was already there.
+    fs::rename(&temp, path)
+}
+
 /// Open the library, moving the file aside only when SQLite says it is not a
 /// database. Disk, permission and lock errors keep the file: those are not
 /// corruption, and replacing the library would look like data loss.
-pub(crate) fn setup_database(db_path: &Path) -> Result<rusqlite::Connection, String> {
+///
+/// Returns the connection and, when the old file was unreadable, the path it
+/// was moved to, so the caller can tell the user.
+pub(crate) fn setup_database(db_path: &Path) -> Result<(rusqlite::Connection, Option<PathBuf>), String> {
     match open_database(db_path) {
-        Ok(conn) => Ok(conn),
+        Ok(conn) => Ok((conn, None)),
         Err(e) if is_corruption(e.as_ref()) => {
             log::error!("Database is unreadable ({}). Moving it aside and starting fresh.", e);
-            quarantine_database(db_path)?;
-            open_database(db_path).map_err(|e| format!("Failed to create a fresh database: {}", e))
+            let moved_to = quarantine_database(db_path)?;
+            let conn = open_database(db_path).map_err(|e| format!("Failed to create a fresh database: {}", e))?;
+            Ok((conn, Some(moved_to)))
         },
         Err(e) => Err(format!("Could not open database {}: {}", db_path.display(), e)),
     }
@@ -72,16 +94,22 @@ fn is_corruption(err: &(dyn std::error::Error + 'static)) -> bool {
     })
 }
 
-fn quarantine_database(db_path: &Path) -> Result<(), String> {
+fn quarantine_database(db_path: &Path) -> Result<PathBuf, String> {
     let stamp = chrono::Local::now().format("%Y%m%d_%H%M%S").to_string();
+    let moved_db = PathBuf::from(format!("{}.corrupt-{}", db_path.display(), stamp));
     for suffix in ["", "-wal", "-shm"] {
         let from = PathBuf::from(format!("{}{}", db_path.display(), suffix));
-        if from.exists() {
-            let to = PathBuf::from(format!("{}.corrupt-{}", from.display(), stamp));
-            fs::rename(&from, &to).map_err(|e| format!("Failed to move unreadable database aside: {}", e))?;
+        if !from.exists() {
+            continue;
         }
+        let to = if suffix.is_empty() {
+            moved_db.clone()
+        } else {
+            PathBuf::from(format!("{}.corrupt-{}", from.display(), stamp))
+        };
+        fs::rename(&from, &to).map_err(|e| format!("Failed to move unreadable database aside: {}", e))?;
     }
-    Ok(())
+    Ok(moved_db)
 }
 
 fn open_database(db_path: &Path) -> Result<rusqlite::Connection, Box<dyn std::error::Error>> {
@@ -144,5 +172,52 @@ pub(crate) fn setup_window(window: &tauri::WebviewWindow) {
     match window.set_icon(tauri::include_image!("icons/32x32.png")) {
         Ok(_) => log::info!("Window icon set successfully"),
         Err(e) => log::warn!("Failed to set window icon: {}", e),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::setup_database;
+    use std::fs;
+
+    fn temp_dir(name: &str) -> std::path::PathBuf {
+        let dir = std::env::temp_dir().join(format!("feedmee-startup-{}-{}", name, std::process::id()));
+        let _ = fs::remove_dir_all(&dir);
+        fs::create_dir_all(&dir).unwrap();
+        dir
+    }
+
+    #[test]
+    fn corrupt_database_is_moved_aside_and_replaced() {
+        let dir = temp_dir("corrupt");
+        let db_path = dir.join("feedmee.db");
+        fs::write(&db_path, b"this is not a database, no matter how it is read").unwrap();
+
+        let (conn, recovered_from) = setup_database(&db_path).expect("a fresh database must open");
+        let moved_to = recovered_from.expect("the unreadable file must be reported");
+        assert_eq!(
+            fs::read(&moved_to).unwrap(),
+            b"this is not a database, no matter how it is read".to_vec()
+        );
+
+        let version: i64 = conn.query_row("PRAGMA user_version", [], |r| r.get(0)).unwrap();
+        assert_eq!(version, 1);
+
+        drop(conn);
+        let _ = fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn unopenable_database_is_kept_in_place() {
+        let dir = temp_dir("unopenable");
+        let db_path = dir.join("feedmee.db");
+        // A directory where the file should be: SQLite cannot open it, but that
+        // is not corruption, so nothing may be moved aside.
+        fs::create_dir_all(&db_path).unwrap();
+
+        assert!(setup_database(&db_path).is_err());
+        assert!(db_path.is_dir());
+
+        let _ = fs::remove_dir_all(&dir);
     }
 }
