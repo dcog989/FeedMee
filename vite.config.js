@@ -30,6 +30,13 @@ export default defineConfig({
     watch: {
       ignored: ["**/src-tauri/**"],
     },
+    // Tauri opens the webview as soon as the port listens, before the module
+    // graph is warm. Warm the shell (and everything it imports) so the first
+    // ?svelte&type=style request finds compiled components instead of falling
+    // through to Vite's plain CSS loader with the raw .svelte source.
+    warmup: {
+      clientFiles: ["./src/routes/+layout.svelte", "./src/routes/+page.svelte"],
+    },
   },
   build: {
     chunkSizeWarningLimit: 1000,
