@@ -97,7 +97,7 @@ pub fn save_app_settings(
     Ok(())
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 pub fn pick_system_font(app_handle: tauri::AppHandle) -> Result<String, String> {
     let (tx, rx) = std::sync::mpsc::channel();
 

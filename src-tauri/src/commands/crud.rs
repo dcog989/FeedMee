@@ -6,19 +6,19 @@ use log::info;
 use rusqlite::Connection;
 use tauri::{Manager, State};
 
-#[tauri::command]
+#[tauri::command(async)]
 pub fn get_folders_with_feeds(state: State<'_, AppState>) -> Result<Vec<Folder>, String> {
     let conn = state.db.lock().unwrap();
     db::get_folders_with_feeds(&conn).map_err(|e| e.to_string())
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 pub fn get_feed_unread_count(feed_id: i64, state: State<'_, AppState>) -> Result<i64, String> {
     let conn = state.db.lock().unwrap();
     db::get_feed_unread_count(&conn, feed_id).map_err(|e| e.to_string())
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 pub fn get_articles_for_feed(
     feed_id: i64,
     limit: usize,
@@ -30,7 +30,7 @@ pub fn get_articles_for_feed(
     db::get_articles_for_feed(&conn, feed_id, limit, offset, sort_desc).map_err(|e| e.to_string())
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 pub fn get_articles_for_folder(
     folder_id: i64,
     limit: usize,
@@ -42,7 +42,7 @@ pub fn get_articles_for_folder(
     db::get_articles_for_folder(&conn, folder_id, limit, offset, sort_desc).map_err(|e| e.to_string())
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 pub fn get_latest_articles(
     cutoff_timestamp: i64,
     limit: usize,
@@ -54,7 +54,7 @@ pub fn get_latest_articles(
     db::get_latest_articles(&conn, cutoff_timestamp, limit, offset, sort_desc).map_err(|e| e.to_string())
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 pub fn get_saved_articles(
     limit: usize,
     offset: usize,
@@ -65,19 +65,19 @@ pub fn get_saved_articles(
     db::get_saved_articles(&conn, limit, offset, sort_desc).map_err(|e| e.to_string())
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 pub fn create_folder(name: String, state: State<'_, AppState>) -> Result<i64, String> {
     let conn = state.db.lock().unwrap();
     db::create_folder(&conn, &name).map_err(|e| e.to_string())
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 pub fn mark_article_saved(id: i64, is_saved: bool, state: State<'_, AppState>) -> Result<(), String> {
     let conn = state.db.lock().unwrap();
     db::update_article_saved(&conn, id, is_saved).map_err(|e| e.to_string())
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 pub fn mark_article_read(id: i64, read: bool, state: State<'_, AppState>) -> Result<(), String> {
     let conn = state.db.lock().unwrap();
     db::set_article_read(&conn, id, read).map_err(|e| e.to_string())
@@ -191,7 +191,7 @@ pub async fn export_opml(path: String, state: State<'_, AppState>) -> Result<(),
     std::fs::write(&path, opml).map_err(|e| format!("Failed to write {}: {}", path, e))
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 pub fn rename_folder(id: i64, new_name: String, state: State<'_, AppState>) -> Result<(), String> {
     let conn = state.db.lock().unwrap();
     if db::folder_name_exists(&conn, &new_name, Some(id)).map_err(|e| e.to_string())? {
@@ -200,7 +200,7 @@ pub fn rename_folder(id: i64, new_name: String, state: State<'_, AppState>) -> R
     db::rename_folder(&conn, id, &new_name).map_err(|e| e.to_string())
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 pub fn rename_feed(id: i64, new_name: String, new_url: String, state: State<'_, AppState>) -> Result<(), String> {
     let conn = state.db.lock().unwrap();
     let feed = db::get_feed(&conn, id).map_err(|e| e.to_string())?;
@@ -230,13 +230,13 @@ pub fn delete_folder(id: i64, state: State<'_, AppState>) -> Result<(), String> 
     db::delete_folder(&conn, id).map_err(|e| e.to_string())
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 pub fn move_feed(feed_id: i64, folder_id: Option<i64>, state: State<'_, AppState>) -> Result<(), String> {
     let conn = state.db.lock().unwrap();
     db::move_feed(&conn, feed_id, folder_id).map_err(|e| e.to_string())
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 pub fn search_articles(
     query: String,
     limit: usize,
@@ -248,31 +248,31 @@ pub fn search_articles(
     db::search_articles(&conn, &query, limit, offset, sort_desc).map_err(|e| e.to_string())
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 pub fn get_tags_for_article(article_id: i64, state: State<'_, AppState>) -> Result<Vec<Tag>, String> {
     let conn = state.db.lock().unwrap();
     db::get_tags_for_article(&conn, article_id).map_err(|e| e.to_string())
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 pub fn get_all_tags(state: State<'_, AppState>) -> Result<Vec<Tag>, String> {
     let conn = state.db.lock().unwrap();
     db::get_all_tags(&conn).map_err(|e| e.to_string())
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 pub fn add_tag(article_id: i64, name: String, color: String, state: State<'_, AppState>) -> Result<Tag, String> {
     let conn = state.db.lock().unwrap();
     db::add_tag_to_article(&conn, article_id, &name, &color).map_err(|e| e.to_string())
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 pub fn remove_tag(article_id: i64, tag_id: i64, state: State<'_, AppState>) -> Result<(), String> {
     let conn = state.db.lock().unwrap();
     db::remove_tag_from_article(&conn, article_id, tag_id).map_err(|e| e.to_string())
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 pub fn delete_tag(tag_id: i64, state: State<'_, AppState>) -> Result<(), String> {
     let conn = state.db.lock().unwrap();
     db::delete_tag(&conn, tag_id).map_err(|e| e.to_string())
