@@ -290,6 +290,10 @@ class AppStateImpl {
       id: readInt(LS_LAST_VIEW_ID, 0),
     });
 
+    // Read the saved article before selecting the view: selecting it persists
+    // its first row, which would overwrite the article we mean to restore.
+    const lastArticleId = readInt(LS_LAST_ARTICLE, -1);
+
     if (target.kind === "saved") await this.selectFeed(FEED_ID_SAVED);
     else if (target.kind === "feed") await this.selectFeed(target.id);
     else if (target.kind === "folder") await this.selectFolder(target.id);
@@ -299,7 +303,6 @@ class AppStateImpl {
     // that was open last, but only when it is in the loaded page; otherwise the
     // first article stays selected. Direct assignment avoids read-marking.
     if (this.settings.startup_article === "last") {
-      const lastArticleId = readInt(LS_LAST_ARTICLE, -1);
       const lastArticle = this.articles.find((a) => a.id === lastArticleId);
       if (lastArticle) {
         this.selectedArticle = lastArticle;
@@ -313,7 +316,11 @@ class AppStateImpl {
     // startup targets a specific folder, collapse the others so a previously
     // expanded folder does not linger alongside it.
     const expandFolderId = startupExpandFolderId(target, this.folders);
-    const restored = new Set<number>(storedFolderIds ?? this.folders.map((f) => f.id));
+    // Drop ids of folders deleted since the set was saved.
+    const existingFolderIds = new Set(this.folders.map((f) => f.id));
+    const restored = new Set<number>(
+      (storedFolderIds ?? [...existingFolderIds]).filter((id) => existingFolderIds.has(id)),
+    );
     this.expandedFolders = expandFolderId !== null ? expandFolder(expandFolderId) : restored;
 
     // Establish the initial view first so the refresh can publish the selected
