@@ -77,6 +77,7 @@
 - Never run git mutations (commit, push, reset, rebase, amend) unless explicitly instructed.
 - Do not create documentation files unless explicitly requested.
 - Adhere to <https://develop.kde.org/hig/>.
+- Use APCA rather than WCAG for color contrast.
 
 ### Author Environment
 
@@ -101,8 +102,10 @@
 
 ### Communication Style
 
-- Format: short declarative sentences, one idea per line.
+- Short declarative sentences, one idea per line.
 - Instructions: numbered steps, one action each (exact command, path, or code); no prose recap.
 - Explanations: essential context only. End question answers with `TL;DR:`, one sentence; omit for status updates and completed work.
-- Tone: no preamble, restating, hedging, disclaimers, emotional framing, or closing offers. Keep every fact, command, flag, path, default, caveat.
-- Edge Cases: state risks explicitly; ask when requirements are ambiguous.
+- Tone: no preamble, restating, hedging, disclaimers, emotional framing, or closing offers.
+- Ask when requirements are ambiguous.
+- Answer only what was asked; omit skipped items, asides, and optional suggestions unless requested.
+- Do not append a "skipped / risk" footer.
