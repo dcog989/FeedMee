@@ -2,6 +2,86 @@
 All notable changes to this project will be documented in this file. See [conventional commits](https://www.conventionalcommits.org/) for commit guidelines.
 
 - - -
+## v1.25.0 - 2026-11-22
+#### Features
+- (**about**) add log level controls and drop from settings - (4df6609) - dcog989
+- (**about**) redesign, refine - (9807153) - dcog989
+- (**backup**) keep the last 10 and only write when subscriptions change - (4b5c3ba) - dcog989
+- (**manage**) add close button to manage content dialog - (f995737) - dcog989
+- (**nav**) show a 0 badge for fully read feeds instead of the refresh icon - (861468e) - dcog989
+- (**nav**) move settings and about buttons into top toolbar - (159d95b) - dcog989
+- (**reading-pane**) show feed favicon in the article header - (845357e) - dcog989
+- (**settings**) choose latest or last opened article on startup - (f26285f) - dcog989
+- (**shortcuts**) open settings with ctrl+comma - (c715593) - dcog989
+- (**ui**) add icons to modal titles, consistent styling - (0402b2c) - dcog989
+#### Bug Fixes
+- (**about**) label the folder as subscription backups - (926a8dc) - dcog989
+- (**articles**) correct upserts, unread badges and latest view - (63e41f8) - dcog989
+- (**articles**) hide orphaned saves from Latest and keep the blocked list scrollable - (318cec6) - dcog989
+- (**articles**) keep a finished loadMore from clearing a newer reload - (a510580) - dcog989
+- (**backup**) prune old backups even when subscriptions are unchanged - (34eb681) - dcog989
+- (**commands**) keep blocking database work off the main thread - (7eb9e88) - dcog989
+- (**config**) write files atomically and apply retention now - (2a614f5) - dcog989
+- (**db**) actually drop sentinel orphans when unsaving - (de520ff) - dcog989
+- (**db**) carry a save onto the hidden copy when a feed is deleted again - (7f09963) - dcog989
+- (**db**) match all search terms instead of the exact phrase - (8581537) - dcog989
+- (**db**) keep the daily purge off undated rows and out of the FTS rebuild - (bfdb8ff) - dcog989
+- (**db**) keep tagged articles and their tags when a feed is deleted - (5769679) - dcog989
+- (**db**) move pre-baseline libraries aside instead of re-stamping them - (8b8c2d7) - dcog989
+- (**feeds**) preserve article state and surface cursor errors - (639dfb2) - dcog989
+- (**feeds**) confirm a library-wide mark-all-read and prune deleted folders - (c2c8ea3) - dcog989
+- (**modal**) keep the focus ring off mouse-opened triggers - (e0b2d13) - dcog989
+- (**net**) reject CGNAT, this-network and benchmarking ranges - (3852922) - dcog989
+- (**opml**) refresh only the imported feeds - (4849bc8) - dcog989
+- (**opml**) harden import and export - (7c43037) - dcog989
+- (**reading-pane**) build the byline from present parts - (a6562f6) - dcog989
+- (**reading-pane**) reserve scrollbar gutter to stop content shift - (89adca6) - dcog989
+- (**scraper**) cap the articles taken from one page - (9708d06) - dcog989
+- (**settings**) flush the pending save when the settings dialog closes - (68b4904) - dcog989
+- (**settings**) keep articles when the settings file cannot be parsed - (bef2d82) - dcog989
+- (**settings**) render shorthand hex in colour swatches - (568ed80) - dcog989
+- (**settings-ui**) name the mark-read option for what it does - (1594469) - dcog989
+- (**startup**) read the last article first and forget deleted folders - (cb94759) - dcog989
+- (**startup**) keep the library and settings when files are unreadable - (5db1c59) - dcog989
+- (**tags**) keep articles when the last tag goes - (135b828) - dcog989
+- (**tags**) drop articles left unreachable by the last tag - (5c95a8c) - dcog989
+- (**theme**) neutral greys, refine bg colors - (4130c63) - dcog989
+- (**thumbnails**) give every cache write its own temp file - (3c9d7b1) - dcog989
+- (**ui**) refine colors - (3304966) - dcog989
+- (**ui**) about modal labels wrapping - (384dcba) - dcog989
+- (**vite**) warm the app shell to avoid the dev CSS load race - (500c069) - dcog989
+#### Performance Improvements
+- (**commands**) run bulk row changes off the main thread - (2422ab0) - dcog989
+- (**rss**) probe conventional feed paths concurrently - (a8d3620) - dcog989
+#### Documentation
+- refine app description - (1c00e1a) - dcog989
+- custom dark theme matching the app - (481e670) - dcog989
+- custom dark theme matching the app - (53a394a) - dcog989
+- custom dark theme matching the app - (d349539) - dcog989
+- use dark theme for the Pages site - (575ba28) - dcog989
+#### Tests
+- (**db**) cover the feed URL lookup used by rename - (14b120a) - dcog989
+- (**db**) cover bulk mark-read, search operators and upsert branches - (6746d82) - dcog989
+#### Continuous Integration
+- install just on the windows job - (660f476) - dcog989
+#### Refactoring
+- (**db**) share the unread predicate - (62eec3b) - dcog989
+- (**db**) rely on the foreign key cascade when deleting a tag - (db3ab12) - dcog989
+- (**settings**) merge visual options under Visuals - (74ec982) - dcog989
+- (**settings**) fix refresh debounce at 4 minutes - (e0307c0) - dcog989
+- (**shortcuts**) reuse the article read action - (2b198e2) - dcog989
+#### Miscellaneous Chores
+- (**ci**) drop the duplicate test run - (63c0a45) - dcog989
+- (**deps**) bump EmbarkStudios/cargo-deny-action from 2.1.1 to 2.1.2 - (b128379) - dependabot[bot]
+- (**release**) use the built-in changelog template - (08a6459) - dcog989
+- updates - (057bdd6) - dcog989
+- updates - (6aa0a9b) - dcog989
+#### Style
+- (**backup**) collapse nested if to satisfy clippy - (1ef982c) - dcog989
+- (**nav**) pin manage content to the toolbar's right edge - (04528b0) - dcog989
+
+- - -
+
 ## v1.24.0 - 2026-11-19
 
 #### Features
